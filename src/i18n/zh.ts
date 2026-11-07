@@ -262,7 +262,7 @@ export const zh: Copy = {
     custom: "聊聊定制需求",
   },
   footer: {
-    tagline: "Your inbox. Your identity.",
+    tagline: "Abnormally good.",
     productLabel: "产品 / PRODUCT",
     supportLabel: "支持 / SUPPORT",
     contactLabel: "保持联系 / CONTACT",
