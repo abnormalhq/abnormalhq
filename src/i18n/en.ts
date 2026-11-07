@@ -274,7 +274,7 @@ export const en: Copy = {
     custom: "Talk about custom needs",
   },
   footer: {
-    tagline: "Your inbox. Your identity.",
+    tagline: "Abnormally good.",
     productLabel: "Product",
     supportLabel: "Support",
     contactLabel: "Contact",
