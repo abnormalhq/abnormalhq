@@ -1,6 +1,6 @@
 /**
- * 两种语言共用的 HTML 骨架：主题脚本、字体预载、跳转链接、页头页脚与咨询弹窗。
- * /（英文）与 /zh/（中文）各有一个根布局（src/app 下的两个路由组），都只是把语言交给这里。
+ * HTML skeleton shared by both languages: theme script, font preloads, skip link, header, footer and the inquiry dialog.
+ * / (English) and /zh/ (Chinese) each have a root layout (the two route groups under src/app) that only hands the language to this.
  */
 import type { ReactNode } from "react";
 import { preload } from "react-dom";
@@ -25,9 +25,9 @@ export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode
   preload("/fonts/BricolageGrotesque-Variable.woff2", fontOptions);
 
   return (
-    // suppressHydrationWarning：theme-init.js 会在水合前改写 <html> 的 data-theme 与 color-scheme。
+    // suppressHydrationWarning: theme-init.js rewrites data-theme and color-scheme on <html> before hydration.
     <html lang={t.htmlLang} data-scroll-behavior="smooth" suppressHydrationWarning>
-      {/* 这是 App Router 的根布局骨架，只是放在 components/ 下，规则按路径判断成了 Pages Router。 */}
+      {/* This is the App Router root layout skeleton; it only lives under components/, so the path-based rule mistakes it for Pages Router. */}
       {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
         <ThemeHead />

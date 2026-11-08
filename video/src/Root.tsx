@@ -5,7 +5,7 @@ import { FPS, HEIGHT, WIDTH } from "./theme";
 
 void loadFonts();
 
-/** 两种语言各一个合成：promo-en 与 promo-zh。封面图用 remotion still 从同一个合成里取一帧（见 package.json）。 */
+/** One composition per language: promo-en and promo-zh. The poster is a frame taken from the same composition with remotion still (see package.json). */
 export function Root() {
   return (
     <>

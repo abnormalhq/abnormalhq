@@ -8,7 +8,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: Asia/Shanghai
-    # 新版本发布满几天再提 PR，避开刚发布就被撤回或投毒的版本。
+    # Wait a few days after a release before opening a PR, to skip versions that get yanked or poisoned right after publishing.
     cooldown:
       default-days: 3
       semver-major-days: 14
@@ -16,12 +16,12 @@ updates:
     commit-message:
       prefix: chore
       include: scope
-    # minor / patch 合成一个 PR；major 仍各自单独提，方便逐个看破坏性变更。
+    # Group minor / patch updates into one PR; majors still get their own so breaking changes can be reviewed one by one.
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
     ignore:
-      # typescript-eslint 还不支持 TS 7，typescript 停在 6.x（package.json 里是 @typescript/typescript6 别名）。
+      # typescript-eslint does not support TS 7 yet, so typescript stays on 6.x (aliased to @typescript/typescript6 in package.json).
       - dependency-name: typescript
         update-types: [version-update:semver-major]
 

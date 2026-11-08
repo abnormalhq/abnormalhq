@@ -1,12 +1,12 @@
 @import "tailwindcss";
-/* 设计令牌与字体来自 registry（@abnormal/theme、@abnormal/fonts），不要直接改这两个文件。 */
+/* Design tokens and fonts come from the registry (@abnormal/theme, @abnormal/fonts); do not edit those two files directly. */
 @import "./abnormal.css";
 @import "./abnormal-fonts.css";
-/* 仓库配置（如 dependabot.yml 里的 version-update:semver-major）会被 Tailwind 当成任意属性类，不扫描它们。 */
+/* Tailwind would treat repository config (such as version-update:semver-major in dependabot.yml) as arbitrary property classes, so it is not scanned. */
 @source not "../../.github";
 
 /*
- * 官网自己的断点。都写成 rem：Tailwind 只能给同单位的断点排序，px 和 rem 混用时窄屏规则可能被 max-md 盖掉。
+  * The site's own breakpoints. All in rem: Tailwind can only sort breakpoints that share a unit, and mixing px and rem lets max-md override the narrow-screen rules.
  */
 @theme {
   --breakpoint-phone: 23.8125rem; /* 381px */
@@ -17,12 +17,12 @@
   --breakpoint-wide: 90rem; /* 1440px */
 }
 
-/* 下面只放官网自己的全局规则；组件样式都写在 className 里。 */
+/* Only the site's own global rules go below; component styles are written in className. */
 @layer base {
   html {
     scroll-padding-top: 5rem;
   }
-  /* 写成 no-preference：这里排在主题后面，直接写 smooth 会盖掉主题里针对「减少动态效果」的规则。 */
+  /* Written as no-preference: this comes after the theme, and a plain smooth would override the theme's "reduced motion" rule. */
   @media (prefers-reduced-motion: no-preference) {
     html {
       scroll-behavior: smooth;

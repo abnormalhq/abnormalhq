@@ -4,25 +4,25 @@ import { rehypePlugins, remarkPlugins } from "./src/content/legal/mdx.ts";
 import { site } from "./src/data/site.ts";
 import { pagePaths, pages } from "./src/lib/pages.ts";
 
-// 带扩展名的路径（/icon.svg），写法与 Next.js 内置的尾部斜杠规则相同。
+// Paths with an extension (/icon.svg), written the same way as the trailing-slash rule built into Next.js.
 const filePath = "/:file((?!\\.well-known(?:/.*)?)(?:[^/]+/)*[^/]+\\.\\w+)";
 const onWww = [{ type: "host" as const, value: site.wwwHost }];
 
 const nextVary = "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch, Next-Url";
 
 const nextConfig: NextConfig = {
-  // /privacy/ 与 /zh/ 都带尾部斜杠，沿用原有的线上路径。
+  // /privacy/ and /zh/ both carry a trailing slash, keeping the paths that were already live.
   trailingSlash: true,
   async redirects() {
     return [
-      // www 绑在同一个 Worker 上（见 wrangler.jsonc），只负责跳到主域名，保留路径与查询参数。
-      // 主域名的文件路径不带尾部斜杠、页面路径带，分开写才不会多跳一次。
+      // www is bound to the same Worker (see wrangler.jsonc) and only redirects to the main domain, keeping path and query string.
+      // On the main domain file paths have no trailing slash and page paths do; listing them separately avoids an extra hop.
       { source: filePath, has: onWww, destination: "https://abnormalhq.com/:file", statusCode: 301 },
       { source: "/:path*", has: onWww, destination: "https://abnormalhq.com/:path*/", statusCode: 301 },
-      // Next.js 内置了去掉文件路径尾部斜杠的规则，但 OpenNext 不执行内置规则，只自己补页面路径的斜杠。
+      // Next.js has a built-in rule that strips the trailing slash from file paths, but OpenNext does not run built-in rules and only adds the slash to page paths itself.
       { source: `${filePath}/`, destination: "/:file", statusCode: 308 },
-      // 英文原来在 /en/ 下，改成默认语言后搬到了根路径；旧地址（含 Markdown 版本）永久跳到新地址，外链与搜索结果不失效。
-      // 只列已有的页面，不认识的 /en/ 地址照常 404。
+      // English used to live under /en/; as the default language it moved to the root. Old URLs (Markdown versions included) redirect permanently, so external links and search results keep working.
+      // Only existing pages are listed; unknown /en/ URLs 404 as usual.
       ...pagePaths.flatMap((path) => [
         { source: `/en${path}`, destination: path, statusCode: 301 },
         { source: `/md/en${path}`, destination: `/md${path}`, statusCode: 301 },
@@ -37,24 +37,24 @@ const nextConfig: NextConfig = {
           key: "Link",
           value: `</llms.txt>; rel="describedby"; type="text/plain", <${page.markdown}>; rel="alternate"; type="text/markdown"`,
         },
-        // 这里的值会替换 Next.js 自己输出的 Vary，所以要带上它原有的几项。
+        // This value replaces the Vary that Next.js emits itself, so it has to include the original entries.
         { key: "Vary", value: `${nextVary}, Accept` },
       ],
     }));
   },
   experimental: {
-    // 英文与中文各有一个根布局，没有共同的根，404 要用 src/app/global-not-found.tsx。
+    // English and Chinese each have their own root layout with no shared root, so the 404 has to be src/app/global-not-found.tsx.
     globalNotFound: true,
   },
   turbopack: {
     rules: {
-      // Worker 运行时不能用 fs 读项目文件，主题脚本在构建时打包成字符串。
+      // The Worker runtime cannot read project files with fs, so the theme script is bundled as a string at build time.
       "**/scripts/theme-init.js": { loaders: ["raw-loader"], as: "*.js" },
     },
   },
 };
 
-// Turbopack 要求插件写成包名字符串；清单在 src/content/legal/mdx.ts，测试用同一份编译法律文档。
+// Turbopack requires plugins to be written as package-name strings; the list is in src/content/legal/mdx.ts, and the tests compile the legal documents with the same one.
 const withMDX = createMDX({ options: { remarkPlugins, rehypePlugins } });
 
 export default withMDX(nextConfig);

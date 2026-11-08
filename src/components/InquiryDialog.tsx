@@ -23,7 +23,7 @@ const fieldClass = "block min-w-0 text-sm/body font-medium";
 const linkClass =
   "underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current";
 
-/** 包一个按钮（asChild 的写法），点击时打开咨询弹窗，product 是预选的服务。 */
+/** Wraps a button (asChild style) that opens the inquiry dialog on click; product is the preselected service. */
 export function InquiryButton({ product, ...props }: ComponentProps<typeof Slot.Root> & { product?: string }) {
   const openInquiry = use(OpenInquiryContext);
   return <Slot.Root {...props} onClick={(event) => openInquiry(product, event.currentTarget as HTMLElement)} />;
@@ -66,7 +66,7 @@ export function InquiryProvider({
   lang: Lang;
   copy: Copy["inquiry"];
   dot: string;
-  /** 可以咨询的服务名称。 */
+  /** Names of the services that can be inquired about. */
   products: readonly string[];
   termsPage: { href: string; label: string };
   privacyPage: { href: string; label: string };
@@ -104,7 +104,7 @@ export function InquiryProvider({
           className="flex max-h-[calc(100dvh-40px)] w-[min(560px,calc(100%-34px))] max-w-none flex-col gap-0 overflow-hidden overscroll-contain p-0 sm:max-w-none max-dialog:max-h-[calc(100dvh-24px)] max-dialog:w-[calc(100%-34px)] [@media(max-height:600px)]:block [@media(max-height:600px)]:overflow-y-auto"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
-            // 触发按钮已不可见时，焦点回到移动端菜单开关。
+            // When the trigger button is no longer visible, focus returns to the mobile menu toggle.
             if (lastTrigger.current?.getClientRects().length) lastTrigger.current.focus();
             else document.querySelector<HTMLElement>('[aria-controls="mobile-nav"]')?.focus();
           }}
@@ -145,7 +145,7 @@ export function InquiryProvider({
               if (!container) return;
               setCopying(true);
               const copied = await copyText(formatInquiry(inquiry, lang), container, copy.copyFieldLabel);
-              // 先解除禁用，按钮才能重新拿到焦点。
+              // Re-enable first, otherwise the button cannot take focus again.
               flushSync(() => setCopying(false));
               if (container.isConnected) {
                 copyButton.current?.focus();

@@ -1,13 +1,13 @@
 /**
- * 生成分享卡片图片 public/og/zh.png 与 public/og/en.png（1200×630，src/lib/metadata.ts 引用）。
- * 文案取首屏标题与分享描述，改了 src/i18n 里的这几项后重新运行。
+ * Generates the social card images public/og/zh.png and public/og/en.png (1200x630, referenced by src/lib/metadata.ts).
+ * The copy comes from the hero title and the social description; rerun after changing those in src/i18n.
  *
- * 本仓库不依赖 Playwright：先全局装一份和它的 Chromium，再用 NODE_PATH 指向全局目录，脚本才能加载到它：
+ * This repository does not depend on Playwright: install it and its Chromium globally, then point NODE_PATH at the global directory so the script can load it:
  *
  *   npm install -g playwright && playwright install chromium
  *   NODE_PATH="$(npm root -g)" node scripts/og-images.ts
  *
- * 中文字形从 Google Fonts 取 Noto Sans SC，生成时需要联网。
+ * Chinese glyphs come from Noto Sans SC on Google Fonts, so generating needs network access.
  */
 import { mkdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -17,8 +17,8 @@ import { en } from "../src/i18n/en.ts";
 import type { Copy } from "../src/i18n/types.ts";
 import { zh } from "../src/i18n/zh.ts";
 
-// 用 require 加载，全局安装的 Playwright（NODE_PATH）也能找到。
-// 本仓库不依赖 Playwright，这里只写出用到的部分。
+// Loaded with require so a globally installed Playwright (NODE_PATH) is found too.
+// This repository does not depend on Playwright, so only the parts used here are typed.
 interface Page {
   setContent(html: string, options: { waitUntil: "networkidle" }): Promise<void>;
   evaluate(fn: () => unknown): Promise<unknown>;
@@ -32,14 +32,14 @@ const { chromium } = createRequire(import.meta.url)("playwright") as { chromium:
 
 const copies: Record<Lang, Copy> = { zh, en };
 const root = new URL("../", import.meta.url);
-// setContent 的页面读不了 file:// 字体，所以内嵌成 data URL。
+// A page loaded with setContent cannot read file:// fonts, so they are inlined as data URLs.
 const font = (file: string) =>
   `data:font/woff2;base64,${readFileSync(new URL(`public/fonts/${file}`, root)).toString("base64")}`;
 
 const escape = (text: string) =>
   text.replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]!);
 
-// 与 src/components/ui/brand-mark.tsx 相同的品牌标记。
+// The same brand mark as src/components/ui/brand-mark.tsx.
 const glyph =
   "M21.4 36 21.09 33.92Q20.26 35.01 19.14 35.59Q18.01 36.18 16.16 36.18Q14.38 36.18 13.09 35.58Q11.8 34.99 11.1 33.92Q10.4 32.85 10.4 31.41Q10.4 29.27 11.97 27.83Q13.55 26.39 16.62 26.05L21.09 25.55V24.25Q21.09 23.42 20.36 22.76Q19.63 22.09 18.08 22.09Q16.72 22.09 15.71 22.76Q14.71 23.42 14.37 24.74L11.03 23.51Q11.69 21.27 13.61 20.01Q15.52 18.76 18.28 18.76Q21.6 18.76 23.27 20.42Q24.93 22.08 24.93 24.67V36ZM21.09 28.52 16.99 29.04Q15.7 29.21 15.06 29.77Q14.41 30.34 14.41 31.17Q14.41 31.97 15.03 32.51Q15.65 33.06 16.76 33.06Q18.16 33.06 19.13 32.56Q20.1 32.07 20.59 31.11Q21.09 30.15 21.09 28.76Z";
 const mark = `<svg viewBox="0 0 48 48" width="56" height="56" style="border-radius:6px"><rect width="48" height="48" fill="#ffe14d"/><path d="${glyph}" fill="#f7f7f4" transform="translate(2.2 0)"/><path d="${glyph}" fill="#141412"/><path d="M28 21 37.8 11.2M30.5 10H39v8.5" fill="none" stroke="#141412" stroke-width="3.2" stroke-linecap="square"/></svg>`;

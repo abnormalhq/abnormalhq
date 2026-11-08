@@ -9,7 +9,7 @@ export const dynamicParams = false;
 
 const slugOf = (page: Page) => page.markdown.split("/").filter(Boolean).slice(1);
 
-// 下载页的 Markdown 带运行时读取的版本列表，在 md/download/ 与 md/zh/download/ 自己的路由里，不在这里预渲染。
+// The download page's Markdown includes the release list read at runtime; it lives in the md/download/ and md/zh/download/ routes and is not prerendered here.
 const prerendered = pages.filter((page) => page.path !== "/download/");
 
 export function generateStaticParams() {

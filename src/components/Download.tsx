@@ -11,8 +11,8 @@ import { fileLabel, formatSize, releaseDate, type DesktopReleases } from "@/lib/
 import { Icon } from "./Icon";
 
 /**
- * 桌面客户端下载页：当前版本号，两个平台各一张卡片，登录说明，历史版本与校验值。
- * releases 在每次请求时读取（src/lib/releases.ts），读不到时不显示版本号与历史版本，下载按钮照常可用。
+ * Desktop client download page: current version number, one card per platform, sign-in notes, past releases and checksums.
+ * releases is read on every request (src/lib/releases.ts); when unavailable, the version number and past releases are hidden and the download buttons still work.
  */
 export function Download({ lang, releases }: { lang: Lang; releases?: DesktopReleases }) {
   const { t, links } = useCopy(lang);

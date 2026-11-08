@@ -1,11 +1,11 @@
 /**
- * 两种语言的片中文字。取自官网文案（src/i18n/zh.ts、en.ts）里首屏、流程与收尾的句子，
- * 官网文案改了这里要跟着改：视频不从 src/i18n 直接引用，是为了让这个工程不依赖官网的模块。
+ * The on-screen text in both languages, taken from the hero, process and closing sentences of the site copy (src/i18n/zh.ts, en.ts).
+ * When the site copy changes, change this too: the video does not import src/i18n directly so that this project does not depend on the site's modules.
  */
 export type Lang = "zh" | "en";
 
 export interface VideoCopy {
-  /** <html lang>，影响 Noto Sans SC 等字形的选择。 */
+  /** <html lang>, which affects the choice of glyphs such as Noto Sans SC. */
   htmlLang: string;
   dot: string;
   tagline: string;

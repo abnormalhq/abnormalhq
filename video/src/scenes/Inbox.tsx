@@ -9,7 +9,7 @@ const avatars = [
   { icon: "check", color: color.muted },
 ] as const;
 
-/** 首屏插图放大版：收件箱卡片、黄色「GOOD MAIL. GOOD DAYS.」色块、专属地址卡片。 */
+/** The hero illustration enlarged: the inbox card, the yellow "GOOD MAIL. GOOD DAYS." block and the personal address card. */
 export function Inbox({ t }: { t: VideoCopy }) {
   const frame = useCurrentFrame();
   const m = t.mock;
@@ -101,7 +101,7 @@ export function Inbox({ t }: { t: VideoCopy }) {
         </div>
       </div>
 
-      {/* 黄色色块：黄底上一律墨色。 */}
+      {/* The yellow block: always ink on yellow. */}
       <div
         style={{
           position: "absolute",
@@ -148,7 +148,7 @@ export function Inbox({ t }: { t: VideoCopy }) {
         <span style={{ position: "absolute", right: 20, bottom: 14, fontSize: 36 }}>✳</span>
       </div>
 
-      {/* 收件箱卡片 */}
+      {/* The inbox card */}
       <div
         style={{
           ...panel,

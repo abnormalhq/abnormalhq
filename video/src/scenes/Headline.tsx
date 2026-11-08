@@ -3,7 +3,7 @@ import type { VideoCopy } from "../copy";
 import { color, font, radius } from "../theme";
 import { Eyebrow, Paper, Rings, useEnter, useSpringAt } from "../ui";
 
-/** 首屏标题：左边两行大标题，右边是分享图里的圆环与 @abnormal.bid 标签。 */
+/** The hero headline: two large title lines on the left, the rings from the social image and the @abnormal.bid tag on the right. */
 export function Headline({ t }: { t: VideoCopy }) {
   const frame = useCurrentFrame();
   const eyebrow = useEnter(0);

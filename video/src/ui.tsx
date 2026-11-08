@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { color, font, radius } from "./theme";
 
-/** 从第 delay 帧起入场：先透明、偏下，弹簧回到原位。返回可直接铺到 style 上的值。 */
+/** Enter from frame `delay`: start transparent and shifted down, then spring into place. Returns values that can be spread onto style. */
 export function useEnter(delay: number, { distance = 28, durationInFrames = 26 } = {}) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -16,14 +16,14 @@ export function useEnter(delay: number, { distance = 28, durationInFrames = 26 }
   } satisfies CSSProperties;
 }
 
-/** 弹簧式的 0→1，用于缩放、旋转等。 */
+/** A spring-shaped 0 to 1, for scale, rotation and the like. */
 export function useSpringAt(delay: number, durationInFrames = 30, damping = 200) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return spring({ frame: frame - delay, fps, durationInFrames, config: { damping } });
 }
 
-/** 纸色背景与四角的「+」记号（首屏插图里的那种）。 */
+/** The paper background with the "+" marks in the four corners (as in the hero illustration). */
 export function Paper({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <AbsoluteFill style={{ backgroundColor: color.paper, color: color.ink, fontFamily: font.body, ...style }}>
@@ -51,7 +51,7 @@ export function Paper({ children, style }: { children: ReactNode; style?: CSSPro
   );
 }
 
-/** 小标：英文等宽小字，前面一个墨色圆点。 */
+/** Eyebrow: small English monospace text with an ink dot in front. */
 export function Eyebrow({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <div
@@ -73,7 +73,7 @@ export function Eyebrow({ children, style }: { children: ReactNode; style?: CSSP
   );
 }
 
-/** 装饰：两圈细线圆环，中间一个浅灰的大「@」，缓慢转动。 */
+/** Decoration: two thin rings with a large light-gray "@" in the middle, turning slowly. */
 export function Rings({ size, style, spin = 0 }: { size: number; style?: CSSProperties; spin?: number }) {
   return (
     <div
@@ -154,7 +154,7 @@ const paths: Record<IconName, ReactNode> = {
   ),
 };
 
-/** 与官网相同风格的线条图标（lucide 的描法，描边 1.6）。 */
+/** Line icons in the same style as the site (lucide strokes, stroke width 1.6). */
 export function Icon({
   name,
   size = 24,
@@ -183,7 +183,7 @@ export function Icon({
   );
 }
 
-/** 细描边、不铺底色、不加阴影的面板。 */
+/** A panel with a thin border, no fill and no shadow. */
 export const panel: CSSProperties = {
   border: `1px solid ${color.border}`,
   borderRadius: radius.panel,
