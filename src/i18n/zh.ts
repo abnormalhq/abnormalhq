@@ -34,7 +34,6 @@ export const zh: Copy = {
     loginWebmail: "登录网页邮箱",
   },
   theme: {
-    title: "外观主题",
     ariaTemplate: "切换主题，当前{label}",
     titleTemplate: "主题：{label}",
     options: { system: "跟随系统", light: "浅色模式", dark: "深色模式" },

@@ -83,7 +83,6 @@ export interface Copy {
     loginWebmail: string;
   };
   theme: {
-    title: string;
     /** {label} 换成当前选项。 */
     ariaTemplate: Template<"label">;
     titleTemplate: Template<"label">;
