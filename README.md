@@ -190,7 +190,7 @@ wrangler.jsonc       Cloudflare Worker 与静态资源配置
 
 视频由仓库里的 `video/` 用 [Remotion](https://www.remotion.dev/)（用 React 写视频的框架）生成：六个场景（品牌标记 → 首屏标题 → 收件箱示意 → 四步开通流程 → 价值条 → 收尾），1920×1080、30fps、约 35 秒，画面用官网浅色主题的配色、圆角与字体（`public/fonts/` 里的那几份，中文字形从 Google Fonts 取 Noto Sans SC，与分享图一致）。片中文字在 `video/src/copy.ts`，是官网文案里首屏、流程与收尾的句子，改了官网文案要跟着改。
 
-背景音乐也是生成的：`video/scripts/music.ts` 用代码合成一段 C 大调、96 BPM 的循环（铺底、电钢琴和弦、贝斯、琶音与轻鼓点分层进入，末尾收束），写到 `video/assets/music.wav`（不提交，`pnpm music` 重新生成，噪声用固定种子，每次结果相同），Remotion 以 `<Audio>` 混入，响度约 -15 LUFS。没有引入任何第三方音频素材，不涉及版权。
+背景音乐也是生成的：`video/scripts/music.ts` 用 [Tone.js](https://tonejs.github.io/) 写一段 C 大调、96 BPM 的循环（三路失谐锯齿波的铺底、FM 合成的电钢琴和弦、带滤波包络的贝斯、过乒乓延迟的琶音、膜合成底鼓与噪声合成的军鼓踩镲，分层进入，末尾收束），整体过卷积混响、压缩与限幅，离线渲染到 `video/assets/music.wav`（不提交，`pnpm music` 重新生成，约 25 秒）。Tone.js 是浏览器库，脚本用 node-web-audio-api 提供 Web Audio 实现并补上它需要的全局对象，噪声源用固定种子的随机数，每次结果相同。Remotion 以 `<Audio>` 混入，成片响度约 -17 LUFS。没有引入任何第三方音频素材，不涉及版权。
 
 `video/` 是独立的 pnpm 工程（有自己的 lockfile），不并入官网的安装：Remotion 带着浏览器与编码器的二进制，官网的 CI 与 Cloudflare 构建都用不上，根目录的 `tsconfig.json` 与 ESLint 也不包含它，Prettier 照常格式化。
 

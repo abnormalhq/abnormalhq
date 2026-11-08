@@ -17,9 +17,11 @@
     "@remotion/fonts": "4.0.541",
     "@remotion/google-fonts": "4.0.541",
     "@remotion/transitions": "4.0.541",
+    "node-web-audio-api": "^2.2.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "remotion": "4.0.541"
+    "remotion": "4.0.541",
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
