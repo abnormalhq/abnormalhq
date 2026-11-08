@@ -37,7 +37,7 @@
 
 反方向：onboard 页头与页脚的「官网」、网页邮箱登录页与状态页的「官网」链接都指回 `https://abnormalhq.com/`。
 
-页头右侧是「我的账户」（买家注册、登录与邮箱管理）、「登录邮箱」（网页邮箱）与「购买邮箱」。首页从上到下把买家流程串起来：首屏（购买邮箱 / 注册账户，下面是「登录管理邮箱 · 登录网页邮箱」）→ 01 从这里开始（购买邮箱、我的账户、兑换开通、网页邮箱四张卡片与教程、状态、客服链接）→ 02 邮箱服务（个人邮箱直达商店，其余三项咨询）→ 03 开通流程（注册账户 → 选购套餐 → 在「我的账户」开通邮箱 → 登录收发，每步带链接；「注册账户」直接打开账户页的注册表单 `?mode=register`）→ 04 常见问题 → 收尾面板（购买邮箱 + 聊聊定制需求）。
+页头右侧是「我的账户」（买家注册、登录与邮箱管理）、「登录邮箱」（网页邮箱）与「购买邮箱」。首页从上到下把买家流程串起来：首屏（购买邮箱 / 注册账户，下面是「登录管理邮箱 · 登录网页邮箱」）→ 宣传视频（配置了地址才显示，见下面「宣传视频」）→ 01 从这里开始（购买邮箱、我的账户、兑换开通、网页邮箱四张卡片与教程、状态、客服链接）→ 02 邮箱服务（个人邮箱直达商店，其余三项咨询）→ 03 开通流程（注册账户 → 选购套餐 → 在「我的账户」开通邮箱 → 登录收发，每步带链接；「注册账户」直接打开账户页的注册表单 `?mode=register`）→ 04 常见问题 → 收尾面板（购买邮箱 + 聊聊定制需求）。
 
 ## 组件与样式
 
@@ -134,7 +134,7 @@ src/
   app/            路由：(en)/ 英文页（默认语言，在根路径）、(zh)/zh/ 中文页，各有一个根布局；global-not-found.tsx 是两种语言共用的 404
   components/     SiteLayout、页头、Hero、邮箱服务卡片、流程、FAQ、咨询弹窗等页面区块；ui/ 是从 registry 安装的组件
   content/legal/  MDX 编写的隐私政策与服务条款，zh/ 与 en/ 各一份
-  data/site.ts    公开联系方式与联动站点地址（linksFor）
+  data/site.ts    公开联系方式、联动站点地址（linksFor）、宣传视频（promoVideo）与桌面客户端下载地址
   i18n/           中英文文案（zh.ts、en.ts、types.ts）与语言路径工具（paths.ts）
   lib/            inquiry.ts 咨询文案与联系方式的纯函数；metadata.ts 页面 SEO 与分享卡片；structured-data.ts 结构化数据（JSON-LD）；legal.ts 法律文档的 frontmatter 检查与目录；template.ts 文案模板；pages.ts 页面清单；markdown.ts 与 negotiate.ts 给 Agent 的 Markdown 与内容协商；cache.ts 浏览器缓存头
   scripts/        theme-init.js：内联进头部的主题初始化脚本
@@ -183,7 +183,17 @@ wrangler.jsonc       Cloudflare Worker 与静态资源配置
 
 联系信息未配置时，页面明确提示「咨询渠道即将公布」。咨询弹窗只在浏览器内整理和复制需求，不发送数据、不创建订单，也不收款。具体套餐、费用及服务条件需事先确认。
 
-## 隐私政策与服务条款
+## 宣传视频
+
+首屏下方的「先看一段视频」区块（`src/components/PromoVideo.tsx`）放一段宣传视频，用原生 `<video>` 带播放控件，不自动播放、不带声音打断访客，先只加载元数据，由封面图撑住版面。两种语言放同一段视频，标题与简介在两份文案的 `video` 里。
+
+地址在 `src/data/site.ts` 的 `promoVideo`：`src` 留空时首页不显示这一区块，`/md/` 的 Markdown 版本与结构化数据也不提它，所以没有视频时什么都不用改。上线视频的步骤：
+
+1. 把视频（MP4，H.264 + AAC；也可以是 WebM）和 16:9 的封面图（建议 1280×720 以上）上传到和安装包同一个 R2 公开桶 `abnormal-downloads`（`downloads.abnormalhq.com`）的 `video/` 下，带 `--cache-control "public, max-age=31536000, immutable"`；文件名里带日期或版本，换新片时换文件名，不要原地覆盖。
+2. 在 `promoVideo` 里填 `src`、`poster` 与发布日期 `uploadDate`（`YYYY-MM-DD`），有字幕就把各语言的 WebVTT 地址填进 `captions`，留空不挂。`tests/video.test.ts` 要求填了地址就同时填封面与日期。
+3. 提交到 `main`，自动部署。
+
+配置后首页的结构化数据里多一个 schema.org `VideoObject`（名称与简介取自文案，封面与日期取自配置），`/md/` 里多一节带视频链接的标题。
 
 `src/content/legal/zh/` 与 `src/content/legal/en/` 下的 `privacy.mdx`、`terms.mdx` 在构建时由 [`@next/mdx`](https://nextjs.org/docs/app/guides/mdx) 编译，通过 `src/components/LegalDocument.tsx` 输出，发布路径为 `/privacy/` 与 `/terms/`（中文 `/zh/privacy/`、`/zh/terms/`），页脚与咨询弹窗都有入口。正文使用 MDX 编写（普通文字里的 `{`、`}`、`<` 会被当成语法，要写成 `\{`、`\}`、`\<`），每个二级标题自动编号并生成目录；「联系我们」一节由组件根据 `site.contact` 生成，正文中无需重复联系方式。
 

@@ -4,7 +4,7 @@
  * 内容都取自界面文案与 frontmatter，不写页面上看不到的信息。
  */
 import type { LegalFrontmatter } from "../content/legal/types.ts";
-import { site, type Lang } from "../data/site.ts";
+import { configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
 import { copies } from "../i18n/index.ts";
 import { langs, localePath } from "../i18n/paths.ts";
 import { socialImage } from "./metadata.ts";
@@ -60,22 +60,42 @@ function webPage(lang: Lang, path: string, name: string, description: string): N
 
 const graph = (nodes: Node[]) => ({ "@context": "https://schema.org", "@graph": nodes });
 
-/** 首页：组织、网站，以及带常见问题的页面本身。 */
-export function homeStructuredData(lang: Lang) {
+/** 首页的宣传视频（配置了地址时才有）：名称与简介取自区块文案，封面与发布日期取自配置。 */
+function videoObject(lang: Lang, pageUrl: string, video: PromoVideo): Node {
   const t = copies[lang];
+  return {
+    "@type": "VideoObject",
+    "@id": `${pageUrl}#video`,
+    name: t.video.title,
+    description: t.video.description,
+    contentUrl: video.src,
+    thumbnailUrl: video.poster,
+    uploadDate: video.uploadDate,
+    inLanguage: t.htmlLang,
+    publisher: { "@id": organizationId },
+  };
+}
+
+/** 首页：组织、网站，以及带常见问题的页面本身；配置了宣传视频时再加上视频。 */
+export function homeStructuredData(lang: Lang, video: PromoVideo | undefined = configuredVideo()) {
+  const t = copies[lang];
+  const page = webPage(lang, "/", t.meta.title, t.meta.description);
+  const videoNode = video && videoObject(lang, page.url as string, video);
   return graph([
     organization(),
     website(lang),
     {
       "@type": ["WebPage", "FAQPage"],
-      ...webPage(lang, "/", t.meta.title, t.meta.description),
+      ...page,
       about: { "@id": organizationId },
+      ...(videoNode && { video: { "@id": videoNode["@id"] } }),
       mainEntity: t.faq.items.map(({ question, answer }) => ({
         "@type": "Question",
         name: question,
         acceptedAnswer: { "@type": "Answer", text: answer },
       })),
     },
+    ...(videoNode ? [videoNode] : []),
   ]);
 }
 

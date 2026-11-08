@@ -49,6 +49,43 @@ export function linksFor(lang: Lang) {
 export type LinkKey = keyof ReturnType<typeof linksFor>;
 
 /**
+ * 首页的宣传视频（首屏下方的「先看一段视频」区块）。视频与封面和安装包放在同一个 R2 公开桶
+ * （downloads.abnormalhq.com，桶名 abnormal-downloads）的 video/ 下，用 aws s3 cp 或 Cloudflare 后台上传，
+ * 加 `--cache-control "public, max-age=31536000, immutable"`，换新片时改文件名。
+ * src 留空时首页不显示这一区块，Markdown 版本与结构化数据也不提它；填了就要同时填封面与发布日期。
+ * 两种语言放同一段视频；字幕（WebVTT）按语言各一份，留空则不挂字幕。
+ */
+export interface PromoVideo {
+  /** MP4（H.264 + AAC）或 WebM 的完整地址。 */
+  src: string;
+  /** 封面图：16:9，建议 1280×720 以上的 JPG 或 PNG。 */
+  poster: string;
+  /** 发布日期 YYYY-MM-DD，写进结构化数据（schema.org VideoObject 的 uploadDate）。 */
+  uploadDate: string;
+  /** 各语言的字幕文件（.vtt）地址，留空不挂。 */
+  captions: Record<Lang, string>;
+}
+
+export const promoVideo: PromoVideo = {
+  src: "",
+  poster: "",
+  uploadDate: "",
+  captions: { zh: "", en: "" },
+};
+
+/** 配好了的宣传视频；src 为空时是 undefined，首页、Markdown 与结构化数据都按没有视频处理。 */
+export function configuredVideo(video: PromoVideo = promoVideo): PromoVideo | undefined {
+  return video.src.trim() ? video : undefined;
+}
+
+/** <source type>：按扩展名区分 MP4 与 WebM，其他扩展名不写 type，交给浏览器判断。 */
+export function videoMimeType(src: string): string | undefined {
+  const extension = /\.(mp4|m4v|webm|mov)(?:[?#]|$)/i.exec(src)?.[1]?.toLowerCase();
+  if (!extension) return undefined;
+  return { mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/mp4" }[extension];
+}
+
+/**
  * 桌面客户端（abnormalhq/mail 的 desktop/）的下载地址。发布时安装包上传到 R2 公开桶，
  * desktop/latest/ 下是固定文件名的最新版本，这里直接链接；latest.json 列出版本号、SHA-256 与大小。
  * releases.json 列出全部版本，下载页的当前版本与历史版本由它生成（见 src/lib/releases.ts）。

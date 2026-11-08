@@ -86,6 +86,15 @@ export const en: Copy = {
     strong: "More time to talk.",
     labels: ["Your account", "Buy online", "Self-service setup", "Webmail"],
   },
+  video: {
+    eyebrow: "See it in action",
+    title: "Watch a short video",
+    description:
+      "A short film about the Abnormal email service: a mailbox that just works, for everyday life and for work.",
+    label: "Abnormal email service promo video",
+    fallback: "Your browser can't play this video.",
+    download: "Download the video",
+  },
   start: {
     eyebrow: "Start here",
     title: "Start here",

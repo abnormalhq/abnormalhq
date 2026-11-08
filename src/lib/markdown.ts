@@ -2,7 +2,7 @@
  * 给 Agent 读的 Markdown：首页由界面文案生成，法律页面用 MDX 正文，llms.txt 是两者的目录。
  * 文案只有 src/i18n 一份，改了界面文案，这里跟着变。
  */
-import { desktopDownloads, linksFor, site, type Lang } from "../data/site.ts";
+import { configuredVideo, desktopDownloads, linksFor, site, type Lang, type PromoVideo } from "../data/site.ts";
 import { copies, langs } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { contactChannels } from "./inquiry.ts";
@@ -14,7 +14,7 @@ const absolute = (path: string) => `${site.url}${path}`;
 const paragraphs = (lines: readonly string[]) => lines.join("\n\n");
 const list = (items: readonly string[]) => items.map((item) => `- ${item}`).join("\n");
 
-export function homeMarkdown(lang: Lang): string {
+export function homeMarkdown(lang: Lang, video: PromoVideo | undefined = configuredVideo()): string {
   const t = copies[lang];
   const links = linksFor(lang);
   const email = site.contact.email;
@@ -22,6 +22,8 @@ export function homeMarkdown(lang: Lang): string {
   return `${paragraphs([
     `# ${t.meta.title}`,
     t.meta.description,
+    // 宣传视频只在配置了地址时出现（src/data/site.ts 的 promoVideo）。
+    ...(video ? [`## ${t.video.title}`, `${t.video.description} [${t.video.label}](${video.src})`] : []),
     `## ${t.start.title}`,
     list([
       ...t.start.entries.map((entry) => `[${entry.title}](${links[entry.link]}): ${entry.description}`),
