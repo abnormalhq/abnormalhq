@@ -19,8 +19,8 @@ const ofType = (graph: Node[], type: string) =>
   graph.find((node) => [node["@type"]].flat().includes(type)) as Node | undefined;
 
 test("the video is configured only once it has an address", () => {
-  assert.equal(configuredVideo({ ...sample, src: "" }), undefined);
-  assert.equal(configuredVideo({ ...sample, src: "  " }), undefined);
+  assert.equal(configuredVideo({ ...sample, src: "" }), null);
+  assert.equal(configuredVideo({ ...sample, src: "  " }), null);
   assert.equal(configuredVideo(sample), sample);
 });
 
@@ -49,9 +49,10 @@ test("the section renders nothing without a video, and never autoplays", () => {
 for (const lang of ["zh", "en"] as const) {
   test(`${lang} home Markdown and structured data carry the video only when it is configured`, () => {
     const t = copies[lang];
-    const without = homeMarkdown(lang, undefined);
+    // null, not undefined: undefined would fall back to the configured promoVideo and fail once one is published.
+    const without = homeMarkdown(lang, null);
     assert.ok(!without.includes(t.video.title));
-    assert.equal(ofType(nodes(homeStructuredData(lang, undefined)), "VideoObject"), undefined);
+    assert.equal(ofType(nodes(homeStructuredData(lang, null)), "VideoObject"), undefined);
 
     const markdown = homeMarkdown(lang, sample);
     assert.ok(markdown.includes(`## ${t.video.title}`));

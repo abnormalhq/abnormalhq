@@ -193,7 +193,11 @@ wrangler.jsonc       Cloudflare Worker 与静态资源配置
 2. 在 `promoVideo` 里填 `src`、`poster` 与发布日期 `uploadDate`（`YYYY-MM-DD`），有字幕就把各语言的 WebVTT 地址填进 `captions`，留空不挂。`tests/video.test.ts` 要求填了地址就同时填封面与日期。
 3. 提交到 `main`，自动部署。
 
-配置后首页的结构化数据里多一个 schema.org `VideoObject`（名称与简介取自文案，封面与日期取自配置），`/md/` 里多一节带视频链接的标题。
+配置后首页的结构化数据里多一个 schema.org `VideoObject`（名称与简介取自文案，封面与日期取自配置），`/md/` 里多一节带视频链接的标题。视频下方始终有「下载视频」链接，浏览器解码不了时也拿得到文件。
+
+字幕文件和页面不同源，浏览器只在 `<video>` 带 `crossorigin` 时才加载跨域的 `<track>`，组件在配置了字幕时自动加上；这时视频、封面与字幕都按 CORS 请求，桶要对 `https://abnormalhq.com` 返回 `Access-Control-Allow-Origin`（R2 桶设置里的 CORS 策略，允许 `GET`、`HEAD`）。没配字幕就不走 CORS，桶不用改。
+
+## 隐私政策与服务条款
 
 `src/content/legal/zh/` 与 `src/content/legal/en/` 下的 `privacy.mdx`、`terms.mdx` 在构建时由 [`@next/mdx`](https://nextjs.org/docs/app/guides/mdx) 编译，通过 `src/components/LegalDocument.tsx` 输出，发布路径为 `/privacy/` 与 `/terms/`（中文 `/zh/privacy/`、`/zh/terms/`），页脚与咨询弹窗都有入口。正文使用 MDX 编写（普通文字里的 `{`、`}`、`<` 会被当成语法，要写成 `\{`、`\}`、`\<`），每个二级标题自动编号并生成目录；「联系我们」一节由组件根据 `site.contact` 生成，正文中无需重复联系方式。
 

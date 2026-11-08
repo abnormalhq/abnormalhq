@@ -9,11 +9,13 @@ import { Icon } from "./Icon";
  * 首屏下方的宣传视频：原生 <video> 带控件，不自动播放、不带声音打断访客，先只取元数据，封面图撑住版面。
  * 视频地址在 src/data/site.ts 的 promoVideo，没配置时整个区块不渲染。
  */
-export function PromoVideo({ lang, video = configuredVideo() }: { lang: Lang; video?: Video }) {
+export function PromoVideo({ lang, video = configuredVideo() }: { lang: Lang; video?: Video | null }) {
   const { t } = useCopy(lang);
   if (!video) return null;
   const v = t.video;
   const type = videoMimeType(video.src);
+  // 字幕是跨域的（下载桶），<track> 只在 <video> 带 crossOrigin 时才会加载；没字幕就不加，视频与封面也不必走 CORS。
+  const hasCaptions = langs.some((captionLang) => video.captions[captionLang]);
 
   return (
     <section className="border-t border-border" id="video" aria-labelledby="video-title">
@@ -36,6 +38,7 @@ export function PromoVideo({ lang, video = configuredVideo() }: { lang: Lang; vi
             playsInline
             preload="metadata"
             poster={video.poster || undefined}
+            crossOrigin={hasCaptions ? "anonymous" : undefined}
             aria-label={v.label}
           >
             <source src={video.src} type={type} />
@@ -52,14 +55,15 @@ export function PromoVideo({ lang, video = configuredVideo() }: { lang: Lang; vi
                 />
               ) : null;
             })}
-            <p className="p-6 text-base/body text-muted-foreground">
-              {v.fallback}{" "}
-              <TextLink href={video.src}>
-                {v.download} <Icon name="up-right" className="size-3.5" />
-              </TextLink>
-            </p>
+            {/* 只有不支持 <video> 的浏览器会显示；解码失败时元素照常存在，所以下载链接另放在下面。 */}
+            <p className="p-6 text-base/body text-muted-foreground">{v.fallback}</p>
           </video>
-          <figcaption className="sr-only">{v.label}</figcaption>
+          <figcaption className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-border px-5 py-3 text-sm/[1.6] text-muted-foreground max-phone:px-4">
+            <span>{v.label}</span>
+            <TextLink className="text-sm/[1.6]" href={video.src} download>
+              {v.download} <Icon name="up-right" className="size-3.5" />
+            </TextLink>
+          </figcaption>
         </figure>
       </Container>
     </section>

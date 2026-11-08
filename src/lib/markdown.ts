@@ -14,7 +14,7 @@ const absolute = (path: string) => `${site.url}${path}`;
 const paragraphs = (lines: readonly string[]) => lines.join("\n\n");
 const list = (items: readonly string[]) => items.map((item) => `- ${item}`).join("\n");
 
-export function homeMarkdown(lang: Lang, video: PromoVideo | undefined = configuredVideo()): string {
+export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVideo()): string {
   const t = copies[lang];
   const links = linksFor(lang);
   const email = site.contact.email;

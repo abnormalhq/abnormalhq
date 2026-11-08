@@ -73,9 +73,12 @@ export const promoVideo: PromoVideo = {
   captions: { zh: "", en: "" },
 };
 
-/** 配好了的宣传视频；src 为空时是 undefined，首页、Markdown 与结构化数据都按没有视频处理。 */
-export function configuredVideo(video: PromoVideo = promoVideo): PromoVideo | undefined {
-  return video.src.trim() ? video : undefined;
+/**
+ * 配好了的宣传视频；src 为空时是 null，首页、Markdown 与结构化数据都按没有视频处理。
+ * 用 null 而不是 undefined 表示「没有视频」：传 undefined 会落到各函数的默认参数，又读回这里的配置。
+ */
+export function configuredVideo(video: PromoVideo = promoVideo): PromoVideo | null {
+  return video.src.trim() ? video : null;
 }
 
 /** <source type>：按扩展名区分 MP4 与 WebM，其他扩展名不写 type，交给浏览器判断。 */

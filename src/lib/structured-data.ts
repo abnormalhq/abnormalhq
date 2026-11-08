@@ -77,7 +77,7 @@ function videoObject(lang: Lang, pageUrl: string, video: PromoVideo): Node {
 }
 
 /** 首页：组织、网站，以及带常见问题的页面本身；配置了宣传视频时再加上视频。 */
-export function homeStructuredData(lang: Lang, video: PromoVideo | undefined = configuredVideo()) {
+export function homeStructuredData(lang: Lang, video: PromoVideo | null = configuredVideo()) {
   const t = copies[lang];
   const page = webPage(lang, "/", t.meta.title, t.meta.description);
   const videoNode = video && videoObject(lang, page.url as string, video);
