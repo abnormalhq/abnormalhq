@@ -49,7 +49,7 @@ type ContentCloseProps =
     }
   | { showCloseButton: false; closeLabel?: string };
 
-/** DialogFooter shows its button only when asked. */
+/** DialogFooter shows its button only when asked. It comes before the children, so the main action ends the row. */
 type FooterCloseProps =
   | { showCloseButton?: false; closeLabel?: string }
   | {
@@ -105,17 +105,18 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
+        // Stacked on phones the main action comes first, so the column is reversed; in a row the close button leads.
         "-mx-6 -mb-6 flex flex-col-reverse gap-2 rounded-b-dialog border-t border-border bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end",
         className,
       )}
       {...props}
     >
-      {children}
       {showCloseButton && (
         <DialogPrimitive.Close asChild>
           <Button variant="outline">{closeLabel}</Button>
         </DialogPrimitive.Close>
       )}
+      {children}
     </div>
   );
 }

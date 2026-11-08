@@ -2,13 +2,17 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { Slot } from "radix-ui";
+import { Spinner } from "@/components/ui/spinner";
 
 /**
  * A uniform 32px height and control radius. The primary action is solid ink (weight 600);
  * secondary actions (outline) are a translucent gray background + a very faint border + gray text that brightens on hover; destructive actions are light red with red text.
+ * `loading` is the waiting state: the button is disabled and marked busy, a spinner leads, and a leading icon gives
+ * way to it so an icon button keeps its size. The label stays, so the button still says what it is doing.
+ * With asChild the child's own props win, so a child that sets `disabled` itself must include the loading state.
  */
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center rounded-control border border-transparent font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 active:scale-[0.98] select-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center rounded-control border border-transparent font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 active:scale-[0.98] select-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-busy:[&>svg]:hidden [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -45,10 +49,15 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  loading = false,
+  disabled,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    /** Waiting for the action it started: disabled, aria-busy, and a spinner in place of the leading icon. */
+    loading?: boolean;
   }) {
   const Comp = asChild ? Slot.Root : "button";
 
@@ -57,9 +66,16 @@ function Button({
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      data-loading={loading || undefined}
+      aria-busy={loading || undefined}
+      disabled={disabled || loading}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {loading && <Spinner />}
+      {/* Slottable keeps asChild working: the spinner goes inside the child element, before its own children. */}
+      <Slot.Slottable>{children}</Slot.Slottable>
+    </Comp>
   );
 }
 

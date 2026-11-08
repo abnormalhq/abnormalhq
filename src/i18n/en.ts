@@ -36,7 +36,6 @@ export const en: Copy = {
     loginWebmail: "Log in to webmail",
   },
   theme: {
-    title: "Appearance",
     ariaTemplate: "Change theme, currently {label}",
     titleTemplate: "Theme: {label}",
     options: { system: "System", light: "Light", dark: "Dark" },

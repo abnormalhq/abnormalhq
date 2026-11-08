@@ -17,8 +17,11 @@ export const CN_THEME = {
     "slide-out-right",
     "slide-in-left",
     "slide-out-left",
+    "slide-in-bottom",
+    "slide-out-bottom",
     "flash",
     "pop",
+    "progress-sweep",
   ],
 };
 
