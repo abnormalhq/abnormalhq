@@ -1,0 +1,6 @@
+# This directory is a separate pnpm project (with its own lockfile) that is not part of the site's install: Remotion brings browser
+# and encoder binaries that neither the site's CI nor the Cloudflare build needs. When running pnpm install here, pnpm takes this file as the project root.
+
+# Remotion bundles with esbuild, whose install script downloads a platform binary (the same setting as the site).
+allowBuilds:
+  esbuild: true

@@ -112,6 +112,17 @@ export interface Copy {
     };
   };
   valueStrip: { lead: string; strong: string; labels: readonly string[] };
+  /** The promo video section (src/components/PromoVideo.tsx); the video address is promoVideo in src/data/site.ts, and the section is not rendered without one. */
+  video: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    /** Accessible name of the <video>, also the text of the video link in the structured data and Markdown. */
+    label: string;
+    /** Shown when the browser cannot play <video>, followed by the download link. */
+    fallback: string;
+    download: string;
+  };
   start: {
     eyebrow: string;
     title: string;

@@ -37,7 +37,7 @@ The download page also lists the current version (version number and release dat
 
 In the other direction: the "Website" link in onboard's header and footer, and the "Website" link on the webmail sign-in page and the status page, all point back to `https://abnormalhq.com/`.
 
-The right side of the header has "My account" (buyer sign-up, sign-in and mailbox management), "Log in" (webmail) and "Buy a mailbox". The home page strings the buyer journey together from top to bottom: hero (Buy a mailbox / Create an account, with "Log in to manage mailboxes · Log in to webmail" below) → 01 Start here (four cards: Buy a mailbox, My account, Redeem, Webmail, plus links to the guide, status and support) → 02 Email services (the personal mailbox goes straight to the shop, the other three are inquiries) → 03 How it works (Create an account → Choose a plan → Set up mailboxes under "My account" → Sign in and send, each step with a link; "Create an account" opens the account page's sign-up form directly with `?mode=register`) → 04 FAQ → closing panel (Buy a mailbox + talk to us about custom needs).
+The right side of the header has "My account" (buyer sign-up, sign-in and mailbox management), "Log in" (webmail) and "Buy a mailbox". The home page strings the buyer journey together from top to bottom: hero (Buy a mailbox / Create an account, with "Log in to manage mailboxes · Log in to webmail" below) → promo video (one per language, rendered from `video/`, see "Promo video" below) → 01 Start here (four cards: Buy a mailbox, My account, Redeem, Webmail, plus links to the guide, status and support) → 02 Email services (the personal mailbox goes straight to the shop, the other three are inquiries) → 03 How it works (Create an account → Choose a plan → Set up mailboxes under "My account" → Sign in and send, each step with a link; "Create an account" opens the account page's sign-up form directly with `?mode=register`) → 04 FAQ → closing panel (Buy a mailbox + talk to us about custom needs).
 
 ## Components and styling
 
@@ -134,13 +134,14 @@ src/
   app/            Routes: (en)/ English pages (default language, at the root), (zh)/zh/ Chinese pages, each with its own root layout; global-not-found.tsx is the 404 shared by both languages
   components/     Page sections such as SiteLayout, header, Hero, email service cards, process, FAQ and the inquiry dialog; ui/ holds components installed from the registry
   content/legal/  Privacy policy and terms of service written in MDX, one set each in zh/ and en/
-  data/site.ts    Public contact details and linked-site addresses (linksFor)
+  data/site.ts    Public contact details, linked-site addresses (linksFor), promo videos (promoVideos) and desktop client download addresses
   i18n/           Chinese and English copy (zh.ts, en.ts, types.ts) and language path helpers (paths.ts)
   lib/            inquiry.ts pure functions for inquiry copy and contact details; metadata.ts page SEO and social cards; structured-data.ts structured data (JSON-LD); legal.ts frontmatter validation and table of contents for the legal documents; template.ts copy templates; pages.ts page list; markdown.ts and negotiate.ts Markdown and content negotiation for agents; cache.ts browser cache headers
   scripts/        theme-init.js: the theme initialization script inlined into the head
   styles/         abnormal.css and abnormal-fonts.css come from the registry; global.css holds the site's own breakpoints and global rules
-public/           Fonts, social images (og/) and other files served directly by the static asset service
+public/           Fonts, social images (og/), promo videos (video/) and other files served directly by the static asset service
 scripts/          og-images.ts: generates the social images in public/og/
+video/            Remotion project for the promo video, rendered into public/video/ (see "Promo video")
 tests/            Regression tests for inquiry logic, copy structure, page metadata, legal documents, agent entry points, cache headers and theme behavior
 open-next.config.ts  OpenNext configuration: prerendered output lives in read-only static assets
 worker.ts            Worker entry: Markdown content negotiation and cache headers
@@ -182,6 +183,29 @@ Contact details are in `src/data/site.ts`; service and pricing copy is in `src/i
 These settings are published on the web pages, so never put keys, passwords or private information in them. Changes committed to `main` are rebuilt and deployed automatically.
 
 When no contact details are configured, the page clearly says "Contact channels are coming soon". The inquiry dialog only composes and copies the request inside the browser; it sends no data, creates no orders and takes no payments. Specific plans, fees and service terms are confirmed in advance.
+
+## Promo video
+
+The video section under the hero (`src/components/PromoVideo.tsx`) shows a short promo film in a native `<video>` with playback controls; it does not autoplay or interrupt visitors with sound, loads only metadata at first, and the poster image holds the layout. A "Download the video" link always sits below the video. There is one film per language, the text in the film is the page's language, and the title and description live under `video` in both copy files.
+
+The video is generated by `video/` in this repository with [Remotion](https://www.remotion.dev/) (a framework for writing videos in React): six scenes (brand mark → hero headline → inbox illustration → the four activation steps → value strip → closing), 1920×1080, 30fps, about 35 seconds, drawn with the site's light-theme colors, radii and fonts (the files in `public/fonts/`, with Chinese glyphs from Google Fonts' Noto Sans SC, the same as the social images). The on-screen text is in `video/src/copy.ts` and consists of the hero, process and closing sentences of the site copy; when the site copy changes, change it too.
+
+The background music is generated as well: `video/scripts/music.ts` writes a C major, 96 BPM loop with [Tone.js](https://tonejs.github.io/) (a pad of three detuned sawtooth voices, FM-synthesized electric piano chords, a bass with a filter envelope, an arpeggio through a ping-pong delay, a membrane-synth kick and noise-synthesized snare and hi-hat, entering in layers and resolving at the end), run through convolution reverb, compression and limiting, and rendered offline to `video/assets/music.wav` (not committed; `pnpm music` regenerates it in about 25 seconds). Tone.js is a browser library, so the script provides a Web Audio implementation with node-web-audio-api and fills in the globals it needs; the noise sources use a seeded random generator, so every run gives the same result. Remotion mixes it in with `<Audio>`; the finished film is about -17 LUFS. No third-party audio material is involved, so there are no copyright questions.
+
+`video/` is a separate pnpm project (with its own lockfile) that is not part of the site's install: Remotion brings browser and encoder binaries that neither the site's CI nor the Cloudflare build needs, and the root `tsconfig.json` and ESLint do not include it either; Prettier formats it as usual.
+
+```sh
+cd video
+pnpm install
+pnpm studio      # preview and debug in the browser, http://localhost:3000
+pnpm music       # synthesize the background music into assets/music.wav (studio and render run it first automatically)
+pnpm render      # render the MP4 (with music) and the poster for both languages into ../public/video/
+pnpm typecheck
+```
+
+The rendered `public/video/abnormal-{en,zh}.mp4` and the `.jpg` of the same name (the poster, frame 220) are committed and deployed with the site, served from the same origin by the static asset service, so there are no cross-origin or CORS issues; each film is about 1–2 MB. The addresses and upload dates are in `promoVideos` in `src/data/site.ts`: update `uploadDate` after re-rendering; when a language's `src` is left empty, that page does not show the section, and neither the `/md/` Markdown version nor the structured data mentions it. `tests/video.test.ts` requires the poster and date to be set along with the address, and the files for site paths to exist in `public/`. Once configured, the home page's structured data gains a schema.org `VideoObject` (name and description from the copy, poster and date from the configuration), and `/md/` gains a heading with the video link.
+
+When the machine has no Chrome, Remotion downloads a Chrome Headless Shell of its own; to use an installed browser, set `REMOTION_BROWSER_EXECUTABLE=/path/to/chromium`.
 
 ## Privacy policy and terms of service
 

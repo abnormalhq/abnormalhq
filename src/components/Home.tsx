@@ -11,6 +11,7 @@ import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
 import { JsonLd } from "./JsonLd";
 import { Process } from "./Process";
+import { PromoVideo } from "./PromoVideo";
 import { Start } from "./Start";
 import { Subscriptions } from "./Subscriptions";
 
@@ -35,6 +36,7 @@ export function Home({ lang }: { lang: Lang }) {
           ))}
         </div>
       </Container>
+      <PromoVideo lang={lang} />
       <Start lang={lang} />
       <Subscriptions lang={lang} />
       <Process lang={lang} />

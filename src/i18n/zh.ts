@@ -83,6 +83,14 @@ export const zh: Copy = {
     strong: "多一点沟通的从容。",
     labels: ["注册账户", "在线选购", "自助开通", "网页收发"],
   },
+  video: {
+    eyebrow: "See it in action",
+    title: "先看一段视频",
+    description: "一段短片，认识 Abnormal 邮箱服务：好用的邮箱，让日常与工作的沟通都更简单。",
+    label: "Abnormal 邮箱服务宣传视频",
+    fallback: "当前浏览器无法播放这段视频。",
+    download: "下载视频",
+  },
   start: {
     eyebrow: "Start here",
     title: "从这里开始",

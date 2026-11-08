@@ -2,7 +2,15 @@
  * Markdown for agents: the home page is generated from the UI copy, the legal pages use the MDX body, and llms.txt is the index of both.
  * The copy exists only once, in src/i18n; change the UI copy and this follows.
  */
-import { desktopDownloads, linksFor, site, type Lang } from "../data/site.ts";
+import {
+  absoluteUrl,
+  configuredVideo,
+  desktopDownloads,
+  linksFor,
+  site,
+  type Lang,
+  type PromoVideo,
+} from "../data/site.ts";
 import { copies, langs } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { contactChannels } from "./inquiry.ts";
@@ -14,7 +22,7 @@ const absolute = (path: string) => `${site.url}${path}`;
 const paragraphs = (lines: readonly string[]) => lines.join("\n\n");
 const list = (items: readonly string[]) => items.map((item) => `- ${item}`).join("\n");
 
-export function homeMarkdown(lang: Lang): string {
+export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVideo(lang)): string {
   const t = copies[lang];
   const links = linksFor(lang);
   const email = site.contact.email;
@@ -22,6 +30,8 @@ export function homeMarkdown(lang: Lang): string {
   return `${paragraphs([
     `# ${t.meta.title}`,
     t.meta.description,
+    // The promo video appears only when an address is configured (promoVideos in src/data/site.ts).
+    ...(video ? [`## ${t.video.title}`, `${t.video.description} [${t.video.label}](${absoluteUrl(video.src)})`] : []),
     `## ${t.start.title}`,
     list([
       ...t.start.entries.map((entry) => `[${entry.title}](${links[entry.link]}): ${entry.description}`),

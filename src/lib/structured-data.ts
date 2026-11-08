@@ -4,7 +4,7 @@
  * Everything comes from the UI copy and frontmatter; nothing that is not visible on the page is written.
  */
 import type { LegalFrontmatter } from "../content/legal/types.ts";
-import { site, type Lang } from "../data/site.ts";
+import { absoluteUrl, configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
 import { copies } from "../i18n/index.ts";
 import { langs, localePath } from "../i18n/paths.ts";
 import { socialImage } from "./metadata.ts";
@@ -60,22 +60,42 @@ function webPage(lang: Lang, path: string, name: string, description: string): N
 
 const graph = (nodes: Node[]) => ({ "@context": "https://schema.org", "@graph": nodes });
 
-/** Home page: organization, website, and the page itself with the FAQ. */
-export function homeStructuredData(lang: Lang) {
+/** The home page's promo video (only when an address is configured): name and description from the section copy, poster and upload date from the configuration. */
+function videoObject(lang: Lang, pageUrl: string, video: PromoVideo): Node {
   const t = copies[lang];
+  return {
+    "@type": "VideoObject",
+    "@id": `${pageUrl}#video`,
+    name: t.video.title,
+    description: t.video.description,
+    contentUrl: absoluteUrl(video.src),
+    thumbnailUrl: absoluteUrl(video.poster),
+    uploadDate: video.uploadDate,
+    inLanguage: t.htmlLang,
+    publisher: { "@id": organizationId },
+  };
+}
+
+/** Home page: organization, website, and the page itself with the FAQ; plus the video when a promo video is configured. */
+export function homeStructuredData(lang: Lang, video: PromoVideo | null = configuredVideo(lang)) {
+  const t = copies[lang];
+  const page = webPage(lang, "/", t.meta.title, t.meta.description);
+  const videoNode = video && videoObject(lang, page.url as string, video);
   return graph([
     organization(),
     website(lang),
     {
       "@type": ["WebPage", "FAQPage"],
-      ...webPage(lang, "/", t.meta.title, t.meta.description),
+      ...page,
       about: { "@id": organizationId },
+      ...(videoNode && { video: { "@id": videoNode["@id"] } }),
       mainEntity: t.faq.items.map(({ question, answer }) => ({
         "@type": "Question",
         name: question,
         acceptedAnswer: { "@type": "Answer", text: answer },
       })),
     },
+    ...(videoNode ? [videoNode] : []),
   ]);
 }
 

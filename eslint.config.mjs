@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     ".artifacts/**",
     // Claude Code worktrees are full copies of the repository
     ".claude/**",
+    // The promo video's Remotion project is a separate package with its own dependencies and typecheck (video/package.json)
+    "video/**",
   ]),
 ]);
 
