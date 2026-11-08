@@ -19,7 +19,7 @@ export function Header({
   langToggle,
 }: {
   lang: Lang;
-  /** Brand 是服务端组件，从布局传进来，避免把两种语言的文案打进浏览器脚本。 */
+  /** Brand is a server component passed in from the layout, so both languages' copy stays out of the browser bundle. */
   brand: ReactNode;
   copy: Copy["header"];
   themeCopy: Copy["theme"];
@@ -35,7 +35,7 @@ export function Header({
   const nav = copy.nav.map(({ anchor, label }) => ({ href: localePath(lang, `/#${anchor}`), label }));
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
-  // 带 ?lang=：Worker 把这个选择写进三个站点共用的 cookie，之后分享来的链接也以这种语言打开（src/lib/lang.ts）。
+  // With ?lang=: the Worker stores the choice in the cookie shared by the three sites, so shared links open in this language from then on (src/lib/lang.ts).
   const otherPath = switchHref(pathname.endsWith("/") ? pathname : `${pathname}/`, other);
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export function Header({
           ))}
         </nav>
         <div className="flex items-center gap-1">
-          {/* 两种语言各有一个根布局，切换时本来就是整页加载，而且要经过 Worker 写 cookie，不用 next/link。 */}
+          {/* Each language has its own root layout, so switching is a full page load anyway, and it has to pass through the Worker to write the cookie; no need for next/link. */}
           <Button asChild variant="ghost" className="min-w-8 border-0 px-1.5 text-sm">
             <a
               href={otherPath}
@@ -89,7 +89,7 @@ export function Header({
           </Button>
           <ThemePicker copy={themeCopy} onOpen={closeMenu} />
           <span className="mx-2 h-4 w-px bg-border max-md:hidden" aria-hidden="true"></span>
-          {/* 窄一点的平板宽度放不下全部入口：「我的账户」「登录邮箱」让给首屏与页脚的入口。 */}
+          {/* Narrower tablet widths cannot fit every entry: "My account" and "Log in" give way to the entries in the hero and footer. */}
           <Button asChild variant="ghost" className="border-0 px-2.5 font-normal max-nav:hidden">
             <a href={links.account}>{copy.account}</a>
           </Button>

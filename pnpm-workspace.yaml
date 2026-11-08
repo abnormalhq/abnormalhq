@@ -1,10 +1,10 @@
 overrides:
-  # OpenNext 的压缩工具锁了旧版 glob；同步 API 兼容，定向升级以修复 CLI 命令注入漏洞（与 mail 相同）。
+  # OpenNext's minifier pins an old glob; the sync API is compatible, so bump it in place to fix the CLI command injection vulnerability (same as mail).
   "@node-minify/core@9.0.2>glob": ^13.0.6
 
-# pnpm 12 默认不跑依赖的安装脚本，未批准的在 frozen-lockfile 模式下会直接报错。
-# wrangler 本地运行 workerd 与打包用 esbuild，都需要它们的安装脚本下载平台二进制；
-# sharp（next/image 用，这里用不上）与 unrs-resolver 不需要。
+# pnpm 12 does not run dependency install scripts by default, and unapproved ones fail outright in frozen-lockfile mode.
+# wrangler runs workerd locally and bundles with esbuild; both need their install scripts to download platform binaries.
+# sharp (used by next/image, not here) and unrs-resolver do not need theirs.
 allowBuilds:
   esbuild: true
   workerd: true

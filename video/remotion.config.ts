@@ -1,11 +1,11 @@
 import { Config } from "@remotion/cli/config";
 
-// 字体直接用官网自托管的那几份（public/fonts/），不再复制一份。
+// Use the site's self-hosted fonts (public/fonts/) directly instead of copying them.
 Config.setPublicDir("../public");
 Config.setVideoImageFormat("jpeg");
 Config.setOverwriteOutput(true);
-// 画面是平涂的动态图形，这个质量下 1080p 文件很小；封面图同一个质量。
+// The picture is flat motion graphics, so a 1080p file is small at this quality; the poster uses the same quality.
 Config.setCrf(24);
 Config.setJpegQuality(88);
-// 不想让 Remotion 另下载一份 Chrome 时（如 CI 或沙箱里已有 Chromium），用环境变量指定浏览器。
+// To stop Remotion downloading its own Chrome (for example in CI or a sandbox that already has Chromium), name the browser with an environment variable.
 if (process.env.REMOTION_BROWSER_EXECUTABLE) Config.setBrowserExecutable(process.env.REMOTION_BROWSER_EXECUTABLE);

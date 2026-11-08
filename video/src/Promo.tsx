@@ -10,7 +10,7 @@ import { Outro } from "./scenes/Outro";
 import { Promises } from "./scenes/Promises";
 import { Steps } from "./scenes/Steps";
 
-/** 每个场景的时长（帧，30fps）；相邻场景之间淡入淡出 FADE 帧，总长见 durationInFrames()。 */
+/** Duration of each scene (frames at 30fps); neighbouring scenes cross-fade over FADE frames, and durationInFrames() gives the total. */
 export const SCENES = [
   { Scene: Intro, frames: 105 },
   { Scene: Headline, frames: 195 },
@@ -28,7 +28,7 @@ export function Promo({ lang }: { lang: Lang }) {
   const t = copies[lang];
   return (
     <div lang={t.htmlLang} style={{ width: "100%", height: "100%" }}>
-      {/* 背景音乐由 scripts/music.ts 合成（pnpm music），自带淡入淡出，长度与画面一致。 */}
+      {/* The background music is synthesized by scripts/music.ts (pnpm music), has its own fade-in and fade-out, and matches the picture's length. */}
       <Audio src={music} volume={0.9} />
       <TransitionSeries>
         {SCENES.flatMap(({ Scene, frames }, index) => [

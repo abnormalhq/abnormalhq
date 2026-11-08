@@ -1,274 +1,274 @@
-# Abnormal · 邮箱服务
+# Abnormal · Email service
 
-[线上网站](https://abnormalhq.com/)
+[Live site](https://abnormalhq.com/)
 
-使用 Next.js（App Router）、Tailwind CSS 4 和 TypeScript 构建的中英双语邮箱服务官网，界面组件来自 [Abnormal 的 shadcn registry](https://github.com/abnormalhq/ui)。官网是整个 Abnormal 的落地页：介绍邮箱服务，并把访客引向购买、兑换开通、网页邮箱、教程与服务状态这几个站点；域名邮箱、团队邮箱与配置协助仍通过咨询弹窗沟通。页面在构建时预渲染，通过 [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) 运行在 Cloudflare Worker 上，导航菜单、主题切换与咨询弹窗是 React 客户端组件；Cloudflare Workers Builds 监听 `main` 自动部署，GitHub Actions 只做检查。
+The bilingual (Chinese and English) marketing site for the Abnormal email service, built with Next.js (App Router), Tailwind CSS 4 and TypeScript, with UI components from [Abnormal's shadcn registry](https://github.com/abnormalhq/ui). The site is the landing page for all of Abnormal: it introduces the email service and sends visitors on to the sites for buying, redeeming and activating, webmail, guides and service status; domain mailboxes, team mailboxes and setup help are still handled through the inquiry dialog. Pages are prerendered at build time and run on a Cloudflare Worker through [@opennextjs/cloudflare](https://opennext.js.org/cloudflare); the navigation menu, theme toggle and inquiry dialog are React client components. Cloudflare Workers Builds watches `main` and deploys automatically; GitHub Actions only runs checks.
 
-## 中英文
+## Chinese and English
 
-英文是默认语言，在根路径（`/`、`/privacy/`、`/terms/`）；中文在 `/zh/` 下（`/zh/`、`/zh/privacy/`、`/zh/terms/`）。由 `src/app` 下的 `(en)` 与 `(zh)` 两个路由组实现，各有一个根布局。默认语言与语言顺序只在 `src/i18n/paths.ts` 的 `defaultLang`、`langs` 里写一次，路径、`hreflang`、站点地图、`llms.txt` 与结构化数据都从这里取。页头的「EN / 中」切换到另一种语言的同一页面；每页都输出互指的 `hreflang`，`x-default` 指向英文版。
+English is the default language, at the root (`/`, `/privacy/`, `/terms/`); Chinese is under `/zh/` (`/zh/`, `/zh/privacy/`, `/zh/terms/`). This is implemented by the two route groups `(en)` and `(zh)` under `src/app`, each with its own root layout. The default language and the language order are written once, in `defaultLang` and `langs` in `src/i18n/paths.ts`; paths, `hreflang`, the sitemap, `llms.txt` and the structured data all read them from there. The language toggle in the header (`langToggle`, labelled "EN" or the single Chinese character for Chinese) switches to the same page in the other language; every page emits `hreflang` links pointing at each other, with `x-default` pointing at the English version.
 
-地址只是每种语言的规范地址，进站时去哪个语言由访客的偏好决定（`src/lib/lang.ts`，在 `worker.ts` 里先于 OpenNext 执行，只看整页加载的 GET / HEAD 页面请求）：点页头的语言切换会带上 `?lang=zh`，Worker 把这个选择写进 cookie `abnormal_lang`（一年，`Domain=abnormalhq.com`，官网、onboard 与网页邮箱共用，与 mail 的 `LOCALE_COOKIE` 同名）再跳到去掉参数的地址；有 cookie 时，地址的语言与 cookie 不一致就 302 到另一种语言的同一页，分享来的链接总以自己的语言打开；没有 cookie 时只在不带前缀的英文地址上按 `Accept-Language` 判断，`/zh/` 这类带前缀的地址视为链接作者的明确选择，不跳；没有 `Accept-Language` 的请求（爬虫）自然不跳，`hreflang` 指向的两套地址都抓得到。跳转响应带 `Cache-Control: private, no-store`，不进任何缓存；要 Markdown 的 Agent 请求不做语言跳转。
+The addresses are only each language's canonical address; which language a visitor lands in is decided by their preference (`src/lib/lang.ts`, run in `worker.ts` before OpenNext, for whole-page GET / HEAD page requests only). Clicking the language toggle in the header adds `?lang=zh`; the Worker stores that choice in the cookie `abnormal_lang` (one year, `Domain=abnormalhq.com`, shared by the website, onboard and webmail, the same name as mail's `LOCALE_COOKIE`) and redirects to the address without the parameter. With the cookie set, an address whose language differs from the cookie is 302-redirected to the same page in the other language, so a shared link always opens in the reader's own language. Without a cookie, only the unprefixed English addresses follow `Accept-Language`; a prefixed address such as `/zh/` is the link author's explicit choice and is left alone. Requests without `Accept-Language` (crawlers) are never redirected, so both sets of addresses that `hreflang` points at stay crawlable. Redirect responses carry `Cache-Control: private, no-store` and enter no cache; requests that ask for Markdown (agents) are not redirected by language.
 
-英文原来在 `/en/` 下：`/en/`、`/en/privacy/`、`/en/terms/` 与对应的 `/md/en/...` 由 `next.config.ts` 的 `redirects()` 301 到根路径的新地址，旧外链与搜索结果不会失效。
+English used to live under `/en/`: `/en/`, `/en/privacy/`, `/en/terms/` and the matching `/md/en/...` are 301-redirected by `redirects()` in `next.config.ts` to the new addresses at the root, so old external links and search results keep working.
 
-- 全部界面文案在 `src/i18n/zh.ts` 与 `src/i18n/en.ts`，二者都实现 `src/i18n/types.ts` 的 `Copy`，漏写字段会在 `pnpm typecheck` 时报错；`tests/i18n.test.ts` 还会逐项检查两份文案的结构一致（包括每个列表项的字段，可选字段也算），并要求 `link`、`icon`、`anchor`、`featured`、`primary`、`path` 这些与语言无关的值两边相同。服务端组件用 `useCopy(lang)` 取当前语言的文案、联动地址与带语言前缀的站内路径。
-- 中文标题用全角句号、英文用半角，取 `t.dot`；只在部分宽度换行的标题，两行之间用 `t.space`（英文是空格）。
-- 装饰性的英文小标（各区块的 `eyebrow`、咨询弹窗的 `kicker`、页脚的 `tagline`、法律页目录的 `tocKicker`）也写在文案里：两种语言都用英文，组件渲染时带 `lang="en"`，读屏软件才会用英文读，测试会检查它们不含中文、页面里的 `Eyebrow` 都带 `lang="en"`。
-- 中间夹着链接或变量的句子写成模板，如 `inquiry.legal` 的「咨询与服务适用{terms}与{privacy}。」，由 `src/lib/template.ts` 的 `fillTemplate` 填入链接；链接两侧的空格写在各语言的文案里，组件不另补空格。模板字段在 `Copy` 里写成 `Template<"terms" | "privacy">`，组件少传、多传或拼错名字都会在 `pnpm typecheck` 时报错；`tests/i18n.test.ts` 再检查每种语言的模板正好用到这些名字，也不会有未登记的模板。咨询弹窗只在浏览器里渲染，预渲染发现不了这里的错字，所以要靠这两道检查。
-- 联动地址由 `linksFor(lang)` 生成：onboard 的英文页在 `/en/` 下，网页邮箱与状态页按浏览器语言显示，两种语言用同一个地址。
-- 客户端组件（`Header`、`ThemePicker`、`InquiryDialog`、`CurrentYear`）不引用文案模块，由 `SiteLayout` 通过 props 传入各自用得到的文案，浏览器脚本里不带两种语言的全部文案；路径工具放在 `src/i18n/paths.ts` 也是这个原因。咨询内容与邮件主题由 `src/lib/inquiry.ts` 按语言生成。
-- 法律页面：中文 `src/content/legal/zh/privacy.mdx`、`terms.mdx`，英文 `src/content/legal/en/privacy.mdx`、`terms.mdx`。英文版开头注明是译文、以中文版为准；修改条款时两边一起改，并同步 `updated`。
+- All UI copy is in `src/i18n/zh.ts` and `src/i18n/en.ts`; both implement `Copy` from `src/i18n/types.ts`, so a missing field fails `pnpm typecheck`. `tests/i18n.test.ts` also checks item by item that the two copies have the same structure (including the fields of every list item, optional fields included) and requires the language-independent values `link`, `icon`, `anchor`, `featured`, `primary` and `path` to be identical on both sides. Server components call `useCopy(lang)` for the current language's copy, linked-site addresses and language-prefixed site paths.
+- Chinese headings end with a full-width full stop and English ones with a half-width one, taken from `t.dot`; headings that wrap only at some widths separate their two lines with `t.space` (a space in English).
+- Decorative English labels (each section's `eyebrow`, the inquiry dialog's `kicker`, the footer's `tagline`, the legal page table of contents' `tocKicker`) are also in the copy: both languages write them in English and components render them with `lang="en"` so screen readers read them as English; the tests check that they contain no Chinese and that every `Eyebrow` on the page carries `lang="en"`.
+- Sentences with a link or variable in the middle are written as templates, such as `inquiry.legal`'s "Requests and services are covered by the {terms} and {privacy}.", filled with links by `fillTemplate` in `src/lib/template.ts`; the spaces around the links are written in each language's copy, and components add none. Template fields are typed in `Copy` as `Template<"terms" | "privacy">`, so a component passing too few, too many or misspelled names fails `pnpm typecheck`; `tests/i18n.test.ts` then checks that each language's template uses exactly those names and that there are no unregistered templates. The inquiry dialog renders only in the browser, so prerendering cannot catch a typo here; these two checks have to.
+- Linked-site addresses are generated by `linksFor(lang)`: onboard's English pages are under `/en/`, while webmail and the status page follow the browser language and share one address for both languages.
+- Client components (`Header`, `ThemePicker`, `InquiryDialog`, `CurrentYear`) do not import the copy module; `SiteLayout` passes each the copy it uses through props, so the browser bundle does not carry the full copy of both languages. The path helpers live in `src/i18n/paths.ts` for the same reason. The inquiry text and email subject are generated per language by `src/lib/inquiry.ts`.
+- Legal pages: Chinese in `src/content/legal/zh/privacy.mdx` and `terms.mdx`, English in `src/content/legal/en/privacy.mdx` and `terms.mdx`. The English version opens by noting that it is a translation and the Chinese version governs; when changing the terms, change both and update `updated`.
 
-## 与其他站点联动
+## Working with the other sites
 
-官网本身不收款、不开通邮箱，实际操作都在下面几个站点完成。地址统一由 `src/data/site.ts` 的 `linksFor(lang)` 生成（onboard 的英文页在 `/en/` 下），页头、首屏、「从这里开始」入口卡片、服务卡片、开通流程、收尾面板与页脚都从这里取，换域名时只改这一处。
+The site itself takes no payments and activates no mailboxes; the actual work happens on the sites below. Their addresses are generated in one place by `linksFor(lang)` in `src/data/site.ts` (onboard's English pages are under `/en/`), and the header, hero, "Start here" entry cards, service cards, activation process, closing panel and footer all read them from there, so a domain change touches one place.
 
-| 入口                                         | 地址                                           | 所在仓库                                         |
-| -------------------------------------------- | ---------------------------------------------- | ------------------------------------------------ |
-| 购买邮箱                                     | `https://onboard.abnormalhq.com/shop/`         | [onboard](https://github.com/abnormalhq/onboard) |
-| 兑换开通                                     | `https://onboard.abnormalhq.com/`              | onboard                                          |
-| 我的账户（注册、登录、邮箱管理、订单与续费） | `https://onboard.abnormalhq.com/shop/account/` | onboard                                          |
-| 使用教程                                     | `https://onboard.abnormalhq.com/guide/`        | onboard                                          |
-| 网页邮箱                                     | `https://webmail.abnormalhq.com/`              | [mail](https://github.com/abnormalhq/mail)       |
-| 服务状态                                     | `https://console.abnormalhq.com/status`        | mail                                             |
+| Entry                                                                  | Address                                        | Repository                                       |
+| ---------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------ |
+| Buy a mailbox                                                          | `https://onboard.abnormalhq.com/shop/`         | [onboard](https://github.com/abnormalhq/onboard) |
+| Redeem and activate                                                    | `https://onboard.abnormalhq.com/`              | onboard                                          |
+| My account (sign-up, sign-in, mailbox management, orders and renewals) | `https://onboard.abnormalhq.com/shop/account/` | onboard                                          |
+| Guide                                                                  | `https://onboard.abnormalhq.com/guide/`        | onboard                                          |
+| Webmail                                                                | `https://webmail.abnormalhq.com/`              | [mail](https://github.com/abnormalhq/mail)       |
+| Service status                                                         | `https://console.abnormalhq.com/status`        | mail                                             |
 
-下载页 `/download/`（中文 `/zh/download/`，入口在页脚「产品」一栏）提供桌面客户端（[mail](https://github.com/abnormalhq/mail) 的 `desktop/`）的 macOS `.dmg` 与 Windows 安装程序（x64 与 Arm 各一个），以及 Homebrew 安装命令。安装包由 mail 仓库的发布流程上传到 R2 公开桶 `downloads.abnormalhq.com`：`desktop/latest/` 下是固定文件名的最新版本，下载页直接链接这些地址，发新版本不用改官网；`desktop/latest.json` 列出版本号与 SHA-256。地址集中在 `src/data/site.ts` 的 `desktopDownloads`。
+The download page `/download/` (Chinese `/zh/download/`, linked from the "Product" column in the footer) offers the desktop client (`desktop/` in [mail](https://github.com/abnormalhq/mail)) as a macOS `.dmg` and Windows installers (one each for x64 and Arm), plus the Homebrew install command. The installers are uploaded by the mail repository's release flow to the public R2 bucket `downloads.abnormalhq.com`: `desktop/latest/` holds the latest version under fixed file names, and the download page links those addresses directly, so a new release needs no change to the site; `desktop/latest.json` lists the version number and SHA-256. The addresses are collected in `desktopDownloads` in `src/data/site.ts`.
 
-下载页还列出当前版本（版本号与发布日期）和历史版本（每一版的各平台安装包、大小与 SHA-256 校验值）。数据来自同一个桶里的 `desktop/releases.json`，由 mail 的发布流程从各版本的 `desktop/<version>/latest.json` 重新生成，按新到旧排列，`latest` 指当前版本。下载页（`/download/`、`/zh/download/`）与它的 Markdown 版本（`/md/download/`、`/md/zh/download/`）因此不预渲染：每次请求时在 Worker 上渲染，读取这份列表（`src/lib/releases.ts`），请求在 Cloudflare 边缘缓存 60 秒，mail 发布新版本后不用重新部署官网，一分钟左右就能看到。其余页面仍在构建时预渲染。读不到 `releases.json` 时退回 `desktop/latest.json`，只显示当前版本；两者都读不到时（3 秒超时）页面照常返回，只是不显示版本信息。下载按钮链接的是 `desktop/latest/`，始终是最新版本。
+The download page also lists the current version (version number and release date) and past releases (each version's installers per platform, with sizes and SHA-256 checksums). The data comes from `desktop/releases.json` in the same bucket, regenerated by mail's release flow from each version's `desktop/<version>/latest.json`, sorted newest first, with `latest` naming the current version. The download page (`/download/`, `/zh/download/`) and its Markdown version (`/md/download/`, `/md/zh/download/`) are therefore not prerendered: they render on the Worker on every request and read this list (`src/lib/releases.ts`); the request is cached at the Cloudflare edge for 60 seconds, so after a new mail release the site needs no redeploy and shows it within about a minute. All other pages are still prerendered at build time. When `releases.json` cannot be read, it falls back to `desktop/latest.json` and shows only the current version; when neither can be read (3 second timeout) the page still returns, just without version information. The download buttons link to `desktop/latest/`, which is always the latest version.
 
-反方向：onboard 页头与页脚的「官网」、网页邮箱登录页与状态页的「官网」链接都指回 `https://abnormalhq.com/`。
+In the other direction: the "Website" link in onboard's header and footer, and the "Website" link on the webmail sign-in page and the status page, all point back to `https://abnormalhq.com/`.
 
-页头右侧是「我的账户」（买家注册、登录与邮箱管理）、「登录邮箱」（网页邮箱）与「购买邮箱」。首页从上到下把买家流程串起来：首屏（购买邮箱 / 注册账户，下面是「登录管理邮箱 · 登录网页邮箱」）→ 宣传视频（中英文各一段，由 video/ 渲染，见下面「宣传视频」）→ 01 从这里开始（购买邮箱、我的账户、兑换开通、网页邮箱四张卡片与教程、状态、客服链接）→ 02 邮箱服务（个人邮箱直达商店，其余三项咨询）→ 03 开通流程（注册账户 → 选购套餐 → 在「我的账户」开通邮箱 → 登录收发，每步带链接；「注册账户」直接打开账户页的注册表单 `?mode=register`）→ 04 常见问题 → 收尾面板（购买邮箱 + 聊聊定制需求）。
+The right side of the header has "My account" (buyer sign-up, sign-in and mailbox management), "Log in" (webmail) and "Buy a mailbox". The home page strings the buyer journey together from top to bottom: hero (Buy a mailbox / Create an account, with "Log in to manage mailboxes · Log in to webmail" below) → promo video (one per language, rendered from `video/`, see "Promo video" below) → 01 Start here (four cards: Buy a mailbox, My account, Redeem, Webmail, plus links to the guide, status and support) → 02 Email services (the personal mailbox goes straight to the shop, the other three are inquiries) → 03 How it works (Create an account → Choose a plan → Set up mailboxes under "My account" → Sign in and send, each step with a link; "Create an account" opens the account page's sign-up form directly with `?mode=register`) → 04 FAQ → closing panel (Buy a mailbox + talk to us about custom needs).
 
-## 组件与样式
+## Components and styling
 
-官网不写 CSS Module，样式都在 `className` 里。两类文件的边界：
+The site writes no CSS Modules; all styling is in `className`. The boundary between the two kinds of files:
 
-- `src/components/ui/`、`src/styles/abnormal.css`、`src/styles/abnormal-fonts.css`、`src/lib/utils.ts`：从 registry 安装的副本，**不要直接改**。要改就改 [ui 仓库](https://github.com/abnormalhq/ui)，发布后重新安装，三个站点才能保持一致。
-- `src/components/*.tsx`：官网自己的页面区块，负责组合 registry 组件和文案。
-- `src/styles/global.css`：只放官网专属的断点和全局规则。断点都写成 rem，因为 Tailwind 只能给同单位的断点排序。
+- `src/components/ui/`, `src/styles/abnormal.css`, `src/styles/abnormal-fonts.css`, `src/lib/utils.ts`: copies installed from the registry, **do not edit directly**. To change them, change the [ui repository](https://github.com/abnormalhq/ui), publish, and reinstall, so all three sites stay consistent.
+- `src/components/*.tsx`: the site's own page sections, which compose registry components and copy.
+- `src/styles/global.css`: only the site's own breakpoints and global rules. Breakpoints are all in rem, because Tailwind can only sort breakpoints that share a unit.
 
-registry 地址在 `components.json`。新增或更新组件：
+The registry address is in `components.json`. To add or update a component:
 
 ```sh
 pnpm dlx shadcn@latest add @abnormal/button --overwrite
 ```
 
-## 给 Agent 的入口
+## Entry points for agents
 
-对照 [Is Your Site Agent-Ready](https://isitagentready.com/) 的内容站检查项（可用 `POST https://isitagentready.com/api/scan` 复查）。页面清单在 `src/lib/pages.ts`，下面几项都从那里取，新增页面时只改这一处。
+Follows the content-site checklist from [Is Your Site Agent-Ready](https://isitagentready.com/) (recheck with `POST https://isitagentready.com/api/scan`). The page list is in `src/lib/pages.ts`; everything below reads from it, so a new page is added in one place.
 
-| 入口            | 地址                               | 实现                                                                       |
-| --------------- | ---------------------------------- | -------------------------------------------------------------------------- |
-| 抓取规则        | `/robots.txt`                      | `public/robots.txt`，含 Content Signals 与 sitemap                         |
-| 站点地图        | `/sitemap.xml`                     | `src/app/sitemap.ts`                                                       |
-| 目录            | `/llms.txt`                        | `src/app/llms.txt/route.ts`，内容由 `src/lib/markdown.ts` 生成             |
-| Markdown 版页面 | `/md/`、`/md/zh/privacy/`          | `src/app/md/[[...slug]]/route.ts`，首页来自界面文案，法律页面来自 MDX 正文 |
-| 内容协商        | 页面地址 + `Accept: text/markdown` | `worker.ts` 按权重判断（`src/lib/negotiate.ts`）后转到上面的 Markdown 版本 |
-| 发现头          | 每个页面的 `Link` 响应头           | `next.config.ts` 的 `headers()`，同时输出 `Vary: Accept`                   |
+| Entry               | Address                                  | Implementation                                                                                         |
+| ------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Crawl rules         | `/robots.txt`                            | `public/robots.txt`, with Content Signals and the sitemap                                              |
+| Sitemap             | `/sitemap.xml`                           | `src/app/sitemap.ts`                                                                                   |
+| Index               | `/llms.txt`                              | `src/app/llms.txt/route.ts`, content generated by `src/lib/markdown.ts`                                |
+| Markdown pages      | `/md/`, `/md/zh/privacy/`                | `src/app/md/[[...slug]]/route.ts`; the home page comes from the UI copy, legal pages from the MDX body |
+| Content negotiation | page address + `Accept: text/markdown`   | `worker.ts` decides by weight (`src/lib/negotiate.ts`) and forwards to the Markdown version above      |
+| Discovery headers   | the `Link` response header on every page | `headers()` in `next.config.ts`, which also emits `Vary: Accept`                                       |
 
-`Content-Signal` 目前是 `search=yes, ai-input=yes, ai-train=no`：允许搜索和 AI 回答引用，不授权模型训练。
+`Content-Signal` is currently `search=yes, ai-input=yes, ai-train=no`: search and AI answers may cite the site, model training is not authorized.
 
-内容协商在 `worker.ts` 里，`pnpm dev` 不经过它；要测请用 `pnpm cf:preview`，或直接打开 `/md/` 下的地址。
+Content negotiation lives in `worker.ts`, which `pnpm dev` does not go through; to test it use `pnpm cf:preview`, or open the addresses under `/md/` directly.
 
-MCP、OAuth、API Catalog、Agent Skills 和商务协议没有实现：官网没有 API，也不收款，这些检查对它不适用。购买流程在 onboard。
+MCP, OAuth, API Catalog, Agent Skills and commerce protocols are not implemented: the site has no API and takes no payments, so those checks do not apply to it. The purchase flow is in onboard.
 
-## 搜索引擎与分享卡片
+## Search engines and social cards
 
-| 项目                 | 实现                                                                                                                                         |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 标题、描述、hreflang | `src/lib/metadata.ts` 的 `pageMetadata`：canonical、中英互指的 `hreflang`（`x-default` 指向英文）、`robots` 允许大图预览与完整摘要           |
-| 分享卡片             | 同一处输出 Open Graph（含 `og:site_name`、另一种语言的 `og:locale:alternate`）与 `summary_large_image` 的 Twitter 卡片，图片在 `public/og/`  |
-| 结构化数据           | `src/lib/structured-data.ts`：每页都有 Organization 与 WebSite；首页另有 FAQPage（问答取自 `faq.items`），法律页面另有生效、修订日期与面包屑 |
-| 站点地图             | `src/app/sitemap.ts`：法律页面的 `lastmod` 取 frontmatter 的 `updated`，改条款时同步更新它                                                   |
-| 图标                 | `src/app/icon.svg`、`icon.png`，以及 iOS 主屏幕用的 `apple-icon.png`（180×180）                                                              |
+| Item                         | Implementation                                                                                                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title, description, hreflang | `pageMetadata` in `src/lib/metadata.ts`: canonical, Chinese and English `hreflang` pointing at each other (`x-default` points at English), `robots` allowing large image previews and full snippets      |
+| Social cards                 | The same place emits Open Graph (with `og:site_name` and the other language's `og:locale:alternate`) and a `summary_large_image` Twitter card; images are in `public/og/`                                |
+| Structured data              | `src/lib/structured-data.ts`: every page has Organization and WebSite; the home page adds FAQPage (questions and answers from `faq.items`), legal pages add effective and revision dates and breadcrumbs |
+| Sitemap                      | `src/app/sitemap.ts`: legal pages' `lastmod` comes from `updated` in the frontmatter; update it when changing the terms                                                                                  |
+| Icons                        | `src/app/icon.svg`, `icon.png`, and `apple-icon.png` (180×180) for the iOS home screen                                                                                                                   |
 
-分享图片 `public/og/zh.png`、`en.png`（1200×630）由 `scripts/og-images.ts` 生成，文案取首屏的 `hero.eyebrow`、`hero.titleLines` 与 `meta.socialDescription`；改了这几项后重新生成。本仓库不依赖 Playwright，先全局安装它与 Chromium，再用 `NODE_PATH` 指向全局目录运行脚本：
+The social images `public/og/zh.png` and `en.png` (1200×630) are generated by `scripts/og-images.ts`, with copy from the hero's `hero.eyebrow` and `hero.titleLines` and from `meta.socialDescription`; regenerate after changing those. This repository does not depend on Playwright; install it and Chromium globally first, then run the script with `NODE_PATH` pointing at the global directory:
 
 ```sh
 npm install -g playwright && playwright install chromium
 NODE_PATH="$(npm root -g)" node scripts/og-images.ts
 ```
 
-脚本要联网从 Google Fonts 取中文字形，不在构建时运行。图片的替代文字在文案的 `meta.socialImageAlt`。
+The script needs network access to fetch Chinese glyphs from Google Fonts, and does not run at build time. The images' alt text is `meta.socialImageAlt` in the copy.
 
-结构化数据只写页面上看得到的内容；新增问答写进 `faq.items` 即可，FAQPage 会跟着更新。可用 [Rich Results Test](https://search.google.com/test/rich-results) 或 [Schema Markup Validator](https://validator.schema.org/) 检查。
+The structured data only contains what is visible on the page; to add a question, write it into `faq.items` and FAQPage follows. Check with the [Rich Results Test](https://search.google.com/test/rich-results) or the [Schema Markup Validator](https://validator.schema.org/).
 
-## 开发
+## Development
 
-开发设置与 [mail](https://github.com/abnormalhq/mail)、[onboard](https://github.com/abnormalhq/onboard)、[ui](https://github.com/abnormalhq/ui) 一致：Node.js 24（见 `.node-version`；`package.json` 的 `engines` 写的是工具链实际需要的最低版本 22.22.1，`tests/toolchain.test.ts` 检查它不低于任何直接依赖的要求）、pnpm 12（版本写在 `package.json` 的 `packageManager`）、TypeScript、Prettier（行宽 120）、ESLint、husky + lint-staged + commitlint。
+The development setup matches [mail](https://github.com/abnormalhq/mail), [onboard](https://github.com/abnormalhq/onboard) and [ui](https://github.com/abnormalhq/ui): Node.js 24 (see `.node-version`; `engines` in `package.json` states the minimum the toolchain actually needs, 22.22.1, and `tests/toolchain.test.ts` checks it is not below any direct dependency's requirement), pnpm 12 (version in `packageManager` in `package.json`), TypeScript, Prettier (print width 120), ESLint, husky + lint-staged + commitlint.
 
-类型检查使用 TypeScript 7 的 `tsc`。依赖采用[微软推荐的双包别名](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0)：`@typescript/native` 指向 TypeScript 7，`typescript` 指向 `@typescript/typescript6` 兼容包，供 Next.js 构建与 ESLint（typescript-eslint 还不支持 TS 7）使用。升级依赖时保留这两个别名，四个仓库才用同一个编译器检查同一份 registry 组件。`tsconfig.json` 显式写了 `useDefineForClassFields: true`：tsc 与 `node --test` 对 ES2022 目标本来就按 define 语义处理类字段，而 Next.js 的 SWC 只认显式写出的值，不写就按赋值语义编译，构建结果会与测试不同。
+Type checking uses TypeScript 7's `tsc`. Dependencies follow [Microsoft's recommended dual-package aliasing](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0): `@typescript/native` points at TypeScript 7, and `typescript` points at the `@typescript/typescript6` compatibility package for the Next.js build and ESLint (typescript-eslint does not support TS 7 yet). Keep both aliases when upgrading dependencies, so all four repositories check the same registry components with the same compiler. `tsconfig.json` sets `useDefineForClassFields: true` explicitly: tsc and `node --test` already use define semantics for class fields with an ES2022 target, but Next.js's SWC only honors an explicit value and compiles with assignment semantics otherwise, so the build would differ from the tests.
 
 ```sh
 pnpm install
 pnpm dev
 ```
 
-开发地址为 `http://localhost:4320`，本地 workerd 预览在 `http://localhost:8786`。各仓库的端口互不相同，可以同时开着：
+The dev server is at `http://localhost:4320`, and the local workerd preview at `http://localhost:8786`. Each repository uses different ports, so they can run at the same time:
 
-| 仓库       | `next dev` | 本地 Worker 预览                      |
-| ---------- | ---------- | ------------------------------------- |
-| abnormalhq | 4320       | 8786（`pnpm cf:preview`）             |
-| onboard    | 4321       | 8787（`pnpm preview`）                |
-| mail       | 3000       | 8788（`pnpm cf:preview --port 8788`） |
-| ui         | 4342       | 4341（`pnpm serve`）                  |
+| Repository | `next dev` | Local Worker preview                 |
+| ---------- | ---------- | ------------------------------------ |
+| abnormalhq | 4320       | 8786 (`pnpm cf:preview`)             |
+| onboard    | 4321       | 8787 (`pnpm preview`)                |
+| mail       | 3000       | 8788 (`pnpm cf:preview --port 8788`) |
+| ui         | 4342       | 4341 (`pnpm serve`)                  |
 
 ```sh
 pnpm check         # lint + typecheck + test
-pnpm lint          # ESLint（eslint-config-next）
-pnpm typecheck     # next typegen 与 TypeScript 检查
-pnpm test          # 咨询逻辑、文案结构、页面元数据、法律文档、Agent 入口、缓存头与主题偏好测试
-pnpm format:check  # 格式检查
+pnpm lint          # ESLint (eslint-config-next)
+pnpm typecheck     # next typegen and TypeScript check
+pnpm test          # inquiry logic, copy structure, page metadata, legal documents, agent entry points, cache headers and theme preference tests
+pnpm format:check  # format check
 pnpm build         # next build
-pnpm cf:preview    # OpenNext 构建，并在本地 workerd 里预览（端口 8786）
-pnpm cf:build      # 完整发布前检查：check、format:check、OpenNext 构建到 .open-next/ 与 wrangler deploy --dry-run
-pnpm cf:deploy     # 部署已有的 .open-next/ 产物
+pnpm cf:preview    # OpenNext build, previewed in local workerd (port 8786)
+pnpm cf:build      # full pre-release check: check, format:check, OpenNext build into .open-next/ and wrangler deploy --dry-run
+pnpm cf:deploy     # deploy the existing .open-next/ output
 ```
 
-`pnpm install` 会通过 `prepare` 装好 git 钩子：提交前 lint-staged 只处理暂存的文件（代码先 `eslint --fix` 再 `prettier --write`），提交信息由 commitlint 按 Conventional Commits 检查（允许的类型与 mail 相同）。Dependabot 每周一检查 npm 依赖与 GitHub Actions 的更新。
+`pnpm install` installs the git hooks through `prepare`: before a commit, lint-staged processes only staged files (code goes through `eslint --fix` and then `prettier --write`), and commitlint checks the commit message against Conventional Commits (the allowed types match mail). Dependabot checks for npm dependency and GitHub Actions updates every Monday.
 
-## 项目结构
+## Project structure
 
 ```text
 src/
-  app/            路由：(en)/ 英文页（默认语言，在根路径）、(zh)/zh/ 中文页，各有一个根布局；global-not-found.tsx 是两种语言共用的 404
-  components/     SiteLayout、页头、Hero、邮箱服务卡片、流程、FAQ、咨询弹窗等页面区块；ui/ 是从 registry 安装的组件
-  content/legal/  MDX 编写的隐私政策与服务条款，zh/ 与 en/ 各一份
-  data/site.ts    公开联系方式、联动站点地址（linksFor）、宣传视频（promoVideos）与桌面客户端下载地址
-  i18n/           中英文文案（zh.ts、en.ts、types.ts）与语言路径工具（paths.ts）
-  lib/            inquiry.ts 咨询文案与联系方式的纯函数；metadata.ts 页面 SEO 与分享卡片；structured-data.ts 结构化数据（JSON-LD）；legal.ts 法律文档的 frontmatter 检查与目录；template.ts 文案模板；pages.ts 页面清单；markdown.ts 与 negotiate.ts 给 Agent 的 Markdown 与内容协商；cache.ts 浏览器缓存头
-  scripts/        theme-init.js：内联进头部的主题初始化脚本
-  styles/         abnormal.css、abnormal-fonts.css 来自 registry；global.css 是官网专属的断点和全局规则
-public/           字体、分享图片（og/）、宣传视频（video/）等由静态资源服务直接响应的文件
-scripts/          og-images.ts：生成 public/og/ 的分享图片
-video/            宣传视频的 Remotion 工程，渲染到 public/video/（见「宣传视频」）
-tests/            咨询逻辑、文案结构、页面元数据、法律文档、Agent 入口、缓存头与主题行为回归测试
-open-next.config.ts  OpenNext 配置：预渲染结果放在只读的静态资源里
-worker.ts            Worker 入口：Markdown 内容协商与缓存头
-wrangler.jsonc       Cloudflare Worker 与静态资源配置
+  app/            Routes: (en)/ English pages (default language, at the root), (zh)/zh/ Chinese pages, each with its own root layout; global-not-found.tsx is the 404 shared by both languages
+  components/     Page sections such as SiteLayout, header, Hero, email service cards, process, FAQ and the inquiry dialog; ui/ holds components installed from the registry
+  content/legal/  Privacy policy and terms of service written in MDX, one set each in zh/ and en/
+  data/site.ts    Public contact details, linked-site addresses (linksFor), promo videos (promoVideos) and desktop client download addresses
+  i18n/           Chinese and English copy (zh.ts, en.ts, types.ts) and language path helpers (paths.ts)
+  lib/            inquiry.ts pure functions for inquiry copy and contact details; metadata.ts page SEO and social cards; structured-data.ts structured data (JSON-LD); legal.ts frontmatter validation and table of contents for the legal documents; template.ts copy templates; pages.ts page list; markdown.ts and negotiate.ts Markdown and content negotiation for agents; cache.ts browser cache headers
+  scripts/        theme-init.js: the theme initialization script inlined into the head
+  styles/         abnormal.css and abnormal-fonts.css come from the registry; global.css holds the site's own breakpoints and global rules
+public/           Fonts, social images (og/), promo videos (video/) and other files served directly by the static asset service
+scripts/          og-images.ts: generates the social images in public/og/
+video/            Remotion project for the promo video, rendered into public/video/ (see "Promo video")
+tests/            Regression tests for inquiry logic, copy structure, page metadata, legal documents, agent entry points, cache headers and theme behavior
+open-next.config.ts  OpenNext configuration: prerendered output lives in read-only static assets
+worker.ts            Worker entry: Markdown content negotiation and cache headers
+wrangler.jsonc       Cloudflare Worker and static asset configuration
 ```
 
-布局、排版、状态和响应式设计都使用 Tailwind utility。只有 `Header`、`ThemePicker`、`InquiryDialog` 和页脚年份的 `CurrentYear` 是客户端组件，其余都是服务端组件，在构建时预渲染。预渲染的内容要到下次部署才会变，所以服务端组件不直接显示当前时间：页脚版权年份先用构建时的年份占位，浏览器里由 `CurrentYear` 换成访问时的年份。Worker 运行时不能用 `fs` 读项目文件，所以法律文档在构建时由 MDX 编译成组件，`theme-init.js` 由 `next.config.ts` 的 `raw-loader` 规则打包成字符串。页面里任意位置要打开咨询弹窗，用 `InquiryButton`（`product` 指定预选的服务）。
+Layout, typography, states and responsive design all use Tailwind utilities. Only `Header`, `ThemePicker`, `InquiryDialog` and the footer year's `CurrentYear` are client components; everything else is a server component, prerendered at build time. Prerendered content does not change until the next deploy, so server components do not show the current time directly: the footer copyright year is first filled with the build-time year, and `CurrentYear` replaces it in the browser with the year of the visit. The Worker runtime cannot read project files with `fs`, so the legal documents are compiled from MDX into components at build time, and `theme-init.js` is bundled as a string by the `raw-loader` rule in `next.config.ts`. To open the inquiry dialog from anywhere on a page, use `InquiryButton` (`product` sets the preselected service).
 
-## 视觉设计
+## Visual design
 
-视觉与 [mailhq](https://github.com/abnormalhq/mail) 及 [onboard](https://github.com/abnormalhq/onboard) 统一，用 abnormal 品牌（路线 A）：墨色压在暖灰纸色上、深色主题就是墨色本身，主色就是墨色，荧光黄是唯一的彩色品牌色；正文 Inter、标题 Bricolage Grotesque、代码 JetBrains Mono；套在 Resend 式的结构上——1px 细线分隔、面板不铺底色、没有阴影。
+The visuals are unified with [mailhq](https://github.com/abnormalhq/mail) and [onboard](https://github.com/abnormalhq/onboard), using the abnormal brand (direction A): ink on warm gray paper, with the dark theme being the ink itself; the primary color is the ink, and highlight yellow is the only chromatic brand color. Body text is Inter, headings Bricolage Grotesque, code JetBrains Mono, laid over a Resend-style structure: 1px hairline dividers, unfilled panels, no shadows.
 
-- 令牌（配色、圆角、焦点色）在 registry 的 `@abnormal/theme` 里，安装到 `src/styles/abnormal.css`，改配色时去改 ui 仓库。Tailwind 工具类用 `text-foreground`、`text-muted-foreground`、`text-brand` 等映射名。
-- 品牌色就是墨色，只用在主按钮上：浅色下是 `#141412` 配白字（18.4:1），深色下是 `#f0f0ea` 配墨色字（16.1:1）。勾选图标与链接悬停用墨色或灰色。
-- 荧光黄 `--highlight`（`#ffe14d`）是唯一的彩色，标记「当前、选中、新、展示」：品牌标记、选中文字、开通流程的编号（像被荧光笔划过的一道黄）、首屏插图的黄色卡片、推荐入口与主推套餐的图标块、咨询弹窗的标题图标。黄色上永远是墨色字，浅色底上不出现黄色文字。
-- `--highlight-muted`（浅色 `#fff4bf`、深色 `#34311b`）是柔和的浅黄面，留给选中或当前的行、提示块；上面正文 16.6:1 / 11.5:1、次要文字 6.1:1 / 5.3:1。
-- `--signal`（浅色墨色、深色荧光黄）给小号指示用：小标前的圆点、标题末尾的句号、字标 `abnormal.` 的句点、未读点、法律页的章节编号。浅色底上黄色太淡，所以这些小记号在浅色下是墨色。
-- 圆角收紧，呼应方形标志：徽章 4px、按钮与控件 6px、小面板 8px、卡片与对话框 12px。按钮按下缩到 0.98，悬停只改底色或描边，不上浮、不加阴影。
-- 控件照 mailhq：半透明 `control` 底、`input` 细描边；悬停与聚焦时描边加深，键盘焦点是 2px 灰色描边。只有浮层（主题菜单、咨询对话框）使用 `--popover-bg` 与浮层阴影。
-- 品牌标记与 mailhq 的 BrandMark 同一幅图：荧光黄方块上一个墨色小写 a，带纸白色错位影子和右上箭头，颜色固定、不随主题变化；`src/app/icon.svg` 也是这幅图。
-- Inter（正文）、Bricolage Grotesque（标题）、JetBrains Mono（代码）三款可变字体（拉丁子集，OFL）自托管在 `public/fonts/`，与 mailhq 同一份文件，页面头部预载 Inter 与 Bricolage Grotesque；中文字形回退到苹方 / 微软雅黑等系统字体，不访问 Google Fonts。
+- Tokens (colors, radii, focus color) live in the registry's `@abnormal/theme`, installed into `src/styles/abnormal.css`; to change colors, change the ui repository. Tailwind utilities use the mapped names `text-foreground`, `text-muted-foreground`, `text-brand` and so on.
+- The brand color is the ink and is used only on primary buttons: `#141412` with white text in light mode (18.4:1), `#f0f0ea` with ink text in dark mode (16.1:1). Check icons and link hovers use ink or gray.
+- Highlight yellow `--highlight` (`#ffe14d`) is the only chromatic color and marks "current, selected, new, showcase": the brand mark, selected text, the step numbers in the activation process (a band of yellow as if drawn with a marker), the yellow card in the hero illustration, the icon tiles of the recommended entry and featured plan, and the inquiry dialog's title icon. Text on yellow is always ink; yellow text never appears on a light background.
+- `--highlight-muted` (light `#fff4bf`, dark `#34311b`) is the soft pale yellow surface, reserved for selected or current rows and hint blocks; body text on it is 16.6:1 / 11.5:1, secondary text 6.1:1 / 5.3:1.
+- `--signal` (ink in light mode, highlight yellow in dark mode) is for small indicators: the dot before eyebrow labels, the full stop at the end of headings, the period in the `abnormal.` wordmark, unread dots and the section numbers on legal pages. Yellow is too faint on a light background, so these small marks are ink in light mode.
+- Radii are tightened to echo the square logo: badges 4px, buttons and controls 6px, small panels 8px, cards and dialogs 12px. Buttons scale to 0.98 when pressed; hover only changes the fill or outline, with no lift and no shadow.
+- Controls follow mailhq: a translucent `control` fill and a thin `input` outline; the outline darkens on hover and focus, and keyboard focus is a 2px gray outline. Only floating layers (theme menu, inquiry dialog) use `--popover-bg` and the popover shadow.
+- The brand mark is the same drawing as mailhq's BrandMark: a lowercase ink "a" on a highlight-yellow square, with an offset paper-white shadow and an arrow in the top right; its colors are fixed and do not follow the theme. `src/app/icon.svg` is the same drawing.
+- The three variable fonts Inter (body), Bricolage Grotesque (headings) and JetBrains Mono (code) (Latin subsets, OFL) are self-hosted in `public/fonts/`, the same files as mailhq, and the page head preloads Inter and Bricolage Grotesque; Chinese glyphs fall back to system fonts such as PingFang and Microsoft YaHei, without contacting Google Fonts.
 
-## 外观主题
+## Appearance themes
 
-导航栏提供「跟随系统」「浅色模式」「深色模式」。首次访问默认跟随系统，系统外观变化时同步更新；手动选择保存在当前浏览器的 `localStorage`（`abnormal-theme`），选择跟随系统会清除该偏好。不同标签页自动同步选择，浏览器禁用存储时仍可临时切换。
+The navigation bar offers "System", "Light" and "Dark". A first visit defaults to following the system and updates when the system appearance changes; a manual choice is saved in the current browser's `localStorage` (`abnormal-theme`), and choosing System clears that preference. The choice syncs across tabs automatically, and switching still works temporarily when the browser blocks storage.
 
-主题初始化脚本在页面头部同步执行，提前设置实际主题，避免刷新时闪过错误配色。全局色彩在 `src/styles/global.css` 维护，浅色与深色各一套令牌，挂在 `<html data-theme>` 上；脚本未运行时按系统偏好取色。`<meta name="theme-color">` 随生效的主题切换（`#f7f7f4` / `#141412`）。
+The theme initialization script runs synchronously in the page head and sets the actual theme early, so a refresh does not flash the wrong colors. Global colors are maintained in `src/styles/global.css`, one set of tokens each for light and dark, hung on `<html data-theme>`; when the script has not run, colors follow the system preference. `<meta name="theme-color">` switches with the effective theme (`#f7f7f4` / `#141412`).
 
-## 配置经营信息
+## Configuring business details
 
-联系方式在 `src/data/site.ts`，服务与价格文案在 `src/i18n/zh.ts` / `en.ts`：
+Contact details are in `src/data/site.ts`; service and pricing copy is in `src/i18n/zh.ts` / `en.ts`:
 
-- `site.contact.wechat`：真实微信号。
-- `site.contact.email`：真实咨询邮箱；邮件咨询按钮会填入选定的服务类型、使用时长和需求。
-- `site.contact.telegram`：完整的 `https://t.me/...` 链接。有效 Telegram 优先；无效时回退到邮箱。
-- `services.products`（两份文案各一套）：统一维护邮箱服务名称、类别、描述、标签、`price` 与 `priceNote`，`icon` 选卡片左上角的图标（`mail`、`domain`、`team`、`setup`），卡片顺序可以随意调整。`price` 留空时显示「咨询报价」；填了 `href` 的卡片按钮直接前往该地址（如商店），否则打开咨询弹窗。
-- `linksFor`（site.ts）与 `start.entries`、`process.steps`（文案）：联动站点地址、首页入口卡片与开通流程；文案里用 `link` 键引用地址。
+- `site.contact.wechat`: the real WeChat ID.
+- `site.contact.email`: the real inquiry email address; the email inquiry button fills in the selected service type, duration and needs.
+- `site.contact.telegram`: a full `https://t.me/...` link. A valid Telegram link takes priority; when invalid, it falls back to email.
+- `services.products` (one set in each copy): maintains the email service names, categories, descriptions, tags, `price` and `priceNote` in one place; `icon` picks the icon in the card's top-left corner (`mail`, `domain`, `team`, `setup`), and the card order can be changed freely. An empty `price` shows "On request"; a card with `href` set goes straight to that address (such as the shop), otherwise it opens the inquiry dialog.
+- `linksFor` (site.ts) with `start.entries` and `process.steps` (copy): linked-site addresses, the home page entry cards and the activation process; the copy references addresses by `link` key.
 
-这些配置会公开到网页中，请勿放入密钥、密码或私人信息。修改后提交到 `main` 即会自动重新构建并部署。
+These settings are published on the web pages, so never put keys, passwords or private information in them. Changes committed to `main` are rebuilt and deployed automatically.
 
-联系信息未配置时，页面明确提示「咨询渠道即将公布」。咨询弹窗只在浏览器内整理和复制需求，不发送数据、不创建订单，也不收款。具体套餐、费用及服务条件需事先确认。
+When no contact details are configured, the page clearly says "Contact channels are coming soon". The inquiry dialog only composes and copies the request inside the browser; it sends no data, creates no orders and takes no payments. Specific plans, fees and service terms are confirmed in advance.
 
-## 宣传视频
+## Promo video
 
-首屏下方的「先看一段视频」区块（`src/components/PromoVideo.tsx`）放一段宣传短片，用原生 `<video>` 带播放控件，不自动播放、不带声音打断访客，先只加载元数据，由封面图撑住版面；视频下方始终有「下载视频」链接。两种语言各一段，片中文字就是页面的语言，标题与简介在两份文案的 `video` 里。
+The video section under the hero (`src/components/PromoVideo.tsx`) shows a short promo film in a native `<video>` with playback controls; it does not autoplay or interrupt visitors with sound, loads only metadata at first, and the poster image holds the layout. A "Download the video" link always sits below the video. There is one film per language, the text in the film is the page's language, and the title and description live under `video` in both copy files.
 
-视频由仓库里的 `video/` 用 [Remotion](https://www.remotion.dev/)（用 React 写视频的框架）生成：六个场景（品牌标记 → 首屏标题 → 收件箱示意 → 四步开通流程 → 价值条 → 收尾），1920×1080、30fps、约 35 秒，画面用官网浅色主题的配色、圆角与字体（`public/fonts/` 里的那几份，中文字形从 Google Fonts 取 Noto Sans SC，与分享图一致）。片中文字在 `video/src/copy.ts`，是官网文案里首屏、流程与收尾的句子，改了官网文案要跟着改。
+The video is generated by `video/` in this repository with [Remotion](https://www.remotion.dev/) (a framework for writing videos in React): six scenes (brand mark → hero headline → inbox illustration → the four activation steps → value strip → closing), 1920×1080, 30fps, about 35 seconds, drawn with the site's light-theme colors, radii and fonts (the files in `public/fonts/`, with Chinese glyphs from Google Fonts' Noto Sans SC, the same as the social images). The on-screen text is in `video/src/copy.ts` and consists of the hero, process and closing sentences of the site copy; when the site copy changes, change it too.
 
-背景音乐也是生成的：`video/scripts/music.ts` 用 [Tone.js](https://tonejs.github.io/) 写一段 C 大调、96 BPM 的循环（三路失谐锯齿波的铺底、FM 合成的电钢琴和弦、带滤波包络的贝斯、过乒乓延迟的琶音、膜合成底鼓与噪声合成的军鼓踩镲，分层进入，末尾收束），整体过卷积混响、压缩与限幅，离线渲染到 `video/assets/music.wav`（不提交，`pnpm music` 重新生成，约 25 秒）。Tone.js 是浏览器库，脚本用 node-web-audio-api 提供 Web Audio 实现并补上它需要的全局对象，噪声源用固定种子的随机数，每次结果相同。Remotion 以 `<Audio>` 混入，成片响度约 -17 LUFS。没有引入任何第三方音频素材，不涉及版权。
+The background music is generated as well: `video/scripts/music.ts` writes a C major, 96 BPM loop with [Tone.js](https://tonejs.github.io/) (a pad of three detuned sawtooth voices, FM-synthesized electric piano chords, a bass with a filter envelope, an arpeggio through a ping-pong delay, a membrane-synth kick and noise-synthesized snare and hi-hat, entering in layers and resolving at the end), run through convolution reverb, compression and limiting, and rendered offline to `video/assets/music.wav` (not committed; `pnpm music` regenerates it in about 25 seconds). Tone.js is a browser library, so the script provides a Web Audio implementation with node-web-audio-api and fills in the globals it needs; the noise sources use a seeded random generator, so every run gives the same result. Remotion mixes it in with `<Audio>`; the finished film is about -17 LUFS. No third-party audio material is involved, so there are no copyright questions.
 
-`video/` 是独立的 pnpm 工程（有自己的 lockfile），不并入官网的安装：Remotion 带着浏览器与编码器的二进制，官网的 CI 与 Cloudflare 构建都用不上，根目录的 `tsconfig.json` 与 ESLint 也不包含它，Prettier 照常格式化。
+`video/` is a separate pnpm project (with its own lockfile) that is not part of the site's install: Remotion brings browser and encoder binaries that neither the site's CI nor the Cloudflare build needs, and the root `tsconfig.json` and ESLint do not include it either; Prettier formats it as usual.
 
 ```sh
 cd video
 pnpm install
-pnpm studio      # 在浏览器里预览与调试，http://localhost:3000
-pnpm music       # 合成背景音乐到 assets/music.wav（studio 与 render 会先自动执行）
-pnpm render      # 渲染两种语言的 MP4（含配乐）与封面图到 ../public/video/
+pnpm studio      # preview and debug in the browser, http://localhost:3000
+pnpm music       # synthesize the background music into assets/music.wav (studio and render run it first automatically)
+pnpm render      # render the MP4 (with music) and the poster for both languages into ../public/video/
 pnpm typecheck
 ```
 
-渲染结果 `public/video/abnormal-{en,zh}.mp4` 与同名 `.jpg`（封面，取第 220 帧）提交进仓库，随官网一起部署，由静态资源服务同源响应，没有跨域与 CORS 的问题；每段约 1–2 MB。地址与发布日期在 `src/data/site.ts` 的 `promoVideos`：重新渲染后更新 `uploadDate`；某种语言的 `src` 留空时那一页不显示这一区块，`/md/` 的 Markdown 版本与结构化数据也不提它。`tests/video.test.ts` 要求填了地址就同时填封面与日期，且站内路径对应的文件在 `public/` 里。配置后首页的结构化数据里多一个 schema.org `VideoObject`（名称与简介取自文案，封面与日期取自配置），`/md/` 里多一节带视频链接的标题。
+The rendered `public/video/abnormal-{en,zh}.mp4` and the `.jpg` of the same name (the poster, frame 220) are committed and deployed with the site, served from the same origin by the static asset service, so there are no cross-origin or CORS issues; each film is about 1–2 MB. The addresses and upload dates are in `promoVideos` in `src/data/site.ts`: update `uploadDate` after re-rendering; when a language's `src` is left empty, that page does not show the section, and neither the `/md/` Markdown version nor the structured data mentions it. `tests/video.test.ts` requires the poster and date to be set along with the address, and the files for site paths to exist in `public/`. Once configured, the home page's structured data gains a schema.org `VideoObject` (name and description from the copy, poster and date from the configuration), and `/md/` gains a heading with the video link.
 
-机器上没有 Chrome 时 Remotion 会自己下载一份 Chrome Headless Shell；要用已装好的浏览器，设 `REMOTION_BROWSER_EXECUTABLE=/path/to/chromium`。
+When the machine has no Chrome, Remotion downloads a Chrome Headless Shell of its own; to use an installed browser, set `REMOTION_BROWSER_EXECUTABLE=/path/to/chromium`.
 
-## 隐私政策与服务条款
+## Privacy policy and terms of service
 
-`src/content/legal/zh/` 与 `src/content/legal/en/` 下的 `privacy.mdx`、`terms.mdx` 在构建时由 [`@next/mdx`](https://nextjs.org/docs/app/guides/mdx) 编译，通过 `src/components/LegalDocument.tsx` 输出，发布路径为 `/privacy/` 与 `/terms/`（中文 `/zh/privacy/`、`/zh/terms/`），页脚与咨询弹窗都有入口。正文使用 MDX 编写（普通文字里的 `{`、`}`、`<` 会被当成语法，要写成 `\{`、`\}`、`\<`），每个二级标题自动编号并生成目录；「联系我们」一节由组件根据 `site.contact` 生成，正文中无需重复联系方式。
+`privacy.mdx` and `terms.mdx` under `src/content/legal/zh/` and `src/content/legal/en/` are compiled at build time by [`@next/mdx`](https://nextjs.org/docs/app/guides/mdx) and rendered through `src/components/LegalDocument.tsx`, published at `/privacy/` and `/terms/` (Chinese `/zh/privacy/`, `/zh/terms/`), linked from the footer and the inquiry dialog. The body is written in MDX (`{`, `}` and `<` in plain text are treated as syntax and must be written as `\{`, `\}`, `\<`); every second-level heading is numbered automatically and collected into a table of contents. The "Contact us" section is generated by the component from `site.contact`, so the body need not repeat the contact details.
 
-frontmatter 字段：`title`、`description`（页面 meta 描述）、`eyebrow`（页首英文小标）、`summary`（页首导语）、`effective` 与 `updated`（`YYYY-MM-DD`，修改正文后请更新 `updated`）、`highlights`（页首「要点速览」）。页面先用 `src/lib/legal.ts` 的 `parseLegalFrontmatter` 检查 frontmatter：缺字段、日期不是真实的 `YYYY-MM-DD`、`highlights` 为空时构建直接报错，并指出是哪个文件的哪个字段。目录取文档里的全部二级标题，正文不要写一级标题（页首已经是 h1）。
+Frontmatter fields: `title`, `description` (the page meta description), `eyebrow` (the English label at the top of the page), `summary` (the lead at the top of the page), `effective` and `updated` (`YYYY-MM-DD`; update `updated` after changing the body), `highlights` (the "At a glance" list at the top of the page). The page first validates the frontmatter with `parseLegalFrontmatter` from `src/lib/legal.ts`: a missing field, a date that is not a real `YYYY-MM-DD`, or an empty `highlights` fails the build outright and names the file and field. The table of contents takes every second-level heading in the document; do not write a first-level heading in the body (the page top is already the h1).
 
-`tests/legal.test.ts` 用与 `next.config.ts` 相同的插件（清单在 `src/content/legal/mdx.ts`）编译四份文档，要求同一页面的中英文二级标题数量、`effective` 与 `updated`、`highlights` 条数和 `eyebrow` 一致；只改一种语言时测试会提醒。
+`tests/legal.test.ts` compiles the four documents with the same plugins as `next.config.ts` (listed in `src/content/legal/mdx.ts`) and requires the Chinese and English versions of the same page to match in the number of second-level headings, `effective` and `updated`, the number of `highlights` and the `eyebrow`; changing only one language makes the test complain.
 
-两份文本覆盖官网、商店与开通页（onboard）、网页邮箱与状态页（mail）。其中与系统行为对应的部分（订阅服务期限从付款成功时起算、到期后 7 天宽限期与 30 天保留期、购买会话 Cookie、15 分钟登录链接、AI 功能的数据流向）照 mail 仓库 `src/lib/shop/` 与 onboard 的文案写成，相关逻辑变化时请同步修改。
+The two texts cover the marketing site, the shop and activation page (onboard), and webmail and the status page (mail). The parts that correspond to system behavior (subscription periods counted from successful payment, the 7-day grace period and 30-day retention period after expiry, the purchase session cookie, 15-minute sign-in links, where data flows for AI features) are written from the mail repository's `src/lib/shop/` and onboard's copy; update them when that logic changes.
 
-以下是经营上的约定而不是系统行为，正式经营前请按实际情况核对：订单记录保留期限（12 个月）、退款规则（未使用兑换码全额退、已开通原则上不退、订阅扣款后 48 小时酌情退）、答复与验收时限、管理员访问邮箱的情形、适用法律与管辖法院，以及是否需要补充经营主体名称。
+The following are business conventions rather than system behavior, and should be checked against reality before operating for real: the order record retention period (12 months), refund rules (full refund for unused redeem codes, in principle no refund once activated, discretionary refund within 48 hours of a subscription charge), response and acceptance deadlines, the circumstances in which administrators access mailboxes, governing law and jurisdiction, and whether the name of the operating entity needs to be added.
 
-## 部署
+## Deployment
 
-站点通过 OpenNext 部署为 Cloudflare Worker（`wrangler.jsonc`，Worker 名 `abnormalhq`，入口是 `worker.ts`，它包住生成的 `.open-next/worker.js`）。页面都是预渲染的，预渲染结果放在只读的静态资源里（`open-next.config.ts`），不需要 R2 或队列；字体等静态文件由静态资源服务直接响应。生产发布由 [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) 直接监听 `main` 分支，每次推送自动检查、构建并部署；任何一步失败都不会部署，上一个成功版本继续可用。
+The site is deployed through OpenNext as a Cloudflare Worker (`wrangler.jsonc`, Worker name `abnormalhq`, entry `worker.ts`, which wraps the generated `.open-next/worker.js`). All pages are prerendered, with the prerendered output in read-only static assets (`open-next.config.ts`), so no R2 or queue is needed; static files such as fonts are served directly by the static asset service. Production releases come from [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) watching the `main` branch directly: every push is checked, built and deployed automatically; if any step fails nothing is deployed and the last successful version stays live.
 
-`.github/workflows/ci.yml` 只在 PR 与 `main` 推送时执行相同的检查与构建，不负责发布，也不需要 Cloudflare 凭据。Actions 与 mail、onboard 一样只写大版本标签（如 `actions/checkout@v7`），大版本升级由 Dependabot 提 PR。
+`.github/workflows/ci.yml` only runs the same checks and build on PRs and pushes to `main`; it does not release and needs no Cloudflare credentials. As in mail and onboard, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
 
-### Cloudflare 一次性配置
+### One-time Cloudflare setup
 
-这些已经配好，需要重建时照此设置。在 Workers & Pages 里连接 GitHub 仓库 `abnormalhq/abnormalhq`：
+This is already configured; follow it when it needs to be rebuilt. In Workers & Pages, connect the GitHub repository `abnormalhq/abnormalhq`:
 
-- Worker 名称：`abnormalhq`（必须与 `wrangler.jsonc` 一致）
-- 生产分支：`main`，根目录：`/`
-- 构建命令：`pnpm install --frozen-lockfile && pnpm cf:build`
-- 部署命令：`pnpm cf:deploy`
-- 构建变量：
+- Worker name: `abnormalhq` (must match `wrangler.jsonc`)
+- Production branch: `main`, root directory: `/`
+- Build command: `pnpm install --frozen-lockfile && pnpm cf:build`
+- Deploy command: `pnpm cf:deploy`
+- Build variables:
 
-  | 变量                      | 值        | 作用                                           |
-  | ------------------------- | --------- | ---------------------------------------------- |
-  | `PNPM_VERSION`            | `12.16.1` | 与 `package.json` 的 `packageManager` 一致     |
-  | `SKIP_DEPENDENCY_INSTALL` | `1`       | 跳过默认安装，使用上面的冻结 lockfile 安装命令 |
-  | `NEXT_TELEMETRY_DISABLED` | `1`       | 禁用 Next.js 构建遥测                          |
+  | Variable                  | Value     | Purpose                                                                         |
+  | ------------------------- | --------- | ------------------------------------------------------------------------------- |
+  | `PNPM_VERSION`            | `12.16.1` | Matches `packageManager` in `package.json`                                      |
+  | `SKIP_DEPENDENCY_INSTALL` | `1`       | Skips the default install in favor of the frozen-lockfile install command above |
+  | `NEXT_TELEMETRY_DISABLED` | `1`       | Disables Next.js build telemetry                                                |
 
-Node.js 版本由 `.node-version` 指定。
+The Node.js version is set by `.node-version`.
 
-### 域名
+### Domains
 
-网页域名写在 `wrangler.jsonc` 的 `routes` 里，由部署创建；旧域名的跳转规则和 DNS 占位不归 wrangler 管，在 Cloudflare 里维护。部署不加 `--strict`。
+The web domains are listed in `routes` in `wrangler.jsonc` and created by the deploy; the redirect rules and DNS placeholders for the old domains are not managed by wrangler and are maintained in Cloudflare. Deploys do not use `--strict`.
 
-- `abnormalhq.com`：Worker `abnormalhq` 的自定义域名，DNS 里对应一条由 Cloudflare 管理的 `AAAA 100::`。重新绑定前先确认主机名上没有其他 A、AAAA 或 CNAME 记录。
-- `www.abnormalhq.com`：同一个 Worker 的自定义域名，DNS 记录同样由部署创建。Worker 里由 `next.config.ts` 的 `redirects` 用 301 跳到 `https://abnormalhq.com`，保留路径与查询参数；静态资源服务先于 Worker 响应，字体和 `/_next/` 下的文件在这个主机上不跳转。`wrangler dev` 会把 Host 改写成第一条路由，本地要加 `--local-upstream www.abnormalhq.com` 才能测到跳转。
-- `abnormal.bid`：旧地址，域名继续持有。它也留在 `routes` 里，这样 DNS 记录不会被删；zone 的 Redirect Rule（`http_request_dynamic_redirect` 阶段）在 Worker 之前用 301 跳到 `https://abnormalhq.com`，保留路径与查询参数。不要把它从 `routes` 去掉：部署会删掉它的 DNS 记录，之后约 30 分钟都因负缓存解析不到。
-- `www.abnormal.bid`：同样的 Redirect Rule 跳到 `https://abnormalhq.com`；DNS 里只有一条代理的 `AAAA 100::` 占位记录。
-- `abnormal.bid` 根域名上的 MX 与 TXT 记录属于邮件服务（`@abnormal.bid` 邮箱），改 DNS 时不要动。
+- `abnormalhq.com`: custom domain of the Worker `abnormalhq`, backed in DNS by a Cloudflare-managed `AAAA 100::` record. Before rebinding, make sure the hostname has no other A, AAAA or CNAME records.
+- `www.abnormalhq.com`: custom domain of the same Worker, with its DNS record likewise created by the deploy. Inside the Worker, the `redirects` in `next.config.ts` 301 it to `https://abnormalhq.com`, keeping path and query string; the static asset service responds before the Worker, so fonts and files under `/_next/` do not redirect on this host. `wrangler dev` rewrites Host to the first route, so locally the redirect can only be tested with `--local-upstream www.abnormalhq.com`.
+- `abnormal.bid`: the old address; the domain is still held. It also stays in `routes`, so its DNS record is not deleted; the zone's Redirect Rule (`http_request_dynamic_redirect` phase) 301s it to `https://abnormalhq.com` before the Worker, keeping path and query string. Do not remove it from `routes`: the deploy would delete its DNS record, and negative caching would make it unresolvable for about 30 minutes afterwards.
+- `www.abnormal.bid`: the same Redirect Rule to `https://abnormalhq.com`; DNS has only a proxied `AAAA 100::` placeholder record.
+- The MX and TXT records on the `abnormal.bid` apex belong to the mail service (`@abnormal.bid` mailboxes); do not touch them when changing DNS.
 
-GitHub Pages 已不再使用：部署流程已删除，线上由上面的 Worker 提供。GitHub 不允许停用这个仓库的 Pages（API 返回 422）。仓库现在叫 `abnormalhq/abnormalhq`，名字不符合 `<组织名>.github.io`，所以它是项目站点：`abnormal-bid.github.io` 返回 404，`abnormalhq.github.io/abnormalhq/` 继续 301 跳到 `abnormal.bid`，再由上面的 Redirect Rule 跳到新地址。不要清除 Pages 设置里的自定义域名，否则这个地址会直接显示最后一次部署的旧站。
+GitHub Pages is no longer used: the deploy workflow has been removed and production is served by the Worker above. GitHub does not allow disabling Pages for this repository (the API returns 422). The repository is now called `abnormalhq/abnormalhq`, which does not match `<organization>.github.io`, so it is a project site: `abnormal-bid.github.io` returns 404, and `abnormalhq.github.io/abnormalhq/` still 301s to `abnormal.bid`, which the Redirect Rule above then sends to the new address. Do not clear the custom domain in the Pages settings, or that address would serve the old site from the last deploy directly.
 
-### 本机部署
+### Deploying from a local machine
 
-先 `pnpm exec wrangler login`，再执行：
+Run `pnpm exec wrangler login` first, then:
 
 ```sh
 pnpm cf:build
 pnpm cf:deploy
 ```
 
-## 其他
+## Other
 
-- 使用原生 `<dialog>` 和 `<details>`，支持键盘操作、Esc 关闭、焦点恢复与减少动态效果偏好。
-- 不包含统计脚本或客户数据存储；唯一的 Cookie 是手动切换语言时写的 `abnormal_lang`（见「中英文」），隐私政策里有说明。
-- 字体随站点自托管，不请求第三方字体服务。
-- 首屏邮箱界面与地址卡片为服务概念示意，不代表实际邮件客户端界面。
+- Uses native `<dialog>` and `<details>`, with keyboard operation, Esc to close, focus restoration and the reduced motion preference.
+- Contains no analytics scripts or customer data storage; the only cookie is `abnormal_lang`, written when the language is switched by hand (see "Chinese and English") and described in the privacy policy.
+- Fonts are self-hosted with the site; no third-party font service is requested.
+- The mailbox interface and address card in the hero are a conceptual illustration of the service, not an actual mail client interface.

@@ -1,4 +1,4 @@
-/** Remotion 的打包器把音频文件当资源引入，导出的是地址。 */
+/** Remotion's bundler imports audio files as assets; the export is their address. */
 declare module "*.wav" {
   const src: string;
   export default src;

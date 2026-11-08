@@ -2,7 +2,7 @@ import type { VideoCopy } from "../copy";
 import { color, font, radius } from "../theme";
 import { Icon, Paper, useEnter } from "../ui";
 
-/** 价值条：一句对仗的标题，下面三条承诺。 */
+/** The value strip: a two-part title with three promises below it. */
 export function Promises({ t }: { t: VideoCopy }) {
   const lead = useEnter(0, { distance: 40 });
   const strong = useEnter(14, { distance: 40 });

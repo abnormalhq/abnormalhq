@@ -1,6 +1,6 @@
 /**
- * 给 Agent 读的 Markdown：首页由界面文案生成，法律页面用 MDX 正文，llms.txt 是两者的目录。
- * 文案只有 src/i18n 一份，改了界面文案，这里跟着变。
+ * Markdown for agents: the home page is generated from the UI copy, the legal pages use the MDX body, and llms.txt is the index of both.
+ * The copy exists only once, in src/i18n; change the UI copy and this follows.
  */
 import {
   absoluteUrl,
@@ -30,7 +30,7 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
   return `${paragraphs([
     `# ${t.meta.title}`,
     t.meta.description,
-    // 宣传视频只在配置了地址时出现（src/data/site.ts 的 promoVideos）。
+    // The promo video appears only when an address is configured (promoVideos in src/data/site.ts).
     ...(video ? [`## ${t.video.title}`, `${t.video.description} [${t.video.label}](${absoluteUrl(video.src)})`] : []),
     `## ${t.start.title}`,
     list([
@@ -59,7 +59,7 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
   ])}\n`;
 }
 
-/** 下载页的 Markdown 响应：每次请求时读取版本列表，由 /md/download/ 与 /md/zh/download/ 的路由调用。 */
+/** Markdown response for the download page: reads the release list on every request, called by the /md/download/ and /md/zh/download/ routes. */
 export async function downloadMarkdownResponse(lang: Lang): Promise<Response> {
   return markdownResponse(pageFor(lang, "/download/"), downloadMarkdown(lang, await fetchDesktopReleases()));
 }
@@ -110,14 +110,14 @@ export function downloadMarkdown(lang: Lang, releases: DesktopReleases | undefin
   ])}\n`;
 }
 
-/** 文案里的法律页面路径是普通字符串，这里确认它确实是清单里的页面。 */
+/** Legal page paths in the copy are plain strings; this confirms the path really is a page in the list. */
 function toPagePath(path: string) {
   const match = pagePaths.find((pagePath) => pagePath === path);
   if (!match) throw new Error(`Unknown page path: ${path}`);
   return match;
 }
 
-/** 去掉 MDX 开头的 frontmatter，留下正文。法律文档里没有 JSX，正文就是 Markdown。 */
+/** Strips the frontmatter at the top of the MDX, leaving the body. The legal documents contain no JSX, so the body is plain Markdown. */
 export function stripFrontmatter(source: string): string {
   return source.replace(/^---\n[\s\S]*?\n---\n/, "").trim();
 }
@@ -133,7 +133,7 @@ export function legalMarkdown(lang: Lang, frontmatter: LegalFrontmatter, body: s
     list(frontmatter.highlights),
     l.highlightsNote,
     body,
-    // 这一节在 HTML 版本里由 LegalDocument 输出，不在 MDX 正文里，而正文会让读者参照它。
+    // In the HTML version this section is rendered by LegalDocument rather than in the MDX body, and the body tells readers to refer to it.
     `## ${l.contactTitle}`,
     l.contactBody(frontmatter.title),
     contacts.length > 0
@@ -156,10 +156,10 @@ function llmsSection(lang: Lang, heading: string): string {
   ]);
 }
 
-/** llms.txt 里各语言小节的标题，用该语言自己的名字。 */
+/** Heading of each language's section in llms.txt, in that language's own name. */
 const languageNames: Record<Lang, string> = { en: "English", zh: "中文" };
 
-/** 格式见 https://llmstxt.org/。语言按 langs 的顺序列出，默认语言（英文）在前。 */
+/** Format per https://llmstxt.org/. Languages are listed in the order of langs, default language (English) first. */
 export function llmsTxt(): string {
   return `${paragraphs([
     "# Abnormal",

@@ -6,8 +6,8 @@ import { useCopy } from "@/i18n";
 import { Icon } from "./Icon";
 
 /**
- * 首屏下方的宣传视频：原生 <video> 带控件，不自动播放、不带声音打断访客，先只取元数据，封面图撑住版面。
- * 两种语言各一段（片中文字就是页面的语言），地址在 src/data/site.ts 的 promoVideos；没配置时整个区块不渲染。
+ * The promo video under the hero: a native <video> with controls that does not autoplay or interrupt visitors with sound, loads only metadata at first, and lets the poster hold the layout.
+ * One per language (the text in the film is the page's language); the addresses are in promoVideos in src/data/site.ts, and without one the whole section is not rendered.
  */
 export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang; video?: Video | null }) {
   const { t } = useCopy(lang);
@@ -28,7 +28,7 @@ export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang
           </div>
           <p className="max-w-[34rem] pb-[0.2rem] text-md/prose text-muted-foreground">{v.description}</p>
         </div>
-        {/* 面板与卡片同一套：细描边、不铺底色、不加阴影。视频本身是纸色画面，底色用纸色，不露黑边。 */}
+        {/* Same treatment as the cards: a thin border, no fill, no shadow. The video is a paper-colored picture, so the background is paper too and no black bars show. */}
         <figure className="overflow-hidden rounded-panel border border-border bg-card">
           <video
             className="block aspect-video w-full bg-[#f7f7f4]"
@@ -39,7 +39,7 @@ export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang
             aria-label={v.label}
           >
             <source src={video.src} type={type} />
-            {/* 只有不支持 <video> 的浏览器会显示；解码失败时元素照常存在，所以下载链接另放在下面。 */}
+            {/* Shown only by browsers without <video> support; when decoding fails the element still exists, so the download link sits separately below. */}
             <p className="p-6 text-base/body text-muted-foreground">{v.fallback}</p>
           </video>
           <figcaption className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-border px-5 py-3 text-sm/[1.6] text-muted-foreground max-phone:px-4">

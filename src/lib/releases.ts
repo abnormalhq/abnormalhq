@@ -1,10 +1,10 @@
 /**
- * 桌面客户端的版本列表，下载页用它显示当前版本与历史版本。
+ * Release list of the desktop client; the download page uses it to show the current and past versions.
  *
- * 数据来自 abnormalhq/mail 发布流程写到 downloads.abnormalhq.com 的 desktop/releases.json：
- * 全部版本按新到旧排列，latest 是 desktop/latest/ 下那一版。下载页（与它的 Markdown 版本）不预渲染，
- * 每次请求时在 Worker 上读取，mail 发布新版本后不需要重新部署官网，约一分钟内（见 edgeCacheSeconds）就能看到。
- * releases.json 出现以前只有 desktop/latest.json，读不到列表时退回到它，只显示当前版本。
+ * The data is desktop/releases.json on downloads.abnormalhq.com, written by the abnormalhq/mail release flow:
+ * every version newest first, with latest being the one under desktop/latest/. The download page (and its Markdown version) is not prerendered;
+ * it reads this on the Worker on every request, so a new mail release needs no redeploy of the site and shows up within about a minute (see edgeCacheSeconds).
+ * Before releases.json existed there was only desktop/latest.json; when the list cannot be read, fall back to it and show only the current version.
  */
 import { desktopDownloads } from "../data/site.ts";
 
@@ -14,7 +14,7 @@ export interface DesktopFile {
   platform: DesktopPlatform;
   arch: "universal" | "x64" | "arm64";
   name: string;
-  /** desktop/<version>/ 下带版本号的地址，不会变。 */
+  /** Versioned address under desktop/<version>/, which never changes. */
   url: string;
   sha256: string;
   size: number;
@@ -22,33 +22,33 @@ export interface DesktopFile {
 
 export interface DesktopRelease {
   version: string;
-  /** ISO 8601，UTC。 */
+  /** ISO 8601, UTC. */
   releasedAt: string;
-  /** 这一版的 latest.json，列出各文件的 SHA-256。 */
+  /** This version's latest.json, listing each file's SHA-256. */
   manifestUrl: string;
   files: DesktopFile[];
 }
 
 export interface DesktopReleases {
   current: DesktopRelease;
-  /** 比当前版本旧的版本，新到旧。 */
+  /** Versions older than the current one, newest first. */
   previous: DesktopRelease[];
 }
 
 const fileOrder = ["macos-universal", "windows-x64", "windows-arm64"];
 
-/** 文件在页面上的名字，两种语言相同。 */
+/** The file's name on the page, the same in both languages. */
 export function fileLabel(file: Pick<DesktopFile, "platform" | "arch">): string {
   if (file.platform === "macos") return "macOS";
   return file.arch === "arm64" ? "Windows Arm" : "Windows x64";
 }
 
-/** 十进制 MB，与 Finder 和资源管理器的写法接近，保留一位小数。 */
+/** Decimal MB, close to how Finder and Explorer write it, with one decimal place. */
 export function formatSize(bytes: number): string {
   return `${(bytes / 1_000_000).toFixed(1)} MB`;
 }
 
-/** 发布日期写成 2026-11-07（UTC），两种语言通用。 */
+/** Release date written as 2026-11-07 (UTC), shared by both languages. */
 export function releaseDate(release: Pick<DesktopRelease, "releasedAt">): string {
   return release.releasedAt.slice(0, 10);
 }
@@ -66,7 +66,7 @@ function parseFile(value: unknown): DesktopFile | undefined {
   if (!isObject(value)) throw new Error("desktop releases: a file is not an object");
   const platform = value.platform;
   const arch = value.arch;
-  // 以后若多出别的平台或架构，下载页还不认识它，先跳过，不让整个构建失败。
+  // If other platforms or architectures show up later, the download page does not know them yet; skip them rather than fail the whole build.
   if (platform !== "macos" && platform !== "windows") return undefined;
   if (arch !== "universal" && arch !== "x64" && arch !== "arm64") return undefined;
   if (typeof value.size !== "number") throw new Error("desktop releases: a file size is not a number");
@@ -98,7 +98,7 @@ function parseRelease(value: unknown): DesktopRelease {
   };
 }
 
-/** 解析 releases.json：{ latest, releases: [...] }，releases 已按新到旧排列。 */
+/** Parses releases.json: { latest, releases: [...] }, with releases already sorted newest first. */
 export function parseReleaseIndex(value: unknown): DesktopReleases {
   if (!isObject(value) || !Array.isArray(value.releases)) throw new Error("desktop releases: no releases list");
   const latest = str(value.latest, "latest");
@@ -108,17 +108,17 @@ export function parseReleaseIndex(value: unknown): DesktopReleases {
   return { current: releases[index], previous: releases.slice(index + 1) };
 }
 
-/** 解析单个版本的 latest.json，用作没有 releases.json 时的退路。 */
+/** Parses a single version's latest.json, used as the fallback when there is no releases.json. */
 export function parseManifest(value: unknown): DesktopReleases {
   return { current: parseRelease(value), previous: [] };
 }
 
-/** 两个 JSON 在桶上是 max-age=60；这里也让 Cloudflare 边缘缓存 60 秒，不必每次访问都回源到 R2。 */
+/** Both JSON files are max-age=60 on the bucket; cache them at the Cloudflare edge for 60 seconds too, so not every visit goes back to R2. */
 const edgeCacheSeconds = 60;
 
 async function getJson(url: string): Promise<unknown> {
-  // no-store：Next.js 不缓存这次请求，新鲜度只由下面的边缘缓存决定。cf 是 Workers 的 fetch 选项，
-  // Node（测试与 next dev）会忽略它。超时短一些：桶慢的时候，页面先不显示版本，也不拖住整页。
+  // no-store: Next.js does not cache this request; freshness is decided only by the edge cache below. cf is a Workers fetch option
+  // that Node (tests and next dev) ignores. The timeout is short: when the bucket is slow, the page skips the version rather than stall.
   const init = {
     cache: "no-store",
     cf: { cacheEverything: true, cacheTtl: edgeCacheSeconds },
@@ -130,9 +130,9 @@ async function getJson(url: string): Promise<unknown> {
 }
 
 /**
- * 读取版本列表。读不到 releases.json 时用 latest.json；两个都读不到时返回 undefined，
- * 下载页仍然给出固定地址的下载按钮，只是不显示版本号与历史版本。
- * 不在模块里缓存结果：Worker 的 isolate 会处理很多请求，模块级的缓存会让列表一直停在第一次读到的版本。
+ * Reads the release list. Uses latest.json when releases.json cannot be read; returns undefined when neither can,
+ * in which case the download page still offers the fixed-address download buttons, just without the version number and past releases.
+ * The result is not cached in the module: a Worker isolate handles many requests, and a module-level cache would pin the list to the first version read.
  */
 export async function fetchDesktopReleases(): Promise<DesktopReleases | undefined> {
   try {

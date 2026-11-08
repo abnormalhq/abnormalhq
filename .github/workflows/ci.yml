@@ -1,7 +1,7 @@
 name: CI
 
-# PR 与 main 推送只执行检查与构建；生产发布由 Cloudflare Workers Builds 直接监听 main（见 README「部署」）。
-# 此流程无需 Cloudflare 凭据，也不上传部署产物。
+# PRs and pushes to main only run the checks and the build; production deploys come from Cloudflare Workers Builds watching main directly (see "Deployment" in the README).
+# This workflow needs no Cloudflare credentials and uploads no deploy artifacts.
 on:
   push:
     branches: [main]
@@ -29,7 +29,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up pnpm
-        # 不写 version：pnpm/action-setup 会读 package.json 的 packageManager 字段，避免两处版本号漂移。
+        # No version here: pnpm/action-setup reads the packageManager field of package.json, so the version number is not duplicated.
         uses: pnpm/action-setup@v6
       - name: Set up Node.js
         uses: actions/setup-node@v7

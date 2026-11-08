@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-/** 英文与中文两个根布局共用的 404：静态托管只有一份 404.html，所以两种语言写在一起，默认语言英文在前。 */
+/** The 404 shared by the English and Chinese root layouts: static hosting has a single 404.html, so both languages are written together, with the default language (English) first. */
 export default function GlobalNotFound() {
   return (
     <html lang="en" suppressHydrationWarning>

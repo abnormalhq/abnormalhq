@@ -3,8 +3,8 @@ import { loadFont } from "@remotion/fonts";
 import { staticFile } from "remotion";
 
 /**
- * 官网自托管的三款可变字体（../public/fonts/，remotion.config.ts 把 public 目录指到那里），
- * 加上 Google Fonts 的 Noto Sans SC 补中文字形。渲染时需要联网取 Noto Sans SC，与 scripts/og-images.ts 相同。
+ * The site's three self-hosted variable fonts (../public/fonts/, where remotion.config.ts points the public directory),
+ * plus Noto Sans SC from Google Fonts for Chinese glyphs. Rendering needs network access for Noto Sans SC, the same as scripts/og-images.ts.
  */
 export function loadFonts() {
   return Promise.all([

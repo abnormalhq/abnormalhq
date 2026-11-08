@@ -1,7 +1,7 @@
 import type { LinkKey } from "../data/site.ts";
 import type { Template } from "../lib/template.ts";
 
-/** Icon 组件支持的图标名；文案里的入口与流程图标从这里选。 */
+/** Icon names the Icon component supports; the entry and process icons in the copy are chosen from these. */
 export type IconName =
   | "arrow"
   | "up-right"
@@ -22,7 +22,7 @@ export type IconName =
   | "book"
   | "user";
 
-/** 服务卡片的图标，ProductCard 按这个键画；与卡片在列表里的位置无关。 */
+/** Icon of a service card, drawn by ProductCard from this key; independent of the card's position in the list. */
 export type ProductIcon = "mail" | "domain" | "team" | "setup";
 
 export interface Product {
@@ -31,10 +31,10 @@ export interface Product {
   category: string;
   description: string;
   tags: readonly string[];
-  /** 价格；留空时显示 services.priceFallback（「咨询报价」）。 */
+  /** Price; when empty, services.priceFallback ("On request") is shown. */
   price: string;
   priceNote: string;
-  /** 站外入口：有值时卡片按钮直接前往（如商店），否则打开咨询弹窗。 */
+  /** External entry: when set, the card button goes straight there (e.g. the shop); otherwise it opens the inquiry dialog. */
   link?: LinkKey;
   actionLabel?: string;
   featured?: boolean;
@@ -46,24 +46,24 @@ export interface LinkItem {
 }
 
 /**
- * 一种语言的全部文案。站外地址只写成 LinkKey，由 linksFor(lang) 换成对应语言的页面。
- * eyebrow、kicker、tagline 与 tocKicker 是装饰性的英文小标：两种语言都写英文，组件渲染时带 lang="en"，
- * 读屏软件才会用英文读；tests/i18n.test.ts 检查它们不含中文。
+ * All copy for one language. External addresses are written only as LinkKey; linksFor(lang) turns them into that language's pages.
+ * eyebrow, kicker, tagline and tocKicker are decorative English labels: both languages write them in English and components render them with lang="en",
+ * so screen readers read them as English; tests/i18n.test.ts checks they contain no Chinese.
  */
 export interface Copy {
-  /** <html lang> 与 hreflang。 */
+  /** <html lang> and hreflang. */
   htmlLang: string;
   ogLocale: string;
-  /** 中文标题末尾的句号是全角「。」，英文是「.」。 */
+  /** The full stop at the end of Chinese headings is the full-width ideographic full stop (U+3002), in English ".". */
   dot: string;
-  /** 只在部分宽度换行的标题里，两行之间的分隔：中文不需要空格，英文要一个。 */
+  /** Separator between the two lines of a heading that wraps only at some widths: Chinese needs no space, English needs one. */
   space: string;
   meta: {
     title: string;
     description: string;
     socialTitle: string;
     socialDescription: string;
-    /** 分享卡片图片（public/og/）的替代文字。 */
+    /** Alt text for the social card image (public/og/). */
     socialImageAlt: string;
   };
   skipLink: string;
@@ -76,14 +76,14 @@ export interface Copy {
     openMenu: string;
     closeMenu: string;
     login: string;
-    /** 买家账户（onboard 的 /shop/account/）：注册、登录、管理邮箱与订单。 */
+    /** Buyer account (onboard's /shop/account/): sign up, sign in, manage mailboxes and orders. */
     account: string;
     buy: string;
     haveCode: string;
     loginWebmail: string;
   };
   theme: {
-    /** {label} 换成当前选项。 */
+    /** {label} is replaced with the current option. */
     ariaTemplate: Template<"label">;
     titleTemplate: Template<"label">;
     options: { system: string; light: string; dark: string };
@@ -95,9 +95,9 @@ export interface Copy {
     buy: string;
     register: string;
     loginPrompt: string;
-    /** 登录买家账户（管理邮箱与订单）。 */
+    /** Sign in to the buyer account (manage mailboxes and orders). */
     loginLink: string;
-    /** 登录网页邮箱（收发邮件）。 */
+    /** Sign in to webmail (read and send mail). */
     webmailLink: string;
     promises: readonly string[];
     visualLabel: string;
@@ -112,14 +112,14 @@ export interface Copy {
     };
   };
   valueStrip: { lead: string; strong: string; labels: readonly string[] };
-  /** 宣传视频区块（src/components/PromoVideo.tsx），视频地址在 src/data/site.ts 的 promoVideo；未配置时不渲染。 */
+  /** The promo video section (src/components/PromoVideo.tsx); the video address is promoVideo in src/data/site.ts, and the section is not rendered without one. */
   video: {
     eyebrow: string;
     title: string;
     description: string;
-    /** <video> 的无障碍名称，也是结构化数据与 Markdown 里视频链接的文字。 */
+    /** Accessible name of the <video>, also the text of the video link in the structured data and Markdown. */
     label: string;
-    /** 浏览器不能播放 <video> 时显示，后面跟着 download 链接。 */
+    /** Shown when the browser cannot play <video>, followed by the download link. */
     fallback: string;
     download: string;
   };
@@ -178,7 +178,7 @@ export interface Copy {
     custom: string;
   };
   footer: {
-    /** 品牌标记下的一句话。 */
+    /** The one-liner under the brand mark. */
     tagline: string;
     productLabel: string;
     supportLabel: string;
@@ -187,17 +187,17 @@ export interface Copy {
     supportLinks: readonly LinkItem[];
     faq: string;
     emailAria: (email: string) => string;
-    /** {year} 换成当前年份。 */
+    /** {year} is replaced with the current year. */
     copyright: Template<"year">;
     buyOnline: string;
     legalLabel: string;
   };
   legalPages: readonly { path: string; label: string }[];
-  /** 桌面客户端下载页（/download/）。下载地址在 src/data/site.ts 的 desktopDownloads。 */
+  /** Desktop client download page (/download/). Download addresses are in desktopDownloads in src/data/site.ts. */
   download: {
     metaTitle: string;
     metaDescription: string;
-    /** 页脚产品栏里的入口。 */
+    /** Entry in the footer's product column. */
     navLabel: string;
     eyebrow: string;
     title: string;
@@ -207,27 +207,27 @@ export interface Copy {
       name: string;
       requirement: string;
       download: string;
-      /** 下载按钮下方给 Windows on Arm 设备的链接。 */
+      /** Link under the download button for Windows on Arm devices. */
       armDownload: string;
       firstLaunch: string;
     };
     signInTitle: string;
     signInSteps: readonly string[];
     checksums: string;
-    /** 首屏下方的「当前版本 0.1.0 · 发布于 2026-11-07」。版本数据来自 src/lib/releases.ts。 */
+    /** The "Current version 0.1.0 · Released 2026-11-07" line under the hero. Version data comes from src/lib/releases.ts. */
     currentLabel: string;
     releasedLabel: string;
     historyTitle: string;
     historyIntro: string;
-    /** 只有一个版本时，历史版本一节显示这句。 */
+    /** Shown in the past releases section when there is only one version. */
     historyEmpty: string;
-    /** 历史版本每一行末尾，链到那一版的 latest.json。 */
+    /** At the end of each past release row, linking to that version's latest.json. */
     historyChecksums: string;
     webmailNote: string;
     webmailLink: string;
   };
   inquiry: {
-    /** 弹窗标题上方的小标。 */
+    /** Small label above the dialog title. */
     kicker: string;
     close: string;
     title: string;
@@ -244,7 +244,7 @@ export interface Copy {
     previewLabel: string;
     copy: string;
     note: string;
-    /** 「咨询与服务适用{terms}与{privacy}。」：{terms}、{privacy} 换成服务条款与隐私政策的链接，链接两侧的空格写在文案里。 */
+    /** "Requests and services are covered by the {terms} and {privacy}.": {terms} and {privacy} are replaced with links to the terms and privacy policy; the spaces around the links are written in the copy. */
     legal: Template<"terms" | "privacy">;
     newWindow: string;
     copied: string;
@@ -257,7 +257,7 @@ export interface Copy {
     dateLocale: string;
     tocLabel: string;
     tocHint: string;
-    /** 目录标题旁的英文小标。 */
+    /** English label next to the table of contents heading. */
     tocKicker: string;
     highlights: string;
     highlightsNote: string;

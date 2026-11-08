@@ -1,6 +1,6 @@
 /**
- * 四份法律文档检查过的 frontmatter，Markdown 版本、sitemap 的 lastModified 与结构化数据都从这里取。
- * 与 HTML 页面一样先检查，缺字段时构建报错并指出文件，而不是输出带 undefined 的内容。
+ * Validated frontmatter of the four legal documents; the Markdown versions, the sitemap's lastModified and the structured data all read it from here.
+ * Validated up front just like the HTML pages: a missing field fails the build and names the file, instead of emitting content with undefined in it.
  */
 import { frontmatter as enPrivacy } from "@/content/legal/en/privacy.mdx";
 import { frontmatter as enTerms } from "@/content/legal/en/terms.mdx";

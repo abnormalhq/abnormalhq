@@ -7,7 +7,7 @@ import { fillTemplate } from "@/lib/template";
 
 type Preference = "system" | "light" | "dark";
 
-// window.abnormalTheme 由头部的 theme-init.js 在水合之前写好；静态 HTML 一律按「跟随系统」输出。
+// window.abnormalTheme is set by theme-init.js in the head before hydration; static HTML always renders the "System" option.
 function subscribe(onChange: () => void) {
   window.addEventListener("abnormal:themechange", onChange);
   return () => window.removeEventListener("abnormal:themechange", onChange);
@@ -15,7 +15,7 @@ function subscribe(onChange: () => void) {
 const getPreference = () => window.abnormalTheme.getPreference();
 const getServerPreference = (): Preference => "system";
 
-/** 页头的主题按钮：registry 的 ThemePicker，偏好读写都走 theme-init.js 挂在 window.abnormalTheme 上的存储。 */
+/** The theme button in the header: the registry's ThemePicker, reading and writing the preference through the storage theme-init.js hangs on window.abnormalTheme. */
 export function ThemePicker({ copy, onOpen }: { copy: Copy["theme"]; onOpen?: () => void }) {
   const preference = useSyncExternalStore(subscribe, getPreference, getServerPreference);
   const current = copy.options[preference];

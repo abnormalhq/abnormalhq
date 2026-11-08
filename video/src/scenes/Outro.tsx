@@ -4,7 +4,7 @@ import type { VideoCopy } from "../copy";
 import { color, font, radius } from "../theme";
 import { Icon, Paper, Rings, useEnter, useSpringAt } from "../ui";
 
-/** 收尾：品牌标记、「下一封邮件，从这里开始。」、购买按钮与网址。 */
+/** Closing: the brand mark, the "Your next email starts here." line, the buy button and the site address. */
 export function Outro({ t }: { t: VideoCopy }) {
   const frame = useCurrentFrame();
   const mark = useSpringAt(0, 30, 14);

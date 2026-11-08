@@ -5,7 +5,7 @@ import { Eyebrow, Icon, Paper, useEnter } from "../ui";
 
 const icons = ["user", "cart", "mail", "book"] as const;
 
-/** 开通流程：四步并排，编号像被荧光笔划过一道黄，一条细线把四步连起来。 */
+/** The activation process: four steps side by side, numbers highlighted as if by a yellow marker, and a thin line connecting them. */
 export function Steps({ t }: { t: VideoCopy }) {
   const frame = useCurrentFrame();
   const eyebrow = useEnter(0);

@@ -96,7 +96,7 @@ export function Hero({ lang }: { lang: Lang }) {
           >
             +
           </span>
-          {/* 首屏的展示位：荧光黄大色块，上面一律墨色。 */}
+          {/* The hero showcase: a big highlight-yellow block with ink on top throughout. */}
           <div
             className="absolute top-0 right-[1%] z-2 h-[143px] w-[125px] rotate-10 rounded-mark bg-highlight p-4 text-highlight-foreground max-hero:right-[2%] max-hero:h-[125px] max-hero:w-[108px] max-md:-top-2 max-md:h-[127px] max-md:w-[110px] max-phone:h-[112px] max-phone:w-[96px] max-phone:p-[0.8rem]"
             aria-hidden="true"
@@ -139,7 +139,7 @@ export function Hero({ lang }: { lang: Lang }) {
               </div>
               <div className="mt-[1.4rem] flex items-center gap-[1.35rem] border-b border-border text-[0.65rem] text-muted-foreground">
                 <span className="border-b-2 border-foreground pb-[0.7rem] text-foreground">
-                  {h.mock.inbox} {/* 未读数是「新」的记号：黄底墨字。 */}
+                  {h.mock.inbox} {/* The unread count is the "new" marker: ink on yellow. */}
                   <b className="ml-1 rounded-chip bg-highlight px-1 py-[0.15rem] text-[0.5rem] text-highlight-foreground">
                     03
                   </b>
