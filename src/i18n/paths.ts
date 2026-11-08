@@ -33,3 +33,11 @@ export function stripLocale(pathname: string): string {
 export function switchPath(pathname: string, to: Lang): string {
   return localePath(to, stripLocale(pathname));
 }
+
+/** 页头语言切换带的查询参数：Worker 看到 ?lang=zh 就把这个选择写进 cookie，再跳到去掉参数的地址（见 src/lib/lang.ts）。 */
+export const langParam = "lang";
+
+/** 页头语言切换的链接：另一种语言下的同一页面，带上 ?lang=，这样切换才会被记住。 */
+export function switchHref(pathname: string, to: Lang): string {
+  return `${switchPath(pathname, to)}?${langParam}=${to}`;
+}

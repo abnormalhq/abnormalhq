@@ -6,7 +6,9 @@
 
 ## 中英文
 
-英文是默认语言，在根路径（`/`、`/privacy/`、`/terms/`）；中文在 `/zh/` 下（`/zh/`、`/zh/privacy/`、`/zh/terms/`）。由 `src/app` 下的 `(en)` 与 `(zh)` 两个路由组实现，各有一个根布局。默认语言与语言顺序只在 `src/i18n/paths.ts` 的 `defaultLang`、`langs` 里写一次，路径、`hreflang`、站点地图、`llms.txt` 与结构化数据都从这里取。页头的「EN / 中」切换到另一种语言的同一页面；每页都输出互指的 `hreflang`，`x-default` 指向英文版。不按浏览器语言自动跳转。
+英文是默认语言，在根路径（`/`、`/privacy/`、`/terms/`）；中文在 `/zh/` 下（`/zh/`、`/zh/privacy/`、`/zh/terms/`）。由 `src/app` 下的 `(en)` 与 `(zh)` 两个路由组实现，各有一个根布局。默认语言与语言顺序只在 `src/i18n/paths.ts` 的 `defaultLang`、`langs` 里写一次，路径、`hreflang`、站点地图、`llms.txt` 与结构化数据都从这里取。页头的「EN / 中」切换到另一种语言的同一页面；每页都输出互指的 `hreflang`，`x-default` 指向英文版。
+
+地址只是每种语言的规范地址，进站时去哪个语言由访客的偏好决定（`src/lib/lang.ts`，在 `worker.ts` 里先于 OpenNext 执行，只看整页加载的 GET / HEAD 页面请求）：点页头的语言切换会带上 `?lang=zh`，Worker 把这个选择写进 cookie `abnormal_lang`（一年，`Domain=abnormalhq.com`，官网、onboard 与网页邮箱共用，与 mail 的 `LOCALE_COOKIE` 同名）再跳到去掉参数的地址；有 cookie 时，地址的语言与 cookie 不一致就 302 到另一种语言的同一页，分享来的链接总以自己的语言打开；没有 cookie 时只在不带前缀的英文地址上按 `Accept-Language` 判断，`/zh/` 这类带前缀的地址视为链接作者的明确选择，不跳；没有 `Accept-Language` 的请求（爬虫）自然不跳，`hreflang` 指向的两套地址都抓得到。跳转响应带 `Cache-Control: private, no-store`，不进任何缓存；要 Markdown 的 Agent 请求不做语言跳转。
 
 英文原来在 `/en/` 下：`/en/`、`/en/privacy/`、`/en/terms/` 与对应的 `/md/en/...` 由 `next.config.ts` 的 `redirects()` 301 到根路径的新地址，旧外链与搜索结果不会失效。
 

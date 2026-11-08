@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { linksFor, type Lang } from "@/data/site";
-import { localePath, switchPath } from "@/i18n/paths";
+import { localePath, switchHref } from "@/i18n/paths";
 import type { Copy } from "@/i18n/types";
 import { Icon } from "./Icon";
 import { ThemePicker } from "./ThemePicker";
@@ -35,7 +35,8 @@ export function Header({
   const nav = copy.nav.map(({ anchor, label }) => ({ href: localePath(lang, `/#${anchor}`), label }));
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
-  const otherPath = switchPath(pathname.endsWith("/") ? pathname : `${pathname}/`, other);
+  // 带 ?lang=：Worker 把这个选择写进三个站点共用的 cookie，之后分享来的链接也以这种语言打开（src/lib/lang.ts）。
+  const otherPath = switchHref(pathname.endsWith("/") ? pathname : `${pathname}/`, other);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -74,7 +75,7 @@ export function Header({
           ))}
         </nav>
         <div className="flex items-center gap-1">
-          {/* 两种语言各有一个根布局，切换时本来就是整页加载，不用 next/link。 */}
+          {/* 两种语言各有一个根布局，切换时本来就是整页加载，而且要经过 Worker 写 cookie，不用 next/link。 */}
           <Button asChild variant="ghost" className="min-w-8 border-0 px-1.5 text-sm">
             <a
               href={otherPath}
