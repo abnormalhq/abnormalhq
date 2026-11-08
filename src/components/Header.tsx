@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { linksFor, type Lang } from "@/data/site";
-import { localePath, switchPath } from "@/i18n/paths";
+import { localePath, switchHref } from "@/i18n/paths";
 import type { Copy } from "@/i18n/types";
 import { Icon } from "./Icon";
 import { ThemePicker } from "./ThemePicker";
@@ -35,7 +35,8 @@ export function Header({
   const nav = copy.nav.map(({ anchor, label }) => ({ href: localePath(lang, `/#${anchor}`), label }));
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
-  const otherPath = switchPath(pathname.endsWith("/") ? pathname : `${pathname}/`, other);
+  // With ?lang=: the Worker stores the choice in the cookie shared by the three sites, so shared links open in this language from then on (src/lib/lang.ts).
+  const otherPath = switchHref(pathname.endsWith("/") ? pathname : `${pathname}/`, other);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -74,7 +75,7 @@ export function Header({
           ))}
         </nav>
         <div className="flex items-center gap-1">
-          {/* Each language has its own root layout, so switching is a full page load anyway; no need for next/link. */}
+          {/* Each language has its own root layout, so switching is a full page load anyway, and it has to pass through the Worker to write the cookie; no need for next/link. */}
           <Button asChild variant="ghost" className="min-w-8 border-0 px-1.5 text-sm">
             <a
               href={otherPath}

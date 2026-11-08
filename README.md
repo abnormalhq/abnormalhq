@@ -6,7 +6,9 @@ The bilingual (Chinese and English) marketing site for the Abnormal email servic
 
 ## Chinese and English
 
-English is the default language, at the root (`/`, `/privacy/`, `/terms/`); Chinese is under `/zh/` (`/zh/`, `/zh/privacy/`, `/zh/terms/`). This is implemented by the two route groups `(en)` and `(zh)` under `src/app`, each with its own root layout. The default language and the language order are written once, in `defaultLang` and `langs` in `src/i18n/paths.ts`; paths, `hreflang`, the sitemap, `llms.txt` and the structured data all read them from there. The language toggle in the header (`langToggle`, labelled "EN" or the single Chinese character for Chinese) switches to the same page in the other language; every page emits `hreflang` links pointing at each other, with `x-default` pointing at the English version. There is no automatic redirect based on the browser language.
+English is the default language, at the root (`/`, `/privacy/`, `/terms/`); Chinese is under `/zh/` (`/zh/`, `/zh/privacy/`, `/zh/terms/`). This is implemented by the two route groups `(en)` and `(zh)` under `src/app`, each with its own root layout. The default language and the language order are written once, in `defaultLang` and `langs` in `src/i18n/paths.ts`; paths, `hreflang`, the sitemap, `llms.txt` and the structured data all read them from there. The language toggle in the header (`langToggle`, labelled "EN" or the single Chinese character for Chinese) switches to the same page in the other language; every page emits `hreflang` links pointing at each other, with `x-default` pointing at the English version.
+
+The addresses are only each language's canonical address; which language a visitor lands in is decided by their preference (`src/lib/lang.ts`, run in `worker.ts` before OpenNext, for whole-page GET / HEAD page requests only). Clicking the language toggle in the header adds `?lang=zh`; the Worker stores that choice in the cookie `abnormal_lang` (one year, `Domain=abnormalhq.com`, shared by the website, onboard and webmail, the same name as mail's `LOCALE_COOKIE`) and redirects to the address without the parameter. With the cookie set, an address whose language differs from the cookie is 302-redirected to the same page in the other language, so a shared link always opens in the reader's own language. Without a cookie, only the unprefixed English addresses follow `Accept-Language`; a prefixed address such as `/zh/` is the link author's explicit choice and is left alone. Requests without `Accept-Language` (crawlers) are never redirected, so both sets of addresses that `hreflang` points at stay crawlable. Redirect responses carry `Cache-Control: private, no-store` and enter no cache; requests that ask for Markdown (agents) are not redirected by language.
 
 English used to live under `/en/`: `/en/`, `/en/privacy/`, `/en/terms/` and the matching `/md/en/...` are 301-redirected by `redirects()` in `next.config.ts` to the new addresses at the root, so old external links and search results keep working.
 
@@ -267,6 +269,6 @@ pnpm cf:deploy
 ## Other
 
 - Uses native `<dialog>` and `<details>`, with keyboard operation, Esc to close, focus restoration and the reduced motion preference.
-- Contains no analytics scripts, cookies or customer data storage.
+- Contains no analytics scripts or customer data storage; the only cookie is `abnormal_lang`, written when the language is switched by hand (see "Chinese and English") and described in the privacy policy.
 - Fonts are self-hosted with the site; no third-party font service is requested.
 - The mailbox interface and address card in the hero are a conceptual illustration of the service, not an actual mail client interface.

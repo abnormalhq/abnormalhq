@@ -33,3 +33,11 @@ export function stripLocale(pathname: string): string {
 export function switchPath(pathname: string, to: Lang): string {
   return localePath(to, stripLocale(pathname));
 }
+
+/** The query parameter the header language toggle carries: on ?lang=zh the Worker stores the choice in the cookie and redirects to the address without it (see src/lib/lang.ts). */
+export const langParam = "lang";
+
+/** The header language toggle link: the same page in the other language, with ?lang= so the switch is remembered. */
+export function switchHref(pathname: string, to: Lang): string {
+  return `${switchPath(pathname, to)}?${langParam}=${to}`;
+}
