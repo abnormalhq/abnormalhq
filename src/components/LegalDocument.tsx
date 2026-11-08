@@ -25,9 +25,9 @@ export function LegalDocument({
   lang: Lang;
   frontmatter: LegalFrontmatter;
   headings: readonly LegalHeading[];
-  /** 不带语言前缀的页面路径，如 /privacy/。 */
+  /** Page path without the language prefix, such as /privacy/. */
   href: string;
-  /** MDX 正文。 */
+  /** The MDX body. */
   children: ReactNode;
 }) {
   const { title, eyebrow, summary, effective, updated, highlights } = frontmatter;

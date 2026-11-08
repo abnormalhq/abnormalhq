@@ -1,6 +1,6 @@
 /**
- * 文案入口：服务端组件用 useCopy(lang) 取当前语言的文案、联动地址与本地化路径工具。
- * 客户端组件只通过 props 拿到自己用得到的那部分文案。
+ * Copy entry point: server components call useCopy(lang) for the current language's copy, linked-site addresses and localized path helpers.
+ * Client components receive only the copy they use, through props.
  */
 import { linksFor, type Lang } from "../data/site.ts";
 import { en } from "./en.ts";

@@ -1,7 +1,7 @@
 /**
- * OpenNext 给预渲染响应写死了 s-maxage=…, stale-while-revalidate=2592000。
- * 这个站前面没有 CDN 缓存，这个头只对浏览器起作用：浏览器会先用缓存的 RSC 响应，再在后台更新。
- * 部署后旧响应引用的 JS 和 CSS 已经不存在，就会 404。所以这类响应改成每次都向 Worker 验证，和静态资源一样。
+ * OpenNext hardcodes s-maxage=..., stale-while-revalidate=2592000 on prerendered responses.
+ * There is no CDN cache in front of this site, so the header only affects browsers: a browser serves the cached RSC response first and refreshes in the background.
+ * After a deploy the JS and CSS the old response references no longer exist, so they 404. These responses are therefore revalidated with the Worker every time, like static assets.
  */
 export function revalidateInBrowser(response: Response): Response {
   if (!response.headers.get("cache-control")?.includes("s-maxage")) return response;

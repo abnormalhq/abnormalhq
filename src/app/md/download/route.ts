@@ -1,6 +1,6 @@
 import { downloadMarkdownResponse } from "@/lib/markdown";
 
-// 版本列表在每次请求时读取，与 HTML 下载页一样不预渲染。
+// The release list is read on every request, so like the HTML download page this is not prerendered.
 export const dynamic = "force-dynamic";
 
 export function GET() {

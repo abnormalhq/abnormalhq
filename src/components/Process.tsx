@@ -34,8 +34,8 @@ export function Process({ lang }: { lang: Lang }) {
             <article className="min-w-0" key={step.title}>
               <div className="mb-[1.3rem] flex items-center gap-5 md:mb-7">
                 {/*
-                 * 编号像被荧光笔划过：下半截压一道黄。字色是前景色，一半在页面底上、一半在黄上，
-                 * 所以深色模式的黄带换成暗黄，浅色字在两边都清楚（11.5:1）。
+                 * The number looks highlighted with a marker: a band of yellow across its lower half. The text uses the foreground color, half on the
+                 * page background and half on the yellow, so dark mode swaps in a dim yellow and the light text stays clear on both (11.5:1).
                  */}
                 <span
                   className="bg-[linear-gradient(transparent_56%,var(--step-band)_56%_90%,transparent_90%)] px-[0.06em] text-[2.75rem] leading-none font-light tracking-[-0.04em] text-foreground [--step-band:var(--highlight)] md:text-[3.25rem] dark:[--step-band:var(--highlight-muted)]"

@@ -6,7 +6,7 @@ export interface Inquiry {
   notes: string;
 }
 
-/** 咨询文案：发给我们的邮件与复制的文字用访客当前页面的语言。 */
+/** Inquiry copy: the email sent to us and the copied text use the language of the visitor's current page. */
 const text = {
   zh: {
     greeting: "你好，我想咨询邮箱服务。",
@@ -84,7 +84,7 @@ export function getContactLink(contact: Contact, inquiry: Inquiry, lang: Lang) {
   return undefined;
 }
 
-/** 法律页面「联系我们」列出的渠道。HTML 与 Markdown 版本都从这里取，没有配置的渠道不显示。 */
+/** Channels listed under "Contact us" on the legal pages. The HTML and Markdown versions both read them from here; unconfigured channels are not shown. */
 export function contactChannels(
   contact: Contact,
   labels: { email: string; wechat: string; telegram: string },

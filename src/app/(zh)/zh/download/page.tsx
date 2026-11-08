@@ -13,7 +13,7 @@ export const metadata: Metadata = pageMetadata({
   description: t.metaDescription,
 });
 
-// 版本列表在每次请求时读取（src/lib/releases.ts），这一页不预渲染，mail 发布新版本后不用重新部署。
+// The release list is read on every request (src/lib/releases.ts), so this page is not prerendered and a new mail release needs no redeploy.
 export const dynamic = "force-dynamic";
 
 export default async function DownloadPage() {

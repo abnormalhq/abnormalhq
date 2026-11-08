@@ -1,7 +1,7 @@
 /**
- * schema.org 结构化数据（JSON-LD），帮助搜索引擎与 AI 认出品牌、网站与页面内容。
- * 每页输出一个 @graph：组织与网站在每页都相同，用 @id 互相引用；首页另有常见问题，法律页面另有面包屑与修订日期。
- * 内容都取自界面文案与 frontmatter，不写页面上看不到的信息。
+ * schema.org structured data (JSON-LD), helping search engines and AI recognize the brand, the website and the page content.
+ * Each page emits one @graph: the organization and website are the same on every page and reference each other by @id; the home page adds the FAQ, legal pages add breadcrumbs and revision dates.
+ * Everything comes from the UI copy and frontmatter; nothing that is not visible on the page is written.
  */
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { site, type Lang } from "../data/site.ts";
@@ -60,7 +60,7 @@ function webPage(lang: Lang, path: string, name: string, description: string): N
 
 const graph = (nodes: Node[]) => ({ "@context": "https://schema.org", "@graph": nodes });
 
-/** 首页：组织、网站，以及带常见问题的页面本身。 */
+/** Home page: organization, website, and the page itself with the FAQ. */
 export function homeStructuredData(lang: Lang) {
   const t = copies[lang];
   return graph([
@@ -79,7 +79,7 @@ export function homeStructuredData(lang: Lang) {
   ]);
 }
 
-/** 法律页面：生效与修订日期，以及「首页 › 本页」的面包屑。 */
+/** Legal pages: effective and revision dates, plus a "Home > this page" breadcrumb. */
 export function legalStructuredData(lang: Lang, path: string, frontmatter: LegalFrontmatter) {
   const page = webPage(lang, path, frontmatter.title, frontmatter.description);
   return graph([
@@ -101,7 +101,7 @@ export function legalStructuredData(lang: Lang, path: string, frontmatter: Legal
   ]);
 }
 
-/** 写进 <script type="application/ld+json">：把 < 转义，文案里出现 </script> 也不会提前结束脚本。 */
+/** Written into <script type="application/ld+json">: escapes < so a </script> in the copy cannot end the script early. */
 export function serializeJsonLd(data: unknown): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }

@@ -1,6 +1,6 @@
 /**
- * 与语言无关的站点配置：公开联系方式与联动站点的地址。两种语言的文案在 src/i18n/。
- * 这里只填写公开的业务联系方式，不要放入密钥或其他敏感信息。
+ * Language-independent site configuration: public contact details and the addresses of the linked sites. Copy for both languages is in src/i18n/.
+ * Only public business contact details belong here; never put secrets or other sensitive information in it.
  */
 
 export interface Contact {
@@ -10,10 +10,10 @@ export interface Contact {
 }
 
 export const site = {
-  /** 品牌名：og:site_name、结构化数据里的组织与网站名称。 */
+  /** Brand name: og:site_name and the organization and website names in the structured data. */
   name: "Abnormal",
   url: "https://abnormalhq.com",
-  /** 只负责跳到主域名，见 next.config.ts 的 redirects。 */
+  /** Only redirects to the main domain; see the redirects in next.config.ts. */
   wwwHost: "www.abnormalhq.com",
   contact: {
     wechat: "",
@@ -25,10 +25,10 @@ export const site = {
 export type Lang = "zh" | "en";
 
 /**
- * 与官网联动的其他站点。官网是落地页：购买、开通、登录与教程都在这些站点完成，
- * 页头、首屏、入口卡片、流程、页脚统一从这里取地址，换域名时只改这一处。
- * - onboard（abnormalhq/onboard）：兑换开通页、邮箱商店、买家账户（注册、登录、邮箱管理）与教程；英文页在 /en/ 下。
- * - webmail / status（abnormalhq/mail）：网页邮箱与公开状态页，按浏览器语言自动切换，不分路径。
+ * The other sites linked from the marketing site. The site is a landing page: buying, activation, sign-in and guides all happen on these sites,
+ * and the header, hero, entry cards, process and footer all take their addresses from here, so a domain change touches one place.
+ * - onboard (abnormalhq/onboard): redeem/activation page, mailbox shop, buyer account (sign-up, sign-in, mailbox management) and guides; English pages are under /en/.
+ * - webmail / status (abnormalhq/mail): webmail and the public status page, switching with the browser language rather than by path.
  */
 const onboardOrigin = "https://onboard.abnormalhq.com";
 
@@ -38,7 +38,7 @@ export function linksFor(lang: Lang) {
     shop: `${onboard}shop/`,
     redeem: onboard,
     account: `${onboard}shop/account/`,
-    /** 账户页直接打开注册表单。 */
+    /** Opens the sign-up form on the account page directly. */
     register: `${onboard}shop/account/?mode=register`,
     guide: `${onboard}guide/`,
     webmail: "https://webmail.abnormalhq.com/",
@@ -49,9 +49,9 @@ export function linksFor(lang: Lang) {
 export type LinkKey = keyof ReturnType<typeof linksFor>;
 
 /**
- * 桌面客户端（abnormalhq/mail 的 desktop/）的下载地址。发布时安装包上传到 R2 公开桶，
- * desktop/latest/ 下是固定文件名的最新版本，这里直接链接；latest.json 列出版本号、SHA-256 与大小。
- * releases.json 列出全部版本，下载页的当前版本与历史版本由它生成（见 src/lib/releases.ts）。
+ * Download addresses for the desktop client (desktop/ in abnormalhq/mail). On release the installers are uploaded to a public R2 bucket;
+ * desktop/latest/ holds the latest version under fixed file names, linked directly here; latest.json lists the version number, SHA-256 and sizes.
+ * releases.json lists every version; the download page's current and past releases are generated from it (see src/lib/releases.ts).
  */
 const downloadsOrigin = "https://downloads.abnormalhq.com";
 

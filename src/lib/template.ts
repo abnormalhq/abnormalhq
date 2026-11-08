@@ -1,7 +1,7 @@
 declare const slotNames: unique symbol;
 
 /**
- * A copy string with {name} slots, such as "咨询与服务适用{terms}与{privacy}。". Slot names the slots its callers fill:
+ * A copy string with {name} slots, such as "Requests and services are covered by the {terms} and {privacy}.". Slot names the slots its callers fill:
  * fillTemplate then checks at compile time that a component passes exactly those, and tests/i18n.test.ts checks that
  * each language's string uses exactly those. The slot list exists only in the type; at run time it is a plain string.
  */

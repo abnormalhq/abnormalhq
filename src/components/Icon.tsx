@@ -43,7 +43,7 @@ const icons: Record<IconName, LucideIcon> = {
   user: UserRoundIcon,
 };
 
-/** 文案里按名字选图标（入口卡片、流程步骤），所以这里保留一层名字到 lucide 图标的映射。 */
+/** The copy picks icons by name (entry cards, process steps), so this keeps a map from names to lucide icons. */
 export function Icon({ name, className }: { name: IconName; className?: string }) {
   const Glyph = icons[name];
   return <Glyph className={cn("size-5 shrink-0", className)} strokeWidth={1.6} aria-hidden="true" focusable="false" />;

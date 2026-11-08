@@ -14,7 +14,7 @@ import { Process } from "./Process";
 import { Start } from "./Start";
 import { Subscriptions } from "./Subscriptions";
 
-/** 首页：src/app/(en)/page.tsx（英文）与 src/app/(zh)/zh/page.tsx（中文）共用。 */
+/** Home page, shared by src/app/(en)/page.tsx (English) and src/app/(zh)/zh/page.tsx (Chinese). */
 export function Home({ lang }: { lang: Lang }) {
   const { t, links } = useCopy(lang);
   return (
@@ -41,7 +41,7 @@ export function Home({ lang }: { lang: Lang }) {
       <Faq lang={lang} />
       <Container asChild className="pb-20 max-md:pb-14">
         <section aria-labelledby="closing-title">
-          {/* 收尾面板：细边卡片，不铺底色、不加阴影，装饰只用描边色。 */}
+          {/* Closing panel: thin-bordered card with no fill and no shadow; decoration uses the border color only. */}
           <Card
             asChild
             className="relative isolate flex-row items-center justify-between gap-8 overflow-hidden px-14 py-12 max-lg:p-11 max-md:flex-col max-md:items-start max-md:gap-7 max-md:px-6 max-md:py-8"

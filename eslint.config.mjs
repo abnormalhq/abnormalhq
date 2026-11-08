@@ -4,8 +4,8 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
 const eslintConfig = defineConfig([
-  // eslint-config-next 自带的 eslint-plugin-react / import / jsx-a11y 还在调用 ESLint 10 已移除的
-  // context.getFilename() 等旧 API，用 @eslint/compat 包一层补回；等它们原生支持 ESLint 10 后可以去掉。
+  // The eslint-plugin-react / import / jsx-a11y bundled with eslint-config-next still call old APIs that ESLint 10 removed,
+  // such as context.getFilename(); @eslint/compat wraps them to add those back. Drop it once they support ESLint 10 natively.
   ...fixupConfigRules(nextVitals),
   ...fixupConfigRules(nextTs),
   globalIgnores([
@@ -14,7 +14,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     ".wrangler/**",
     ".artifacts/**",
-    // Claude Code 的 worktree 是整份仓库副本
+    // Claude Code worktrees are full copies of the repository
     ".claude/**",
   ]),
 ]);

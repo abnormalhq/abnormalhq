@@ -170,7 +170,7 @@ test("Markdown is served only when the Accept header prefers it", () => {
     ["text/markdown;q=0.5, text/*;q=1", false],
     ["text/markdown;q=0.5, */*", false],
     ["text/markdown;q=nonsense", false],
-    // 带参数的范围更具体，且只有 charset=utf-8 能匹配我们的响应。
+    // A range with parameters is more specific, and only charset=utf-8 can match our response.
     ["text/markdown;charset=utf-8;q=0, text/markdown;q=1, text/html;q=0.5", false],
     ["text/markdown;q=1, text/markdown;charset=utf-8;q=0, text/html;q=0.5", false],
     ['text/markdown;charset="UTF-8"', true],
@@ -180,7 +180,7 @@ test("Markdown is served only when the Accept header prefers it", () => {
     ["text/markdown;charset=gbk;q=1, text/markdown;q=0.5, text/html;q=0.4", true],
     ["text/markdown;q=0.5, text/html;charset=utf-8;q=1, text/html;q=0", false],
     ["text/markdown;q=0.5;ext=1, text/html;q=0.4", true],
-    // RFC 9110 允许空参数，比如末尾多余的分号。
+    // RFC 9110 allows empty parameters, such as a stray trailing semicolon.
     ["text/markdown;", true],
     ["text/markdown;charset=utf-8;", true],
     ["text/markdown;;q=0.5, text/html;q=0.4", true],

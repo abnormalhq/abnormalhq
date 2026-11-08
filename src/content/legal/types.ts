@@ -1,4 +1,4 @@
-/** 法律文档开头的 frontmatter，next.config.ts 的 remark-mdx-frontmatter 把它导出为 frontmatter。 */
+/** Frontmatter at the top of a legal document; remark-mdx-frontmatter in next.config.ts exports it as frontmatter. */
 export interface LegalFrontmatter {
   title: string;
   description: string;
@@ -9,7 +9,7 @@ export interface LegalFrontmatter {
   highlights: string[];
 }
 
-/** rehype-extract-toc 导出的标题树；id 由 rehype-slug 生成。下级标题在 children 里，所以要遍历整棵树（见 legalSections）。 */
+/** Heading tree exported by rehype-extract-toc; ids come from rehype-slug. Subheadings are in children, so the whole tree has to be walked (see legalSections). */
 export interface LegalHeading {
   depth: number;
   id?: string;
