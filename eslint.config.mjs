@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     ".artifacts/**",
     // Claude Code 的 worktree 是整份仓库副本
     ".claude/**",
+    // 宣传视频的 Remotion 工程是独立的包，有自己的依赖与 typecheck（video/package.json）
+    "video/**",
   ]),
 ]);
 

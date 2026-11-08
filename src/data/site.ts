@@ -49,6 +49,46 @@ export function linksFor(lang: Lang) {
 export type LinkKey = keyof ReturnType<typeof linksFor>;
 
 /**
+ * 首页的宣传视频（首屏下方的「先看一段视频」区块），两种语言各一段，由仓库里的 video/（Remotion 工程）渲染，
+ * 输出到 public/video/，随官网一起部署、同源直接响应；重新渲染见 README「宣传视频」。
+ * src 留空时首页不显示这一区块，Markdown 版本与结构化数据也不提它；填了就要同时填封面与发布日期。
+ */
+export interface PromoVideo {
+  /** MP4（H.264 + AAC）或 WebM 的地址：站内路径（以 / 开头）或完整地址。 */
+  src: string;
+  /** 封面图：16:9，与视频同一帧（remotion still）。 */
+  poster: string;
+  /** 发布日期 YYYY-MM-DD，写进结构化数据（schema.org VideoObject 的 uploadDate）；重新渲染后更新。 */
+  uploadDate: string;
+}
+
+export const promoVideos: Record<Lang, PromoVideo> = {
+  en: { src: "/video/abnormal-en.mp4", poster: "/video/abnormal-en.jpg", uploadDate: "2026-11-08" },
+  zh: { src: "/video/abnormal-zh.mp4", poster: "/video/abnormal-zh.jpg", uploadDate: "2026-11-08" },
+};
+
+/**
+ * 某种语言配好了的宣传视频；src 为空时是 null，首页、Markdown 与结构化数据都按没有视频处理。
+ * 用 null 而不是 undefined 表示「没有视频」：传 undefined 会落到各函数的默认参数，又读回这里的配置。
+ */
+export function configuredVideo(lang: Lang, videos: Record<Lang, PromoVideo> = promoVideos): PromoVideo | null {
+  const video = videos[lang];
+  return video.src.trim() ? video : null;
+}
+
+/** 站内路径补上站点地址，给结构化数据与 Markdown 用；完整地址原样返回。 */
+export function absoluteUrl(path: string): string {
+  return path.startsWith("/") ? `${site.url}${path}` : path;
+}
+
+/** <source type>：按扩展名区分 MP4 与 WebM，其他扩展名不写 type，交给浏览器判断。 */
+export function videoMimeType(src: string): string | undefined {
+  const extension = /\.(mp4|m4v|webm|mov)(?:[?#]|$)/i.exec(src)?.[1]?.toLowerCase();
+  if (!extension) return undefined;
+  return { mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/mp4" }[extension];
+}
+
+/**
  * 桌面客户端（abnormalhq/mail 的 desktop/）的下载地址。发布时安装包上传到 R2 公开桶，
  * desktop/latest/ 下是固定文件名的最新版本，这里直接链接；latest.json 列出版本号、SHA-256 与大小。
  * releases.json 列出全部版本，下载页的当前版本与历史版本由它生成（见 src/lib/releases.ts）。

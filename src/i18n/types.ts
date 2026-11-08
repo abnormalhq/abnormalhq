@@ -112,6 +112,17 @@ export interface Copy {
     };
   };
   valueStrip: { lead: string; strong: string; labels: readonly string[] };
+  /** 宣传视频区块（src/components/PromoVideo.tsx），视频地址在 src/data/site.ts 的 promoVideo；未配置时不渲染。 */
+  video: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    /** <video> 的无障碍名称，也是结构化数据与 Markdown 里视频链接的文字。 */
+    label: string;
+    /** 浏览器不能播放 <video> 时显示，后面跟着 download 链接。 */
+    fallback: string;
+    download: string;
+  };
   start: {
     eyebrow: string;
     title: string;

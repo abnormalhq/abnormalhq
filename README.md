@@ -37,7 +37,7 @@
 
 反方向：onboard 页头与页脚的「官网」、网页邮箱登录页与状态页的「官网」链接都指回 `https://abnormalhq.com/`。
 
-页头右侧是「我的账户」（买家注册、登录与邮箱管理）、「登录邮箱」（网页邮箱）与「购买邮箱」。首页从上到下把买家流程串起来：首屏（购买邮箱 / 注册账户，下面是「登录管理邮箱 · 登录网页邮箱」）→ 01 从这里开始（购买邮箱、我的账户、兑换开通、网页邮箱四张卡片与教程、状态、客服链接）→ 02 邮箱服务（个人邮箱直达商店，其余三项咨询）→ 03 开通流程（注册账户 → 选购套餐 → 在「我的账户」开通邮箱 → 登录收发，每步带链接；「注册账户」直接打开账户页的注册表单 `?mode=register`）→ 04 常见问题 → 收尾面板（购买邮箱 + 聊聊定制需求）。
+页头右侧是「我的账户」（买家注册、登录与邮箱管理）、「登录邮箱」（网页邮箱）与「购买邮箱」。首页从上到下把买家流程串起来：首屏（购买邮箱 / 注册账户，下面是「登录管理邮箱 · 登录网页邮箱」）→ 宣传视频（中英文各一段，由 video/ 渲染，见下面「宣传视频」）→ 01 从这里开始（购买邮箱、我的账户、兑换开通、网页邮箱四张卡片与教程、状态、客服链接）→ 02 邮箱服务（个人邮箱直达商店，其余三项咨询）→ 03 开通流程（注册账户 → 选购套餐 → 在「我的账户」开通邮箱 → 登录收发，每步带链接；「注册账户」直接打开账户页的注册表单 `?mode=register`）→ 04 常见问题 → 收尾面板（购买邮箱 + 聊聊定制需求）。
 
 ## 组件与样式
 
@@ -134,13 +134,14 @@ src/
   app/            路由：(en)/ 英文页（默认语言，在根路径）、(zh)/zh/ 中文页，各有一个根布局；global-not-found.tsx 是两种语言共用的 404
   components/     SiteLayout、页头、Hero、邮箱服务卡片、流程、FAQ、咨询弹窗等页面区块；ui/ 是从 registry 安装的组件
   content/legal/  MDX 编写的隐私政策与服务条款，zh/ 与 en/ 各一份
-  data/site.ts    公开联系方式与联动站点地址（linksFor）
+  data/site.ts    公开联系方式、联动站点地址（linksFor）、宣传视频（promoVideos）与桌面客户端下载地址
   i18n/           中英文文案（zh.ts、en.ts、types.ts）与语言路径工具（paths.ts）
   lib/            inquiry.ts 咨询文案与联系方式的纯函数；metadata.ts 页面 SEO 与分享卡片；structured-data.ts 结构化数据（JSON-LD）；legal.ts 法律文档的 frontmatter 检查与目录；template.ts 文案模板；pages.ts 页面清单；markdown.ts 与 negotiate.ts 给 Agent 的 Markdown 与内容协商；cache.ts 浏览器缓存头
   scripts/        theme-init.js：内联进头部的主题初始化脚本
   styles/         abnormal.css、abnormal-fonts.css 来自 registry；global.css 是官网专属的断点和全局规则
-public/           字体、分享图片（og/）等由静态资源服务直接响应的文件
+public/           字体、分享图片（og/）、宣传视频（video/）等由静态资源服务直接响应的文件
 scripts/          og-images.ts：生成 public/og/ 的分享图片
+video/            宣传视频的 Remotion 工程，渲染到 public/video/（见「宣传视频」）
 tests/            咨询逻辑、文案结构、页面元数据、法律文档、Agent 入口、缓存头与主题行为回归测试
 open-next.config.ts  OpenNext 配置：预渲染结果放在只读的静态资源里
 worker.ts            Worker 入口：Markdown 内容协商与缓存头
@@ -182,6 +183,29 @@ wrangler.jsonc       Cloudflare Worker 与静态资源配置
 这些配置会公开到网页中，请勿放入密钥、密码或私人信息。修改后提交到 `main` 即会自动重新构建并部署。
 
 联系信息未配置时，页面明确提示「咨询渠道即将公布」。咨询弹窗只在浏览器内整理和复制需求，不发送数据、不创建订单，也不收款。具体套餐、费用及服务条件需事先确认。
+
+## 宣传视频
+
+首屏下方的「先看一段视频」区块（`src/components/PromoVideo.tsx`）放一段宣传短片，用原生 `<video>` 带播放控件，不自动播放、不带声音打断访客，先只加载元数据，由封面图撑住版面；视频下方始终有「下载视频」链接。两种语言各一段，片中文字就是页面的语言，标题与简介在两份文案的 `video` 里。
+
+视频由仓库里的 `video/` 用 [Remotion](https://www.remotion.dev/)（用 React 写视频的框架）生成：六个场景（品牌标记 → 首屏标题 → 收件箱示意 → 四步开通流程 → 价值条 → 收尾），1920×1080、30fps、约 35 秒，画面用官网浅色主题的配色、圆角与字体（`public/fonts/` 里的那几份，中文字形从 Google Fonts 取 Noto Sans SC，与分享图一致）。片中文字在 `video/src/copy.ts`，是官网文案里首屏、流程与收尾的句子，改了官网文案要跟着改。
+
+背景音乐也是生成的：`video/scripts/music.ts` 用 [Tone.js](https://tonejs.github.io/) 写一段 C 大调、96 BPM 的循环（三路失谐锯齿波的铺底、FM 合成的电钢琴和弦、带滤波包络的贝斯、过乒乓延迟的琶音、膜合成底鼓与噪声合成的军鼓踩镲，分层进入，末尾收束），整体过卷积混响、压缩与限幅，离线渲染到 `video/assets/music.wav`（不提交，`pnpm music` 重新生成，约 25 秒）。Tone.js 是浏览器库，脚本用 node-web-audio-api 提供 Web Audio 实现并补上它需要的全局对象，噪声源用固定种子的随机数，每次结果相同。Remotion 以 `<Audio>` 混入，成片响度约 -17 LUFS。没有引入任何第三方音频素材，不涉及版权。
+
+`video/` 是独立的 pnpm 工程（有自己的 lockfile），不并入官网的安装：Remotion 带着浏览器与编码器的二进制，官网的 CI 与 Cloudflare 构建都用不上，根目录的 `tsconfig.json` 与 ESLint 也不包含它，Prettier 照常格式化。
+
+```sh
+cd video
+pnpm install
+pnpm studio      # 在浏览器里预览与调试，http://localhost:3000
+pnpm music       # 合成背景音乐到 assets/music.wav（studio 与 render 会先自动执行）
+pnpm render      # 渲染两种语言的 MP4（含配乐）与封面图到 ../public/video/
+pnpm typecheck
+```
+
+渲染结果 `public/video/abnormal-{en,zh}.mp4` 与同名 `.jpg`（封面，取第 220 帧）提交进仓库，随官网一起部署，由静态资源服务同源响应，没有跨域与 CORS 的问题；每段约 1–2 MB。地址与发布日期在 `src/data/site.ts` 的 `promoVideos`：重新渲染后更新 `uploadDate`；某种语言的 `src` 留空时那一页不显示这一区块，`/md/` 的 Markdown 版本与结构化数据也不提它。`tests/video.test.ts` 要求填了地址就同时填封面与日期，且站内路径对应的文件在 `public/` 里。配置后首页的结构化数据里多一个 schema.org `VideoObject`（名称与简介取自文案，封面与日期取自配置），`/md/` 里多一节带视频链接的标题。
+
+机器上没有 Chrome 时 Remotion 会自己下载一份 Chrome Headless Shell；要用已装好的浏览器，设 `REMOTION_BROWSER_EXECUTABLE=/path/to/chromium`。
 
 ## 隐私政策与服务条款
 
