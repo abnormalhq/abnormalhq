@@ -11,7 +11,7 @@
 @theme {
   --breakpoint-phone: 23.8125rem; /* 381px */
   --breakpoint-dialog: 32.5625rem; /* 521px */
-  --breakpoint-nav: 59.4375rem; /* 951px */
+  --breakpoint-nav: 64rem; /* 1024px: below it the English header bar runs out of room for "My account" and "Log in" */
   --breakpoint-hero: 62.5625rem; /* 1001px */
   --breakpoint-card: 68.75rem; /* 1100px */
   --breakpoint-wide: 90rem; /* 1440px */

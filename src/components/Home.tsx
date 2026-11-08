@@ -6,6 +6,7 @@ import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { homeStructuredData } from "@/lib/structured-data";
 import { Faq } from "./Faq";
+import { Features } from "./Features";
 import { Hero } from "./Hero";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
@@ -37,6 +38,7 @@ export function Home({ lang }: { lang: Lang }) {
         </div>
       </Container>
       <PromoVideo lang={lang} />
+      <Features lang={lang} />
       <Start lang={lang} />
       <Subscriptions lang={lang} />
       <Process lang={lang} />

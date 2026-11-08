@@ -42,7 +42,7 @@ test("onboard links follow the page language; webmail and status do not", () => 
 });
 
 /** Values that are the same in both languages: where an entry links, which icon it shows, whether it is featured. */
-const languageIndependent = new Set(["link", "icon", "anchor", "featured", "primary", "path"]);
+const languageIndependent = new Set(["link", "icon", "anchor", "featured", "primary", "path", "wide"]);
 
 /** Keeps the structure of the copy, with each text replaced by its type, down to every field of every list item. */
 const shape = (value: unknown): unknown =>
@@ -107,6 +107,7 @@ test('decorative labels are English in both languages, as their lang="en" says',
     const labels = [
       copy.hero.eyebrow,
       copy.video.eyebrow,
+      copy.features.eyebrow,
       copy.start.eyebrow,
       copy.services.eyebrow,
       copy.process.eyebrow,

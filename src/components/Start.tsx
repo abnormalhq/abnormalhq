@@ -20,7 +20,7 @@ export function Start({ lang }: { lang: Lang }) {
         <div className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start">
           <div>
             <Eyebrow lang="en">
-              <span className="mr-1">01 /</span> {s.eyebrow}
+              <span className="mr-1">02 /</span> {s.eyebrow}
             </Eyebrow>
             <SectionTitle id="start-title">
               {s.title}
