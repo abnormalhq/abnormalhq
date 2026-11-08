@@ -49,36 +49,36 @@ export function linksFor(lang: Lang) {
 export type LinkKey = keyof ReturnType<typeof linksFor>;
 
 /**
- * 首页的宣传视频（首屏下方的「先看一段视频」区块）。视频与封面和安装包放在同一个 R2 公开桶
- * （downloads.abnormalhq.com，桶名 abnormal-downloads）的 video/ 下，用 aws s3 cp 或 Cloudflare 后台上传，
- * 加 `--cache-control "public, max-age=31536000, immutable"`，换新片时改文件名。
+ * 首页的宣传视频（首屏下方的「先看一段视频」区块），两种语言各一段，由仓库里的 video/（Remotion 工程）渲染，
+ * 输出到 public/video/，随官网一起部署、同源直接响应；重新渲染见 README「宣传视频」。
  * src 留空时首页不显示这一区块，Markdown 版本与结构化数据也不提它；填了就要同时填封面与发布日期。
- * 两种语言放同一段视频；字幕（WebVTT）按语言各一份，留空则不挂字幕。
  */
 export interface PromoVideo {
-  /** MP4（H.264 + AAC）或 WebM 的完整地址。 */
+  /** MP4（H.264 + AAC）或 WebM 的地址：站内路径（以 / 开头）或完整地址。 */
   src: string;
-  /** 封面图：16:9，建议 1280×720 以上的 JPG 或 PNG。 */
+  /** 封面图：16:9，与视频同一帧（remotion still）。 */
   poster: string;
-  /** 发布日期 YYYY-MM-DD，写进结构化数据（schema.org VideoObject 的 uploadDate）。 */
+  /** 发布日期 YYYY-MM-DD，写进结构化数据（schema.org VideoObject 的 uploadDate）；重新渲染后更新。 */
   uploadDate: string;
-  /** 各语言的字幕文件（.vtt）地址，留空不挂。 */
-  captions: Record<Lang, string>;
 }
 
-export const promoVideo: PromoVideo = {
-  src: "",
-  poster: "",
-  uploadDate: "",
-  captions: { zh: "", en: "" },
+export const promoVideos: Record<Lang, PromoVideo> = {
+  en: { src: "/video/abnormal-en.mp4", poster: "/video/abnormal-en.jpg", uploadDate: "2026-11-08" },
+  zh: { src: "/video/abnormal-zh.mp4", poster: "/video/abnormal-zh.jpg", uploadDate: "2026-11-08" },
 };
 
 /**
- * 配好了的宣传视频；src 为空时是 null，首页、Markdown 与结构化数据都按没有视频处理。
+ * 某种语言配好了的宣传视频；src 为空时是 null，首页、Markdown 与结构化数据都按没有视频处理。
  * 用 null 而不是 undefined 表示「没有视频」：传 undefined 会落到各函数的默认参数，又读回这里的配置。
  */
-export function configuredVideo(video: PromoVideo = promoVideo): PromoVideo | null {
+export function configuredVideo(lang: Lang, videos: Record<Lang, PromoVideo> = promoVideos): PromoVideo | null {
+  const video = videos[lang];
   return video.src.trim() ? video : null;
+}
+
+/** 站内路径补上站点地址，给结构化数据与 Markdown 用；完整地址原样返回。 */
+export function absoluteUrl(path: string): string {
+  return path.startsWith("/") ? `${site.url}${path}` : path;
 }
 
 /** <source type>：按扩展名区分 MP4 与 WebM，其他扩展名不写 type，交给浏览器判断。 */

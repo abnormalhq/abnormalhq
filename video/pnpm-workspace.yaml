@@ -1,0 +1,6 @@
+# 这个目录是独立的 pnpm 工程（有自己的 lockfile），不并入官网的安装：Remotion 带着浏览器与编码器的二进制，
+# 官网的 CI 与 Cloudflare 构建都用不上。在这里 pnpm install 时，pnpm 以这个文件为工程根。
+
+# Remotion 打包用 esbuild，安装脚本要下载平台二进制（与官网的设置相同）。
+allowBuilds:
+  esbuild: true

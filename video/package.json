@@ -1,0 +1,33 @@
+{
+  "name": "abnormal-promo-video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The promo video on the Abnormal website home page, written with Remotion and rendered into public/video/.",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "pnpm render:en && pnpm render:zh",
+    "render:en": "remotion render promo-en ../public/video/abnormal-en.mp4 && remotion still promo-en ../public/video/abnormal-en.jpg --frame=220",
+    "render:zh": "remotion render promo-zh ../public/video/abnormal-zh.mp4 && remotion still promo-zh ../public/video/abnormal-zh.jpg --frame=220",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.541",
+    "@remotion/fonts": "4.0.541",
+    "@remotion/google-fonts": "4.0.541",
+    "@remotion/transitions": "4.0.541",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.541"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  },
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=22.22.1",
+    "pnpm": ">=12"
+  }
+}

@@ -4,7 +4,7 @@
  * 内容都取自界面文案与 frontmatter，不写页面上看不到的信息。
  */
 import type { LegalFrontmatter } from "../content/legal/types.ts";
-import { configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
+import { absoluteUrl, configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
 import { copies } from "../i18n/index.ts";
 import { langs, localePath } from "../i18n/paths.ts";
 import { socialImage } from "./metadata.ts";
@@ -68,8 +68,8 @@ function videoObject(lang: Lang, pageUrl: string, video: PromoVideo): Node {
     "@id": `${pageUrl}#video`,
     name: t.video.title,
     description: t.video.description,
-    contentUrl: video.src,
-    thumbnailUrl: video.poster,
+    contentUrl: absoluteUrl(video.src),
+    thumbnailUrl: absoluteUrl(video.poster),
     uploadDate: video.uploadDate,
     inLanguage: t.htmlLang,
     publisher: { "@id": organizationId },
@@ -77,7 +77,7 @@ function videoObject(lang: Lang, pageUrl: string, video: PromoVideo): Node {
 }
 
 /** 首页：组织、网站，以及带常见问题的页面本身；配置了宣传视频时再加上视频。 */
-export function homeStructuredData(lang: Lang, video: PromoVideo | null = configuredVideo()) {
+export function homeStructuredData(lang: Lang, video: PromoVideo | null = configuredVideo(lang)) {
   const t = copies[lang];
   const page = webPage(lang, "/", t.meta.title, t.meta.description);
   const videoNode = video && videoObject(lang, page.url as string, video);

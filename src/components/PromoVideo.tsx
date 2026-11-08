@@ -2,20 +2,18 @@ import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { configuredVideo, videoMimeType, type Lang, type PromoVideo as Video } from "@/data/site";
-import { langs, useCopy } from "@/i18n";
+import { useCopy } from "@/i18n";
 import { Icon } from "./Icon";
 
 /**
  * 首屏下方的宣传视频：原生 <video> 带控件，不自动播放、不带声音打断访客，先只取元数据，封面图撑住版面。
- * 视频地址在 src/data/site.ts 的 promoVideo，没配置时整个区块不渲染。
+ * 两种语言各一段（片中文字就是页面的语言），地址在 src/data/site.ts 的 promoVideos；没配置时整个区块不渲染。
  */
-export function PromoVideo({ lang, video = configuredVideo() }: { lang: Lang; video?: Video | null }) {
+export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang; video?: Video | null }) {
   const { t } = useCopy(lang);
   if (!video) return null;
   const v = t.video;
   const type = videoMimeType(video.src);
-  // 字幕是跨域的（下载桶），<track> 只在 <video> 带 crossOrigin 时才会加载；没字幕就不加，视频与封面也不必走 CORS。
-  const hasCaptions = langs.some((captionLang) => video.captions[captionLang]);
 
   return (
     <section className="border-t border-border" id="video" aria-labelledby="video-title">
@@ -30,31 +28,17 @@ export function PromoVideo({ lang, video = configuredVideo() }: { lang: Lang; vi
           </div>
           <p className="max-w-[34rem] pb-[0.2rem] text-md/prose text-muted-foreground">{v.description}</p>
         </div>
-        {/* 面板与卡片同一套：细描边、不铺底色、不加阴影；黑底是给视频两侧留边用的。 */}
+        {/* 面板与卡片同一套：细描边、不铺底色、不加阴影。视频本身是纸色画面，底色用纸色，不露黑边。 */}
         <figure className="overflow-hidden rounded-panel border border-border bg-card">
           <video
-            className="block aspect-video w-full bg-black"
+            className="block aspect-video w-full bg-[#f7f7f4]"
             controls
             playsInline
             preload="metadata"
             poster={video.poster || undefined}
-            crossOrigin={hasCaptions ? "anonymous" : undefined}
             aria-label={v.label}
           >
             <source src={video.src} type={type} />
-            {langs.map((captionLang) => {
-              const src = video.captions[captionLang];
-              return src ? (
-                <track
-                  key={captionLang}
-                  kind="subtitles"
-                  src={src}
-                  srcLang={captionLang}
-                  label={captionLang === "zh" ? "中文" : "English"}
-                  default={captionLang === lang}
-                />
-              ) : null;
-            })}
             {/* 只有不支持 <video> 的浏览器会显示；解码失败时元素照常存在，所以下载链接另放在下面。 */}
             <p className="p-6 text-base/body text-muted-foreground">{v.fallback}</p>
           </video>
