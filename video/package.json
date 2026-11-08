@@ -5,8 +5,9 @@
   "description": "The promo video on the Abnormal website home page, written with Remotion and rendered into public/video/.",
   "type": "module",
   "scripts": {
-    "studio": "remotion studio",
-    "render": "pnpm render:en && pnpm render:zh",
+    "music": "node scripts/music.ts",
+    "studio": "pnpm music && remotion studio",
+    "render": "pnpm music && pnpm render:en && pnpm render:zh",
     "render:en": "remotion render promo-en ../public/video/abnormal-en.mp4 && remotion still promo-en ../public/video/abnormal-en.jpg --frame=220",
     "render:zh": "remotion render promo-zh ../public/video/abnormal-zh.mp4 && remotion still promo-zh ../public/video/abnormal-zh.jpg --frame=220",
     "typecheck": "tsc --noEmit"

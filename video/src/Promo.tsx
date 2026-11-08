@@ -1,5 +1,7 @@
 import { linearTiming, TransitionSeries } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
+import { Audio } from "remotion";
+import music from "../assets/music.wav";
 import { copies, type Lang } from "./copy";
 import { Headline } from "./scenes/Headline";
 import { Inbox } from "./scenes/Inbox";
@@ -26,6 +28,8 @@ export function Promo({ lang }: { lang: Lang }) {
   const t = copies[lang];
   return (
     <div lang={t.htmlLang} style={{ width: "100%", height: "100%" }}>
+      {/* 背景音乐由 scripts/music.ts 合成（pnpm music），自带淡入淡出，长度与画面一致。 */}
+      <Audio src={music} volume={0.9} />
       <TransitionSeries>
         {SCENES.flatMap(({ Scene, frames }, index) => [
           ...(index === 0

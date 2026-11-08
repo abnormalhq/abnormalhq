@@ -188,7 +188,9 @@ wrangler.jsonc       Cloudflare Worker 与静态资源配置
 
 首屏下方的「先看一段视频」区块（`src/components/PromoVideo.tsx`）放一段宣传短片，用原生 `<video>` 带播放控件，不自动播放、不带声音打断访客，先只加载元数据，由封面图撑住版面；视频下方始终有「下载视频」链接。两种语言各一段，片中文字就是页面的语言，标题与简介在两份文案的 `video` 里。
 
-视频由仓库里的 `video/` 用 [Remotion](https://www.remotion.dev/)（用 React 写视频的框架）生成：六个场景（品牌标记 → 首屏标题 → 收件箱示意 → 四步开通流程 → 价值条 → 收尾），1920×1080、30fps、约 35 秒、无声，画面用官网浅色主题的配色、圆角与字体（`public/fonts/` 里的那几份，中文字形从 Google Fonts 取 Noto Sans SC，与分享图一致）。片中文字在 `video/src/copy.ts`，是官网文案里首屏、流程与收尾的句子，改了官网文案要跟着改。
+视频由仓库里的 `video/` 用 [Remotion](https://www.remotion.dev/)（用 React 写视频的框架）生成：六个场景（品牌标记 → 首屏标题 → 收件箱示意 → 四步开通流程 → 价值条 → 收尾），1920×1080、30fps、约 35 秒，画面用官网浅色主题的配色、圆角与字体（`public/fonts/` 里的那几份，中文字形从 Google Fonts 取 Noto Sans SC，与分享图一致）。片中文字在 `video/src/copy.ts`，是官网文案里首屏、流程与收尾的句子，改了官网文案要跟着改。
+
+背景音乐也是生成的：`video/scripts/music.ts` 用代码合成一段 C 大调、96 BPM 的循环（铺底、电钢琴和弦、贝斯、琶音与轻鼓点分层进入，末尾收束），写到 `video/assets/music.wav`（不提交，`pnpm music` 重新生成，噪声用固定种子，每次结果相同），Remotion 以 `<Audio>` 混入，响度约 -15 LUFS。没有引入任何第三方音频素材，不涉及版权。
 
 `video/` 是独立的 pnpm 工程（有自己的 lockfile），不并入官网的安装：Remotion 带着浏览器与编码器的二进制，官网的 CI 与 Cloudflare 构建都用不上，根目录的 `tsconfig.json` 与 ESLint 也不包含它，Prettier 照常格式化。
 
@@ -196,7 +198,8 @@ wrangler.jsonc       Cloudflare Worker 与静态资源配置
 cd video
 pnpm install
 pnpm studio      # 在浏览器里预览与调试，http://localhost:3000
-pnpm render      # 渲染两种语言的 MP4 与封面图到 ../public/video/
+pnpm music       # 合成背景音乐到 assets/music.wav（studio 与 render 会先自动执行）
+pnpm render      # 渲染两种语言的 MP4（含配乐）与封面图到 ../public/video/
 pnpm typecheck
 ```
 
