@@ -8,6 +8,7 @@ import { Container } from "@/components/ui/container";
 import { linksFor, type Lang } from "@/data/site";
 import { localePath, switchHref } from "@/i18n/paths";
 import type { Copy } from "@/i18n/types";
+import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 import { ThemePicker } from "./ThemePicker";
 
@@ -32,7 +33,7 @@ export function Header({
   const closeMenu = () => setMenuOpen(false);
 
   const links = linksFor(lang);
-  const nav = copy.nav.map(({ anchor, label }) => ({ href: localePath(lang, `/#${anchor}`), label }));
+  const nav = copy.nav.map(({ anchor, label, wide }) => ({ href: localePath(lang, `/#${anchor}`), label, wide }));
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
   // With ?lang=: the Worker stores the choice in the cookie shared by the three sites, so shared links open in this language from then on (src/lib/lang.ts).
@@ -68,8 +69,13 @@ export function Header({
       <Container className="flex min-h-16 items-center justify-between gap-6 max-md:gap-3">
         {brand}
         <nav className="mr-auto ml-6 flex items-center gap-1 max-nav:ml-2 max-md:hidden" aria-label={copy.navLabel}>
-          {nav.map(({ href, label }) => (
-            <Button asChild variant="ghost" className="border-0 px-2.5 font-normal max-nav:px-2" key={href}>
+          {nav.map(({ href, label, wide }) => (
+            <Button
+              asChild
+              variant="ghost"
+              className={cn("border-0 px-2.5 font-normal max-nav:px-2", wide && "max-card:hidden")}
+              key={href}
+            >
               <Link href={href}>{label}</Link>
             </Button>
           ))}

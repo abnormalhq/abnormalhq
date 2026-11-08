@@ -20,6 +20,7 @@ export const zh: Copy = {
     navLabel: "主导航",
     mobileNavLabel: "移动端导航",
     nav: [
+      { anchor: "features", wide: true, label: "功能" },
       { anchor: "start", label: "开始使用" },
       { anchor: "services", label: "邮箱服务" },
       { anchor: "how-it-works", label: "开通流程" },
@@ -90,6 +91,83 @@ export const zh: Copy = {
     label: "Abnormal 邮箱服务宣传视频",
     fallback: "当前浏览器无法播放这段视频。",
     download: "下载视频",
+  },
+  features: {
+    eyebrow: "What's inside",
+    title: "一个邮箱，该有的都有",
+    intro: ["不只是能收发：分类、日程、安全与搬家，", "开通后都在网页邮箱里等你。"],
+    items: [
+      {
+        icon: "inbox",
+        title: "分栏收件箱",
+        description: "主要邮件、订阅和系统通知自动分开，各有未读数；还能按发件人或关键词，加上自己的分栏。",
+      },
+      {
+        icon: "undo",
+        title: "撤回与定时发送",
+        description: "发出后几秒内还能撤回，也可以定在明早再发。由邮件服务器代为保管，关掉网页也照样生效。",
+      },
+      {
+        icon: "calendar",
+        title: "日历与通讯录",
+        description: "网页邮箱里自带日历和通讯录，会议邀请在邮件里直接回复；通过 CalDAV / CardDAV 同步到手机和电脑。",
+      },
+      {
+        icon: "search",
+        title: "快速搜索",
+        description: "默认搜遍所有文件夹，命中处高亮；用 from:、subject:、has:attachment 等条件，一步缩小范围。",
+      },
+      {
+        icon: "alert",
+        title: "可疑邮件提醒",
+        description: "冒充熟人、相似域名、发件验证失败时，在邮件上方直接提醒；收到的附件会先经过病毒扫描。",
+      },
+      {
+        icon: "key",
+        title: "两步验证",
+        description: "登录多一道验证码；邮件客户端改用单独的应用密码，丢了设备也能随时撤销，不必改主密码。",
+      },
+      {
+        icon: "import",
+        title: "搬家与导出",
+        description:
+          "从 Gmail、QQ 邮箱、163 或任意 IMAP 邮箱导入旧邮件，可暂停、可续传；也能把文件夹导出为 mbox 带走。",
+      },
+      {
+        icon: "filter",
+        title: "规则与自动回复",
+        description: "按发件人、主题、附件等条件自动归档、标记或转发；休假时开启自动回复，不想收的发件人一键屏蔽。",
+      },
+      {
+        icon: "install",
+        title: "安装成应用",
+        description: "网页邮箱可以安装到桌面或手机主屏，像应用一样打开；离线时也能翻看已保存的邮件。",
+      },
+    ],
+    platformsTitle: "在哪里都能用",
+    platforms: [
+      {
+        icon: "globe",
+        name: "网页邮箱",
+        description: "打开浏览器就能用，可同时登录多个邮箱，在它们之间一键切换。",
+        action: "登录网页邮箱",
+        link: "webmail",
+      },
+      {
+        icon: "laptop",
+        name: "桌面客户端",
+        description: "原生的 macOS 与 Windows 客户端，文件夹、已读和星标与网页邮箱同步。",
+        action: "下载客户端",
+        path: "/download/",
+      },
+      {
+        icon: "phone",
+        name: "手机与其他应用",
+        description: "系统自带的邮件、日历和通讯录，或任意支持 IMAP / SMTP 的邮件应用，都能添加。",
+        action: "查看设置教程",
+        link: "guide",
+      },
+    ],
   },
   start: {
     eyebrow: "Start here",

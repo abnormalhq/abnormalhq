@@ -22,6 +22,7 @@ export const en: Copy = {
     navLabel: "Main navigation",
     mobileNavLabel: "Mobile navigation",
     nav: [
+      { anchor: "features", wide: true, label: "Features" },
       { anchor: "start", label: "Get started" },
       { anchor: "services", label: "Services" },
       { anchor: "how-it-works", label: "How it works" },
@@ -93,6 +94,91 @@ export const en: Copy = {
     label: "Abnormal email service promo video",
     fallback: "Your browser can't play this video.",
     download: "Download the video",
+  },
+  features: {
+    eyebrow: "What's inside",
+    title: "Everything a mailbox should do",
+    intro: ["Sorting, calendars, safety and moving in:", "all there in webmail the day you activate."],
+    items: [
+      {
+        icon: "inbox",
+        title: "Split inbox",
+        description:
+          "Primary mail, newsletters and notifications sort themselves, each with its own unread count; add splits of your own by sender or keyword.",
+      },
+      {
+        icon: "undo",
+        title: "Undo and schedule sends",
+        description:
+          "Take a message back for a few seconds after sending, or have it go out tomorrow morning. The mail server holds it, so closing the tab changes nothing.",
+      },
+      {
+        icon: "calendar",
+        title: "Calendar and contacts",
+        description:
+          "Webmail has a calendar and an address book built in, with invitations answered right in the message; CalDAV and CardDAV sync them to your phone and computer.",
+      },
+      {
+        icon: "search",
+        title: "Fast search",
+        description:
+          "Searches every folder by default and highlights the matches; narrow it in one go with from:, subject:, has:attachment and more.",
+      },
+      {
+        icon: "alert",
+        title: "Phishing warnings",
+        description:
+          "Impersonated senders, lookalike domains and failed sender checks get a warning above the message; incoming attachments are scanned for viruses first.",
+      },
+      {
+        icon: "key",
+        title: "Two-step verification",
+        description:
+          "A code on top of your password; mail apps get app passwords of their own, which you can revoke if a device goes missing without changing your main password.",
+      },
+      {
+        icon: "import",
+        title: "Move in, take it with you",
+        description:
+          "Import old mail from Gmail, QQ Mail, 163 or any IMAP mailbox, paused and resumed as you like; export folders as mbox whenever you want.",
+      },
+      {
+        icon: "filter",
+        title: "Rules and auto-reply",
+        description:
+          "File, flag or forward mail by sender, subject, attachments and more; turn on an auto-reply for time off, and block senders you never want to hear from.",
+      },
+      {
+        icon: "install",
+        title: "Install it as an app",
+        description:
+          "Add webmail to your desktop or home screen and open it like an app; mail it has saved stays readable offline.",
+      },
+    ],
+    platformsTitle: "Use it anywhere",
+    platforms: [
+      {
+        icon: "globe",
+        name: "Webmail",
+        description: "Nothing to install. Sign in to several mailboxes at once and switch between them in one click.",
+        action: "Log in to webmail",
+        link: "webmail",
+      },
+      {
+        icon: "laptop",
+        name: "Desktop app",
+        description: "Native apps for macOS and Windows, with folders, read state and stars in sync with webmail.",
+        action: "Download the app",
+        path: "/download/",
+      },
+      {
+        icon: "phone",
+        name: "Phones and other apps",
+        description: "Your phone's built-in Mail, Calendar and Contacts, or any mail app that speaks IMAP and SMTP.",
+        action: "See the setup guide",
+        link: "guide",
+      },
+    ],
   },
   start: {
     eyebrow: "Start here",

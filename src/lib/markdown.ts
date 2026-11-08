@@ -11,7 +11,7 @@ import {
   type Lang,
   type PromoVideo,
 } from "../data/site.ts";
-import { copies, langs } from "../i18n/index.ts";
+import { copies, langs, localePath } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { contactChannels } from "./inquiry.ts";
 import { markdownResponse } from "./markdown-response.ts";
@@ -32,6 +32,15 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
     t.meta.description,
     // The promo video appears only when an address is configured (promoVideos in src/data/site.ts).
     ...(video ? [`## ${t.video.title}`, `${t.video.description} [${t.video.label}](${absoluteUrl(video.src)})`] : []),
+    `## ${t.features.title}`,
+    list(t.features.items.map((item) => `${item.title}: ${item.description}`)),
+    `### ${t.features.platformsTitle}`,
+    list(
+      t.features.platforms.map(
+        (platform) =>
+          `[${platform.name}](${platform.link ? links[platform.link] : absolute(localePath(lang, platform.path ?? "/"))}): ${platform.description}`,
+      ),
+    ),
     `## ${t.start.title}`,
     list([
       ...t.start.entries.map((entry) => `[${entry.title}](${links[entry.link]}): ${entry.description}`),

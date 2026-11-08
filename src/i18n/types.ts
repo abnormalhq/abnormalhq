@@ -20,7 +20,19 @@ export type IconName =
   | "ticket"
   | "mail"
   | "book"
-  | "user";
+  | "user"
+  | "inbox"
+  | "undo"
+  | "calendar"
+  | "search"
+  | "alert"
+  | "key"
+  | "import"
+  | "filter"
+  | "install"
+  | "globe"
+  | "laptop"
+  | "phone";
 
 /** Icon of a service card, drawn by ProductCard from this key; independent of the card's position in the list. */
 export type ProductIcon = "mail" | "domain" | "team" | "setup";
@@ -72,7 +84,8 @@ export interface Copy {
   header: {
     navLabel: string;
     mobileNavLabel: string;
-    nav: readonly { anchor: string; label: string }[];
+    /** wide: shown in the desktop bar only from the card breakpoint up, where there is room for it; always in the mobile menu. */
+    nav: readonly { anchor: string; label: string; wide?: boolean }[];
     openMenu: string;
     closeMenu: string;
     login: string;
@@ -122,6 +135,23 @@ export interface Copy {
     /** Shown when the browser cannot play <video>, followed by the download link. */
     fallback: string;
     download: string;
+  };
+  /** The "What's inside" section (src/components/Features.tsx): what a mailbox can do, and where it can be used. */
+  features: {
+    eyebrow: string;
+    title: string;
+    intro: readonly [string, string];
+    items: readonly { icon: IconName; title: string; description: string }[];
+    platformsTitle: string;
+    /** Each platform links either to a linked site (link) or to a page of this site (path, without the language prefix). */
+    platforms: readonly {
+      icon: IconName;
+      name: string;
+      description: string;
+      action: string;
+      link?: LinkKey;
+      path?: string;
+    }[];
   };
   start: {
     eyebrow: string;
