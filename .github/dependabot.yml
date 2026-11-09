@@ -1,8 +1,11 @@
 version: 2
 
 updates:
+  # The site and the video project (video/ has its own pnpm-lock.yaml).
   - package-ecosystem: npm
-    directory: /
+    directories:
+      - /
+      - /video
     schedule:
       interval: weekly
       day: monday
