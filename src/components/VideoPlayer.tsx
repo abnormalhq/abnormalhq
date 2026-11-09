@@ -19,6 +19,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
+  type Ref,
 } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import type { Copy } from "@/i18n/types";
@@ -96,7 +97,13 @@ export function VideoPlayer({
   const [fullscreen, setFullscreen] = useState(false);
   const [canFullscreen, setCanFullscreen] = useState(false);
   const [idle, setIdle] = useState(false);
+  // Keyboard focus inside the bar keeps it up: someone tabbing or seeking with arrows should not lose it mid-use.
+  const [barFocused, setBarFocused] = useState(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const overlayRef = useRef<HTMLButtonElement>(null);
+  const barPlayRef = useRef<HTMLButtonElement>(null);
+  // Set when the big button had focus as it started playback; it unmounts, so focus moves to the bar's play button.
+  const refocusBar = useRef(false);
 
   const wake = useCallback(() => {
     setIdle(false);
@@ -148,13 +155,26 @@ export function VideoPlayer({
     const source = video.querySelector("source");
     source?.addEventListener("error", onError);
     sync();
-    if (video.error) setFailed(true);
+    // The native player may have been used before hydration: keep its playback in the bar, not under the big button.
+    if (!video.paused || video.currentTime > 0) setStarted(true);
+    // A source that failed before hydration fired its error unheard and leaves video.error null; the element is then
+    // left with no usable source and nothing loaded.
+    if (video.error || (video.networkState === video.NETWORK_NO_SOURCE && video.readyState === video.HAVE_NOTHING)) {
+      setFailed(true);
+    }
     setCanFullscreen(Boolean(document.fullscreenEnabled || video.webkitEnterFullscreen));
     return () => {
       for (const [name, handler] of events) video.removeEventListener(name, handler);
       source?.removeEventListener("error", onError);
     };
   }, [enhanced]);
+
+  const overlayShown = !started || ended;
+  useEffect(() => {
+    if (overlayShown || !refocusBar.current) return;
+    refocusBar.current = false;
+    barPlayRef.current?.focus();
+  }, [overlayShown]);
 
   useEffect(() => {
     const onChange = () => setFullscreen(document.fullscreenElement === rootRef.current);
@@ -268,7 +288,8 @@ export function VideoPlayer({
   const silent = muted || volume === 0;
   const VolumeGlyph = silent ? VolumeXIcon : volume < 0.5 ? Volume1Icon : Volume2Icon;
   // The bar shows before the first play only as the big button; afterwards it hides only while playing and idle.
-  const barHidden = !started || (playing && idle);
+  const autoHidden = playing && idle && !barFocused;
+  const barHidden = !started || autoHidden;
 
   return (
     <div
@@ -276,7 +297,7 @@ export function VideoPlayer({
       className={cn(
         "group/player relative isolate select-none",
         fullscreen ? "flex items-center bg-black" : "bg-[#f7f7f4]",
-        playing && idle && "cursor-none",
+        autoHidden && "cursor-none",
         className,
       )}
       data-state={playing ? "playing" : "paused"}
@@ -312,11 +333,15 @@ export function VideoPlayer({
           </p>
         </div>
       ) : (
-        (!started || ended) && (
+        overlayShown && (
           <button
+            ref={overlayRef}
             type="button"
             className="absolute inset-0 grid place-items-center focus-visible:outline-none [&:focus-visible>span]:outline-2 [&:focus-visible>span]:outline-offset-4 [&:focus-visible>span]:outline-focus"
-            onClick={toggle}
+            onClick={() => {
+              refocusBar.current = document.activeElement === overlayRef.current;
+              toggle();
+            }}
             aria-label={ended ? copy.replay : copy.play}
           >
             <span className="grid size-[4.5rem] place-items-center rounded-full bg-brand text-brand-foreground shadow-popover transition-transform duration-150 group-hover/player:scale-105 active:scale-95 max-md:size-14">
@@ -342,8 +367,12 @@ export function VideoPlayer({
         )}
         // Hidden from assistive tech only before the first play, when the big button is the one control.
         inert={!started}
+        onFocus={(event) => setBarFocused(event.target.matches(":focus-visible"))}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setBarFocused(false);
+        }}
       >
-        <BarButton label={playing ? copy.pause : ended ? copy.replay : copy.play} onClick={toggle}>
+        <BarButton ref={barPlayRef} label={playing ? copy.pause : ended ? copy.replay : copy.play} onClick={toggle}>
           {playing ? (
             <PauseIcon className="fill-current" />
           ) : ended ? (
@@ -400,9 +429,20 @@ export function VideoPlayer({
   );
 }
 
-function BarButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+function BarButton({
+  ref,
+  label,
+  onClick,
+  children,
+}: {
+  ref?: Ref<HTMLButtonElement>;
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
   return (
     <button
+      ref={ref}
       type="button"
       className="grid size-8 shrink-0 place-items-center rounded-control text-foreground transition-colors duration-150 hover:bg-control focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus active:scale-[0.96] [&_svg]:size-4 [&_svg]:shrink-0"
       aria-label={label}
