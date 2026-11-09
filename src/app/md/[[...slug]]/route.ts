@@ -3,6 +3,7 @@ import { legalSources } from "@/content/legal/sources";
 import { homeMarkdown, legalMarkdown, stripFrontmatter } from "@/lib/markdown";
 import { markdownResponse } from "@/lib/markdown-response";
 import { pages, type Page } from "@/lib/pages";
+import { storeMarkdown, storeMarkdownPaths, type StoreMarkdownPath } from "@/storefront/lib/markdown";
 
 export const dynamic = "force-static";
 export const dynamicParams = false;
@@ -16,8 +17,11 @@ export function generateStaticParams() {
   return prerendered.map((page) => ({ slug: slugOf(page) }));
 }
 
+const isStorePage = (path: string): path is StoreMarkdownPath => storeMarkdownPaths.some((store) => store === path);
+
 function render({ lang, path }: Page): string {
   if (path === "/") return homeMarkdown(lang);
+  if (isStorePage(path)) return storeMarkdown(lang, path);
   if (path === "/download/") throw new Error("the download page's Markdown has its own route");
   return legalMarkdown(lang, legalFrontmatters[lang][path], stripFrontmatter(legalSources[lang][path]));
 }

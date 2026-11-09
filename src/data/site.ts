@@ -25,22 +25,19 @@ export const site = {
 export type Lang = "zh" | "en";
 
 /**
- * The other sites linked from the marketing site. The site is a landing page: buying, activation, sign-in and guides all happen on these sites,
- * and the header, hero, entry cards, process and footer all take their addresses from here, so a domain change touches one place.
- * - onboard (abnormalhq/onboard): redeem/activation page, mailbox shop, buyer account (sign-up, sign-in, mailbox management) and guides; English pages are under /en/.
- * - webmail / status (abnormalhq/mail): webmail and the public status page, switching with the browser language rather than by path.
+ * Where the buyer journey happens. The storefront (shop, redeem, buyer account, guide) is part of this site since the standalone onboard site was
+ * retired (src/storefront/); webmail and the status page are mail's (abnormalhq/mail), switching with the browser language rather than by path.
+ * The header, hero, entry cards, process and footer all take their addresses from here.
  */
-const onboardOrigin = "https://onboard.abnormalhq.com";
-
 export function linksFor(lang: Lang) {
-  const onboard = `${onboardOrigin}/${lang === "en" ? "en/" : ""}`;
+  const root = lang === "en" ? "/" : `/${lang}/`;
   return {
-    shop: `${onboard}shop/`,
-    redeem: onboard,
-    account: `${onboard}shop/account/`,
+    shop: `${root}shop/`,
+    redeem: `${root}redeem/`,
+    account: `${root}shop/account/`,
     /** Opens the sign-up form on the account page directly. */
-    register: `${onboard}shop/account/?mode=register`,
-    guide: `${onboard}guide/`,
+    register: `${root}shop/account/?mode=register`,
+    guide: `${root}guide/`,
     webmail: "https://webmail.abnormalhq.com/",
     status: "https://console.abnormalhq.com/status",
   } as const;

@@ -15,6 +15,12 @@
   --breakpoint-hero: 62.5625rem; /* 1001px */
   --breakpoint-card: 68.75rem; /* 1100px */
   --breakpoint-wide: 90rem; /* 1440px */
+  /* The storefront pages (src/storefront/, formerly onboard) keep their own steps; they are only used there as max-*: */
+  --breakpoint-narrow: 37.5625rem; /* <= 600px */
+  --breakpoint-guide: 42.5625rem; /* <= 680px: the guide page becomes single-column */
+  --breakpoint-tablet: 50.0625rem; /* <= 800px */
+  --breakpoint-guide-lg: 56.3125rem; /* <= 900px: the guide page's table of contents narrows */
+  --breakpoint-desk: 62.5625rem; /* <= 1000px */
 }
 
 /* Only the site's own global rules go below; component styles are written in className. */
@@ -39,6 +45,10 @@
   }
   p {
     text-wrap: pretty;
+  }
+  /* Tailwind's preflight resets the font features of code; keep the body's (redeem codes and server addresses on the storefront pages). */
+  code {
+    font-feature-settings: inherit;
   }
   button,
   summary {

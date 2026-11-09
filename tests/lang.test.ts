@@ -63,6 +63,24 @@ test("the header toggle links to the other language with ?lang=", () => {
   assert.equal(switchHref("/zh/privacy/", "en"), "/privacy/?lang=en");
 });
 
+test("the toggle on the storefront's session pages carries their own parameters, well-formed and single only", () => {
+  const login = "A".repeat(43);
+  const token = "eyJzIjoiYWJjZGVmZ2hpamtsbW5vIiwiZXhwIjoxfQ.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ";
+  assert.equal(switchHref("/shop/", "zh", "?id=abcdefghijklmno"), "/zh/shop/?lang=zh");
+  assert.equal(
+    switchHref("/zh/shop/orders/", "en", "?id=abcdefghijklmno&error=payment&x=1"),
+    "/shop/orders/?id=abcdefghijklmno&error=payment&lang=en",
+  );
+  assert.equal(switchHref("/zh/shop/orders/", "en", "?id=BAD&error=other"), "/shop/orders/?lang=en");
+  assert.equal(switchHref("/shop/renew/", "zh", `?t=${token}`), `/zh/shop/renew/?t=${token}&lang=zh`);
+  for (const query of ["?t=<script>", "?t=a&t=b", `?t=${"a".repeat(300)}`, "?t="])
+    assert.equal(switchHref("/shop/renew/", "zh", query), "/zh/shop/renew/?lang=zh");
+  assert.equal(switchHref("/shop/account/", "zh", `?login=${login}`), `/zh/shop/account/?login=${login}&lang=zh`);
+  assert.equal(switchHref("/zh/shop/account/", "en", `?reset=${login}`), `/shop/account/?reset=${login}&lang=en`);
+  assert.equal(switchHref("/shop/account/", "zh", "?login=short&reset=../x"), "/zh/shop/account/?lang=zh");
+  assert.equal(switchHref("/redeem/", "zh", `?login=${login}`), "/zh/redeem/?lang=zh");
+});
+
 test("?lang= remembers the choice and redirects to the clean address in that language", () => {
   const response = languageRedirect(get("/zh/?lang=zh"));
   assert.equal(location(response), "/zh/");

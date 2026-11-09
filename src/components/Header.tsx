@@ -37,7 +37,8 @@ export function Header({
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
   // With ?lang=: the Worker stores the choice in the cookie shared by the three sites, so shared links open in this language from then on (src/lib/lang.ts).
-  const otherPath = switchHref(pathname.endsWith("/") ? pathname : `${pathname}/`, other);
+  const normalizedPath = pathname.endsWith("/") ? pathname : `${pathname}/`;
+  const otherPath = switchHref(normalizedPath, other);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -85,6 +86,10 @@ export function Header({
           <Button asChild variant="ghost" className="min-w-8 border-0 px-1.5 text-sm">
             <a
               href={otherPath}
+              // The prerendered link has no query string; the storefront's order, renewal and account pages need theirs carried over (switchHref).
+              onClick={(event) => {
+                event.currentTarget.href = switchHref(normalizedPath, other, window.location.search);
+              }}
               hrefLang={otherHtmlLang}
               lang={otherHtmlLang}
               aria-label={langToggle.aria}

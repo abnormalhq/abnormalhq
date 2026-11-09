@@ -89,7 +89,7 @@ export interface Copy {
     openMenu: string;
     closeMenu: string;
     login: string;
-    /** Buyer account (onboard's /shop/account/): sign up, sign in, manage mailboxes and orders. */
+    /** Buyer account (the storefront's /shop/account/): sign up, sign in, manage mailboxes and orders. */
     account: string;
     buy: string;
     haveCode: string;

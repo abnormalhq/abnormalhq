@@ -7,7 +7,7 @@ import { defaultLang, langs, localePath, stripLocale, switchPath, toLang } from 
 import type { Copy } from "../src/i18n/types.ts";
 import { zh } from "../src/i18n/zh.ts";
 import { describeContact, formatInquiry } from "../src/lib/inquiry.ts";
-import { pages } from "../src/lib/pages.ts";
+import { pages, sessionPagePaths } from "../src/lib/pages.ts";
 import { fillTemplate, type TemplateSlot } from "../src/lib/template.ts";
 
 test("English is the default at the root and Chinese lives under /zh/", () => {
@@ -32,11 +32,12 @@ test("switching language keeps the same page", () => {
   assert.equal(stripLocale("/zhuanti/"), "/zhuanti/");
 });
 
-test("onboard links follow the page language; webmail and status do not", () => {
-  assert.equal(linksFor("zh").shop, "https://onboard.abnormalhq.com/shop/");
-  assert.equal(linksFor("en").shop, "https://onboard.abnormalhq.com/en/shop/");
-  assert.equal(linksFor("en").redeem, "https://onboard.abnormalhq.com/en/");
-  assert.equal(linksFor("en").guide, "https://onboard.abnormalhq.com/en/guide/");
+test("storefront links are this site's pages in the page language; webmail and status do not follow it", () => {
+  assert.equal(linksFor("en").shop, "/shop/");
+  assert.equal(linksFor("zh").shop, "/zh/shop/");
+  assert.equal(linksFor("en").redeem, "/redeem/");
+  assert.equal(linksFor("zh").account, "/zh/shop/account/");
+  assert.equal(linksFor("zh").guide, "/zh/guide/");
   assert.equal(linksFor("en").webmail, linksFor("zh").webmail);
   assert.equal(linksFor("en").status, linksFor("zh").status);
 });
@@ -186,7 +187,7 @@ test("the copyright line takes the year through a template slot", () => {
 
 test("the old English addresses under /en/ redirect permanently to the root", async () => {
   const { default: config } = await import("../next.config.ts");
-  const redirects = await config.redirects!();
+  const redirects = await config("phase-production-build").redirects!();
   const moved = (source: string) => redirects.find((rule) => rule.source === source && !rule.has);
   for (const page of pages.filter(({ lang }) => lang === "en")) {
     for (const [legacy, current] of [
@@ -197,5 +198,10 @@ test("the old English addresses under /en/ redirect permanently to the root", as
       assert.ok(rule, `${legacy} has no redirect`);
       assert.deepEqual([rule.destination, "statusCode" in rule && rule.statusCode], [current, 301], legacy);
     }
+  } // The storefront's session pages had their English version under /en/ on the old onboard site.
+  for (const path of sessionPagePaths) {
+    const rule = moved(`/en${path}`);
+    assert.ok(rule, `/en${path} has no redirect`);
+    assert.deepEqual([rule.destination, "statusCode" in rule && rule.statusCode], [path, 301], path);
   }
 });

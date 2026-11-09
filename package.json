@@ -2,14 +2,15 @@
   "name": "abnormal-mail-services",
   "version": "1.5.0",
   "private": true,
-  "description": "Abnormal email services website built with Next.js and Tailwind CSS, deployed to Cloudflare Workers with OpenNext.",
+  "description": "Abnormal email services website and storefront (shop, redeem page, buyer account) built with Next.js and Tailwind CSS, deployed to Cloudflare Workers with OpenNext.",
   "type": "module",
   "scripts": {
     "dev": "next dev -p 4320",
     "build": "next build",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --test tests/*.test.ts",
+    "test": "node --test tests/*.test.ts && vitest run",
+    "test:watch": "vitest",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "cf:build": "pnpm check && pnpm format:check && opennextjs-cloudflare build && wrangler deploy --dry-run --outdir .wrangler/dry-run",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview --port 8786",
@@ -25,6 +26,8 @@
   "dependencies": {
     "@mdx-js/react": "^3.1.1",
     "@opennextjs/cloudflare": "^1.20.16",
+    "@stripe/stripe-js": "10.2.1",
+    "canvas-confetti": "1.9.4",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "lucide-react": "^1.69.0",
@@ -42,6 +45,7 @@
     "@next/mdx": "16.4.5",
     "@stefanprobst/rehype-extract-toc": "^3.0.0",
     "@tailwindcss/postcss": "^4.3.4",
+    "@types/canvas-confetti": "1.9.0",
     "@types/mdx": "^2.0.13",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
@@ -60,6 +64,7 @@
     "remark-smartypants": "^3.0.2",
     "tailwindcss": "^4.3.4",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vitest": "^5.1.0",
     "wrangler": "^4.158.0"
   },
   "packageManager": "pnpm@12.16.1"

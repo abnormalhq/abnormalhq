@@ -30,18 +30,44 @@
       "enabled": true,
       "previews_enabled": false,
     },
+    // The retired standalone storefront (abnormalhq/onboard): src/storefront/worker/legacy.ts 301s its pages to the same pages here and
+    // keeps proxying its /api, so payment notifications still sent there arrive. Bind it only after removing it from the old
+    // abnormalhq-onboard Worker (see "Retiring onboard" in the README).
+    {
+      "pattern": "onboard.abnormalhq.com",
+      "custom_domain": true,
+      "enabled": true,
+      "previews_enabled": false,
+    },
+    // The storefront's older address: the zone's Redirect Rule sends it on before the Worker. It stays here to keep its DNS record, like abnormal.bid.
+    {
+      "pattern": "onboard.abnormal.bid",
+      "custom_domain": true,
+      "enabled": true,
+      "previews_enabled": false,
+    },
   ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS",
   },
-  // OpenNext uses it to call itself.
   "services": [
+    // OpenNext uses it to call itself.
     {
       "binding": "WORKER_SELF_REFERENCE",
       "service": "abnormalhq",
     },
+    // The storefront API (src/storefront/worker/) calls mail's /api/onboard/* and /api/shop/* through it; abnormalhq-mailhq is in the same account.
+    {
+      "binding": "MAIL",
+      "service": "abnormalhq-mailhq",
+    },
   ],
+  "vars": {
+    // mail's production address, used only as the URL of internal requests so mail's OpenNext recognises its own origin; requests always go
+    // through the MAIL binding. For local integration override it in .dev.vars (see .dev.vars.example).
+    "MAIL_ORIGIN": "https://console.abnormalhq.com",
+  },
   "observability": {
     "enabled": true,
   },
