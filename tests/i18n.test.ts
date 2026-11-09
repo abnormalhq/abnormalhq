@@ -143,6 +143,10 @@ const templateSlots = {
   "theme.titleTemplate": { label: true } satisfies Record<TemplateSlot<Copy["theme"]["titleTemplate"]>, true>,
   "footer.copyright": { year: true } satisfies Record<TemplateSlot<Copy["footer"]["copyright"]>, true>,
   "inquiry.legal": { terms: true, privacy: true } satisfies Record<TemplateSlot<Copy["inquiry"]["legal"]>, true>,
+  "video.seekTemplate": { current: true, duration: true } satisfies Record<
+    TemplateSlot<Copy["video"]["seekTemplate"]>,
+    true
+  >,
 };
 
 /** Each string in the copy that has {name} slots, by its path, with the names it uses. */

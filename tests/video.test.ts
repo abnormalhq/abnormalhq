@@ -5,6 +5,7 @@ import { absoluteUrl, configuredVideo, promoVideos, site, videoMimeType, type Pr
 import { copies, langs } from "../src/i18n/index.ts";
 import { homeMarkdown } from "../src/lib/markdown.ts";
 import { homeStructuredData } from "../src/lib/structured-data.ts";
+import { formatTime } from "../src/lib/time.ts";
 
 const sample: PromoVideo = {
   src: "https://downloads.abnormalhq.com/video/abnormal-2026.mp4",
@@ -48,11 +49,35 @@ test("the <source> type follows the file's extension", () => {
   assert.equal(videoMimeType("https://example.com/stream"), undefined);
 });
 
-test("the section renders nothing without a video, and never autoplays", () => {
+test("the section renders nothing without a video, and plays it in the site's player", () => {
   const source = readFileSync("src/components/PromoVideo.tsx", "utf8");
   assert.match(source, /if \(!video\) return null;/);
+  assert.match(source, /<VideoPlayer\b/);
+  assert.doesNotMatch(source, /^\s*<video$/m, "the <video> lives in VideoPlayer");
+});
+
+test("the player never autoplays, loads only metadata, and is a native <video controls> until it hydrates", () => {
+  const source = readFileSync("src/components/VideoPlayer.tsx", "utf8");
+  assert.ok(source.startsWith('"use client"'));
   assert.doesNotMatch(source, /autoPlay/);
-  assert.match(source, /<video[\s\S]*?\bcontrols\b/);
+  // JSX elements only (an opening tag on its own line, its props up to the closing ">"), not prose in comments.
+  const videos = [...source.matchAll(/^(\s*)<video\n[\s\S]*?\n\1>/gm)].map(([tag]) => tag);
+  assert.equal(videos.length, 2, "one prerendered, one enhanced");
+  for (const tag of videos) {
+    assert.match(tag, /preload="metadata"/);
+    assert.match(tag, /\bplaysInline\b/);
+  }
+  // Without JavaScript (and while hydrating) the prerendered element keeps the browser's own controls.
+  assert.match(source, /if \(!enhanced\) \{[\s\S]*?<video\n[^>]*\bcontrols\b/);
+  assert.match(source, /useSyncExternalStore\(subscribe, enhancedOnClient, notEnhancedOnServer\)/);
+});
+
+test("the player shows times as m:ss, or h:mm:ss past an hour", () => {
+  assert.equal(formatTime(0), "0:00");
+  assert.equal(formatTime(7.9), "0:07");
+  assert.equal(formatTime(83), "1:23");
+  assert.equal(formatTime(3723), "1:02:03");
+  for (const missing of [Number.NaN, Number.POSITIVE_INFINITY, -3]) assert.equal(formatTime(missing), "0:00");
 });
 
 for (const lang of ["zh", "en"] as const) {
