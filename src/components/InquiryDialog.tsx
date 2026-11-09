@@ -121,7 +121,7 @@ export function InquiryProvider({
                 {copy.kicker}
               </span>
               <DialogClose asChild>
-                <Button variant="ghost" size="icon" className="-mr-1.5 size-9" aria-label={copy.close}>
+                <Button variant="ghost" size="icon" className="-mr-1.5" aria-label={copy.close}>
                   <Icon name="close" />
                 </Button>
               </DialogClose>
@@ -157,7 +157,8 @@ export function InquiryProvider({
               <label className={fieldClass}>
                 {copy.productLabel}
                 <NativeSelect
-                  className="mt-2 h-10 font-normal"
+                  size="lg"
+                  className="mt-2 font-normal"
                   name="product"
                   value={product}
                   onChange={(event) => setProduct(event.target.value)}
@@ -172,7 +173,8 @@ export function InquiryProvider({
               <label className={fieldClass}>
                 {copy.durationLabel}
                 <NativeSelect
-                  className="mt-2 h-10 font-normal"
+                  size="lg"
+                  className="mt-2 font-normal"
                   name="duration"
                   value={duration}
                   onChange={(event) => setDuration(event.target.value)}
@@ -210,12 +212,12 @@ export function InquiryProvider({
                 {describeContact(site.contact, lang)}
               </p>
             </div>
-            <Button className="mt-5 h-11 w-full gap-2" size="lg" ref={copyButton} type="submit" disabled={copying}>
+            <Button className="mt-5 w-full gap-2" size="lg" ref={copyButton} type="submit" disabled={copying}>
               <Icon name="copy" className="size-4" />
               {copy.copy}
             </Button>
             {contactLink && (
-              <Button asChild variant="outline" size="lg" className="mt-2 h-11 w-full gap-2">
+              <Button asChild variant="outline" size="lg" className="mt-2 w-full gap-2">
                 <a
                   href={contactLink.href}
                   rel="noopener noreferrer"

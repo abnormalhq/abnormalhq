@@ -1,18 +1,30 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** Plain classes, as in Input, so a caller's className still wins. The heights are Input's: sm 28px, default 32px, lg 40px. */
+const INPUT_GROUP_SIZES = { sm: "min-h-7", default: "min-h-8", lg: "min-h-10" };
+
 /**
  * An input sharing one border with what belongs to it: a fixed suffix such as a domain, or quiet text buttons.
  * The group draws the border and the focus ring, so the input inside is bare. The ring follows the input only: a
  * button inside draws its own, so the two never show together.
  */
-function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
+function InputGroup({
+  className,
+  size = "default",
+  ...props
+}: React.ComponentProps<"div"> & {
+  /** The group's height, matching Input: sm 28px, default 32px, lg 40px. */
+  size?: "sm" | "default" | "lg";
+}) {
   return (
     <div
       data-slot="input-group"
+      data-size={size}
       className={cn(
-        "flex min-h-8 items-center rounded-control border border-input bg-control transition-[border-color] duration-150 hover:border-[color-mix(in_oklab,var(--input),var(--text)_15%)] focus-within:border-[color-mix(in_oklab,var(--input),var(--text)_30%)] has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:-outline-offset-1 has-[[data-slot=input]:focus-visible]:outline-ring has-[[data-slot=input]:focus-visible]:outline-solid has-aria-invalid:border-destructive",
+        "flex items-center rounded-control border border-input bg-control transition-[border-color] duration-150 hover:border-[color-mix(in_oklab,var(--input),var(--text)_15%)] focus-within:border-[color-mix(in_oklab,var(--input),var(--text)_30%)] has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:-outline-offset-1 has-[[data-slot=input]:focus-visible]:outline-ring has-[[data-slot=input]:focus-visible]:outline-solid has-aria-invalid:border-destructive",
         "[&>[data-slot=input-group-button]+[data-slot=input-group-button]]:relative [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:absolute [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:inset-y-2 [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:-left-px [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:w-px [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:bg-border",
+        INPUT_GROUP_SIZES[size],
         className,
       )}
       {...props}
@@ -20,13 +32,16 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-/** The bare input. It keeps the input slot, so the 16px phone rule in the theme still applies. */
+/**
+ * The bare input. It keeps the input slot, so the 16px phone rule in the theme still applies. It has no vertical
+ * padding and stretches to the group, so the group's size alone sets the height.
+ */
 function InputGroupInput({ className, ...props }: React.ComponentProps<"input">) {
   return (
     <input
       data-slot="input"
       className={cn(
-        "block w-full min-w-0 flex-auto rounded-control bg-transparent px-3 py-2 text-base text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        "block w-full min-w-0 flex-auto self-stretch rounded-control bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
@@ -58,7 +73,7 @@ function InputGroupButton({ className, type = "button", ...props }: React.Compon
       type={type}
       data-slot="input-group-button"
       className={cn(
-        "inline-flex min-h-[30px] shrink-0 items-center justify-center gap-[5px] rounded-chip px-2 text-sm/body font-medium whitespace-nowrap text-muted-foreground transition-[color,background-color] duration-150 hover:bg-control hover:text-foreground focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 in-data-[slot=input-group]:last:mr-1 in-data-[slot=input-group]:last:text-foreground",
+        "inline-flex min-h-[30px] shrink-0 in-data-[size=sm]:min-h-6 items-center justify-center gap-[5px] rounded-chip px-2 text-sm/body font-medium whitespace-nowrap text-muted-foreground transition-[color,background-color] duration-150 hover:bg-control hover:text-foreground focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 in-data-[slot=input-group]:last:mr-1 in-data-[slot=input-group]:last:text-foreground",
         className,
       )}
       {...props}

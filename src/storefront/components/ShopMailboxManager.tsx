@@ -252,7 +252,7 @@ function MailboxGroup({
       {created && (
         <div className="mt-5 rounded-md border border-border p-4" role="status">
           <p className="text-sm/[1.7]">{t.mailboxCreated(created.email)}</p>
-          <InputGroup className="mt-3 min-h-10 max-w-[420px]">
+          <InputGroup size="lg" className="mt-3 max-w-[420px]">
             <InputGroupInput readOnly value={created.password} aria-label={t.mailboxCreatedPassword} />
             <CopyButton text={created.password} label={t.mailboxCopy} copiedLabel={t.mailboxCopied} />
           </InputGroup>
@@ -359,7 +359,7 @@ function MailboxRow({
           }}
         >
           <ShopField htmlFor={`${id}-password`} label={t.mailboxNewPassword} hint={problem || t.mailboxPasswordRule}>
-            <InputGroup className="min-h-10 max-w-[420px]">
+            <InputGroup size="lg" className="max-w-[420px]">
               <InputGroupInput
                 id={`${id}-password`}
                 type={show ? "text" : "password"}
@@ -488,7 +488,7 @@ function CreateMailboxForm({
         label={t.mailboxUsername}
         hint={problem?.field === "username" ? problem.message : t.mailboxUsernameRule}
       >
-        <InputGroup className="min-h-10 max-w-[420px]">
+        <InputGroup size="lg" className="max-w-[420px]">
           <InputGroupInput
             id="mailbox-create-username"
             type="text"
@@ -511,7 +511,7 @@ function CreateMailboxForm({
         label={t.mailboxPassword}
         hint={problem?.field === "password" ? problem.message : t.mailboxPasswordRule}
       >
-        <InputGroup className="min-h-10 max-w-[420px]">
+        <InputGroup size="lg" className="max-w-[420px]">
           <InputGroupInput
             id="mailbox-create-password"
             type={show ? "text" : "password"}
