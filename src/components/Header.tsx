@@ -132,7 +132,7 @@ export function Header({
           <Button
             variant="ghost"
             size="icon"
-            className="hidden size-9 max-md:inline-flex"
+            className="hidden max-md:inline-flex"
             type="button"
             ref={toggle}
             aria-label={menuOpen ? copy.closeMenu : copy.openMenu}

@@ -64,7 +64,7 @@ export function AccountRow({
           <Label className={fieldLabelClass} htmlFor={usernameId}>
             {t.ui.username}
           </Label>
-          <InputGroup className="min-h-10">
+          <InputGroup size="lg">
             <InputGroupInput
               id={usernameId}
               type="text"
@@ -92,7 +92,7 @@ export function AccountRow({
           <Label className={fieldLabelClass} htmlFor={passwordId}>
             {t.ui.password}
           </Label>
-          <InputGroup className="min-h-10">
+          <InputGroup size="lg">
             <InputGroupInput
               className={row.showPassword ? undefined : "max-narrow:placeholder:text-[12px]"}
               id={passwordId}

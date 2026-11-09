@@ -27,7 +27,6 @@ export function ThemePicker({ copy, onOpen }: { copy: Copy["theme"]; onOpen?: ()
       labels={copy.options}
       label={fillTemplate(copy.ariaTemplate, { label: current }).join("")}
       title={fillTemplate(copy.titleTemplate, { label: current }).join("")}
-      className="size-9"
       onOpenChange={(open) => {
         if (open) onOpen?.();
       }}

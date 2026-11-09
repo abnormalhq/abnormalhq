@@ -239,7 +239,10 @@
     var(--font-jetbrains-mono, "JetBrains Mono"), ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono",
     "PingFang SC", "Microsoft YaHei", monospace;
 
-  /* A stable reading hierarchy: body 14px, secondary text 12-13px, page title 28px. */
+  /* A stable reading hierarchy: body 14px, secondary text 12-13px, page title 28px; 2xs (11px) is only for dense
+     meta text such as chips, counts, timestamps and chart ticks. */
+  --text-2xs: 11px;
+  --text-2xs--line-height: 1.5;
   --text-xs: 12px;
   --text-xs--line-height: 1.5;
   --text-sm: 13px;
