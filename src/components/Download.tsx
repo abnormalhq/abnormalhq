@@ -82,7 +82,12 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
           className={cn("mt-10 grid grid-cols-2 gap-4 max-md:grid-cols-1", platforms.length > 2 && "lg:grid-cols-3")}
         >
           {platforms.map((platform) => (
-            <Card className="gap-0 px-[1.4rem] pt-6 pb-[1.4rem] max-sm:p-6" key={platform.name}>
+            // Each card spans four rows of the outer grid (title, requirement, button, the rest) and takes them as a subgrid,
+            // so a requirement that wraps to two lines in one card keeps the buttons on one line across the row.
+            <Card
+              className="row-span-4 grid grid-cols-1 grid-rows-subgrid gap-0 px-[1.4rem] pt-6 pb-[1.4rem] max-sm:p-6"
+              key={platform.name}
+            >
               <span className="flex items-center gap-3">
                 <IconTile aria-hidden="true">
                   <Icon name="monitor" className="size-5" />
@@ -98,23 +103,25 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
                   </a>
                 </Button>
               </div>
-              {platform.arm && (
-                <p className="mt-4">
-                  {/* inline, not flex: on a narrow card the arrow follows the last word when the line wraps. */}
-                  <TextLink className="inline text-sm/[1.6]" href={platform.arm.href} download>
-                    {platform.arm.label} <Icon name="arrow" className="inline size-3.5 rotate-90 align-[-2px]" />
-                  </TextLink>
-                </p>
-              )}
-              {platform.command && (
-                <div className="mt-5">
-                  <p className="text-sm/[1.6] text-muted-foreground">{platform.command.label}</p>
-                  <pre className="mt-2 overflow-x-auto rounded-control border border-border bg-control px-3 py-2 font-mono text-sm/[1.6]">
-                    <code>{platform.command.code}</code>
-                  </pre>
-                </div>
-              )}
-              <p className="mt-5 border-t border-border pt-4 text-sm/[1.6] text-muted-foreground">{platform.note}</p>
+              <div className="flex flex-col">
+                {platform.arm && (
+                  <p className="mt-4">
+                    {/* inline, not flex: on a narrow card the arrow follows the last word when the line wraps. */}
+                    <TextLink className="inline text-sm/[1.6]" href={platform.arm.href} download>
+                      {platform.arm.label} <Icon name="arrow" className="inline size-3.5 rotate-90 align-[-2px]" />
+                    </TextLink>
+                  </p>
+                )}
+                {platform.command && (
+                  <div className="mt-5">
+                    <p className="text-sm/[1.6] text-muted-foreground">{platform.command.label}</p>
+                    <pre className="mt-2 overflow-x-auto rounded-control border border-border bg-control px-3 py-2 font-mono text-sm/[1.6]">
+                      <code>{platform.command.code}</code>
+                    </pre>
+                  </div>
+                )}
+                <p className="mt-5 border-t border-border pt-4 text-sm/[1.6] text-muted-foreground">{platform.note}</p>
+              </div>
             </Card>
           ))}
         </div>
