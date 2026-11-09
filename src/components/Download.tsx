@@ -7,19 +7,50 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import { desktopDownloads, type Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
-import { fileLabel, formatSize, releaseDate, type DesktopReleases } from "@/lib/releases";
+import { fileLabel, formatSize, linuxDownload, releaseDate, type DesktopReleases } from "@/lib/releases";
+import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 
 /**
  * Desktop client download page: current version number, one card per platform, sign-in notes, past releases and checksums.
  * releases is read on every request (src/lib/releases.ts); when unavailable, the version number and past releases are hidden and the download buttons still work.
+ * The Linux card is shown only when the current release has Linux packages, since it links those files rather than a fixed latest/ address.
  */
 export function Download({ lang, releases }: { lang: Lang; releases?: DesktopReleases }) {
   const { t, links } = useCopy(lang);
   const d = t.download;
-  const platforms = [
-    { ...d.macos, href: desktopDownloads.macos, brew: true, arm: undefined },
-    { ...d.windows, href: desktopDownloads.windows, brew: false, arm: d.windows.armDownload },
+  const linux = linuxDownload(releases);
+  const platforms: {
+    name: string;
+    requirement: string;
+    download: string;
+    href: string;
+    arm?: { label: string; href: string };
+    command?: { label: string; code: string };
+    note: string;
+  }[] = [
+    {
+      ...d.macos,
+      href: desktopDownloads.macos,
+      command: { label: d.macos.brewLabel, code: desktopDownloads.brew },
+      note: d.macos.firstLaunch,
+    },
+    {
+      ...d.windows,
+      href: desktopDownloads.windows,
+      arm: { label: d.windows.armDownload, href: desktopDownloads.windowsArm },
+      note: d.windows.firstLaunch,
+    },
+    ...(linux
+      ? [
+          {
+            ...d.linux,
+            href: linux.file.url,
+            arm: linux.arm && { label: d.linux.armDownload, href: linux.arm.url },
+            command: { label: d.linux.installLabel, code: linux.install },
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -32,7 +63,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
             <HeadingMark>{t.dot}</HeadingMark>
           </h1>
         </SectionTitle>
-        <p className="mt-4 max-w-2xl text-md/prose text-muted-foreground">{d.intro}</p>
+        <p className="mt-4 max-w-2xl text-md/prose text-muted-foreground">{linux ? d.introWithLinux : d.intro}</p>
         {releases && (
           <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm/[1.6] text-muted-foreground">
             <span>{d.currentLabel}</span>
@@ -46,7 +77,10 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
           </p>
         )}
 
-        <div className="mt-10 grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        {/* Two cards side by side; with the Linux card, three on wide screens and two, then one, as the screen narrows. */}
+        <div
+          className={cn("mt-10 grid grid-cols-2 gap-4 max-md:grid-cols-1", platforms.length > 2 && "lg:grid-cols-3")}
+        >
           {platforms.map((platform) => (
             <Card className="gap-0 px-[1.4rem] pt-6 pb-[1.4rem] max-sm:p-6" key={platform.name}>
               <span className="flex items-center gap-3">
@@ -67,22 +101,20 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
               {platform.arm && (
                 <p className="mt-4">
                   {/* inline, not flex: on a narrow card the arrow follows the last word when the line wraps. */}
-                  <TextLink className="inline text-sm/[1.6]" href={desktopDownloads.windowsArm} download>
-                    {platform.arm} <Icon name="arrow" className="inline size-3.5 rotate-90 align-[-2px]" />
+                  <TextLink className="inline text-sm/[1.6]" href={platform.arm.href} download>
+                    {platform.arm.label} <Icon name="arrow" className="inline size-3.5 rotate-90 align-[-2px]" />
                   </TextLink>
                 </p>
               )}
-              {platform.brew && (
+              {platform.command && (
                 <div className="mt-5">
-                  <p className="text-sm/[1.6] text-muted-foreground">{d.macos.brewLabel}</p>
+                  <p className="text-sm/[1.6] text-muted-foreground">{platform.command.label}</p>
                   <pre className="mt-2 overflow-x-auto rounded-control border border-border bg-control px-3 py-2 font-mono text-sm/[1.6]">
-                    <code>{desktopDownloads.brew}</code>
+                    <code>{platform.command.code}</code>
                   </pre>
                 </div>
               )}
-              <p className="mt-5 border-t border-border pt-4 text-sm/[1.6] text-muted-foreground">
-                {platform.firstLaunch}
-              </p>
+              <p className="mt-5 border-t border-border pt-4 text-sm/[1.6] text-muted-foreground">{platform.note}</p>
             </Card>
           ))}
         </div>
