@@ -101,7 +101,7 @@ To try the real API against a local mail: in mail set `ONBOARD_ORIGIN=http://loc
 The order of the switch:
 
 1. Deploy mail with `ONBOARD_ORIGIN` listing both `https://abnormalhq.com` and `https://onboard.abnormalhq.com` (mail's links for the old host keep the old layout).
-2. In Cloudflare, remove the custom domains `onboard.abnormalhq.com` and `onboard.abnormal.bid` from the `abnormalhq-onboard` Worker, then merge this change right away so the deploy binds them here (the deploy also creates the pages and the API). If Workers Builds says a domain is still attached to the other Worker, detach it and retry the build.
+2. Free the domains `onboard.abnormalhq.com` and `onboard.abnormal.bid` from the `abnormalhq-onboard` Worker: merge the onboard change that empties its `routes` (its deploy detaches them), or remove them in the Cloudflare dashboard. Then merge this change right away, so its deploy binds them here along with the new pages and API; the old domain is down only in between. If Workers Builds says a domain is still attached to the other Worker, detach it and retry the build.
 3. On mailhq's sales page set the storefront address to `https://abnormalhq.com` and the redeem page to `https://abnormalhq.com/redeem/`; in the Credit application settings change the home page, notification URL and callback URI to the addresses above.
 4. Point the `onboard.abnormal.bid` Redirect Rule at `https://abnormalhq.com` directly, delete the `abnormalhq-onboard` Worker and disconnect its Workers Builds, and archive the onboard repository.
 5. Later, once nothing reaches the old host, remove `https://onboard.abnormalhq.com` from mail's `ONBOARD_ORIGIN` and from `redeem.storefrontOrigins` in both copies of `docs/onboard-contract.json`.
