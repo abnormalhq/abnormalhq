@@ -138,58 +138,76 @@ export function Shop({ lang }: { lang: Lang }) {
             </ShopField>
           )}
           {checkoutError && <ShopAlert>{checkoutError}</ShopAlert>}
+          {/* Each card spans four rows of the shared grid (heading, price, details, actions) through subgrid, so
+              prices, detail lists and buttons line up across the cards in a row whatever the description length. */}
           <div className="mt-[26px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-5">
-            {catalog.products.map((product) => (
-              <Card asChild className="p-7 max-narrow:px-5 max-narrow:py-[22px]" key={product.id}>
-                <article>
-                  {/* The a↗ in the plan card's top-left corner echoes the brand mark: highlight yellow square with ink text. */}
-                  <IconTile variant="highlight" className="mb-[22px] size-[38px] text-[22px]" aria-hidden="true">
-                    a↗
-                  </IconTile>
-                  <h3 className="text-xl wrap-anywhere">{product.name}</h3>
-                  {product.description && (
-                    <p className="mt-3 text-sm/[1.7] whitespace-pre-line wrap-anywhere text-muted-foreground">
-                      {product.description}
-                    </p>
-                  )}
-                  {catalog.payment.ldc && <ShopPrice item={product} lang={lang} purchase />}
-                  {catalog.payment.stripe && product.fiatPriceMinor ? (
-                    <p className="mt-2 text-sm/body text-muted-foreground">
-                      {t.cardPrice(
-                        formatMoney(product.fiatPriceMinor, catalog.payment.stripe.currency, lang),
-                        product.periodDays ?? 0,
+            {catalog.products.map((product) => {
+              const cardPrice =
+                catalog.payment.stripe && product.fiatPriceMinor
+                  ? formatMoney(product.fiatPriceMinor, catalog.payment.stripe.currency, lang)
+                  : null;
+              return (
+                <Card
+                  asChild
+                  className="row-span-4 grid grid-rows-subgrid gap-y-0 p-7 max-narrow:px-5 max-narrow:py-[22px]"
+                  key={product.id}
+                >
+                  <article>
+                    <div>
+                      {/* The a↗ in the plan card's top-left corner echoes the brand mark: highlight yellow square with ink text. */}
+                      <IconTile variant="highlight" className="mb-[22px] size-[38px] text-[22px]" aria-hidden="true">
+                        a↗
+                      </IconTile>
+                      <h3 className="text-xl wrap-anywhere">{product.name}</h3>
+                      {product.description && (
+                        <p className="mt-3 text-sm/[1.7] whitespace-pre-line wrap-anywhere text-muted-foreground">
+                          {product.description}
+                        </p>
                       )}
-                    </p>
-                  ) : null}
-                  <ShopDetails item={product} lang={lang} />
-                  <div className="flex flex-wrap gap-2">
-                    {catalog.payment.ldc && (
-                      <ShopButton
-                        type="button"
-                        disabled={buying !== null}
-                        onClick={() => void checkout(product.id)}
-                        aria-label={`${t.buy} · ${product.name}`}
-                      >
-                        {buying === `${product.id}:ldc` ? t.buying : t.buy}
-                        <span aria-hidden="true">↗</span>
-                      </ShopButton>
-                    )}
-                    {catalog.payment.stripe && product.fiatPriceMinor ? (
-                      <ShopButton
-                        variant={catalog.payment.ldc ? "outline" : "default"}
-                        type="button"
-                        disabled={buying !== null}
-                        onClick={() => void checkout(product.id, "stripe")}
-                        aria-label={`${t.payCard} · ${product.name}`}
-                      >
-                        {buying === `${product.id}:stripe` ? t.buying : t.payCard}
-                        <span aria-hidden="true">↗</span>
-                      </ShopButton>
-                    ) : null}
-                  </div>
-                </article>
-              </Card>
-            ))}
+                    </div>
+                    <div className="flex flex-col py-[26px]">
+                      {catalog.payment.ldc && <ShopPrice item={product} lang={lang} purchase className="my-0" />}
+                      {cardPrice ? (
+                        <p
+                          className={cn(
+                            "text-sm/body",
+                            catalog.payment.ldc ? "mt-auto pt-4 text-muted-foreground" : "font-semibold",
+                          )}
+                        >
+                          {t.cardPrice(cardPrice, product.periodDays ?? 0)}
+                        </p>
+                      ) : null}
+                    </div>
+                    <ShopDetails item={product} lang={lang} />
+                    <div className="flex flex-wrap gap-2 pt-6">
+                      {catalog.payment.ldc && (
+                        <ShopButton
+                          type="button"
+                          disabled={buying !== null}
+                          onClick={() => void checkout(product.id)}
+                          aria-label={`${t.buy} · ${product.name}`}
+                        >
+                          {buying === `${product.id}:ldc` ? t.buying : t.buy}
+                          <span aria-hidden="true">↗</span>
+                        </ShopButton>
+                      )}
+                      {cardPrice ? (
+                        <ShopButton
+                          variant={catalog.payment.ldc ? "outline" : "default"}
+                          type="button"
+                          disabled={buying !== null}
+                          onClick={() => void checkout(product.id, "stripe")}
+                          aria-label={`${t.payCard} · ${product.name}`}
+                        >
+                          {buying === `${product.id}:stripe` ? t.buying : t.payCard}
+                          <span aria-hidden="true">↗</span>
+                        </ShopButton>
+                      ) : null}
+                    </div>
+                  </article>
+                </Card>
+              );
+            })}
           </div>
         </section>
       )}

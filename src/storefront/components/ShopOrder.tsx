@@ -234,7 +234,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               <ShopStatus active={paid}>{paid ? t.paid : t.pending}</ShopStatus>
             </div>
             {order.provider === "stripe" ? (
-              <p className={shopPriceLineClass}>
+              <p className={cn(shopPriceLineClass, "my-[26px]")}>
                 <strong className={shopPriceAmountClass}>
                   {formatMoney(order.priceCents, order.currency || "usd", lang)}
                 </strong>

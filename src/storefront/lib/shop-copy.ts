@@ -29,7 +29,6 @@ export const shopCopy = {
     once: "LDC / 次",
     originalPrice: "原价",
     discount: (percent: number) => `优惠 ${percent}%`,
-    savings: (amount: string) => `立省 ${amount} LDC`,
     processTitle: "从购买到开通，只需三步。",
     steps: ["选择适合你的邮箱套餐", "完成支付，领取兑换码", "返回开通页，自定义邮箱名和密码"],
     expiryNote: "兑换期限是开通码的使用期限，不代表邮箱服务期限。",
@@ -313,7 +312,6 @@ export const shopCopy = {
     once: "LDC / purchase",
     originalPrice: "Original price",
     discount: (percent: number) => `${percent}% off`,
-    savings: (amount: string) => `Save ${amount} LDC`,
     processTitle: "Three steps to your new mailbox.",
     steps: [
       "Choose your mailbox plan",
