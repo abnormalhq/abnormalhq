@@ -9,10 +9,10 @@ export const siteName = "Abnormal";
 export const homepage = { zh: "https://abnormalhq.com/zh/", en: "https://abnormalhq.com/" } as const;
 
 /** Support email: the same as mailhq's default service address. */
-export const supportEmail = "support@abnormal.bid";
+export const supportEmail = "support@abnormalhq.com";
 
 /** Shown after the username until the redeem code check completes; afterwards the redeem code's allowed domains win. */
-export const defaultDomain = "abnormal.bid";
+export const defaultDomain = "abnormalhq.com";
 
 /**
  * The MailHQ webmail entry used by the guide and demo data.

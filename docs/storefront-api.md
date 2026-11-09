@@ -73,8 +73,8 @@ Response `200`:
 
 ```json
 {
-  "domains": ["abnormal.bid"],
-  "quotaSupportedByDomain": { "abnormal.bid": true },
+  "domains": ["abnormalhq.com"],
+  "quotaSupportedByDomain": { "abnormalhq.com": true },
   "expiresAt": "2026-10-20T00:00:00.000Z",
   "usesLeft": 1
 }
@@ -89,9 +89,9 @@ Response `200`:
 
 ## `POST /api/onboard/username` Check the username
 
-Request: `{ "code": "…", "domain": "abnormal.bid", "username": "kunish" }`
+Request: `{ "code": "…", "domain": "abnormalhq.com", "username": "kunish" }`
 
-Response `200`: `{ "available": true, "email": "kunish@abnormal.bid" }`; taken usernames and similar cases go through the error response (`username_taken` etc.).
+Response `200`: `{ "available": true, "email": "kunish@abnormalhq.com" }`; taken usernames and similar cases go through the error response (`username_taken` etc.).
 
 - The server first normalizes with mailhq's `normalizeUsername` (trim whitespace, lowercase, drop everything after @), then validates against `LOCAL_PART_PATTERN`
   (`^[a-z0-9](?:(?:[a-z0-9_-]|\.(?!\.)){0,62}[a-z0-9])?$`: starts and ends with a letter or digit, no two consecutive dots, at most 64 characters).
@@ -100,7 +100,7 @@ Response `200`: `{ "available": true, "email": "kunish@abnormal.bid" }`; taken u
 
 ## `POST /api/onboard/redeem` Activate mailboxes
 
-Request: `{ "code": "…", "domain": "abnormal.bid", "mailboxes": [{ "username": "kunish", "password": "Aa1aaaaaaaaaaaaa" }, …], "notify"?: "me@example.com", "lang"?: "zh", "turnstileToken"?: "…" }`
+Request: `{ "code": "…", "domain": "abnormalhq.com", "mailboxes": [{ "username": "kunish", "password": "Aa1aaaaaaaaaaaaa" }, …], "notify"?: "me@example.com", "lang"?: "zh", "turnstileToken"?: "…" }`
 
 - `turnstileToken`: required when mailhq has human verification enabled; it is the one-time token issued by the Turnstile widget (action `onboard-redeem`), verified before anything else is processed;
   missing or invalid returns `challenge_failed` (403). The token can be used only once, and the redeem page resets the widget after every submission.
@@ -117,13 +117,13 @@ Response `201`:
 
 ```json
 {
-  "domain": "abnormal.bid",
+  "domain": "abnormalhq.com",
   "mailboxes": [
     {
       "ok": true,
       "index": 0,
       "username": "kunish",
-      "email": "kunish@abnormal.bid",
+      "email": "kunish@abnormalhq.com",
       "password": "Aa1aaaaaaaaaaaaa"
     },
     {

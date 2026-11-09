@@ -84,7 +84,7 @@ function card(lang: Lang): string {
 <body>
   <div class="frame">
     <div class="rings" aria-hidden="true"><span>@</span></div>
-    <div class="tag">@abnormal.bid</div>
+    <div class="tag">@abnormalhq.com</div>
     <div class="content">
       <div class="brand">${mark}<span>abnormal<span>.</span></span></div>
       <div class="eyebrow">${escape(t.hero.eyebrow)}</div>

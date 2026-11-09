@@ -8,10 +8,10 @@ export const zh: Copy = {
   meta: {
     title: "Abnormal — 邮箱服务",
     description:
-      "Abnormal 邮箱服务：在线选购 @abnormal.bid 邮箱，用兑换码自助开通，网页邮箱与邮件客户端都能收发；域名邮箱、团队邮箱与配置协助可咨询。",
+      "Abnormal 邮箱服务：在线选购 @abnormalhq.com 邮箱，用兑换码自助开通，网页邮箱与邮件客户端都能收发；域名邮箱、团队邮箱与配置协助可咨询。",
     socialTitle: "Abnormal — 好用的邮箱，沟通更简单。",
-    socialDescription: "在线选购、自助开通 @abnormal.bid 邮箱，开通后即可在网页或邮件客户端收发。",
-    socialImageAlt: "Abnormal 邮箱服务：好用的邮箱，沟通更简单。@abnormal.bid 邮箱，在线选购、自助开通。",
+    socialDescription: "在线选购、自助开通 @abnormalhq.com 邮箱，开通后即可在网页或邮件客户端收发。",
+    socialImageAlt: "Abnormal 邮箱服务：好用的邮箱，沟通更简单。@abnormalhq.com 邮箱，在线选购、自助开通。",
   },
   skipLink: "跳到主要内容",
   brandLabel: "Abnormal 首页",
@@ -43,7 +43,7 @@ export const zh: Copy = {
     eyebrow: "Email, made personal",
     titleLines: ["好用的邮箱，", "沟通更简单"],
     description: [
-      "注册账户，在线选购 @abnormal.bid 邮箱，在账户里直接开通和管理。",
+      "注册账户，在线选购 @abnormalhq.com 邮箱，在账户里直接开通和管理。",
       "网页邮箱和常用邮件客户端都能收发，连接日常与工作。",
     ],
     buy: "购买邮箱",
@@ -233,7 +233,7 @@ export const zh: Copy = {
         icon: "mail",
         name: "个人邮箱",
         category: "日常通信",
-        description: "@abnormal.bid 邮箱，在线选购、自助开通，适合日常收发与注册常用服务。",
+        description: "@abnormalhq.com 邮箱，在线选购、自助开通，适合日常收发与注册常用服务。",
         tags: ["在线购买", "自助开通"],
         price: "在线选购",
         priceNote: "套餐与价格以商店页面为准",
@@ -320,17 +320,17 @@ export const zh: Copy = {
       {
         question: "Abnormal 提供什么服务？",
         answer:
-          "我们提供 @abnormal.bid 邮箱：注册账户后在商店在线选购，在账户里自助开通和管理，开通后可以在网页邮箱或常用邮件客户端里收发。需要自己的域名、团队批量开通或配置协助，可以先咨询。",
+          "我们提供 @abnormalhq.com 邮箱：注册账户后在商店在线选购，在账户里自助开通和管理，开通后可以在网页邮箱或常用邮件客户端里收发。需要自己的域名、团队批量开通或配置协助，可以先咨询。",
       },
       {
         question: "怎么购买并开通邮箱？",
         answer:
-          "先用邮箱和密码注册账户，点开确认邮件里的链接完成注册；再在商店选择套餐并付款（支持 Linux DO Credit 与银行卡）。付款确认后订单和兑换码归到你的账户，在「我的账户 · 我的邮箱」里取用户名、设密码就能开通。兑换码也可以送给别人，在开通页输入后自己开通。",
+          "先用邮箱和密码注册账户，点开确认邮件里的链接完成注册；再在商店选择套餐并付款（支持 Linux DO Credit 与银行卡）。付款确认后订单和兑换码归到你的账户，在「我的账户 · 我的邮箱」里取用户名、设密码就能开通。兑换码也可以送给别人，在开通页输入后自己开通。已签发兑换码继续使用原来的可选域名。",
       },
       {
         question: "开通之后在哪里登录？",
         answer:
-          "网页邮箱地址是 webmail.abnormalhq.com，登录名是完整的邮箱地址，密码是开通时设置的那一个。也可以在手机或电脑的邮件客户端里添加账号，服务器地址见开通结果与使用教程。",
+          "网页邮箱地址是 webmail.abnormalhq.com，登录名是完整的邮箱地址，密码是开通时设置的那一个。既有 @abnormal.bid 邮箱继续使用原地址登录。也可以在手机或电脑的邮件客户端里添加账号，服务器地址见开通结果与使用教程。",
       },
       {
         question: "邮箱、订单和续费在哪里管理？",

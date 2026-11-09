@@ -176,7 +176,7 @@ const usernameRuleEn =
 const zh: Copy = {
   title: "兑换邮箱 · Abnormal",
   description:
-    "使用 Linux DO Credit 购买邮箱套餐，或凭已有兑换码开通 @abnormal.bid 邮箱：自己取用户名、设密码，开通即用。",
+    "使用 Linux DO Credit 购买 @abnormalhq.com 邮箱套餐，或凭已有兑换码在其允许的域名下开通邮箱。自己取用户名、设密码，开通即用。",
   eyebrow: "邮箱开通",
   titleLines: ["一个兑换码。", "一个新邮箱"],
   titleDot: "。",
@@ -363,7 +363,7 @@ const zh: Copy = {
         title: "登录名与密码",
         blocks: [
           {
-            p: "在任何地方登录这个邮箱，**登录名都是完整的邮箱地址**（例如 yourname@abnormal.bid），密码是开通时设的那一个。",
+            p: "在任何地方登录这个邮箱，**登录名都是完整的邮箱地址**（例如 yourname@abnormalhq.com），密码是开通时设的那一个。既有 @abnormal.bid 邮箱继续使用原地址登录。",
           },
           {
             p: `密码只在开通时显示一次。忘了就写信到 [${supportEmail}](mailto:${supportEmail})，告知邮箱地址与当时用的兑换码，由管理员重置。`,
@@ -456,7 +456,7 @@ const zh: Copy = {
 const en: Copy = {
   title: "Redeem a mailbox · Abnormal",
   description:
-    "Buy a mailbox plan with Linux DO Credit or redeem an existing code for @abnormal.bid mailboxes. Pick your usernames and passwords, then start using your mail.",
+    "Buy an @abnormalhq.com mailbox plan with Linux DO Credit, or redeem an existing code for a mailbox on one of its allowed domains. Pick your username and password, then start using your mail.",
   eyebrow: "New mailbox",
   titleLines: ["One code.", "One new mailbox"],
   titleDot: ".",
@@ -648,7 +648,7 @@ const en: Copy = {
         title: "Login and password",
         blocks: [
           {
-            p: "Wherever you log in to this mailbox, **the login is the full address** (yourname@abnormal.bid, for example) and the password is the one you set when redeeming.",
+            p: "Wherever you log in to this mailbox, **the login is the full address** (yourname@abnormalhq.com, for example) and the password is the one you set when redeeming. Existing @abnormal.bid mailboxes continue to use their original address to sign in.",
           },
           {
             p: `The password is shown only once, at creation. If you lose it, write to [${supportEmail}](mailto:${supportEmail}) with the address and the code you used, and an admin resets it.`,

@@ -633,26 +633,26 @@ test("dev shop: mailbox management covers only the mailboxes of the account's ow
   expect(before.groups[0]).toMatchObject({ orderId, usesLeft: 1, mailboxLimit: 1, mailboxes: [] });
   expect((await list(stranger)).groups).toStrictEqual([]);
 
-  const create = { orderId, domain: "abnormal.bid", username: "dave", password: "Mailbox-pass-1" };
+  const create = { orderId, domain: "abnormalhq.com", username: "dave", password: "Mailbox-pass-1" };
   expect((await write("create", stranger, create)).status).toBe(404);
   expect((await write("create", session, { ...create, username: "admin" })).status).toBe(409);
   expect((await write("create", session, { ...create, username: "Not Valid" })).status).toBe(400);
   const created = await write("create", session, create);
   expect(created.status).toBe(201);
-  expect((await created.json()).email).toBe("dave@abnormal.bid");
+  expect((await created.json()).email).toBe("dave@abnormalhq.com");
   expect((await write("create", session, { ...create, username: "erin" })).status).toBe(409);
 
   const after = await list(session);
   const mailbox = after.groups[0].mailboxes[0];
   expect(after.groups[0]).toMatchObject({ usesLeft: 0, codeStatus: "used", domains: [] });
-  expect(mailbox).toMatchObject({ email: "dave@abnormal.bid", status: "active" });
+  expect(mailbox).toMatchObject({ email: "dave@abnormalhq.com", status: "active" });
   expect((await write("password", stranger, { mailboxId: mailbox.id, password: "Another-pass-1" })).status).toBe(404);
   expect((await write("password", session, { mailboxId: mailbox.id, password: "short" })).status).toBe(400);
   expect((await write("password", session, { mailboxId: mailbox.id, password: "Another-pass-1" })).status).toBe(200);
   expect((await write("status", session, { mailboxId: mailbox.id, status: "disabled" })).status).toBe(200);
   expect((await list(session)).groups[0].mailboxes[0].status).toBe("disabled");
-  expect((await write("delete", session, { mailboxId: mailbox.id, confirm: "erin@abnormal.bid" })).status).toBe(400);
-  expect((await write("delete", session, { mailboxId: mailbox.id, confirm: "Dave@abnormal.bid" })).status).toBe(200);
+  expect((await write("delete", session, { mailboxId: mailbox.id, confirm: "erin@abnormalhq.com" })).status).toBe(400);
+  expect((await write("delete", session, { mailboxId: mailbox.id, confirm: "Dave@abnormalhq.com" })).status).toBe(200);
   // After deleting, the quota is back and another can be activated.
   expect((await list(session)).groups[0]).toMatchObject({ usesLeft: 1, mailboxes: [] });
 

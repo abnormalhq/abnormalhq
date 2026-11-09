@@ -37,9 +37,9 @@ const PRODUCT: ShopProduct = {
   priceCents: 750,
   mailboxCount: 1,
   quotaMb: 1024,
-  quotaSupportedByDomain: { "abnormal.bid": true },
+  quotaSupportedByDomain: { "abnormalhq.com": true },
   codeExpiresDays: 30,
-  domains: ["abnormal.bid"],
+  domains: ["abnormalhq.com"],
   periodDays: 0,
   renewPriceCents: 0,
 };
@@ -52,9 +52,9 @@ const SUBSCRIPTION_PRODUCT: ShopProduct = {
   priceCents: 500,
   mailboxCount: 1,
   quotaMb: 2048,
-  quotaSupportedByDomain: { "abnormal.bid": true },
+  quotaSupportedByDomain: { "abnormalhq.com": true },
   codeExpiresDays: 30,
-  domains: ["abnormal.bid"],
+  domains: ["abnormalhq.com"],
   periodDays: 30,
   renewPriceCents: 400,
   fiatPriceMinor: 299,
@@ -684,8 +684,8 @@ export class MockShopStore {
       };
     });
     const server = {
-      imap: { host: "mail.abnormal.bid", port: 993, security: "tls" },
-      smtp: { host: "mail.abnormal.bid", port: 465, security: "tls" },
+      imap: { host: "mail.abnormalhq.com", port: 993, security: "tls" },
+      smtp: { host: "mail.abnormalhq.com", port: 465, security: "tls" },
     };
     const domains = new Set(
       groups.flatMap((group) => [...group.domains, ...group.mailboxes.map((m) => m.email.split("@")[1]!)]),
@@ -889,7 +889,7 @@ export class MockShopStore {
       renewPriceCents: SUBSCRIPTION_PRODUCT.renewPriceCents!,
       currentPeriodEnd: new Date(subscription.end).toISOString(),
       state: subscription.end > this.now() ? "active" : "grace",
-      mailboxes: ["demo@abnormal.bid"],
+      mailboxes: ["demo@abnormalhq.com"],
       maxPeriods: subscription.stripe ? 0 : RENEW_MAX_PERIODS,
       hasContactEmail: false,
       provider: subscription.stripe ? "stripe" : "ldc",

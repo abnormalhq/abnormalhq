@@ -85,7 +85,7 @@ On mail's side, `ONBOARD_ORIGIN` must list this site's origin, and the sales set
 | `MULT-2345-6789-ABCD` | Usable three times, two domains to choose from, never expires                                             |
 | `TEAM-TEAM-TEAM-TEAM` | Usable 1000 times (mail's cap), more than the 20 one request can activate                                 |
 | `PART-PART-PART-PART` | Usable three times; the 2nd, 4th... of a batch fail with a simulated server error, to see partial success |
-| `BARE-BARE-BARE-BARE` | Usable twice; `legacy.abnormal.bid` simulates no support for the per-mailbox quota                        |
+| `BARE-BARE-BARE-BARE` | Usable twice; `legacy.abnormalhq.com` simulates no support for the per-mailbox quota                      |
 | `USED-USED-USED-USED` | Used up                                                                                                   |
 | `EXPD-EXPD-EXPD-EXPD` | Expired                                                                                                   |
 | `GONE-GONE-GONE-GONE` | Disabled                                                                                                  |

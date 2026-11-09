@@ -3,7 +3,7 @@ import type { VideoCopy } from "../copy";
 import { color, font, radius } from "../theme";
 import { Eyebrow, Paper, Rings, useEnter, useSpringAt } from "../ui";
 
-/** The hero headline: two large title lines on the left, the rings from the social image and the @abnormal.bid tag on the right. */
+/** The hero headline: two large title lines on the left, the rings from the social image and the @abnormalhq.com tag on the right. */
 export function Headline({ t }: { t: VideoCopy }) {
   const frame = useCurrentFrame();
   const eyebrow = useEnter(0);
@@ -30,7 +30,7 @@ export function Headline({ t }: { t: VideoCopy }) {
           borderRadius: radius.control,
         }}
       >
-        @abnormal.bid
+        @abnormalhq.com
       </div>
       <div style={{ position: "absolute", left: 140, top: 300, width: 1180 }}>
         <Eyebrow style={eyebrow}>{t.eyebrow}</Eyebrow>

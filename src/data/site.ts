@@ -17,7 +17,7 @@ export const site = {
   wwwHost: "www.abnormalhq.com",
   contact: {
     wechat: "",
-    email: "support@abnormal.bid",
+    email: "support@abnormalhq.com",
     telegram: "",
   } satisfies Contact,
 };
@@ -61,8 +61,8 @@ export interface PromoVideo {
 }
 
 export const promoVideos: Record<Lang, PromoVideo> = {
-  en: { src: "/video/abnormal-en.mp4", poster: "/video/abnormal-en.jpg", uploadDate: "2026-11-08" },
-  zh: { src: "/video/abnormal-zh.mp4", poster: "/video/abnormal-zh.jpg", uploadDate: "2026-11-08" },
+  en: { src: "/video/abnormal-en.mp4", poster: "/video/abnormal-en.jpg", uploadDate: "2026-11-09" },
+  zh: { src: "/video/abnormal-zh.mp4", poster: "/video/abnormal-zh.jpg", uploadDate: "2026-11-09" },
 };
 
 /**

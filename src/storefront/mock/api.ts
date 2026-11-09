@@ -43,57 +43,57 @@ export function sampleCodes(now = Date.now()): Record<string, MockCode> {
   return {
     // ABCD-EFGH-JKLM-NPQR: one mailbox, valid for 30 days.
     ABCDEFGHJKLMNPQR: {
-      domains: ["abnormal.bid"],
+      domains: ["abnormalhq.com"],
       usesLeft: 1,
       expiresAt: new Date(now + 30 * DAY_MS).toISOString(),
       disabled: false,
     },
     // MULT-2345-6789-ABCD: three mailboxes, two domains to choose from, never expires.
     MULT23456789ABCD: {
-      domains: ["abnormal.bid", "mail.abnormal.bid"],
+      domains: ["abnormalhq.com", "mail.abnormalhq.com"],
       usesLeft: 3,
       expiresAt: null,
       disabled: false,
     },
     // TEAM-TEAM-TEAM-TEAM: mail's maximum count (1000), more than the 20 one request can activate.
     TEAMTEAMTEAMTEAM: {
-      domains: ["abnormal.bid"],
+      domains: ["abnormalhq.com"],
       usesLeft: 1000,
       expiresAt: null,
       disabled: false,
     },
     // USED-USED-USED-USED: used up.
     USEDUSEDUSEDUSED: {
-      domains: ["abnormal.bid"],
+      domains: ["abnormalhq.com"],
       usesLeft: 0,
       expiresAt: null,
       disabled: false,
     },
     // EXPD-EXPD-EXPD-EXPD: expired yesterday.
     EXPDEXPDEXPDEXPD: {
-      domains: ["abnormal.bid"],
+      domains: ["abnormalhq.com"],
       usesLeft: 1,
       expiresAt: new Date(now - DAY_MS).toISOString(),
       disabled: false,
     },
     // GONE-GONE-GONE-GONE: disabled by an administrator.
     GONEGONEGONEGONE: {
-      domains: ["abnormal.bid"],
+      domains: ["abnormalhq.com"],
       usesLeft: 1,
       expiresAt: null,
       disabled: true,
     },
     // PART-PART-PART-PART: three mailboxes; the 2nd, 4th... in a batch fail with a simulated server error.
     PARTPARTPARTPART: {
-      domains: ["abnormal.bid"],
+      domains: ["abnormalhq.com"],
       usesLeft: 3,
       expiresAt: null,
       disabled: false,
       partial: true,
     },
-    // BARE-BARE-BARE-BARE: two domains, of which legacy.abnormal.bid does not support the per-mailbox quota.
+    // BARE-BARE-BARE-BARE: two domains, of which legacy.abnormalhq.com does not support the per-mailbox quota.
     BAREBAREBAREBARE: {
-      domains: ["abnormal.bid", MOCK_NO_QUOTA_DOMAIN],
+      domains: ["abnormalhq.com", MOCK_NO_QUOTA_DOMAIN],
       usesLeft: 2,
       expiresAt: null,
       disabled: false,
@@ -104,8 +104,8 @@ export function sampleCodes(now = Date.now()): Record<string, MockCode> {
 export const TAKEN_USERNAMES = ["admin", "support", "postmaster", "abuse", "noreply", "hello", "kunish"] as const;
 
 export const MOCK_SERVERS = {
-  imap: { host: "mail.abnormal.bid", port: 993, security: "tls" },
-  smtp: { host: "mail.abnormal.bid", port: 465, security: "tls" },
+  imap: { host: "mail.abnormalhq.com", port: 993, security: "tls" },
+  smtp: { host: "mail.abnormalhq.com", port: 465, security: "tls" },
   webmail: webmailUrl,
 } as const;
 
@@ -113,7 +113,7 @@ export const MOCK_SERVERS = {
 export const MOCK_BOUNCE_DOMAIN = "bounce.example";
 
 /** This domain simulates not being bound to a single Stalwart connection: quotaSupportedByDomain is false. */
-export const MOCK_NO_QUOTA_DOMAIN = "legacy.abnormal.bid";
+export const MOCK_NO_QUOTA_DOMAIN = "legacy.abnormalhq.com";
 
 /** Error messages in both languages (worded like mail); for kinds other than other the redeem page uses its own copy, so these mostly serve other and the notification result. */
 const MESSAGES = {
@@ -226,7 +226,7 @@ export class MockStore {
   ) {
     this.codes = new Map(Object.entries(codes));
     this.taken = new Set(
-      taken.length > 0 ? taken : TAKEN_USERNAMES.map((username) => emailAddress(username, "abnormal.bid")),
+      taken.length > 0 ? taken : TAKEN_USERNAMES.map((username) => emailAddress(username, "abnormalhq.com")),
     );
     this.now = now;
   }

@@ -8,12 +8,12 @@ export const en: Copy = {
   meta: {
     title: "Abnormal — Email service",
     description:
-      "Abnormal email service: buy an @abnormal.bid mailbox online, set it up yourself with a redeem code, and read and send from webmail or any mail app. Domain mailboxes, team mailboxes and setup help are available on request.",
+      "Abnormal email service: buy an @abnormalhq.com mailbox online, set it up yourself with a redeem code, and read and send from webmail or any mail app. Domain mailboxes, team mailboxes and setup help are available on request.",
     socialTitle: "Abnormal — Good email, simple conversations.",
     socialDescription:
-      "Buy and set up an @abnormal.bid mailbox yourself, then read and send from webmail or your mail app.",
+      "Buy and set up an @abnormalhq.com mailbox yourself, then read and send from webmail or your mail app.",
     socialImageAlt:
-      "Abnormal email service: good email, simple conversations. Buy and set up an @abnormal.bid mailbox online.",
+      "Abnormal email service: good email, simple conversations. Buy and set up an @abnormalhq.com mailbox online.",
   },
   skipLink: "Skip to main content",
   brandLabel: "Abnormal home",
@@ -45,7 +45,7 @@ export const en: Copy = {
     eyebrow: "Email, made personal",
     titleLines: ["Good email,", "simple conversations"],
     description: [
-      "Create an account, buy @abnormal.bid mailboxes online, and set them up and manage them from your account.",
+      "Create an account, buy @abnormalhq.com mailboxes online, and set them up and manage them from your account.",
       "Read and send from webmail or the mail app you already use.",
     ],
     buy: "Buy a mailbox",
@@ -249,7 +249,7 @@ export const en: Copy = {
         name: "Personal mailbox",
         category: "Everyday mail",
         description:
-          "An @abnormal.bid mailbox you buy and set up online, for everyday mail and signing up for the services you use.",
+          "An @abnormalhq.com mailbox you buy and set up online, for everyday mail and signing up for the services you use.",
         tags: ["Buy online", "Self-service"],
         price: "Buy online",
         priceNote: "Plans and prices as shown in the shop",
@@ -341,17 +341,17 @@ export const en: Copy = {
       {
         question: "What does Abnormal offer?",
         answer:
-          "We offer @abnormal.bid mailboxes: create an account, buy in the shop, set mailboxes up and manage them from your account, and read and send from webmail or the mail app you already use. For your own domain, a batch of team mailboxes or setup help, ask us first.",
+          "We offer @abnormalhq.com mailboxes: create an account, buy in the shop, set mailboxes up and manage them from your account, and read and send from webmail or the mail app you already use. For your own domain, a batch of team mailboxes or setup help, ask us first.",
       },
       {
         question: "How do I buy and set up a mailbox?",
         answer:
-          "Create an account with your email and a password and confirm it from the email we send. Then pick a plan in the shop and pay with Linux DO Credit or card. Once payment is confirmed, the order and its code join your account: under My account, My mailboxes, pick a username and password to set one up. You can also give the code to someone to enter on the redeem page.",
+          "Create an account with your email and a password and confirm it from the email we send. Then pick a plan in the shop and pay with Linux DO Credit or card. Once payment is confirmed, the order and its code join your account: under My account, My mailboxes, pick a username and password to set one up. You can also give the code to someone to enter on the redeem page. Previously issued codes keep their original available domains.",
       },
       {
         question: "Where do I sign in afterwards?",
         answer:
-          "Webmail is at webmail.abnormalhq.com. Sign in with your full email address and the password you set when redeeming. You can also add the account to a mail app on your phone or computer; the server settings are in your redeem result and the guide.",
+          "Webmail is at webmail.abnormalhq.com. Sign in with your full email address and the password you set when redeeming. Existing @abnormal.bid mailboxes continue to use their original address to sign in. You can also add the account to a mail app on your phone or computer; the server settings are in your redeem result and the guide.",
       },
       {
         question: "Where do I manage mailboxes, orders and renewals?",

@@ -36,7 +36,7 @@ export const copies: Record<Lang, VideoCopy> = {
     tagline: "Abnormally good.",
     eyebrow: "Email, made personal",
     titleLines: ["好用的邮箱，", "沟通更简单"],
-    description: "注册账户，在线选购 @abnormal.bid 邮箱，在账户里直接开通和管理。",
+    description: "注册账户，在线选购 @abnormalhq.com 邮箱，在账户里直接开通和管理。",
     mock: {
       overline: "A LITTLE MORE CONNECTED",
       heading: "每一封，都有归处",
@@ -68,7 +68,7 @@ export const copies: Record<Lang, VideoCopy> = {
     tagline: "Abnormally good.",
     eyebrow: "Email, made personal",
     titleLines: ["Good email,", "simple conversations"],
-    description: "Create an account, buy @abnormal.bid mailboxes online, and set them up from your account.",
+    description: "Create an account, buy @abnormalhq.com mailboxes online, and set them up from your account.",
     mock: {
       overline: "A LITTLE MORE CONNECTED",
       heading: "Every email has a home",

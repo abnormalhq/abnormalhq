@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { defaultDomain } from "@/storefront/config";
 import { copy } from "@/storefront/i18n";
 import type { RedeemResult } from "@/storefront/lib/api";
 import {
@@ -35,6 +36,22 @@ function resolved(usesLeft = 3): State {
     },
   );
 }
+
+test("the current default keeps previously issued codes on their original domain", () => {
+  const initial = initialState(defaultDomain);
+  expect(currentDomain(initial)).toBe("abnormalhq.com");
+  const verified = run(
+    initial,
+    { type: "code/input", value: "mult-2345-6789-abcd" },
+    {
+      type: "code/resolved",
+      code: CODE,
+      info: { domains: ["abnormal.bid"], expiresAt: null, usesLeft: 1 },
+      expires: null,
+    },
+  );
+  expect(currentDomain(verified)).toBe("abnormal.bid");
+});
 
 test("redeem code: formatted as typed; the checking state shows only once complete; the check result is only accepted for the code currently typed", () => {
   const typing = run(initialState("abnormal.bid"), {
