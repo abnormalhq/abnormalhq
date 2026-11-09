@@ -49,7 +49,10 @@ export interface LinuxDownload {
   file: DesktopFile;
   /** The Arm package, offered as a second link next to x64. */
   arm?: DesktopFile;
-  /** Installs the downloaded package with apt, which also brings in the libraries it depends on. */
+  /**
+   * Installs the downloaded package with apt, which also brings in the libraries it depends on. With both packages it has one line per
+   * architecture, each under a comment naming it, so an Arm download is installed by its own file name.
+   */
   install: string;
 }
 
@@ -64,7 +67,10 @@ export function linuxDownload(releases: DesktopReleases | undefined): LinuxDownl
   const arm64 = files.find((file) => file.arch === "arm64");
   const file = x64 ?? arm64;
   if (!file) return undefined;
-  return { file, arm: x64 ? arm64 : undefined, install: `sudo apt install ./${file.name}` };
+  const arm = x64 ? arm64 : undefined;
+  const command = (package_: DesktopFile) => `sudo apt install ./${package_.name}`;
+  const install = arm ? `# x64\n${command(file)}\n# Arm\n${command(arm)}` : command(file);
+  return { file, arm, install };
 }
 
 /** Decimal MB, close to how Finder and Explorer write it, with one decimal place. */

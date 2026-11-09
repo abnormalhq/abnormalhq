@@ -115,7 +115,11 @@ for (const lang of ["zh", "en"] as const) {
         `[${d.linux.armDownload}](https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-arm64.deb)`,
       ),
     );
-    assert.ok(markdown.includes("```sh\nsudo apt install ./Abnormal-Mail-0.3.0-linux-x64.deb\n```"));
+    assert.ok(
+      markdown.includes(
+        "```sh\n# x64\nsudo apt install ./Abnormal-Mail-0.3.0-linux-x64.deb\n# Arm\nsudo apt install ./Abnormal-Mail-0.3.0-linux-arm64.deb\n```",
+      ),
+    );
     assert.ok(markdown.includes(d.linux.note));
     // No fixed latest/ address for Linux: those do not exist until a release has Linux packages.
     assert.ok(!markdown.includes("/desktop/latest/Abnormal-Mail-linux"));

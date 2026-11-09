@@ -50,7 +50,20 @@ test("the Linux download takes the current release's own .deb files, x64 first",
   const linux = linuxDownload(parseReleaseIndex(releaseIndexWithLinux));
   assert.equal(linux?.file.url, "https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-x64.deb");
   assert.equal(linux?.arm?.url, "https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-arm64.deb");
-  assert.equal(linux?.install, "sudo apt install ./Abnormal-Mail-0.3.0-linux-x64.deb");
+  // One line per package, so an Arm download is installed by its own name.
+  assert.equal(
+    linux?.install,
+    "# x64\nsudo apt install ./Abnormal-Mail-0.3.0-linux-x64.deb\n# Arm\nsudo apt install ./Abnormal-Mail-0.3.0-linux-arm64.deb",
+  );
+  // With one package, just its line.
+  const armOnly = parseReleaseIndex({
+    ...releaseIndexWithLinux,
+    releases: releaseIndexWithLinux.releases.map((release) => ({
+      ...release,
+      files: release.files.filter((file) => file.arch !== "x64" || file.platform !== "linux"),
+    })),
+  });
+  assert.equal(linuxDownload(armOnly)?.install, "sudo apt install ./Abnormal-Mail-0.3.0-linux-arm64.deb");
 });
 
 test("there is no Linux download without release data or without Linux files in the current release", () => {
