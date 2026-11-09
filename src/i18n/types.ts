@@ -132,9 +132,22 @@ export interface Copy {
     description: string;
     /** Accessible name of the <video>, also the text of the video link in the structured data and Markdown. */
     label: string;
-    /** Shown when the browser cannot play <video>, followed by the download link. */
+    /** Shown when the browser cannot play <video> or the file fails to load, followed by the download link. */
     fallback: string;
     download: string;
+    /** The player's controls (src/components/VideoPlayer.tsx): accessible names and tooltips of its buttons and sliders. */
+    play: string;
+    pause: string;
+    replay: string;
+    mute: string;
+    unmute: string;
+    fullscreen: string;
+    exitFullscreen: string;
+    /** Name of the seek slider. */
+    seek: string;
+    /** What a screen reader says for the seek slider's position, such as "0:12 of 0:35". */
+    seekTemplate: Template<"current" | "duration">;
+    volume: string;
   };
   /** The "What's inside" section (src/components/Features.tsx): what a mailbox can do, and where it can be used. */
   features: {
