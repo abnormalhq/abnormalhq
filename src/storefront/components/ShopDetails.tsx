@@ -36,8 +36,9 @@ export function ShopDetails({
           : item.quotaMb >= 1024
             ? `${Number((item.quotaMb / 1024).toFixed(2))} GB`
             : `${item.quotaMb} MB`;
+  const renewCents = item.renewPriceCents || item.priceCents;
   return (
-    <dl className="flex-1 border-t border-border pt-5 text-sm/body">
+    <dl className="border-t border-border pt-5 text-sm/body">
       <Row label={t.count}>{t.quantity(item.mailboxCount)}</Row>
       <Row label={t.quota}>{quota}</Row>
       {item.periodDays !== undefined && (
@@ -46,13 +47,18 @@ export function ShopDetails({
             {item.periodDays > 0 ? (
               <>
                 {t.periodValue(item.periodDays)}
-                <br />
-                {stripeCurrency
-                  ? t.cardPrice(
-                      formatMoney(item.renewPriceCents || item.priceCents, stripeCurrency, lang),
-                      item.periodDays,
-                    )
-                  : t.renewAt(formatCredits(item.renewPriceCents || item.priceCents))}
+                {stripeCurrency ? (
+                  <>
+                    <br />
+                    {t.cardPrice(formatMoney(renewCents, stripeCurrency, lang), item.periodDays)}
+                  </>
+                ) : renewCents !== item.priceCents ? (
+                  // The price above already reads "per period"; only spell out a renewal price that differs from it.
+                  <>
+                    <br />
+                    {t.renewAt(formatCredits(renewCents))}
+                  </>
+                ) : null}
               </>
             ) : (
               t.oneTime
