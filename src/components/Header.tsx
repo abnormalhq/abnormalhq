@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type SyntheticEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { linksFor, type Lang } from "@/data/site";
@@ -11,6 +11,16 @@ import type { Copy } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 import { ThemePicker } from "./ThemePicker";
+
+/** The query string of the current address; history changes outside Next.js's router (back / forward) re-render the header. */
+function readSearch(): string {
+  return window.location.search;
+}
+
+function subscribeToHistory(onChange: () => void): () => void {
+  window.addEventListener("popstate", onChange);
+  return () => window.removeEventListener("popstate", onChange);
+}
 
 export function Header({
   lang,
@@ -37,7 +47,15 @@ export function Header({
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
   // With ?lang=: the Worker stores the choice in the cookie shared by the three sites, so shared links open in this language from then on (src/lib/lang.ts).
-  const otherPath = switchHref(pathname.endsWith("/") ? pathname : `${pathname}/`, other);
+  // The storefront's order, renewal and account pages carry their query string (order number, tokens) across; see switchHref.
+  // Prerendering has no query string; after hydration the link carries it, so opening it in a new tab keeps it too.
+  const search = useSyncExternalStore(subscribeToHistory, readSearch, () => "");
+  const normalizedPath = pathname.endsWith("/") ? pathname : `${pathname}/`;
+  const otherPath = switchHref(normalizedPath, other, search);
+  // Client-side changes of the query string on the same page do not re-render the header; read it afresh right before the link is used.
+  const refreshOtherPath = (event: SyntheticEvent<HTMLAnchorElement>) => {
+    event.currentTarget.href = switchHref(normalizedPath, other, window.location.search);
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -85,6 +103,10 @@ export function Header({
           <Button asChild variant="ghost" className="min-w-8 border-0 px-1.5 text-sm">
             <a
               href={otherPath}
+              onPointerDown={refreshOtherPath}
+              onClick={refreshOtherPath}
+              onContextMenu={refreshOtherPath}
+              onFocus={refreshOtherPath}
               hrefLang={otherHtmlLang}
               lang={otherHtmlLang}
               aria-label={langToggle.aria}

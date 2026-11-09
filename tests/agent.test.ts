@@ -1,12 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { desktopDownloads, linksFor, site } from "../src/data/site.ts";
+import { absoluteUrl, desktopDownloads, linksFor, site } from "../src/data/site.ts";
 import { copies, langs } from "../src/i18n/index.ts";
 import { contactChannels } from "../src/lib/inquiry.ts";
 import { downloadMarkdown, homeMarkdown, legalMarkdown, llmsTxt, stripFrontmatter } from "../src/lib/markdown.ts";
 import { markdownUrl, varyOnAccept, wantsMarkdown } from "../src/lib/negotiate.ts";
 import { pages } from "../src/lib/pages.ts";
+import { storeMarkdown, storeMarkdownPaths } from "../src/storefront/lib/markdown.ts";
 import { parseReleaseIndex } from "../src/lib/releases.ts";
 import { releaseIndex } from "./support/releases.ts";
 
@@ -15,10 +16,16 @@ test("every page has a Markdown path under /md/ that mirrors its URL", () => {
     pages.map((page) => [page.url, page.markdown]),
     [
       ["/", "/md/"],
+      ["/shop/", "/md/shop/"],
+      ["/redeem/", "/md/redeem/"],
+      ["/guide/", "/md/guide/"],
       ["/download/", "/md/download/"],
       ["/privacy/", "/md/privacy/"],
       ["/terms/", "/md/terms/"],
       ["/zh/", "/md/zh/"],
+      ["/zh/shop/", "/md/zh/shop/"],
+      ["/zh/redeem/", "/md/zh/redeem/"],
+      ["/zh/guide/", "/md/zh/guide/"],
       ["/zh/download/", "/md/zh/download/"],
       ["/zh/privacy/", "/md/zh/privacy/"],
       ["/zh/terms/", "/md/zh/terms/"],
@@ -35,7 +42,8 @@ for (const lang of ["zh", "en"] as const) {
     for (const product of t.services.products) assert.ok(markdown.includes(`### ${product.name}`));
     for (const step of t.process.steps) assert.ok(markdown.includes(step.description));
     for (const item of t.faq.items) assert.ok(markdown.includes(item.answer));
-    for (const url of Object.values(linksFor(lang))) assert.ok(markdown.includes(`(${url})`), url);
+    // Storefront links are site paths on the page; Markdown carries full addresses.
+    for (const url of Object.values(linksFor(lang))) assert.ok(markdown.includes(`(${absoluteUrl(url)})`), url);
     assert.ok(markdown.includes(site.contact.email));
     assert.ok(!markdown.includes("undefined"));
   });
@@ -94,9 +102,24 @@ test("llms.txt follows the format and lists every page and linked site in both l
   const sections = [...text.matchAll(/^## (.+)$/gm)].map(([, heading]) => heading);
   assert.deepEqual(sections, ["English", "中文"]);
   for (const lang of ["zh", "en"] as const) {
-    for (const url of Object.values(linksFor(lang))) assert.ok(text.includes(`(${url})`), url);
+    for (const url of Object.values(linksFor(lang))) assert.ok(text.includes(`(${absoluteUrl(url)})`), url);
   }
 });
+
+for (const lang of ["zh", "en"] as const) {
+  test(`${lang} storefront Markdown (redeem, guide, shop) is generated from the storefront copy with full addresses`, () => {
+    for (const path of storeMarkdownPaths) {
+      const markdown = storeMarkdown(lang, path);
+      assert.match(markdown, /^# \S/, path);
+      assert.ok(!markdown.includes("undefined"), path);
+      // Every link is a full address on this site, an external one or mail; none is left relative to the old language root.
+      for (const [, href] of markdown.matchAll(/\]\(([^)\s]+)\)/g))
+        assert.match(href!, /^(https:\/\/|mailto:)/, `${path}: ${href}`);
+    }
+    assert.ok(storeMarkdown(lang, "/redeem/").includes(`(${site.url}${linksFor(lang).guide})`));
+    assert.ok(storeMarkdown(lang, "/shop/").includes(`(${site.url}/api/shop/catalog)`));
+  });
+}
 
 test("legal Markdown drops the frontmatter and keeps the metadata and body", () => {
   const source = readFileSync(new URL("../src/content/legal/en/terms.mdx", import.meta.url), "utf8");

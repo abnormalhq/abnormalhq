@@ -7,12 +7,12 @@
  * 2. with a cookie: an address whose language differs from the cookie redirects to the same page in the other language, so shared links open in the reader's own language;
  * 3. without a cookie: only the unprefixed default-language addresses follow Accept-Language; a prefixed address such as /zh/ is the link author's explicit choice and stays;
  *    requests without Accept-Language (crawlers) are never redirected.
- * The cookie's Domain is abnormalhq.com, so the website, onboard and webmail (mail) share one choice.
+ * The cookie's Domain is abnormalhq.com, so the website (with the storefront) and webmail (mail) share one choice.
  * Redirect responses enter no cache: the same address answers differently to different visitors.
  */
 import { site, type Lang } from "../data/site.ts";
 import { defaultLang, langParam, langs, localePath } from "../i18n/paths.ts";
-import { pages } from "./pages.ts";
+import { pageUrls } from "./pages.ts";
 
 /** The manually chosen language; without this cookie the browser's Accept-Language decides. Shared by the three sites, the same name as mail's LOCALE_COOKIE. */
 export const langCookie = "abnormal_lang";
@@ -20,7 +20,7 @@ export const langCookieMaxAge = 365 * 24 * 60 * 60;
 /** The domain the cookie is shared on: Domain is written only on this domain and its subdomains; local development and preview hosts keep it to themselves. */
 export const langCookieDomain = "abnormalhq.com";
 
-const pageByUrl = new Map(pages.map((page) => [page.url, page]));
+const pageByUrl = new Map(pageUrls.map((page) => [page.url, page]));
 
 function isLang(value: string | undefined): value is Lang {
   return langs.some((lang) => lang === value);

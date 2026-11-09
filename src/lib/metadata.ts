@@ -18,12 +18,18 @@ export function pageMetadata({
   path,
   title,
   description,
+  index = true,
 }: {
   lang: Lang;
   /** Page path without the language prefix, such as /privacy/. */
   path: string;
   title?: string;
   description?: string;
+  /**
+   * false for pages that depend on a login or purchase session (the storefront's order, renewal and account pages):
+   * noindex, and no Markdown alternate since they have no Markdown version.
+   */
+  index?: boolean;
 }): Metadata {
   const t = copies[lang];
   const url = localePath(lang, path);
@@ -41,14 +47,16 @@ export function pageMetadata({
         ...Object.fromEntries(langs.map((other) => [copies[other].htmlLang, localePath(other, path)])),
         "x-default": localePath(defaultLang, path),
       },
-      types: { "text/markdown": `/md${url}` },
+      ...(index ? { types: { "text/markdown": `/md${url}` } } : {}),
     },
     // Allow search results to show large image previews and full snippets.
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
-    },
+    robots: index
+      ? {
+          index: true,
+          follow: true,
+          googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+        }
+      : { index: false, follow: false },
     openGraph: {
       title: socialTitle,
       description: socialDescription,

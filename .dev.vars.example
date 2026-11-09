@@ -1,0 +1,3 @@
+# Only for local integration with Wrangler: copy to .dev.vars and run pnpm cf:preview --port 8788 in the mail repo.
+# This address lets mail's Next.js runtime recognise its own origin; requests still go through the local MAIL Service Binding.
+MAIL_ORIGIN=http://localhost:8788

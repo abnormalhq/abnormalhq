@@ -1,0 +1,121 @@
+{
+  "$comment": "The values mail (abnormalhq/mail) and the storefront (formerly abnormalhq/onboard, now part of the website abnormalhq/abnormalhq) must agree on, as data. Both repositories keep this file at docs/onboard-contract.json, byte for byte the same, and each one's tests check the constants it copies by hand against it (mail: src/lib/__tests__/onboard-contract.test.ts; website: tests/storefront/contract.test.ts and tests/storefront/worker.test.ts). Change both copies together; the prose contract is docs/storefront-api.md in the website. legacyOrderPages is the layout of the retired standalone onboard site (Chinese at the root), which mail still uses while the shop address in its sales settings is that site.",
+  "version": 2,
+  "redeem": {
+    "routes": ["cdk", "username", "redeem"],
+    "errorKinds": {
+      "invalid_code": { "status": 404, "field": "code" },
+      "code_used": { "status": 409, "field": "code" },
+      "code_expired": { "status": 410, "field": "code" },
+      "code_disabled": { "status": 403, "field": "code" },
+      "count_exceeded": { "status": 409, "field": "count" },
+      "domain_invalid": { "status": 400, "field": "domain" },
+      "username_invalid": { "status": 400, "field": "username" },
+      "username_taken": { "status": 409, "field": "username" },
+      "password_invalid": { "status": 400, "field": "password" },
+      "notify_invalid": { "status": 400, "field": "notify" },
+      "rate_limited": { "status": 429, "field": null },
+      "challenge_failed": { "status": 403, "field": null },
+      "unavailable": { "status": 503, "field": null },
+      "other": { "status": 400, "field": null }
+    },
+    "fields": ["code", "domain", "count", "username", "password", "notify"],
+    "storefrontOrigins": ["https://abnormalhq.com", "https://onboard.abnormalhq.com"],
+    "originForbiddenStatus": 403,
+    "maxMailboxes": 20,
+    "code": {
+      "length": 16,
+      "group": 4,
+      "alphabet": "23456789ABCDEFGHJKLMNPQRSTUVWXYZ",
+      "statuses": ["available", "used", "expired", "disabled"],
+      "maxUses": 1000
+    },
+    "username": { "maxLength": 64, "pattern": "^[a-z0-9](?:(?:[a-z0-9_-]|\\.(?!\\.)){0,62}[a-z0-9])?$" },
+    "password": { "minLength": 8, "maxLength": 128 },
+    "notify": { "maxLength": 254, "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$" }
+  },
+  "shop": {
+    "routes": {
+      "catalog": "GET",
+      "orders": "GET",
+      "notify": "GET",
+      "account": "GET",
+      "checkout": "POST",
+      "pay": "POST",
+      "pay/stripe": "POST",
+      "reconcile": "POST",
+      "renewal": "POST",
+      "renew": "POST",
+      "account/login": "POST",
+      "account/peek": "POST",
+      "account/verify": "POST",
+      "account/logout": "POST",
+      "account/portal": "POST",
+      "account/password-login": "POST",
+      "account/password": "POST",
+      "account/register": "POST",
+      "account/mailboxes": "GET",
+      "account/mailboxes/create": "POST",
+      "account/mailboxes/password": "POST",
+      "account/mailboxes/status": "POST",
+      "account/mailboxes/delete": "POST",
+      "account/forgot": "POST",
+      "account/reset": "POST",
+      "account/google/start": "POST",
+      "account/google": "POST",
+      "account/google/unlink": "POST"
+    },
+    "cookies": {
+      "buyer": { "name": "mailhq_shop", "pattern": "^[a-f0-9]{64}$", "maxAgeSeconds": 31536000 },
+      "customer": { "name": "mailhq_customer", "pattern": "^[A-Za-z0-9_-]{43}$", "maxAgeSeconds": 2592000 },
+      "google": {
+        "name": "mailhq_shop_google",
+        "pattern": "^[A-Za-z0-9_-]{1,512}\\.[A-Za-z0-9_-]{1,1024}\\.[A-Za-z0-9_-]{43}$",
+        "maxAgeSeconds": 600,
+        "path": "/api/shop/account/google"
+      }
+    },
+    "googleRedirectPath": "/shop/account",
+    "orderIdPattern": "^[a-z0-9]{15}$",
+    "orderPages": { "zh": "/zh/shop/orders/", "en": "/shop/orders/" },
+    "legacyOrderPages": { "zh": "/shop/orders/", "en": "/en/shop/orders/" },
+    "payRedirects": ["https://credit.linux.do/paying", "https://checkout.stripe.com/c/pay/"],
+    "providers": ["ldc", "stripe"],
+    "subscriptionStates": ["active", "grace", "suspended", "expired"],
+    "renewMaxPeriods": 12,
+    "publicOrderFields": [
+      "id",
+      "productName",
+      "originalPriceCents",
+      "discountPercent",
+      "priceCents",
+      "domains",
+      "mailboxCount",
+      "quotaMb",
+      "quotaSupportedByDomain",
+      "codeExpiresDays",
+      "kind",
+      "periodDays",
+      "renewPriceCents",
+      "subscriptionId",
+      "periods",
+      "provider",
+      "currency",
+      "status",
+      "created",
+      "paidAt"
+    ]
+  },
+  "turnstile": {
+    "siteKeyField": "turnstileSiteKey",
+    "siteKeyRoutes": ["onboard/cdk", "shop/catalog"],
+    "tokenField": "turnstileToken",
+    "actions": {
+      "onboard/redeem": "onboard-redeem",
+      "shop/account/login": "shop-login",
+      "shop/account/password-login": "shop-login",
+      "shop/account/register": "shop-login",
+      "shop/account/forgot": "shop-login"
+    }
+  }
+}

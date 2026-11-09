@@ -2,13 +2,13 @@
 
 [Live site](https://abnormalhq.com/)
 
-The bilingual (Chinese and English) marketing site for the Abnormal email service, built with Next.js (App Router), Tailwind CSS 4 and TypeScript, with UI components from [Abnormal's shadcn registry](https://github.com/abnormalhq/ui). The site is the landing page for all of Abnormal: it introduces the email service and sends visitors on to the sites for buying, redeeming and activating, webmail, guides and service status; domain mailboxes, team mailboxes and setup help are still handled through the inquiry dialog. Pages are prerendered at build time and run on a Cloudflare Worker through [@opennextjs/cloudflare](https://opennext.js.org/cloudflare); the navigation menu, theme toggle and inquiry dialog are React client components. Cloudflare Workers Builds watches `main` and deploys automatically; GitHub Actions only runs checks.
+The bilingual (Chinese and English) marketing site for the Abnormal email service, built with Next.js (App Router), Tailwind CSS 4 and TypeScript, with UI components from [Abnormal's shadcn registry](https://github.com/abnormalhq/ui). The site is the home of all of Abnormal: it introduces the email service, sells mailboxes and activates them (the storefront: shop, redeem page, buyer account and guide, which used to be the separate onboard site), and sends visitors on to webmail and service status; domain mailboxes, team mailboxes and setup help are still handled through the inquiry dialog. Pages are prerendered at build time and run on a Cloudflare Worker through [@opennextjs/cloudflare](https://opennext.js.org/cloudflare); the navigation menu, theme toggle and inquiry dialog are React client components. Cloudflare Workers Builds watches `main` and deploys automatically; GitHub Actions only runs checks.
 
 ## Chinese and English
 
 English is the default language, at the root (`/`, `/privacy/`, `/terms/`); Chinese is under `/zh/` (`/zh/`, `/zh/privacy/`, `/zh/terms/`). This is implemented by the two route groups `(en)` and `(zh)` under `src/app`, each with its own root layout. The default language and the language order are written once, in `defaultLang` and `langs` in `src/i18n/paths.ts`; paths, `hreflang`, the sitemap, `llms.txt` and the structured data all read them from there. The language toggle in the header (`langToggle`, labelled "EN" or the single Chinese character for Chinese) switches to the same page in the other language; every page emits `hreflang` links pointing at each other, with `x-default` pointing at the English version.
 
-The addresses are only each language's canonical address; which language a visitor lands in is decided by their preference (`src/lib/lang.ts`, run in `worker.ts` before OpenNext, for whole-page GET / HEAD page requests only). Clicking the language toggle in the header adds `?lang=zh`; the Worker stores that choice in the cookie `abnormal_lang` (one year, `Domain=abnormalhq.com`, shared by the website, onboard and webmail, the same name as mail's `LOCALE_COOKIE`) and redirects to the address without the parameter. With the cookie set, an address whose language differs from the cookie is 302-redirected to the same page in the other language, so a shared link always opens in the reader's own language. Without a cookie, only the unprefixed English addresses follow `Accept-Language`; a prefixed address such as `/zh/` is the link author's explicit choice and is left alone. Requests without `Accept-Language` (crawlers) are never redirected, so both sets of addresses that `hreflang` points at stay crawlable. Redirect responses carry `Cache-Control: private, no-store` and enter no cache; requests that ask for Markdown (agents) are not redirected by language.
+The addresses are only each language's canonical address; which language a visitor lands in is decided by their preference (`src/lib/lang.ts`, run in `worker.ts` before OpenNext, for whole-page GET / HEAD page requests only). Clicking the language toggle in the header adds `?lang=zh`; the Worker stores that choice in the cookie `abnormal_lang` (one year, `Domain=abnormalhq.com`, shared by the website and webmail, the same name as mail's `LOCALE_COOKIE`) and redirects to the address without the parameter. With the cookie set, an address whose language differs from the cookie is 302-redirected to the same page in the other language, so a shared link always opens in the reader's own language. Without a cookie, only the unprefixed English addresses follow `Accept-Language`; a prefixed address such as `/zh/` is the link author's explicit choice and is left alone. Requests without `Accept-Language` (crawlers) are never redirected, so both sets of addresses that `hreflang` points at stay crawlable. Redirect responses carry `Cache-Control: private, no-store` and enter no cache; requests that ask for Markdown (agents) are not redirected by language.
 
 English used to live under `/en/`: `/en/`, `/en/privacy/`, `/en/terms/` and the matching `/md/en/...` are 301-redirected by `redirects()` in `next.config.ts` to the new addresses at the root, so old external links and search results keep working.
 
@@ -16,28 +16,108 @@ English used to live under `/en/`: `/en/`, `/en/privacy/`, `/en/terms/` and the 
 - Chinese headings end with a full-width full stop and English ones with a half-width one, taken from `t.dot`; headings that wrap only at some widths separate their two lines with `t.space` (a space in English).
 - Decorative English labels (each section's `eyebrow`, the inquiry dialog's `kicker`, the footer's `tagline`, the legal page table of contents' `tocKicker`) are also in the copy: both languages write them in English and components render them with `lang="en"` so screen readers read them as English; the tests check that they contain no Chinese and that every `Eyebrow` on the page carries `lang="en"`.
 - Sentences with a link or variable in the middle are written as templates, such as `inquiry.legal`'s "Requests and services are covered by the {terms} and {privacy}.", filled with links by `fillTemplate` in `src/lib/template.ts`; the spaces around the links are written in each language's copy, and components add none. Template fields are typed in `Copy` as `Template<"terms" | "privacy">`, so a component passing too few, too many or misspelled names fails `pnpm typecheck`; `tests/i18n.test.ts` then checks that each language's template uses exactly those names and that there are no unregistered templates. The inquiry dialog renders only in the browser, so prerendering cannot catch a typo here; these two checks have to.
-- Linked-site addresses are generated by `linksFor(lang)`: onboard's English pages are under `/en/`, while webmail and the status page follow the browser language and share one address for both languages.
+- Buyer-journey addresses are generated by `linksFor(lang)`: the storefront pages follow the page language like every other page, while webmail and the status page follow the browser language and share one address for both languages.
 - Client components (`Header`, `ThemePicker`, `InquiryDialog`, `CurrentYear`, `VideoPlayer`) do not import the copy module; `SiteLayout` passes each the copy it uses through props, so the browser bundle does not carry the full copy of both languages. The path helpers live in `src/i18n/paths.ts` for the same reason. The inquiry text and email subject are generated per language by `src/lib/inquiry.ts`.
 - Legal pages: Chinese in `src/content/legal/zh/privacy.mdx` and `terms.mdx`, English in `src/content/legal/en/privacy.mdx` and `terms.mdx`. The English version opens by noting that it is a translation and the Chinese version governs; when changing the terms, change both and update `updated`.
 
+## Storefront: shop, redeem page, account and guide
+
+The storefront used to be its own site, [onboard](https://github.com/abnormalhq/onboard) at `onboard.abnormalhq.com`; it now lives here, under `src/storefront/`, with the same pages, flows and API. Merchant credentials, products, orders, redeem codes and mailboxes all stay in [mail](https://github.com/abnormalhq/mail) (mailhq); this site renders the pages and proxies the API.
+
+| Page                                                                   | English              | Chinese                 |
+| ---------------------------------------------------------------------- | -------------------- | ----------------------- |
+| Buy a mailbox                                                          | `/shop/`             | `/zh/shop/`             |
+| Order (payment return, code collection)                                | `/shop/orders/?id=…` | `/zh/shop/orders/?id=…` |
+| Renewal                                                                | `/shop/renew/?t=…`   | `/zh/shop/renew/?t=…`   |
+| My account (sign-up, sign-in, mailbox management, orders and renewals) | `/shop/account/`     | `/zh/shop/account/`     |
+| Redeem a code and activate mailboxes                                   | `/redeem/`           | `/zh/redeem/`           |
+| Guide (after activation: webmail, mail apps, Claude and ChatGPT)       | `/guide/`            | `/zh/guide/`            |
+
+The order, renewal and account pages depend on a purchase or login session: they are `noindex`, have no Markdown version and are not in the sitemap (`sessionPagePaths` in `src/lib/pages.ts`), but the language redirect applies to them with their query string kept, and the header language toggle carries their own parameters (order number, renewal token, login and reset tokens; `switchHref` in `src/i18n/paths.ts`). Webmail (`https://webmail.abnormalhq.com/`) and the status page (`https://console.abnormalhq.com/status`) are mail's; the webmail sign-in page and the status page link back here.
+
+### Page flow
+
+1. **Redeem code**: once all 16 characters are typed it is checked against mailhq, showing the domains it can activate, its expiry and how many mailboxes are left; missing, used-up, expired and disabled codes are all reported at this step.
+2. **Domain and count**: pick a domain when the code allows several, and a count when more than one can be activated (at most 20 per request).
+3. **Accounts**: one row per mailbox; the username is validated live against mailhq's rules, checked for duplicates and, after a half-second pause, for availability; the password is 8 to 128 characters without whitespace, or "generated randomly".
+4. **Notification address** (optional): after activation mailhq sends a copy of the new mailbox's address, password and server addresses there.
+5. **Activate**: successes are listed with the IMAP / SMTP servers and the webmail entry (passwords are shown only this once, with confetti when everything activates); failures stay in the form with the reason beside them.
+
+Buying happens at `/shop/` with Linux DO Credit or a card (Stripe); the order page collects the code after payment, and "My account" manages mailboxes, orders and subscriptions.
+
+### Code
+
+```text
+src/storefront/
+  i18n.ts, lib/shop-copy.ts   Copy of the redeem page and guide, and of the shop pages (both languages)
+  config.ts, site.ts          Support email, default domain, webmail address; site address and the same-origin API prefix
+  metadata.ts                 <head> of the storefront pages, through pageMetadata in src/lib/metadata.ts
+  components/                 Onboard (redeem page), Guide, Shop, ShopOrder, ShopRenew, ShopAccount and their parts; onboard/ holds the redeem form's state machine
+  lib/                        API clients (api.ts, shop.ts), redeem code / username / password rules (onboard.ts), Markdown of the storefront pages (markdown.ts)
+  mock/                       In-memory redeem and shop APIs for next dev
+  worker/                     The Worker's /api proxy to mail (index.ts redeem, shop.ts shop, proxy.ts shared) and the old domain's redirects (legacy.ts)
+src/app/(en)/{redeem,guide,shop}/, src/app/(zh)/zh/{redeem,guide,shop}/   The pages
+src/app/api/{onboard,shop}/…/route.dev.ts   The mock API endpoints, which exist only under next dev
+docs/storefront-api.md      API contract with mailhq; docs/onboard-contract.json is the same in data form, byte for byte the same as mail's copy
+tests/storefront/           Vitest: validation rules, API clients, mock APIs, the Worker proxy, the form state machine and the contract
+```
+
+The storefront's breakpoints (`max-narrow:`, `max-tablet:`, `max-desk:`, `max-guide:`, `max-guide-lg:`) are in `src/styles/global.css` next to the site's own. The Stripe payment form follows the theme in effect through `<html data-theme>`.
+
+### Backend API
+
+The browser requests this site's own API, and `worker.ts` answers every `/api` request before OpenNext, calling mailhq internally through the `MAIL` Service Binding (`abnormalhq-mailhq`) by a path and method allowlist:
+
+- `/api/onboard/cdk`, `username`, `redeem`: the three POST redeem endpoints.
+- `/api/shop/catalog`, `orders`, `notify`, `account`, `account/mailboxes`: GET; `checkout`, `pay`, `pay/stripe`, `reconcile`, `renewal`, `renew` and the `account/*` endpoints (login, password, Google sign-in, mailbox management): POST.
+
+The Worker keeps the browser's `Origin` and `CF-Connecting-IP` so mailhq can check the origin, rate-limit and verify Turnstile tokens; the redeem endpoints carry no cookies, and the shop endpoints forward only the `mailhq_shop` buyer cookie and the `mailhq_customer` account session. Response headers are built by the Worker, API responses are never cached, and request bodies, passwords and redeem codes are never logged. `vars.MAIL_ORIGIN` in `wrangler.jsonc` (`https://console.abnormalhq.com`) is only the URL of internal requests, so mail's OpenNext recognises its own origin. The full contract is in [docs/storefront-api.md](docs/storefront-api.md).
+
+On mail's side, `ONBOARD_ORIGIN` must list this site's origin, and the sales settings name the storefront address `https://abnormalhq.com` (mail then builds Chinese links under `/zh/`). The Credit application's home page is `https://abnormalhq.com/shop/`, its notification URL `https://abnormalhq.com/api/shop/notify` and its callback URI `https://abnormalhq.com/shop/orders/`.
+
+### Development
+
+`pnpm dev` mounts mock APIs under `/api/onboard/` and `/api/shop/` (`src/storefront/mock/`), with errors in the page language. These redeem codes can be tried directly:
+
+| Redeem code           | Situation                                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ABCD-EFGH-JKLM-NPQR` | Usable once, valid for 30 days                                                                            |
+| `MULT-2345-6789-ABCD` | Usable three times, two domains to choose from, never expires                                             |
+| `TEAM-TEAM-TEAM-TEAM` | Usable 1000 times (mail's cap), more than the 20 one request can activate                                 |
+| `PART-PART-PART-PART` | Usable three times; the 2nd, 4th... of a batch fail with a simulated server error, to see partial success |
+| `BARE-BARE-BARE-BARE` | Usable twice; `legacy.abnormal.bid` simulates no support for the per-mailbox quota                        |
+| `USED-USED-USED-USED` | Used up                                                                                                   |
+| `EXPD-EXPD-EXPD-EXPD` | Expired                                                                                                   |
+| `GONE-GONE-GONE-GONE` | Disabled                                                                                                  |
+
+In the mock API `admin`, `support`, `postmaster`, `abuse`, `noreply`, `hello` and `kunish` are taken; a notification address ending in `@bounce.example` simulates a delivery failure. The demo plan at `/shop/` costs 7.50 LDC after a 25% discount, and paying only simulates success. Mock login sends no email: login and registration links are printed in the dev server terminal; after login "My mailboxes" works on the demo orders, in memory only.
+
+To try the real API against a local mail: in mail set `ONBOARD_ORIGIN=http://localhost:8786` in `.dev.vars` and run `pnpm cf:preview --port 8788`; here run `cp .dev.vars.example .dev.vars` and `pnpm cf:preview`, then open `http://localhost:8786`. When mail is not running the API answers `503` with `kind: "unavailable"` and never falls back to production.
+
+### Retiring onboard
+
+`onboard.abnormalhq.com` (and `onboard.abnormal.bid`) are custom domains of this Worker (`routes` in `wrangler.jsonc`). `src/storefront/worker/legacy.ts` 301s every page there to the same page here (`/` → `/zh/redeem/`, `/en/shop/orders/?id=…` → `/shop/orders/?id=…` and so on, with the query string), and the API under `/api` keeps answering on that host, so Credit notifications and links in mail already sent keep working. Buyers' purchase and login sessions were host cookies of the old domain, so they sign in again once.
+
+The order of the switch:
+
+1. Deploy mail with `ONBOARD_ORIGIN` listing both `https://abnormalhq.com` and `https://onboard.abnormalhq.com` (mail's links for the old host keep the old layout).
+2. Free the domains `onboard.abnormalhq.com` and `onboard.abnormal.bid` from the `abnormalhq-onboard` Worker: merge the onboard change that empties its `routes` (its deploy detaches them), or remove them in the Cloudflare dashboard. Then merge this change right away, so its deploy binds them here along with the new pages and API; the old domain is down only in between. If Workers Builds says a domain is still attached to the other Worker, detach it and retry the build.
+3. On mailhq's sales page set the storefront address to `https://abnormalhq.com` and the redeem page to `https://abnormalhq.com/redeem/`; in the Credit application settings change the home page, notification URL and callback URI to the addresses above.
+4. Point the `onboard.abnormal.bid` Redirect Rule at `https://abnormalhq.com` directly, delete the `abnormalhq-onboard` Worker and disconnect its Workers Builds, and archive the onboard repository.
+5. Later, once nothing reaches the old host, remove `https://onboard.abnormalhq.com` from mail's `ONBOARD_ORIGIN` and from `redeem.storefrontOrigins` in both copies of `docs/onboard-contract.json`.
+
 ## Working with the other sites
 
-The site itself takes no payments and activates no mailboxes; the actual work happens on the sites below. Their addresses are generated in one place by `linksFor(lang)` in `src/data/site.ts` (onboard's English pages are under `/en/`), and the header, hero, "Start here" entry cards, service cards, activation process, closing panel and footer all read them from there, so a domain change touches one place.
-
-| Entry                                                                  | Address                                        | Repository                                       |
-| ---------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------ |
-| Buy a mailbox                                                          | `https://onboard.abnormalhq.com/shop/`         | [onboard](https://github.com/abnormalhq/onboard) |
-| Redeem and activate                                                    | `https://onboard.abnormalhq.com/`              | onboard                                          |
-| My account (sign-up, sign-in, mailbox management, orders and renewals) | `https://onboard.abnormalhq.com/shop/account/` | onboard                                          |
-| Guide                                                                  | `https://onboard.abnormalhq.com/guide/`        | onboard                                          |
-| Webmail                                                                | `https://webmail.abnormalhq.com/`              | [mail](https://github.com/abnormalhq/mail)       |
-| Service status                                                         | `https://console.abnormalhq.com/status`        | mail                                             |
-
-The download page `/download/` (Chinese `/zh/download/`, linked from the "Product" column in the footer) offers the desktop client (`desktop/` in [mail](https://github.com/abnormalhq/mail)) as a macOS `.dmg` and Windows installers (one each for x64 and Arm), plus the Homebrew install command. The installers are uploaded by the mail repository's release flow to the public R2 bucket `downloads.abnormalhq.com`: `desktop/latest/` holds the latest version under fixed file names, and the download page links those addresses directly, so a new release needs no change to the site; `desktop/latest.json` lists the version number and SHA-256. The addresses are collected in `desktopDownloads` in `src/data/site.ts`.
+| Entry                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Address                                 | Repository                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------ |
+| Buy a mailbox, redeem, my account, guide                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | this site (see "Storefront" above)      | this repository                            |
+| Webmail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | `https://webmail.abnormalhq.com/`       | [mail](https://github.com/abnormalhq/mail) |
+| Service status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `https://console.abnormalhq.com/status` | mail                                       |
+| The download page `/download/` (Chinese `/zh/download/`, linked from the "Product" column in the footer) offers the desktop client (`desktop/` in [mail](https://github.com/abnormalhq/mail)) as a macOS `.dmg` and Windows installers (one each for x64 and Arm), plus the Homebrew install command. The installers are uploaded by the mail repository's release flow to the public R2 bucket `downloads.abnormalhq.com`: `desktop/latest/` holds the latest version under fixed file names, and the download page links those addresses directly, so a new release needs no change to the site; `desktop/latest.json` lists the version number and SHA-256. The addresses are collected in `desktopDownloads` in `src/data/site.ts`. |
 
 The download page also lists the current version (version number and release date) and past releases (each version's installers per platform, with sizes and SHA-256 checksums). The data comes from `desktop/releases.json` in the same bucket, regenerated by mail's release flow from each version's `desktop/<version>/latest.json`, sorted newest first, with `latest` naming the current version. The download page (`/download/`, `/zh/download/`) and its Markdown version (`/md/download/`, `/md/zh/download/`) are therefore not prerendered: they render on the Worker on every request and read this list (`src/lib/releases.ts`); the request is cached at the Cloudflare edge for 60 seconds, so after a new mail release the site needs no redeploy and shows it within about a minute. All other pages are still prerendered at build time. When `releases.json` cannot be read, it falls back to `desktop/latest.json` and shows only the current version; when neither can be read (3 second timeout) the page still returns, just without version information. The download buttons link to `desktop/latest/`, which is always the latest version.
 
-In the other direction: the "Website" link in onboard's header and footer, and the "Website" link on the webmail sign-in page and the status page, all point back to `https://abnormalhq.com/`.
+In the other direction: the "Website" link on the webmail sign-in page and the status page points back to `https://abnormalhq.com/`.
 
 The right side of the header has "My account" (buyer sign-up, sign-in and mailbox management), "Log in" (webmail) and "Buy a mailbox". The home page strings the buyer journey together from top to bottom: hero (Buy a mailbox / Create an account, with "Log in to manage mailboxes · Log in to webmail" below) → promo video (one per language, rendered from `video/`, see "Promo video" below) → 01 What's inside (nine webmail features in a hairline grid, then where the mailbox can be used: webmail, the desktop app on the download page, and phones or any IMAP / SMTP app via the guide; copy under `features`, and its "Features" header link has `wide: true`, so the desktop bar shows it only from 1100px up, where five links fit; below 1024px (`--breakpoint-nav`) "My account" and "Log in" also leave the bar for the hero and footer, since the English header has no room for them there) → 02 Start here (four cards: Buy a mailbox, My account, Redeem, Webmail, plus links to the guide, status and support) → 03 Email services (the personal mailbox goes straight to the shop, the other three are inquiries) → 04 How it works (Create an account → Choose a plan → Set up mailboxes under "My account" → Sign in and send, each step with a link; "Create an account" opens the account page's sign-up form directly with `?mode=register`) → 05 FAQ → closing panel (Buy a mailbox + talk to us about custom needs).
 
@@ -72,7 +152,7 @@ Follows the content-site checklist from [Is Your Site Agent-Ready](https://isita
 
 Content negotiation lives in `worker.ts`, which `pnpm dev` does not go through; to test it use `pnpm cf:preview`, or open the addresses under `/md/` directly.
 
-MCP, OAuth, API Catalog, Agent Skills and commerce protocols are not implemented: the site has no API and takes no payments, so those checks do not apply to it. The purchase flow is in onboard.
+MCP, OAuth, API Catalog, Agent Skills and commerce protocols are not implemented. The storefront's API is the browser's same-origin proxy to mail and is not a public API; the shop page's Markdown points agents at the public catalog endpoint `/api/shop/catalog` for plans and prices.
 
 ## Search engines and social cards
 
@@ -97,9 +177,9 @@ The structured data only contains what is visible on the page; to add a question
 
 ## Development
 
-The development setup matches [mail](https://github.com/abnormalhq/mail), [onboard](https://github.com/abnormalhq/onboard) and [ui](https://github.com/abnormalhq/ui): Node.js 24 (see `.node-version`; `engines` in `package.json` states the minimum the toolchain actually needs, 22.22.1, and `tests/toolchain.test.ts` checks it is not below any direct dependency's requirement), pnpm 12 (version in `packageManager` in `package.json`), TypeScript, Prettier (print width 120), ESLint, husky + lint-staged + commitlint.
+The development setup matches [mail](https://github.com/abnormalhq/mail) and [ui](https://github.com/abnormalhq/ui): Node.js 24 (see `.node-version`; `engines` in `package.json` states the minimum the toolchain actually needs, 22.22.1, and `tests/toolchain.test.ts` checks it is not below any direct dependency's requirement), pnpm 12 (version in `packageManager` in `package.json`), TypeScript, Prettier (print width 120), ESLint, husky + lint-staged + commitlint.
 
-Type checking uses TypeScript 7's `tsc`. Dependencies follow [Microsoft's recommended dual-package aliasing](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0): `@typescript/native` points at TypeScript 7, and `typescript` points at the `@typescript/typescript6` compatibility package for the Next.js build and ESLint (typescript-eslint does not support TS 7 yet). Keep both aliases when upgrading dependencies, so all four repositories check the same registry components with the same compiler. `tsconfig.json` sets `useDefineForClassFields: true` explicitly: tsc and `node --test` already use define semantics for class fields with an ES2022 target, but Next.js's SWC only honors an explicit value and compiles with assignment semantics otherwise, so the build would differ from the tests.
+Type checking uses TypeScript 7's `tsc`. Dependencies follow [Microsoft's recommended dual-package aliasing](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0): `@typescript/native` points at TypeScript 7, and `typescript` points at the `@typescript/typescript6` compatibility package for the Next.js build and ESLint (typescript-eslint does not support TS 7 yet). Keep both aliases when upgrading dependencies, so all the repositories check the same registry components with the same compiler. `tsconfig.json` sets `useDefineForClassFields: true` explicitly: tsc and `node --test` already use define semantics for class fields with an ES2022 target, but Next.js's SWC only honors an explicit value and compiles with assignment semantics otherwise, so the build would differ from the tests.
 
 ```sh
 pnpm install
@@ -111,7 +191,6 @@ The dev server is at `http://localhost:4320`, and the local workerd preview at `
 | Repository | `next dev` | Local Worker preview                 |
 | ---------- | ---------- | ------------------------------------ |
 | abnormalhq | 4320       | 8786 (`pnpm cf:preview`)             |
-| onboard    | 4321       | 8787 (`pnpm preview`)                |
 | mail       | 3000       | 8788 (`pnpm cf:preview --port 8788`) |
 | ui         | 4342       | 4341 (`pnpm serve`)                  |
 
@@ -119,7 +198,7 @@ The dev server is at `http://localhost:4320`, and the local workerd preview at `
 pnpm check         # lint + typecheck + test
 pnpm lint          # ESLint (eslint-config-next)
 pnpm typecheck     # next typegen and TypeScript check
-pnpm test          # inquiry logic, copy structure, page metadata, legal documents, agent entry points, cache headers and theme preference tests
+pnpm test          # node --test (tests/*.test.ts: inquiry logic, copy, metadata, legal documents, agent entry points, language, old-domain redirects, cache, theme), then vitest (tests/storefront/)
 pnpm format:check  # format check
 pnpm build         # next build
 pnpm cf:preview    # OpenNext build, previewed in local workerd (port 8786)
@@ -136,7 +215,8 @@ src/
   app/            Routes: (en)/ English pages (default language, at the root), (zh)/zh/ Chinese pages, each with its own root layout; global-not-found.tsx is the 404 shared by both languages
   components/     Page sections such as SiteLayout, header, Hero, Features, email service cards, process, FAQ and the inquiry dialog; ui/ holds components installed from the registry
   content/legal/  Privacy policy and terms of service written in MDX, one set each in zh/ and en/
-  data/site.ts    Public contact details, linked-site addresses (linksFor), promo videos (promoVideos) and desktop client download addresses
+  storefront/     Shop, redeem page, buyer account and guide, and the Worker's API proxy to mail (see "Storefront")
+  data/site.ts    Public contact details, buyer-journey addresses (linksFor), promo videos (promoVideos) and desktop client download addresses
   i18n/           Chinese and English copy (zh.ts, en.ts, types.ts) and language path helpers (paths.ts)
   lib/            inquiry.ts pure functions for inquiry copy and contact details; metadata.ts page SEO and social cards; structured-data.ts structured data (JSON-LD); legal.ts frontmatter validation and table of contents for the legal documents; template.ts copy templates; time.ts media times for the video player; pages.ts page list; markdown.ts and negotiate.ts Markdown and content negotiation for agents; cache.ts browser cache headers
   scripts/        theme-init.js: the theme initialization script inlined into the head
@@ -144,9 +224,9 @@ src/
 public/           Fonts, social images (og/), promo videos (video/) and other files served directly by the static asset service
 scripts/          og-images.ts: generates the social images in public/og/
 video/            Remotion project for the promo video, rendered into public/video/ (see "Promo video")
-tests/            Regression tests for inquiry logic, copy structure, page metadata, legal documents, agent entry points, cache headers and theme behavior
+tests/            Regression tests for inquiry logic, copy structure, page metadata, legal documents, agent entry points, cache headers and theme behavior; tests/storefront/ holds the storefront's Vitest suite
 open-next.config.ts  OpenNext configuration: prerendered output lives in read-only static assets
-worker.ts            Worker entry: Markdown content negotiation and cache headers
+worker.ts            Worker entry: the storefront API, the old onboard domain's redirects, Markdown content negotiation, the language redirect and cache headers
 wrangler.jsonc       Cloudflare Worker and static asset configuration
 ```
 
@@ -154,7 +234,7 @@ Layout, typography, states and responsive design all use Tailwind utilities. Onl
 
 ## Visual design
 
-The visuals are unified with [mailhq](https://github.com/abnormalhq/mail) and [onboard](https://github.com/abnormalhq/onboard), using the abnormal brand (direction A): ink on warm gray paper, with the dark theme being the ink itself; the primary color is the ink, and highlight yellow is the only chromatic brand color. Body text is Inter, headings Bricolage Grotesque, code JetBrains Mono, laid over a Resend-style structure: 1px hairline dividers, unfilled panels, no shadows.
+The visuals are unified with [mailhq](https://github.com/abnormalhq/mail), using the abnormal brand (direction A): ink on warm gray paper, with the dark theme being the ink itself; the primary color is the ink, and highlight yellow is the only chromatic brand color. Body text is Inter, headings Bricolage Grotesque, code JetBrains Mono, laid over a Resend-style structure: 1px hairline dividers, unfilled panels, no shadows.
 
 - Tokens (colors, radii, focus color) live in the registry's `@abnormal/theme`, installed into `src/styles/abnormal.css`; to change colors, change the ui repository. Tailwind utilities use the mapped names `text-foreground`, `text-muted-foreground`, `text-brand` and so on.
 - The brand color is the ink and is used only on primary buttons: `#141412` with white text in light mode (18.4:1), `#f0f0ea` with ink text in dark mode (16.1:1). Check icons and link hovers use ink or gray.
@@ -217,7 +297,7 @@ Frontmatter fields: `title`, `description` (the page meta description), `eyebrow
 
 `tests/legal.test.ts` compiles the four documents with the same plugins as `next.config.ts` (listed in `src/content/legal/mdx.ts`) and requires the Chinese and English versions of the same page to match in the number of second-level headings, `effective` and `updated`, the number of `highlights` and the `eyebrow`; changing only one language makes the test complain.
 
-The two texts cover the marketing site, the shop and activation page (onboard), and webmail and the status page (mail). The parts that correspond to system behavior (subscription periods counted from successful payment, the 7-day grace period and 30-day retention period after expiry, the purchase session cookie, 15-minute sign-in links, where data flows for AI features) are written from the mail repository's `src/lib/shop/` and onboard's copy; update them when that logic changes.
+The two texts cover the website (including the shop, the redeem page and the buyer account), and webmail and the status page (mail). The parts that correspond to system behavior (subscription periods counted from successful payment, the 7-day grace period and 30-day retention period after expiry, the purchase session cookie, 15-minute sign-in links, where data flows for AI features) are written from the mail repository's `src/lib/shop/` and the storefront copy (`src/storefront/`); update them when that logic changes.
 
 The following are business conventions rather than system behavior, and should be checked against reality before operating for real: the order record retention period (12 months), refund rules (full refund for unused redeem codes, in principle no refund once activated, discretionary refund within 48 hours of a subscription charge), response and acceptance deadlines, the circumstances in which administrators access mailboxes, governing law and jurisdiction, and whether the name of the operating entity needs to be added.
 
@@ -225,7 +305,7 @@ The following are business conventions rather than system behavior, and should b
 
 The site is deployed through OpenNext as a Cloudflare Worker (`wrangler.jsonc`, Worker name `abnormalhq`, entry `worker.ts`, which wraps the generated `.open-next/worker.js`). All pages are prerendered, with the prerendered output in read-only static assets (`open-next.config.ts`), so no R2 or queue is needed; static files such as fonts are served directly by the static asset service. Production releases come from [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) watching the `main` branch directly: every push is checked, built and deployed automatically; if any step fails nothing is deployed and the last successful version stays live.
 
-`.github/workflows/ci.yml` only runs the same checks and build on PRs and pushes to `main`; it does not release and needs no Cloudflare credentials. As in mail and onboard, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
+`.github/workflows/ci.yml` only runs the same checks and build on PRs and pushes to `main`; it does not release and needs no Cloudflare credentials. As in mail, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
 
 ### One-time Cloudflare setup
 

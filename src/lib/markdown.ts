@@ -1,5 +1,6 @@
 /**
- * Markdown for agents: the home page is generated from the UI copy, the legal pages use the MDX body, and llms.txt is the index of both.
+ * Markdown for agents: the home page is generated from the UI copy, the legal pages use the MDX body, the storefront pages (redeem, guide, shop)
+ * come from src/storefront/lib/markdown.ts, and llms.txt is the index of all of them.
  * The copy exists only once, in src/i18n; change the UI copy and this follows.
  */
 import {
@@ -9,6 +10,7 @@ import {
   linksFor,
   site,
   type Lang,
+  type LinkKey,
   type PromoVideo,
 } from "../data/site.ts";
 import { copies, langs, localePath } from "../i18n/index.ts";
@@ -17,14 +19,21 @@ import { contactChannels } from "./inquiry.ts";
 import { markdownResponse } from "./markdown-response.ts";
 import { fetchDesktopReleases, fileLabel, formatSize, releaseDate, type DesktopReleases } from "./releases.ts";
 import { pageFor, pagePaths } from "./pages.ts";
+import { storeMarkdownPaths, storeTitle } from "../storefront/lib/markdown.ts";
 
 const absolute = (path: string) => `${site.url}${path}`;
+/** linksFor gives site paths for the storefront pages; Markdown needs full addresses. */
+const absoluteLinks = (lang: Lang) =>
+  Object.fromEntries(Object.entries(linksFor(lang)).map(([key, href]) => [key, absoluteUrl(href)])) as Record<
+    LinkKey,
+    string
+  >;
 const paragraphs = (lines: readonly string[]) => lines.join("\n\n");
 const list = (items: readonly string[]) => items.map((item) => `- ${item}`).join("\n");
 
 export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVideo(lang)): string {
   const t = copies[lang];
-  const links = linksFor(lang);
+  const links = absoluteLinks(lang);
   const email = site.contact.email;
 
   return `${paragraphs([
@@ -153,11 +162,12 @@ export function legalMarkdown(lang: Lang, frontmatter: LegalFrontmatter, body: s
 
 function llmsSection(lang: Lang, heading: string): string {
   const t = copies[lang];
-  const links = linksFor(lang);
+  const links = absoluteLinks(lang);
   return paragraphs([
     `## ${heading}`,
     list([
       `[${t.meta.title}](${absolute(pageFor(lang, "/").markdown)})`,
+      ...storeMarkdownPaths.map((path) => `[${storeTitle(lang, path)}](${absolute(pageFor(lang, path).markdown)})`),
       `[${t.download.title}](${absolute(pageFor(lang, "/download/").markdown)})`,
       ...t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`),
       ...[...t.footer.productLinks, ...t.footer.supportLinks].map((item) => `[${item.label}](${links[item.link]})`),
