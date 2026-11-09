@@ -100,10 +100,11 @@ export function ShopAccount({ lang }: { lang: Lang }) {
   const [forgotTo, setForgotTo] = useState("");
   // Only the login form needs it: read the Turnstile site key from the catalog (null when verification is off).
   const [turnstileSiteKey, setTurnstileSiteKey] = useState<string | null>(null);
-  const check = useTurnstile(turnstileSiteKey, LOGIN_TURNSTILE_ACTION, lang);
 
   // The form appears only when logged out and not confirming a login link or resetting a password.
   const showsLoginForm = account === null && !loginToken && !resetToken && !googleReturn;
+  // The widget lives as long as the form: hiding the form (after logging in) removes it, and showing it again (after logging out) renders a new one into the new container.
+  const check = useTurnstile(showsLoginForm ? turnstileSiteKey : null, LOGIN_TURNSTILE_ACTION, lang);
   useEffect(() => {
     if (!showsLoginForm) return;
     const controller = new AbortController();

@@ -78,6 +78,9 @@ test("the toggle on the storefront's session pages carries their own parameters,
   assert.equal(switchHref("/shop/account/", "zh", `?login=${login}`), `/zh/shop/account/?login=${login}&lang=zh`);
   assert.equal(switchHref("/zh/shop/account/", "en", `?reset=${login}`), `/shop/account/?reset=${login}&lang=en`);
   assert.equal(switchHref("/shop/account/", "zh", "?login=short&reset=../x"), "/zh/shop/account/?lang=zh");
+  // The sign-up form stays the sign-up form; no other mode is carried.
+  assert.equal(switchHref("/shop/account/", "zh", "?mode=register"), "/zh/shop/account/?mode=register&lang=zh");
+  assert.equal(switchHref("/shop/account/", "zh", "?mode=admin"), "/zh/shop/account/?lang=zh");
   assert.equal(switchHref("/redeem/", "zh", `?login=${login}`), "/zh/redeem/?lang=zh");
 });
 

@@ -629,7 +629,8 @@ export class MockShopStore {
       // Locally, pressing "Pay" counts as paid, as if the payment provider sent the buyer back to the order page: like mail's payment return address, use the form's lang,
       // and when an old page does not send it, the language at order time.
       const lang = body.lang === "en" || body.lang === "zh" ? body.lang : stored.locale;
-      const prefix = lang === "en" ? "/en" : "";
+      // The site's layout: English at the root, Chinese under /zh/.
+      const prefix = lang === "zh" ? "/zh" : "";
       return new Response(null, {
         status: 303,
         headers: {

@@ -30,7 +30,8 @@ export function legacyPath(pathname: string): string {
   }
   const prefix = /^\/(en|zh)(?=\/|$)/.exec(pathname);
   const lang: Lang = prefix?.[1] === "en" ? "en" : "zh";
-  let rest = prefix ? pathname.slice(prefix[0].length) : pathname;
+  // Collapse repeated slashes: the result is only ever a path on the main site, never something a URL parser could read as another host (//evil.example/).
+  let rest = (prefix ? pathname.slice(prefix[0].length) : pathname).replace(/\/{2,}/g, "/");
   if (!rest || rest === "/") rest = "/redeem/";
   if (!rest.endsWith("/") && !/\.[a-z0-9]+$/i.test(rest)) rest += "/";
   return localePath(lang, rest);
@@ -40,7 +41,10 @@ export function legacyPath(pathname: string): string {
 export function legacyRedirect(request: Request): Response | undefined {
   const url = new URL(request.url);
   if (!legacyHosts.includes(url.hostname)) return undefined;
-  const target = new URL(`${legacyPath(url.pathname)}${url.search}`, site.url);
+  // The origin is fixed and the path is assigned on its own, so no path can change the host.
+  const target = new URL(site.url);
+  target.pathname = legacyPath(url.pathname);
+  target.search = url.search;
   // 308 keeps the method and body for anything that is not a plain page load.
   const status = request.method === "GET" || request.method === "HEAD" ? 301 : 308;
   return new Response(null, { status, headers: { Location: target.href, "Cache-Control": "public, max-age=3600" } });

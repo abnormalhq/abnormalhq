@@ -136,7 +136,7 @@ test("dev shop: demo payment goes nowhere near the network, the same browser col
   expect((await pending.json()).order.status).toBe("pending");
   const pay = await store.fetch("pay", request("pay", { cookie, body: { orderId } }));
   expect(pay.status).toBe(303);
-  expect(pay.headers.get("Location")).toBe(`/shop/orders/?id=${orderId}`);
+  expect(pay.headers.get("Location")).toBe(`/zh/shop/orders/?id=${orderId}`);
   expect(pay.headers.get("Location")!).not.toMatch(/mailhq_shop|ABCD|token|credit\.linux\.do/);
   const paid = await (await getOrder(store, orderId, cookie)).json();
   expect(paid.order.status).toBe("paid");
@@ -296,7 +296,7 @@ test("dev shop: local 127.0.0.1 Host, HTTPS cookies and subpaths are handled cor
   expect(secure.headers.get("set-cookie")!).toMatch(/; Secure$/);
   const { orderId, cookie } = await checkout(store, undefined, "/demo");
   const pay = await store.fetch("pay", request("pay", { cookie, base: "/demo", body: { orderId } }));
-  expect(pay.headers.get("Location")).toBe(`/demo/shop/orders/?id=${orderId}`);
+  expect(pay.headers.get("Location")).toBe(`/demo/zh/shop/orders/?id=${orderId}`);
 });
 
 test("dev shop: after paying for a subscription plan the order carries a renewal token, renewal orders issue no code and extend the expiry", async () => {
@@ -514,9 +514,9 @@ test("dev shop: payment returns to the order page in the form's language (the or
   const store = new MockShopStore(() => NOW);
   const { orderId, cookie } = await checkout(store);
   const paid = await store.fetch("pay", request("pay", { cookie, body: { orderId, lang: "en" } }));
-  expect(paid.headers.get("location")).toBe(`/en/shop/orders/?id=${orderId}`);
+  expect(paid.headers.get("location")).toBe(`/shop/orders/?id=${orderId}`);
   const zh = await store.fetch("pay", request("pay", { cookie, body: { orderId, lang: "zh" } }));
-  expect(zh.headers.get("location")).toBe(`/shop/orders/?id=${orderId}`);
+  expect(zh.headers.get("location")).toBe(`/zh/shop/orders/?id=${orderId}`);
   // An old page's form sends no lang: like mail's payment return address, go back to the order-time language rather than this request's language.
   const bought = await store.fetch(
     "checkout",
@@ -525,12 +525,12 @@ test("dev shop: payment returns to the order page in the form's language (the or
   const englishOrder = ((await bought.json()) as { orderId: string }).orderId;
   const englishCookie = bought.headers.get("set-cookie")!.split(";")[0];
   const legacy = await store.fetch("pay", request("pay", { cookie: englishCookie, body: { orderId: englishOrder } }));
-  expect(legacy.headers.get("location")).toBe(`/en/shop/orders/?id=${englishOrder}`);
+  expect(legacy.headers.get("location")).toBe(`/shop/orders/?id=${englishOrder}`);
   const legacyChinese = await store.fetch(
     "pay",
     request("pay", { cookie, headers: { "Accept-Language": "en" }, body: { orderId } }),
   );
-  expect(legacyChinese.headers.get("location")).toBe(`/shop/orders/?id=${orderId}`);
+  expect(legacyChinese.headers.get("location")).toBe(`/zh/shop/orders/?id=${orderId}`);
   const english = await store.fetch(
     "orders",
     request("orders?id=abcdefghijklmno", { headers: { "Accept-Language": "en" } }),

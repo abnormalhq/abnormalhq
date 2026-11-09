@@ -45,6 +45,14 @@ test("requests to the old host are 301-redirected to the main site with the quer
   );
   // A form posted to the old host keeps its method and body.
   assert.equal(legacyRedirect(new Request("https://onboard.abnormalhq.com/shop/", { method: "POST" }))?.status, 308);
+  // Repeated slashes never turn the path into another host.
+  for (const path of ["/en//evil.example/", "//evil.example/", "/en///evil.example/x", "/zh//evil.example"]) {
+    const location = new URL(
+      legacyRedirect(new Request(`https://onboard.abnormalhq.com${path}`))!.headers.get("location")!,
+    );
+    assert.equal(location.origin, "https://abnormalhq.com", path);
+  }
+  assert.equal(legacyPath("/en//evil.example/"), "/evil.example/");
   assert.equal(legacyRedirect(new Request("https://abnormalhq.com/shop/")), undefined);
   assert.equal(legacyRedirect(new Request("https://www.abnormalhq.com/")), undefined);
 });

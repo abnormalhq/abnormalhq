@@ -39,13 +39,13 @@ export const langParam = "lang";
 
 /**
  * The query parameters each storefront page carries across a language switch, and each one's shape: the order number and payment error on the order page,
- * the renewal token on the renewal page, the unconfirmed login token and unused password reset token on the account page. Parameters not in the table are
+ * the renewal token on the renewal page, the unconfirmed login token, unused password reset token and the sign-up form (mode=register) on the account page. Parameters not in the table are
  * never carried, nor are malformed or repeated ones, so unrelated or forged values are not moved into the new address.
  */
 const carriedParams: Readonly<Record<string, Readonly<Record<string, RegExp>>>> = {
   "/shop/orders/": { id: /^[a-z0-9]{15}$/, error: /^payment$/ },
   "/shop/renew/": { t: /^[A-Za-z0-9._-]{1,256}$/ },
-  "/shop/account/": { login: /^[A-Za-z0-9_-]{43}$/, reset: /^[A-Za-z0-9_-]{43}$/ },
+  "/shop/account/": { login: /^[A-Za-z0-9_-]{43}$/, reset: /^[A-Za-z0-9_-]{43}$/, mode: /^register$/ },
 };
 
 /**
