@@ -8,6 +8,20 @@ const eslintConfig = defineConfig([
   // such as context.getFilename(); @eslint/compat wraps them to add those back. Drop it once they support ESLint 10 natively.
   ...fixupConfigRules(nextVitals),
   ...fixupConfigRules(nextTs),
+  {
+    // A bare <select> shows the browser's own arrow pressed against the right edge; NativeSelect draws the chevron with room for it.
+    files: ["**/*.tsx"],
+    ignores: ["src/components/ui/native-select.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXOpeningElement[name.name='select']",
+          message: "Use NativeSelect from @/components/ui/native-select instead of a bare <select>.",
+        },
+      ],
+    },
+  },
   globalIgnores([
     ".next/**",
     ".open-next/**",
