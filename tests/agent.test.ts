@@ -9,7 +9,7 @@ import { markdownUrl, varyOnAccept, wantsMarkdown } from "../src/lib/negotiate.t
 import { pages } from "../src/lib/pages.ts";
 import { storeMarkdown, storeMarkdownPaths } from "../src/storefront/lib/markdown.ts";
 import { parseReleaseIndex } from "../src/lib/releases.ts";
-import { releaseIndex } from "./support/releases.ts";
+import { releaseIndex, releaseIndexWithLinux } from "./support/releases.ts";
 
 test("every page has a Markdown path under /md/ that mirrors its URL", () => {
   assert.deepEqual(
@@ -86,6 +86,40 @@ for (const lang of ["zh", "en"] as const) {
     assert.ok(!without.includes(d.currentLabel));
     assert.ok(!without.includes(d.historyTitle));
     assert.ok(without.includes(`(${desktopDownloads.macos})`));
+  });
+
+  test(`${lang} download Markdown offers Linux only when the current release has Linux packages`, () => {
+    const d = copies[lang].download;
+    for (const markdown of [
+      downloadMarkdown(lang, parseReleaseIndex(releaseIndex)),
+      downloadMarkdown(lang, undefined),
+    ]) {
+      assert.ok(!markdown.includes(`## ${d.linux.name}`));
+      assert.ok(!markdown.includes(".deb"));
+      assert.ok(!markdown.includes("apt install"));
+      assert.ok(markdown.includes(d.intro));
+    }
+
+    const markdown = downloadMarkdown(lang, parseReleaseIndex(releaseIndexWithLinux));
+    assert.ok(markdown.includes(d.introWithLinux));
+    const linux = markdown.indexOf(`## ${d.linux.name}`);
+    assert.ok(linux > markdown.indexOf(`## ${d.windows.name}`) && linux < markdown.indexOf(`## ${d.signInTitle}`));
+    assert.ok(markdown.includes(d.linux.requirement));
+    assert.ok(
+      markdown.includes(
+        `[${d.linux.download}](https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-x64.deb)`,
+      ),
+    );
+    assert.ok(
+      markdown.includes(
+        `[${d.linux.armDownload}](https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-arm64.deb)`,
+      ),
+    );
+    assert.ok(markdown.includes("```sh\nsudo apt install ./Abnormal-Mail-0.3.0-linux-x64.deb\n```"));
+    assert.ok(markdown.includes(d.linux.note));
+    // No fixed latest/ address for Linux: those do not exist until a release has Linux packages.
+    assert.ok(!markdown.includes("/desktop/latest/Abnormal-Mail-linux"));
+    assert.ok(!markdown.includes("undefined"));
   });
 }
 

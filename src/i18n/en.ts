@@ -412,6 +412,8 @@ export const en: Copy = {
     title: "Your mail on the desktop",
     intro:
       "A native app for macOS and Windows. Sign in with your mailbox address and password; folders, read state and stars stay in sync with webmail.",
+    introWithLinux:
+      "A native app for macOS, Windows and Linux. Sign in with your mailbox address and password; folders, read state and stars stay in sync with webmail.",
     macos: {
       name: "macOS",
       requirement: "macOS 11 or later, for Apple silicon and Intel.",
@@ -427,6 +429,14 @@ export const en: Copy = {
       download: "Download the installer",
       armDownload: "On an Arm PC (such as a Snapdragon laptop)? Get the Arm version",
       firstLaunch: "The installer is not signed yet. If SmartScreen appears, click More info, then Run anyway.",
+    },
+    linux: {
+      name: "Linux",
+      requirement: "Debian, Ubuntu and their relatives (64-bit, x64 or Arm).",
+      download: "Download .deb",
+      armDownload: "On an Arm machine? Get the Arm version",
+      installLabel: "Install it with apt, from the folder you downloaded it to:",
+      note: "The package brings in WebKitGTK and the other libraries it needs. On other distributions, you can build the app from source.",
     },
     signInTitle: "Sign in",
     signInSteps: [

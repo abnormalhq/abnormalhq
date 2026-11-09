@@ -8,7 +8,7 @@
  */
 import { desktopDownloads } from "../data/site.ts";
 
-export type DesktopPlatform = "macos" | "windows";
+export type DesktopPlatform = "macos" | "windows" | "linux";
 
 export interface DesktopFile {
   platform: DesktopPlatform;
@@ -35,12 +35,36 @@ export interface DesktopReleases {
   previous: DesktopRelease[];
 }
 
-const fileOrder = ["macos-universal", "windows-x64", "windows-arm64"];
+const fileOrder = ["macos-universal", "windows-x64", "windows-arm64", "linux-x64", "linux-arm64"];
 
 /** The file's name on the page, the same in both languages. */
 export function fileLabel(file: Pick<DesktopFile, "platform" | "arch">): string {
   if (file.platform === "macos") return "macOS";
-  return file.arch === "arm64" ? "Windows Arm" : "Windows x64";
+  const name = file.platform === "linux" ? "Linux" : "Windows";
+  return file.arch === "arm64" ? `${name} Arm` : `${name} x64`;
+}
+
+export interface LinuxDownload {
+  /** The main download: x64 when the release has it. */
+  file: DesktopFile;
+  /** The Arm package, offered as a second link next to x64. */
+  arm?: DesktopFile;
+  /** Installs the downloaded package with apt, which also brings in the libraries it depends on. */
+  install: string;
+}
+
+/**
+ * The Linux packages of the current release. Unlike macOS and Windows there is no fixed desktop/latest/ address to fall back on:
+ * those only exist once a release has Linux packages, so the page offers Linux only when the release list says it has them,
+ * linking each package's versioned address.
+ */
+export function linuxDownload(releases: DesktopReleases | undefined): LinuxDownload | undefined {
+  const files = releases?.current.files.filter((file) => file.platform === "linux") ?? [];
+  const x64 = files.find((file) => file.arch === "x64");
+  const arm64 = files.find((file) => file.arch === "arm64");
+  const file = x64 ?? arm64;
+  if (!file) return undefined;
+  return { file, arm: x64 ? arm64 : undefined, install: `sudo apt install ./${file.name}` };
 }
 
 /** Decimal MB, close to how Finder and Explorer write it, with one decimal place. */
@@ -66,9 +90,11 @@ function parseFile(value: unknown): DesktopFile | undefined {
   if (!isObject(value)) throw new Error("desktop releases: a file is not an object");
   const platform = value.platform;
   const arch = value.arch;
-  // If other platforms or architectures show up later, the download page does not know them yet; skip them rather than fail the whole build.
-  if (platform !== "macos" && platform !== "windows") return undefined;
+  // If other platforms, architectures or package kinds show up later, the download page does not know them yet; skip them rather than fail the whole page.
+  // On Linux the page only knows the .deb packages.
+  if (platform !== "macos" && platform !== "windows" && platform !== "linux") return undefined;
   if (arch !== "universal" && arch !== "x64" && arch !== "arm64") return undefined;
+  if (platform === "linux" && (value.kind !== "deb" || arch === "universal")) return undefined;
   if (typeof value.size !== "number") throw new Error("desktop releases: a file size is not a number");
   return {
     platform,

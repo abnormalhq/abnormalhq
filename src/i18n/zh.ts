@@ -389,6 +389,8 @@ export const zh: Copy = {
     eyebrow: "Desktop app",
     title: "在桌面上收发邮件",
     intro: "原生的 macOS 与 Windows 客户端，用邮箱地址和邮箱密码登录，文件夹、已读与星标和网页邮箱同步。",
+    introWithLinux:
+      "原生的 macOS、Windows 与 Linux 客户端，用邮箱地址和邮箱密码登录，文件夹、已读与星标和网页邮箱同步。",
     macos: {
       name: "macOS",
       requirement: "macOS 11 或更新版本，Apple 芯片与 Intel 通用。",
@@ -402,6 +404,14 @@ export const zh: Copy = {
       download: "下载安装程序",
       armDownload: "Arm 处理器的电脑（如骁龙笔记本）请下载 Arm 版",
       firstLaunch: "安装程序暂未签名，若出现 SmartScreen 提示，请点「更多信息」，再点「仍要运行」。",
+    },
+    linux: {
+      name: "Linux",
+      requirement: "Debian、Ubuntu 及其衍生发行版（64 位，x64 或 Arm）。",
+      download: "下载 .deb",
+      armDownload: "Arm 处理器的电脑请下载 Arm 版",
+      installLabel: "在下载所在的文件夹里用 apt 安装：",
+      note: "安装包会一并装好 WebKitGTK 等所需的库；其他发行版可以从源码构建。",
     },
     signInTitle: "登录",
     signInSteps: [

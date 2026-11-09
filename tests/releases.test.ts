@@ -5,11 +5,12 @@ import {
   fetchDesktopReleases,
   fileLabel,
   formatSize,
+  linuxDownload,
   parseManifest,
   parseReleaseIndex,
   releaseDate,
 } from "../src/lib/releases.ts";
-import { releaseIndex } from "./support/releases.ts";
+import { releaseIndex, releaseIndexWithLinux } from "./support/releases.ts";
 
 test("the release index splits into the current version and the previous ones", () => {
   const { current, previous } = parseReleaseIndex(releaseIndex);
@@ -28,6 +29,38 @@ test("files show macOS, then Windows x64, then Windows Arm", () => {
   assert.equal(formatSize(current.files[0].size), "20.4 MB");
 });
 
+test("Linux .deb packages are read, labelled, and listed after Windows", () => {
+  const { current, previous } = parseReleaseIndex(releaseIndexWithLinux);
+  assert.equal(current.version, "0.3.0");
+  assert.deepEqual(current.files.map(fileLabel), ["macOS", "Windows x64", "Windows Arm", "Linux x64", "Linux Arm"]);
+  assert.deepEqual(
+    current.files.filter((file) => file.platform === "linux").map((file) => file.url),
+    [
+      "https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-x64.deb",
+      "https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-arm64.deb",
+    ],
+  );
+  assert.deepEqual(
+    previous.map((release) => release.files.length),
+    [3, 3],
+  );
+});
+
+test("the Linux download takes the current release's own .deb files, x64 first", () => {
+  const linux = linuxDownload(parseReleaseIndex(releaseIndexWithLinux));
+  assert.equal(linux?.file.url, "https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-x64.deb");
+  assert.equal(linux?.arm?.url, "https://downloads.abnormalhq.com/desktop/0.3.0/Abnormal-Mail-0.3.0-linux-arm64.deb");
+  assert.equal(linux?.install, "sudo apt install ./Abnormal-Mail-0.3.0-linux-x64.deb");
+});
+
+test("there is no Linux download without release data or without Linux files in the current release", () => {
+  assert.equal(linuxDownload(undefined), undefined);
+  assert.equal(linuxDownload(parseReleaseIndex(releaseIndex)), undefined);
+  // Linux packages in another release (here a pre-release newer than latest) do not count: the current one is what the page offers.
+  const linuxElsewhere = { ...releaseIndexWithLinux, latest: "0.2.0" };
+  assert.equal(linuxDownload(parseReleaseIndex(linuxElsewhere)), undefined);
+});
+
 test("a version newer than latest (such as a pre-release) is not listed as a previous version", () => {
   const index = { latest: "0.1.0", releases: [releaseIndex.releases[0], releaseIndex.releases[1]] };
   const { current, previous } = parseReleaseIndex(index);
@@ -35,14 +68,31 @@ test("a version newer than latest (such as a pre-release) is not listed as a pre
   assert.deepEqual(previous, []);
 });
 
-test("files for a platform the page does not know yet are left out", () => {
+test("files for a platform or package kind the page does not know yet are left out", () => {
   const release = structuredClone(releaseIndex.releases[1]);
-  release.files.push({
-    ...release.files[0],
-    platform: "linux",
-    arch: "x64",
-    name: "Abnormal-Mail-0.1.0-linux.AppImage",
-  });
+  release.files.push(
+    {
+      ...release.files[0]!,
+      platform: "freebsd",
+      arch: "x64",
+      kind: "pkg",
+      name: "Abnormal-Mail-0.1.0-freebsd-x64.pkg",
+    },
+    {
+      ...release.files[0]!,
+      platform: "linux",
+      arch: "x64",
+      kind: "AppImage",
+      name: "Abnormal-Mail-0.1.0-linux.AppImage",
+    },
+    {
+      ...release.files[0]!,
+      platform: "linux",
+      arch: "riscv64",
+      kind: "deb",
+      name: "Abnormal-Mail-0.1.0-linux-riscv64.deb",
+    },
+  );
   assert.equal(parseManifest(release).current.files.length, 3);
 });
 

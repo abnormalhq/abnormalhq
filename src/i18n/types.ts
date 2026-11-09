@@ -245,6 +245,8 @@ export interface Copy {
     eyebrow: string;
     title: string;
     intro: string;
+    /** Used in place of intro when the current release has Linux packages (see linuxDownload in src/lib/releases.ts). */
+    introWithLinux: string;
     macos: { name: string; requirement: string; download: string; brewLabel: string; firstLaunch: string };
     windows: {
       name: string;
@@ -253,6 +255,18 @@ export interface Copy {
       /** Link under the download button for Windows on Arm devices. */
       armDownload: string;
       firstLaunch: string;
+    };
+    /** Shown only when the current release has Linux packages; the links are that release's own .deb files. */
+    linux: {
+      name: string;
+      requirement: string;
+      download: string;
+      /** Link under the download button for Arm machines. */
+      armDownload: string;
+      /** Above the apt command that installs the downloaded package. */
+      installLabel: string;
+      /** At the foot of the card: what the package brings along, and what to do on other distributions. */
+      note: string;
     };
     signInTitle: string;
     signInSteps: readonly string[];

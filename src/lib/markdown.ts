@@ -17,7 +17,14 @@ import { copies, langs, localePath } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { contactChannels } from "./inquiry.ts";
 import { markdownResponse } from "./markdown-response.ts";
-import { fetchDesktopReleases, fileLabel, formatSize, releaseDate, type DesktopReleases } from "./releases.ts";
+import {
+  fetchDesktopReleases,
+  fileLabel,
+  formatSize,
+  linuxDownload,
+  releaseDate,
+  type DesktopReleases,
+} from "./releases.ts";
 import { pageFor, pagePaths } from "./pages.ts";
 import { storeMarkdownPaths, storeTitle } from "../storefront/lib/markdown.ts";
 
@@ -85,6 +92,8 @@ export async function downloadMarkdownResponse(lang: Lang): Promise<Response> {
 export function downloadMarkdown(lang: Lang, releases: DesktopReleases | undefined): string {
   const t = copies[lang];
   const d = t.download;
+  // Only when the current release has Linux packages, as on the page.
+  const linux = linuxDownload(releases);
   const history = releases
     ? [
         `## ${d.historyTitle}`,
@@ -106,7 +115,7 @@ export function downloadMarkdown(lang: Lang, releases: DesktopReleases | undefin
     : [];
   return `${paragraphs([
     `# ${d.title}`,
-    d.intro,
+    linux ? d.introWithLinux : d.intro,
     ...(releases
       ? [`${d.currentLabel} ${releases.current.version} · ${d.releasedLabel} ${releaseDate(releases.current)}`]
       : []),
@@ -120,6 +129,16 @@ export function downloadMarkdown(lang: Lang, releases: DesktopReleases | undefin
     `[${d.windows.download}](${desktopDownloads.windows})`,
     `[${d.windows.armDownload}](${desktopDownloads.windowsArm})`,
     d.windows.firstLaunch,
+    ...(linux
+      ? [
+          `## ${d.linux.name}`,
+          d.linux.requirement,
+          `[${d.linux.download}](${linux.file.url})`,
+          ...(linux.arm ? [`[${d.linux.armDownload}](${linux.arm.url})`] : []),
+          `${d.linux.installLabel}\n\n\`\`\`sh\n${linux.install}\n\`\`\``,
+          d.linux.note,
+        ]
+      : []),
     `## ${d.signInTitle}`,
     d.signInSteps.map((step, index) => `${index + 1}. ${step}`).join("\n"),
     ...history,
