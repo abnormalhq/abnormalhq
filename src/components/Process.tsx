@@ -15,7 +15,7 @@ export function Process({ lang }: { lang: Lang }) {
         <div className="mb-11 flex flex-col gap-5 md:mb-[3.75rem] md:flex-row md:items-end md:justify-between md:gap-8">
           <div>
             <Eyebrow lang="en">
-              <span className="mr-1">04 /</span>
+              <span className="mr-1">05 /</span>
               {t.process.eyebrow}
             </Eyebrow>
             <SectionTitle id="process-title">

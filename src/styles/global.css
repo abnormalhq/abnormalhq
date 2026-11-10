@@ -14,6 +14,7 @@
   --breakpoint-nav: 64rem; /* 1024px: below it the English header bar runs out of room for "My account" and "Log in" */
   --breakpoint-hero: 62.5625rem; /* 1001px */
   --breakpoint-card: 68.75rem; /* 1100px */
+  --breakpoint-bar: 75rem; /* 1200px: from here the English header bar has room for all six links */
   --breakpoint-wide: 90rem; /* 1440px */
   /* The storefront pages (src/storefront/, formerly onboard) keep their own steps; they are only used there as max-*: */
   --breakpoint-narrow: 37.5625rem; /* <= 600px */

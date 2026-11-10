@@ -8,6 +8,7 @@ import { absoluteUrl, configuredVideo, site, type Lang, type PromoVideo } from "
 import { copies } from "../i18n/index.ts";
 import { langs, localePath } from "../i18n/paths.ts";
 import { socialImage } from "./metadata.ts";
+import type { PlanView } from "./pricing.ts";
 
 type Node = Record<string, unknown>;
 
@@ -118,6 +119,51 @@ export function legalStructuredData(lang: Lang, path: string, frontmatter: Legal
         ],
       },
     },
+  ]);
+}
+
+/**
+ * The pricing page: the page with a breadcrumb, and one Product with an Offer per plan that can be bought by card.
+ * `plans` is what the page shows at this very render (src/lib/pricing.ts), so an offer is never a price the page does not carry.
+ * A plan sold only for LDC (Linux DO Credit) gets no Product: schema.org's priceCurrency takes ISO 4217 codes, LDC is not one,
+ * and a made-up currency would be a claim search engines cannot read. With the catalog unread or the shop closed there are none.
+ */
+export function pricingStructuredData(lang: Lang, plans: readonly PlanView[]) {
+  const t = copies[lang];
+  const page = webPage(lang, "/pricing/", t.pricing.metaTitle, t.pricing.metaDescription);
+  const products = plans
+    .filter((plan) => plan.offer)
+    .map((plan) => ({
+      "@type": "Product",
+      "@id": `${page.url as string}#plan-${plan.id}`,
+      name: plan.name,
+      description: plan.description || plan.rows.mailboxes,
+      brand: { "@id": organizationId },
+      offers: {
+        "@type": "Offer",
+        price: plan.offer!.price,
+        priceCurrency: plan.offer!.currency,
+        availability: "https://schema.org/InStock",
+        url: absolute(plan.href),
+        seller: { "@id": organizationId },
+      },
+    }));
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      breadcrumb: {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: site.name, item: absolute(localePath(lang, "/")) },
+          { "@type": "ListItem", position: 2, name: t.pricing.title, item: page.url },
+        ],
+      },
+      ...(products.length > 0 && { mainEntity: products.map((product) => ({ "@id": product["@id"] })) }),
+    },
+    ...products,
   ]);
 }
 

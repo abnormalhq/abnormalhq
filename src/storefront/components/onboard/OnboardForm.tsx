@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
 import { copy, formatDate, type Lang } from "@/storefront/i18n";
+import { recallAddress } from "@/storefront/lib/address";
 import { ApiError, NetworkError, REDEEM_TURNSTILE_ACTION, createApi, type CdkInfo } from "@/storefront/lib/api";
 import {
   REDEEM_MAX_MAILBOXES,
@@ -240,6 +241,17 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
     const alive = new Set(rowIds.split(",").map(Number));
     for (const id of [...rowTimers.current.keys(), ...rowAborts.current.keys()]) if (!alive.has(id)) cancelCheck(id);
   }, [rowIds]);
+
+  // The address picked in the address check before buying (src/storefront/lib/address.ts): its username starts the first row.
+  // Only the name: which domain it lands on is the redeem code's to say, and the row is checked again like any typed name.
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current) return;
+    prefilled.current = true;
+    const address = recallAddress();
+    const first = stateRef.current.rows[0];
+    if (address && first && !first.username) dispatch({ type: "row/username", id: first.id, value: address.username });
+  }, []);
 
   useEffect(
     () => () => {

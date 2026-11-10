@@ -10,8 +10,9 @@ export const dynamicParams = false;
 
 const slugOf = (page: Page) => page.markdown.split("/").filter(Boolean).slice(1);
 
-// The download page's Markdown includes the release list read at runtime; it lives in the md/download/ and md/zh/download/ routes and is not prerendered here.
-const prerendered = pages.filter((page) => page.path !== "/download/");
+// The download page's Markdown includes the release list read at runtime, and the pricing page's the live catalog; they live in their own
+// routes (md/download/, md/pricing/ and the same under md/zh/) and are not prerendered here.
+const prerendered = pages.filter((page) => page.path !== "/download/" && page.path !== "/pricing/");
 
 export function generateStaticParams() {
   return prerendered.map((page) => ({ slug: slugOf(page) }));
@@ -22,7 +23,7 @@ const isStorePage = (path: string): path is StoreMarkdownPath => storeMarkdownPa
 function render({ lang, path }: Page): string {
   if (path === "/") return homeMarkdown(lang);
   if (isStorePage(path)) return storeMarkdown(lang, path);
-  if (path === "/download/") throw new Error("the download page's Markdown has its own route");
+  if (path === "/download/" || path === "/pricing/") throw new Error(`the Markdown of ${path} has its own route`);
   return legalMarkdown(lang, legalFrontmatters[lang][path], stripFrontmatter(legalSources[lang][path]));
 }
 

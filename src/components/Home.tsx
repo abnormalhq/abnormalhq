@@ -11,6 +11,7 @@ import { Hero } from "./Hero";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
 import { JsonLd } from "./JsonLd";
+import { PricingSection } from "./PricingSection";
 import { Process } from "./Process";
 import { PromoVideo } from "./PromoVideo";
 import { Start } from "./Start";
@@ -40,6 +41,7 @@ export function Home({ lang }: { lang: Lang }) {
       <PromoVideo lang={lang} />
       <Features lang={lang} />
       <Start lang={lang} />
+      <PricingSection lang={lang} />
       <Subscriptions lang={lang} />
       <Process lang={lang} />
       <Faq lang={lang} />

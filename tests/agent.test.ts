@@ -4,18 +4,27 @@ import { readFileSync } from "node:fs";
 import { absoluteUrl, desktopDownloads, linksFor, site } from "../src/data/site.ts";
 import { copies, langs } from "../src/i18n/index.ts";
 import { contactChannels } from "../src/lib/inquiry.ts";
-import { downloadMarkdown, homeMarkdown, legalMarkdown, llmsTxt, stripFrontmatter } from "../src/lib/markdown.ts";
+import {
+  downloadMarkdown,
+  homeMarkdown,
+  legalMarkdown,
+  llmsTxt,
+  pricingMarkdown,
+  stripFrontmatter,
+} from "../src/lib/markdown.ts";
 import { markdownUrl, varyOnAccept, wantsMarkdown } from "../src/lib/negotiate.ts";
 import { pages } from "../src/lib/pages.ts";
 import { storeMarkdown, storeMarkdownPaths } from "../src/storefront/lib/markdown.ts";
 import { parseReleaseIndex } from "../src/lib/releases.ts";
 import { releaseIndex, releaseIndexWithLinux } from "./support/releases.ts";
+import { catalog } from "./support/catalog.ts";
 
 test("every page has a Markdown path under /md/ that mirrors its URL", () => {
   assert.deepEqual(
     pages.map((page) => [page.url, page.markdown]),
     [
       ["/", "/md/"],
+      ["/pricing/", "/md/pricing/"],
       ["/shop/", "/md/shop/"],
       ["/redeem/", "/md/redeem/"],
       ["/guide/", "/md/guide/"],
@@ -23,6 +32,7 @@ test("every page has a Markdown path under /md/ that mirrors its URL", () => {
       ["/privacy/", "/md/privacy/"],
       ["/terms/", "/md/terms/"],
       ["/zh/", "/md/zh/"],
+      ["/zh/pricing/", "/md/zh/pricing/"],
       ["/zh/shop/", "/md/zh/shop/"],
       ["/zh/redeem/", "/md/zh/redeem/"],
       ["/zh/guide/", "/md/zh/guide/"],
@@ -124,6 +134,49 @@ for (const lang of ["zh", "en"] as const) {
     // No fixed latest/ address for Linux: those do not exist until a release has Linux packages.
     assert.ok(!markdown.includes("/desktop/latest/Abnormal-Mail-linux"));
     assert.ok(!markdown.includes("undefined"));
+  });
+}
+
+for (const lang of ["zh", "en"] as const) {
+  test(`${lang} pricing Markdown lists every plan with the catalog's own amounts, the comparison and what every mailbox gets`, () => {
+    const p = copies[lang].pricing;
+    const markdown = pricingMarkdown(lang, catalog);
+    assert.ok(markdown.startsWith(`# ${p.title}\n`));
+    for (const product of catalog.products) assert.ok(markdown.includes(`## ${product.name}`), product.name);
+    // 750 and 500 hundredths of an LDC, the renewal price and the card price, as the backend gave them.
+    for (const amount of ["7.50 LDC", "10.00 LDC", "5.00 LDC", "4.00 LDC", "2.99"]) {
+      assert.ok(markdown.includes(amount), amount);
+    }
+    assert.ok(markdown.includes(`(${site.url}${linksFor(lang).shop}?plan=${catalog.products[0]!.id})`));
+    assert.ok(markdown.includes(`## ${p.compare.title}`));
+    assert.match(markdown, /^\| --- \| --- \| --- \|$/m);
+    for (const item of p.included.items) assert.ok(markdown.includes(item.description));
+    assert.ok(!markdown.includes("undefined"));
+    for (const [, href] of markdown.matchAll(/\]\(([^)\s]+)\)/g)) assert.match(href!, /^https:\/\//, href);
+  });
+
+  test(`${lang} pricing Markdown never invents a price: a closed shop or an unread catalog says so`, () => {
+    const p = copies[lang].pricing;
+    const closed = pricingMarkdown(lang, { ...catalog, available: false, products: [] });
+    assert.ok(closed.includes(p.closedBody));
+    const unread = pricingMarkdown(lang, null);
+    assert.ok(unread.includes(p.errorBody));
+    for (const markdown of [closed, unread]) {
+      assert.ok(!markdown.includes("LDC /"), "no price line");
+      assert.ok(!markdown.includes(`## ${p.compare.title}`));
+      // What does not depend on the catalog is still there.
+      assert.ok(markdown.includes(`## ${p.included.title}`));
+      assert.ok(markdown.includes(`(${site.url}${linksFor(lang).shop})`));
+    }
+  });
+
+  test(`${lang} home Markdown sends readers to the pricing page instead of quoting a price`, () => {
+    const p = copies[lang].pricing;
+    const markdown = homeMarkdown(lang);
+    assert.ok(markdown.includes(`## ${p.title}`));
+    assert.ok(markdown.includes(`[${p.compareLink}](${site.url}${linksFor(lang).pricing})`));
+    for (const item of p.included.items) assert.ok(markdown.includes(item.description));
+    assert.doesNotMatch(markdown, /\d+\.\d{2} LDC/);
   });
 }
 

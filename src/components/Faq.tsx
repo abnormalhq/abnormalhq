@@ -19,7 +19,7 @@ export function Faq({ lang }: { lang: Lang }) {
       >
         <div className="lg:pt-3">
           <Eyebrow lang="en">
-            <span className="mr-1">05 /</span>
+            <span className="mr-1">06 /</span>
             {t.faq.eyebrow}
           </Eyebrow>
           <SectionTitle id="faq-title">

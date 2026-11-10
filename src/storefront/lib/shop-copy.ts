@@ -32,6 +32,10 @@ export const shopCopy = {
     processTitle: "从购买到开通，只需三步。",
     steps: ["选择适合你的邮箱套餐", "完成支付，领取兑换码", "返回开通页，自定义邮箱名和密码"],
     expiryNote: "兑换期限是开通码的使用期限，不代表邮箱服务期限。",
+    planSelected: "你选的套餐",
+    carriedAddress: (email: string) => `你选好的地址：${email}。付款后开通邮箱时会自动填好，届时仍以实际可用为准。`,
+    carriedRemove: "不用这个地址",
+    planWithoutDomain: (domain: string) => `这个套餐不含 @${domain}`,
     browserNote: "请保存订单号，并在下单时的浏览器中领取兑换码。更换浏览器或清除浏览器数据后，请凭订单号联系商家。",
     orderLink: "查看订单",
     orderTitle: "确认订单，准备开通。",
@@ -319,6 +323,11 @@ export const shopCopy = {
       "Redeem your code and set your mailbox name and password",
     ],
     expiryNote: "The redemption deadline applies to the code, not the mailbox service period.",
+    planSelected: "Your pick",
+    carriedAddress: (email: string) =>
+      `Your address: ${email}. It will be filled in when you set the mailbox up after paying; it is checked again then.`,
+    carriedRemove: "Don't use this address",
+    planWithoutDomain: (domain: string) => `This plan doesn't include @${domain}`,
     browserNote:
       "Save your order number and collect your code in the browser used to place the order. If you switch browsers or clear browser data, contact support with your order number.",
     orderLink: "Find an order",

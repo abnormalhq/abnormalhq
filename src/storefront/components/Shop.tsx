@@ -1,7 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LANG_PATHS, storePath, type Lang } from "@/storefront/i18n";
 import {
   createShopOrder,
@@ -11,6 +14,16 @@ import {
   type ShopPaymentProvider,
 } from "@/storefront/lib/shop";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import {
+  ADDRESS_PARAM,
+  PLAN_PARAM,
+  forgetAddress,
+  parseAddress,
+  parsePlan,
+  rememberAddress,
+  storedAddress,
+  subscribeAddress,
+} from "@/storefront/lib/address";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
@@ -33,6 +46,16 @@ import {
 import { ShopPrice } from "./ShopPrice";
 import { ShopSession } from "./ShopSession";
 
+/** The page is prerendered without a query string; it is read once the page runs in the browser. */
+function readSearch(): string {
+  return window.location.search;
+}
+
+function subscribeToHistory(onChange: () => void): () => void {
+  window.addEventListener("popstate", onChange);
+  return () => window.removeEventListener("popstate", onChange);
+}
+
 export function Shop({ lang }: { lang: Lang }) {
   const t = shopCopy[lang];
   const router = useRouter();
@@ -43,6 +66,23 @@ export function Shop({ lang }: { lang: Lang }) {
   const [buying, setBuying] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const checkoutLock = useRef(false);
+  // ?plan=<id> points out the plan a pricing card linked to; ?address=name@domain is the address picked in the address check.
+  // The address is kept for this tab (src/storefront/lib/address.ts) so the forms that create the mailbox start with it.
+  const search = useSyncExternalStore(subscribeToHistory, readSearch, () => "");
+  const selectedPlan = parsePlan(new URLSearchParams(search).get(PLAN_PARAM));
+  const linkedAddress = new URLSearchParams(search).get(ADDRESS_PARAM);
+  const carried = parseAddress(useSyncExternalStore(subscribeAddress, storedAddress, () => ""));
+  const selectedCard = useRef<HTMLElement>(null);
+  const hasSelected = Boolean(selectedPlan && catalog?.products.some((product) => product.id === selectedPlan));
+
+  useEffect(() => {
+    const address = parseAddress(linkedAddress);
+    if (address) rememberAddress(address);
+  }, [linkedAddress]);
+
+  useEffect(() => {
+    if (hasSelected) selectedCard.current?.scrollIntoView({ block: "nearest" });
+  }, [hasSelected]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -137,6 +177,18 @@ export function Shop({ lang }: { lang: Lang }) {
               />
             </ShopField>
           )}
+          {carried && (
+            <Alert className="my-5 max-w-[640px]">
+              <AlertDescription className="text-foreground">
+                {t.carriedAddress(`${carried.username}@${carried.domain}`)}
+              </AlertDescription>
+              <div>
+                <Button variant="link" className="text-sm" type="button" onClick={forgetAddress}>
+                  {t.carriedRemove}
+                </Button>
+              </div>
+            </Alert>
+          )}
           {checkoutError && <ShopAlert>{checkoutError}</ShopAlert>}
           {/* Each card spans four rows of the shared grid (heading, price, details, actions) through subgrid, so
               prices, detail lists and buttons line up across the cards in a row whatever the description length. */}
@@ -146,14 +198,21 @@ export function Shop({ lang }: { lang: Lang }) {
                 catalog.payment.stripe && product.fiatPriceMinor
                   ? formatMoney(product.fiatPriceMinor, catalog.payment.stripe.currency, lang)
                   : null;
+              const selected = product.id === selectedPlan;
               return (
                 <Card
                   asChild
-                  className="row-span-4 grid grid-rows-subgrid gap-y-0 p-7 max-narrow:px-5 max-narrow:py-[22px]"
+                  variant={selected ? "featured" : "default"}
+                  className="row-span-4 grid scroll-mt-24 grid-rows-subgrid gap-y-0 p-7 max-narrow:px-5 max-narrow:py-[22px]"
                   key={product.id}
                 >
-                  <article>
+                  <article ref={selected ? selectedCard : undefined} aria-current={selected ? "true" : undefined}>
                     <div>
+                      {selected && (
+                        <Badge variant="brand" className="float-right">
+                          {t.planSelected}
+                        </Badge>
+                      )}
                       {/* The a↗ in the plan card's top-left corner echoes the brand mark: highlight yellow square with ink text. */}
                       <IconTile variant="highlight" className="mb-[22px] size-[38px] text-[22px]" aria-hidden="true">
                         a↗
@@ -178,7 +237,12 @@ export function Shop({ lang }: { lang: Lang }) {
                         </p>
                       ) : null}
                     </div>
-                    <ShopDetails item={product} lang={lang} />
+                    <div>
+                      <ShopDetails item={product} lang={lang} />
+                      {carried && !product.domains.includes(carried.domain) && (
+                        <p className="mt-3 text-xs/body text-muted-foreground">{t.planWithoutDomain(carried.domain)}</p>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2 pt-6">
                       {catalog.payment.ldc && (
                         <ShopButton

@@ -33,6 +33,8 @@ export function linksFor(lang: Lang) {
   const root = lang === "en" ? "/" : `/${lang}/`;
   return {
     shop: `${root}shop/`,
+    /** Plans and prices from the live catalog (src/components/Pricing.tsx). */
+    pricing: `${root}pricing/`,
     redeem: `${root}redeem/`,
     account: `${root}shop/account/`,
     /** Opens the sign-up form on the account page directly. */

@@ -2,7 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { site } from "../src/data/site.ts";
 import { copies } from "../src/i18n/index.ts";
-import { homeStructuredData, legalStructuredData, serializeJsonLd } from "../src/lib/structured-data.ts";
+import { linksFor } from "../src/data/site.ts";
+import { planViews } from "../src/lib/pricing.ts";
+import {
+  homeStructuredData,
+  legalStructuredData,
+  pricingStructuredData,
+  serializeJsonLd,
+} from "../src/lib/structured-data.ts";
+import { catalog } from "./support/catalog.ts";
 
 type Node = Record<string, unknown>;
 const nodes = (data: { "@graph": Node[] }) => data["@graph"];
@@ -45,6 +53,47 @@ test("a legal page carries its dates and a breadcrumb back to its language's hom
     crumbs.map(({ item }) => item),
     [`${site.url}/zh/`, `${site.url}/zh/terms/`],
   );
+});
+
+for (const lang of ["zh", "en"] as const) {
+  test(`${lang} pricing offers only what the page shows: a card price in a real currency, never LDC`, () => {
+    const p = copies[lang].pricing;
+    const plans = planViews(catalog, lang, p, linksFor(lang).shop);
+    const graph = nodes(pricingStructuredData(lang, plans));
+    const page = ofType(graph, "WebPage")!;
+    assert.equal(page.url, lang === "en" ? `${site.url}/pricing/` : `${site.url}/zh/pricing/`);
+    assert.equal(page.name, p.metaTitle);
+    const products = graph.filter((node) => node["@type"] === "Product");
+    // The one-time plan is sold for LDC only, which is no ISO 4217 currency: it gets no Product at all.
+    assert.deepEqual(
+      products.map(({ name }) => name),
+      ["Team | Monthly"],
+    );
+    assert.deepEqual(products[0]!.offers, {
+      "@type": "Offer",
+      price: "2.99",
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      url: `${site.url}${linksFor(lang).shop}?plan=planmonthlyabcd`,
+      seller: { "@id": `${site.url}/#organization` },
+    });
+    assert.deepEqual(page.mainEntity, [{ "@id": products[0]!["@id"] }]);
+    const defined = new Set(graph.map((node) => node["@id"]));
+    for (const ref of JSON.stringify(graph).match(/\{"@id":"[^"]+"\}/g) ?? [])
+      assert.ok(defined.has(JSON.parse(ref)["@id"]), ref);
+  });
+}
+
+test("pricing without a readable catalog, or with the shop closed, claims no product", () => {
+  for (const plans of [[], planViews({ ...catalog, available: false }, "en", copies.en.pricing, "/shop/")]) {
+    const graph = nodes(pricingStructuredData("en", plans));
+    assert.equal(ofType(graph, "Product"), undefined);
+    assert.equal("mainEntity" in ofType(graph, "WebPage")!, false);
+  }
+  // Card payment off: the same plans carry no card price, so nothing can be offered in a real currency.
+  const ldcOnly = { ...catalog, payment: { ldc: true, stripe: null } };
+  const graph = nodes(pricingStructuredData("en", planViews(ldcOnly, "en", copies.en.pricing, "/shop/")));
+  assert.equal(ofType(graph, "Product"), undefined);
 });
 
 test("every @id the graph refers to is defined in it", () => {

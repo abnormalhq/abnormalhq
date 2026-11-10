@@ -17,7 +17,7 @@ export function Subscriptions({ lang }: { lang: Lang }) {
         <div className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start">
           <div>
             <Eyebrow lang="en">
-              <span className="mr-1">03 /</span> {s.eyebrow}
+              <span className="mr-1">04 /</span> {s.eyebrow}
             </Eyebrow>
             <SectionTitle id="services-title">
               {s.titleLines[0]}

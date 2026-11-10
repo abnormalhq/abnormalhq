@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupButton, InputGroupInput, InputGroupSuffix } from "@/components/ui/input-group";
 import { NativeSelect } from "@/components/ui/native-select";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
+import { forgetAddress, recallAddress } from "@/storefront/lib/address";
 import { generatePassword, normalizeUsername, passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
 import {
   createAccountMailbox,
@@ -484,8 +485,14 @@ function CreateMailboxForm({
   onSubmit: (input: { domain: string; username: string; password: string }) => Promise<boolean>;
 }) {
   const t = shopCopy[lang];
-  const [domain, setDomain] = useState(domains[0] ?? "");
-  const [username, setUsername] = useState("");
+  // The address picked in the address check before buying, when this order can create it (src/storefront/lib/address.ts).
+  // The form only opens on a click, in the browser, so reading the tab's storage here cannot differ from a prerender.
+  const [carried] = useState(() => {
+    const address = recallAddress();
+    return address && domains.includes(address.domain) ? address : null;
+  });
+  const [domain, setDomain] = useState(carried?.domain ?? domains[0] ?? "");
+  const [username, setUsername] = useState(carried?.username ?? "");
   const [password, setPassword] = useState(() => generatePassword());
   const [show, setShow] = useState(true);
   const [problem, setProblem] = useState<{ field: "username" | "password"; message: string } | null>(null);
@@ -510,7 +517,10 @@ function CreateMailboxForm({
           return;
         }
         setProblem(null);
-        void onSubmit({ domain, username: name, password });
+        // Once the carried address exists as a mailbox it has done its job.
+        void onSubmit({ domain, username: name, password }).then((created) => {
+          if (created && carried && name === carried.username && domain === carried.domain) forgetAddress();
+        });
       }}
     >
       {domains.length > 1 && (
