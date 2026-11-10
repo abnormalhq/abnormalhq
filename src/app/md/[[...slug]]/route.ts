@@ -1,6 +1,7 @@
 import { legalFrontmatters } from "@/content/legal/frontmatter";
 import { legalSources } from "@/content/legal/sources";
-import { homeMarkdown, legalMarkdown, stripFrontmatter } from "@/lib/markdown";
+import { helpSlugOf } from "@/content/help";
+import { helpArticleMarkdown, helpIndexMarkdown, homeMarkdown, legalMarkdown, stripFrontmatter } from "@/lib/markdown";
 import { markdownResponse } from "@/lib/markdown-response";
 import { pages, type Page } from "@/lib/pages";
 import { storeMarkdown, storeMarkdownPaths, type StoreMarkdownPath } from "@/storefront/lib/markdown";
@@ -23,8 +24,12 @@ const isStorePage = (path: string): path is StoreMarkdownPath => storeMarkdownPa
 function render({ lang, path }: Page): string {
   if (path === "/") return homeMarkdown(lang);
   if (isStorePage(path)) return storeMarkdown(lang, path);
-  if (path === "/download/" || path === "/pricing/") throw new Error(`the Markdown of ${path} has its own route`);
-  return legalMarkdown(lang, legalFrontmatters[lang][path], stripFrontmatter(legalSources[lang][path]));
+  if (path === "/help/") return helpIndexMarkdown(lang);
+  const article = helpSlugOf(path);
+  if (article) return helpArticleMarkdown(lang, article);
+  if (path === "/privacy/" || path === "/terms/")
+    return legalMarkdown(lang, legalFrontmatters[lang][path], stripFrontmatter(legalSources[lang][path]));
+  throw new Error(`the Markdown of ${path} has its own route`);
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ slug?: string[] }> }) {

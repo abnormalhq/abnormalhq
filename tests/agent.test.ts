@@ -13,6 +13,7 @@ import {
   stripFrontmatter,
 } from "../src/lib/markdown.ts";
 import { markdownUrl, varyOnAccept, wantsMarkdown } from "../src/lib/negotiate.ts";
+import { helpSlugs } from "../src/content/help/index.ts";
 import { pages } from "../src/lib/pages.ts";
 import { storeMarkdown, storeMarkdownPaths } from "../src/storefront/lib/markdown.ts";
 import { parseReleaseIndex } from "../src/lib/releases.ts";
@@ -28,6 +29,8 @@ test("every page has a Markdown path under /md/ that mirrors its URL", () => {
       ["/shop/", "/md/shop/"],
       ["/redeem/", "/md/redeem/"],
       ["/guide/", "/md/guide/"],
+      ["/help/", "/md/help/"],
+      ...helpSlugs.map((slug) => [`/help/${slug}/`, `/md/help/${slug}/`]),
       ["/download/", "/md/download/"],
       ["/privacy/", "/md/privacy/"],
       ["/terms/", "/md/terms/"],
@@ -36,6 +39,8 @@ test("every page has a Markdown path under /md/ that mirrors its URL", () => {
       ["/zh/shop/", "/md/zh/shop/"],
       ["/zh/redeem/", "/md/zh/redeem/"],
       ["/zh/guide/", "/md/zh/guide/"],
+      ["/zh/help/", "/md/zh/help/"],
+      ...helpSlugs.map((slug) => [`/zh/help/${slug}/`, `/md/zh/help/${slug}/`]),
       ["/zh/download/", "/md/zh/download/"],
       ["/zh/privacy/", "/md/zh/privacy/"],
       ["/zh/terms/", "/md/zh/terms/"],

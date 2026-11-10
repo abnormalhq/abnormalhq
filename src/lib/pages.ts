@@ -2,6 +2,7 @@
  * The list of every page on the site. The sitemap, llms.txt, the Markdown versions and the content negotiation in next.config.ts all read it from here; a new page is added in one place.
  * next.config.ts also imports this file, so it may only depend on modules without runtime side effects.
  */
+import { helpPath, helpSlugs } from "../content/help/types.ts";
 import type { Lang } from "../data/site.ts";
 import { langs, localePath } from "../i18n/paths.ts";
 
@@ -15,6 +16,9 @@ export const pagePaths = [
   "/shop/",
   "/redeem/",
   "/guide/",
+  // The help center: its index, then one page per article (src/content/help/).
+  "/help/",
+  ...helpSlugs.map(helpPath),
   "/download/",
   "/privacy/",
   "/terms/",

@@ -3,10 +3,12 @@
  * Each page emits one @graph: the organization and website are the same on every page and reference each other by @id; the home page adds the FAQ, legal pages add breadcrumbs and revision dates.
  * Everything comes from the UI copy and frontmatter; nothing that is not visible on the page is written.
  */
+import { helpArticles, helpPath, type HelpArticle } from "../content/help/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { absoluteUrl, configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
 import { copies } from "../i18n/index.ts";
 import { langs, localePath } from "../i18n/paths.ts";
+import { plainText, sectionId } from "./docs.ts";
 import { socialImage } from "./metadata.ts";
 import type { PlanView } from "./pricing.ts";
 
@@ -164,6 +166,78 @@ export function pricingStructuredData(lang: Lang, plans: readonly PlanView[]) {
       ...(products.length > 0 && { mainEntity: products.map((product) => ({ "@id": product["@id"] })) }),
     },
     ...products,
+  ]);
+}
+
+const breadcrumb = (items: readonly { name: string; url: string }[]): Node => ({
+  "@type": "BreadcrumbList",
+  itemListElement: items.map(({ name, url }, index) => ({ "@type": "ListItem", position: index + 1, name, item: url })),
+});
+
+/** The help center's index: a collection page with a breadcrumb, listing the articles the page links to. */
+export function helpIndexStructuredData(lang: Lang) {
+  const t = copies[lang];
+  const page = webPage(lang, "/help/", t.help.metaTitle, t.help.metaDescription);
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "CollectionPage",
+      ...page,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: t.help.navLabel, url: page.url as string },
+      ]),
+      hasPart: helpArticles(lang).map((article) => ({
+        "@type": "WebPage",
+        name: article.title,
+        url: absolute(localePath(lang, helpPath(article.slug))),
+      })),
+    },
+  ]);
+}
+
+/**
+ * A help article: the page with a "Home > Help center > article" breadcrumb. A section marked `howTo` in the content is a
+ * numbered procedure that is on the page step for step, and is described as a schema.org HowTo with those steps as plain
+ * text. Sections that are lists of facts get none, and no article is marked as an FAQ: none is written as questions and answers.
+ */
+export function helpArticleStructuredData(lang: Lang, article: HelpArticle) {
+  const t = copies[lang];
+  const page = webPage(lang, helpPath(article.slug), article.title, article.summary);
+  const url = page.url as string;
+  const howTos = article.sections.flatMap((section, index) => {
+    const steps = section.howTo ? section.blocks.flatMap((block) => ("ol" in block ? block.ol : [])) : [];
+    return steps.length > 0
+      ? [
+          {
+            "@type": "HowTo",
+            "@id": `${url}#${sectionId(index)}`,
+            name: section.title,
+            inLanguage: t.htmlLang,
+            step: steps.map((step, position) => ({
+              "@type": "HowToStep",
+              position: position + 1,
+              text: plainText(step),
+            })),
+          },
+        ]
+      : [];
+  });
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: t.help.navLabel, url: absolute(localePath(lang, "/help/")) },
+        { name: article.title, url },
+      ]),
+      ...(howTos.length > 0 && { mainEntity: howTos.map((howTo) => ({ "@id": howTo["@id"] })) }),
+    },
+    ...howTos,
   ]);
 }
 
