@@ -14,6 +14,8 @@ import { Spinner } from "@/components/ui/spinner";
  * That stop is a handler, so a loading asChild Button is for Client Components; a plain loading Button renders
  * anywhere. The child's own props win over the Button's, so a child that sets `disabled` itself must include the
  * loading state.
+ * A `disabled` asChild Button gets the same treatment, since `disabled` means nothing on a link: aria-disabled,
+ * dimmed, and its clicks stopped.
  */
 const buttonVariants = cva(
   "inline-flex shrink-0 items-center justify-center rounded-control border border-transparent font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 active:scale-[0.98] select-none disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-invalid:border-destructive data-loading:[&>svg]:hidden [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -70,6 +72,8 @@ function Button({
     loading?: boolean;
   }) {
   const Comp = asChild ? Slot.Root : "button";
+  // A native button is made inert by `disabled`; any other child needs it spelled out.
+  const inert = loading || (asChild && disabled === true);
 
   return (
     <Comp
@@ -78,11 +82,11 @@ function Button({
       data-size={size}
       data-loading={loading || undefined}
       aria-busy={loading || undefined}
-      aria-disabled={loading || undefined}
+      aria-disabled={inert || undefined}
       disabled={disabled || loading}
       // Captured at the root, before the child's own handler and the browser's default, so neither runs. A native
       // button is disabled instead, and gets no handler, so a Server Component can render it loading.
-      onClickCapture={asChild && loading ? stopActivation : onClickCapture}
+      onClickCapture={asChild && inert ? stopActivation : onClickCapture}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     >

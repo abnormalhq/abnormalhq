@@ -12,6 +12,7 @@ import {
   reconcileShopOrder,
   shopApiRoot,
   type PublicShopOrder,
+  formatDateTime,
   formatMoney,
 } from "@/storefront/lib/shop";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
@@ -138,15 +139,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     }
   }
 
-  function date(value: string): string {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime())
-      ? value
-      : new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(parsed);
-  }
+  const date = (value: string) => formatDateTime(value, lang);
 
   return (
     <div className={shopOrderPageClass}>
@@ -234,11 +227,14 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               <ShopStatus active={paid}>{paid ? t.paid : t.pending}</ShopStatus>
             </div>
             {order.provider === "stripe" ? (
-              <p className={cn(shopPriceLineClass, "my-[26px]")}>
-                <strong className={shopPriceAmountClass}>
-                  {formatMoney(order.priceCents, order.currency || "usd", lang)}
-                </strong>
-              </p>
+              // Without the currency the amount cannot be read: show none rather than a guessed one.
+              order.currency && (
+                <p className={cn(shopPriceLineClass, "my-[26px]")}>
+                  <strong className={shopPriceAmountClass}>
+                    {formatMoney(order.priceCents, order.currency, lang)}
+                  </strong>
+                </p>
+              )
             ) : (
               <ShopPrice item={order} lang={lang} />
             )}
@@ -248,7 +244,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               <ShopDetails
                 item={order}
                 lang={lang}
-                stripeCurrency={order.provider === "stripe" ? order.currency || "usd" : undefined}
+                stripeCurrency={order.provider === "stripe" ? (order.currency ?? "") : undefined}
               />
             )}
             <ShopMeta>

@@ -1,5 +1,5 @@
 /**
- * The redeem form's submit flow (no DOM, no direct requests): local validation -> verify redeem code -> check the count -> activate -> re-verify the redeem code if anything failed.
+ * The redeem form's submit flow (no DOM, no direct requests): local validation -> verify redeem code -> check the count and the domain -> activate -> re-verify the redeem code if anything failed.
  * OnboardForm passes in the latest state, dispatch and the network requests; tests/submit.test.ts runs it directly with the reducer and a fake API.
  * The rows' ids and usernames are recorded at submit time (submitted); results and errors are matched to that, not to the rows' current positions.
  * When the backend has human verification on, the activation request carries the Turnstile token; a token can be used once, so a new one is fetched after the request whether it succeeded or not.
@@ -16,7 +16,7 @@ import {
   passwordProblem,
   usernameProblem,
 } from "@/storefront/lib/onboard";
-import { duplicateOf, type Action, type State, type SubmittedRow } from "./reducer";
+import { currentDomain, duplicateOf, type Action, type State, type SubmittedRow } from "./reducer";
 
 export interface SubmitDeps {
   t: Copy;
@@ -98,6 +98,11 @@ export async function submitRedeem(deps: SubmitDeps): Promise<void> {
     }
     const chosen = deps.state().domain;
     const domain = info.domains.includes(chosen) ? chosen : (info.domains[0] ?? deps.defaultDomain);
+    if (!checked && domain !== currentDomain(current)) {
+      // The rows showed another domain while they were filled in, and the addresses only just changed: say so and let the user check them rather than activating on a domain never seen.
+      dispatch({ type: "form/error", text: t.msg.domainChanged(domain) });
+      return;
+    }
     const turnstileToken = deps.challenge.token();
     let outcome: RedeemResult;
     try {

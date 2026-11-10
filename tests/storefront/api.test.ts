@@ -21,7 +21,9 @@ test("error responses: known kind and field are taken as is, unknown ones become
   expect(unknown.field).toBe(null);
 
   expect(readApiError(429, null).kind).toBe("rate_limited");
-  expect(readApiError(502, "not json").message).toBe("HTTP 502");
+  const silent = readApiError(502, "not json");
+  expect(silent.message, "no explanation: the page shows its own copy").toBe("");
+  expect(silent.status).toBe(502);
 
   const notify = readApiError(400, {
     error: "接收邮箱不对",
@@ -125,6 +127,11 @@ test("activation result: entry by entry, server info omitted when incomplete, we
     field: null,
   });
   expect(result.notification, "no notification means null").toBe(null);
+  const silent = readRedeemResult({ domain: "abnormal.bid", mailboxes: [{ ok: false, username: "x" }] });
+  expect(silent.mailboxes[0], "no explanation: the page shows its own copy").toMatchObject({
+    error: "",
+    kind: "other",
+  });
   expect(() => readRedeemResult({ domain: "abnormal.bid", mailboxes: [] })).toThrow(NetworkError);
   expect(() => readRedeemResult({ mailboxes: [{ ok: true, email: "k@abnormal.bid" }] })).toThrow(NetworkError);
 });

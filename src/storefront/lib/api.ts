@@ -33,7 +33,7 @@ function isErrorField(value: unknown): value is ErrorField {
 }
 
 /**
- * The server rejected the request: message is the server's explanation (in Chinese), kind picks the local copy, field says which field to show it beside,
+ * The server rejected the request: message is the server's explanation (empty when it gave none), kind picks the local copy, field says which field to show it beside,
  * index which mailbox in a batch (0-based).
  */
 export class ApiError extends Error {
@@ -218,7 +218,8 @@ function readRedeemItem(value: unknown, position: number): RedeemItem {
     if (!email || !password) throw new NetworkError("响应格式无效。");
     return { ok: true, index, username, email, password };
   }
-  const error = typeof value.error === "string" && value.error.trim() ? value.error.trim() : "开通失败。";
+  // No explanation from the server stays empty: the page then says so in its own language.
+  const error = typeof value.error === "string" ? value.error.trim() : "";
   return {
     ok: false,
     index,
@@ -254,10 +255,10 @@ export function readRedeemResult(body: unknown): RedeemResult {
   };
 }
 
-/** Turns a non-2xx response into an ApiError; a body of an unknown shape is treated as other. */
+/** Turns a non-2xx response into an ApiError; a body of an unknown shape is treated as other, with an empty message the page replaces with its own copy. */
 export function readApiError(status: number, body: unknown): ApiError {
   const record = isRecord(body) ? body : {};
-  const message = typeof record.error === "string" && record.error.trim() ? record.error.trim() : `HTTP ${status}`;
+  const message = typeof record.error === "string" ? record.error.trim() : "";
   const kind = isErrorKind(record.kind) ? record.kind : status === 429 ? "rate_limited" : "other";
   const index =
     typeof record.index === "number" && Number.isInteger(record.index) && record.index >= 0 ? record.index : null;

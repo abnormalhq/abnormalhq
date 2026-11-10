@@ -12,7 +12,6 @@ import { RichText } from "./RichText";
 export function Guide({ lang }: { lang: Lang }) {
   const t = copy[lang].guide;
   const base = withBase(LANG_PATHS[lang]);
-  const contentsLabel = lang === "zh" ? "本页目录" : "On this page";
 
   return (
     <div className="pt-6 wrap-anywhere max-guide:pt-4">
@@ -23,9 +22,7 @@ export function Guide({ lang }: { lang: Lang }) {
       </TextLink>
       <div className="mt-10 grid grid-cols-[220px_minmax(0,1fr)] gap-x-[clamp(40px,6vw,80px)] [grid-template-areas:'contents_heading'_'contents_body'] max-guide-lg:grid-cols-[180px_minmax(0,1fr)] max-guide-lg:gap-x-9 max-guide:mt-7 max-guide:grid-cols-[minmax(0,1fr)] max-guide:[grid-template-areas:'heading'_'contents'_'body']">
         <header className="max-w-[740px] pb-10 [grid-area:heading] max-guide:pb-7">
-          <Eyebrow className="mb-[22px] gap-[9px] text-xs/body max-guide:mb-[18px]">
-            {lang === "zh" ? "邮箱使用指南" : "The mailbox guide"}
-          </Eyebrow>
+          <Eyebrow className="mb-[22px] gap-[9px] text-xs/body max-guide:mb-[18px]">{t.eyebrow}</Eyebrow>
           <h1 className="max-w-[13ch] text-[clamp(38px,4.8vw,56px)] leading-[1.1] tracking-[-0.035em] max-guide:text-[clamp(32px,9vw,44px)] [&:lang(zh)]:tracking-[-0.02em]">
             {t.heading}
           </h1>
@@ -34,9 +31,9 @@ export function Guide({ lang }: { lang: Lang }) {
           </p>
         </header>
         <aside className="sticky top-8 self-start pt-1 [grid-area:contents] max-guide:static max-guide:mb-7 max-guide:rounded-mark max-guide:border max-guide:border-border max-guide:bg-surface max-guide:p-5">
-          <nav aria-label={contentsLabel}>
+          <nav aria-label={t.contents}>
             <p className="flex items-center justify-between gap-3 border-b border-border pr-3 pb-[15px] text-xs/body font-medium tracking-[0.06em] text-muted-foreground uppercase max-guide:pr-0 max-guide:pb-3">
-              {contentsLabel}
+              {t.contents}
               <span className="font-normal">{String(t.sections.length).padStart(2, "0")}</span>
             </p>
             <ol className="mt-3.5 grid gap-1 max-guide:mt-2.5 max-guide:grid-cols-2 max-guide:gap-x-3 max-guide:gap-y-0.5">
@@ -87,7 +84,7 @@ export function Guide({ lang }: { lang: Lang }) {
             className="flex min-h-14 items-center justify-between gap-5 border-t border-border text-sm/body text-muted-foreground transition-colors duration-200 hover:text-foreground"
             href="#main"
           >
-            {lang === "zh" ? "回到顶部" : "Back to top"}
+            {t.backToTop}
             <span aria-hidden="true">↑</span>
           </a>
         </div>

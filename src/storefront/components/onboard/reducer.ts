@@ -241,18 +241,26 @@ export function createReducer(t: Copy) {
   /**
    * Recompute every row's username hint. With keepChecks the other rows (besides except) are recomputed only for duplicates: their pending or failed server check results are kept.
    * Used when only one row is being edited (so typing in this row does not wipe that row's "taken"), and when the same redeem code is re-verified (after a partial activation failure,
-   * the failure reasons stay until that row is re-checked).
+   * the failure reasons stay until that row is re-checked). before is the rows as they were before the edit: a row that was a duplicate then and no longer is holds no check result,
+   * only the "same username" error that stopped applying, so it is recomputed (the component then checks its availability).
    */
-  function refreshUsernames(rows: Row[], domain: string, keepChecks?: { except?: number }): Row[] {
+  function refreshUsernames(
+    rows: Row[],
+    domain: string,
+    keepChecks?: { except?: number; before?: readonly Row[] },
+  ): Row[] {
     return rows.map((row) => {
       const next = usernameNoteFor(rows, row, domain);
-      const keep =
+      const kept =
         keepChecks !== undefined &&
         row.id !== keepChecks.except &&
         next.state === "" &&
         next.text !== "" &&
         row.usernameNote.state !== "";
-      return keep || sameNote(next, row.usernameNote) ? row : { ...row, usernameNote: next };
+      if (kept && keepChecks.before && duplicateOf(keepChecks.before, row)) {
+        return { ...row, usernameNote: next, usernameInvalid: false };
+      }
+      return kept || sameNote(next, row.usernameNote) ? row : { ...row, usernameNote: next };
     });
   }
 
@@ -362,7 +370,7 @@ export function createReducer(t: Copy) {
 
   function describeItem(item: RedeemResult["mailboxes"][number] | undefined): string {
     if (!item || item.ok) return t.msg.unknownError;
-    return item.kind === "other" ? item.error : t.kind[item.kind];
+    return item.kind === "other" ? item.error || t.msg.unknownError : t.kind[item.kind];
   }
 
   /**
@@ -381,7 +389,7 @@ export function createReducer(t: Copy) {
       if (item.ok) continue;
       const row = rowAt(rows, item.index, submitted);
       if (!row) continue;
-      const text = item.kind === "other" ? item.error : t.kind[item.kind];
+      const text = describeItem(item);
       rows = rows.map((r) =>
         r !== row
           ? r
@@ -500,7 +508,7 @@ export function createReducer(t: Copy) {
         }));
         return {
           ...next,
-          rows: refreshUsernames(next.rows, currentDomain(next), { except: action.id }),
+          rows: refreshUsernames(next.rows, currentDomain(next), { except: action.id, before: state.rows }),
         };
       }
       case "row/password":

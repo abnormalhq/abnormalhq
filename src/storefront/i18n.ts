@@ -32,8 +32,13 @@ export interface GuideCopy {
   title: string;
   description: string;
   back: string;
+  /** Label above the heading. */
+  eyebrow: string;
   heading: string;
   lede: string;
+  /** Name of the table of contents. */
+  contents: string;
+  backToTop: string;
   sections: readonly { title: string; blocks: readonly GuideBlock[] }[];
 }
 
@@ -71,6 +76,8 @@ export interface Copy {
       ordinal: (n: number) => string;
       usernameLabel: (n: number) => string;
       passwordLabel: (n: number) => string;
+      /** Shown when the chosen domain cannot enforce a per-mailbox quota. */
+      noQuota: string;
     };
     notify: { label: string; hint: string; placeholder: string };
   };
@@ -105,6 +112,8 @@ export interface Copy {
     partial: (ok: number, failed: number) => string;
     /** Human verification turned out to be required at submit time and is not finished yet: no request was sent this time. */
     challengePending: string;
+    /** The redeem code was first verified at submit time and activates on another domain than the rows showed: nothing was sent this time. */
+    domainChanged: (domain: string) => string;
     networkError: string;
     unknownError: string;
   };
@@ -217,6 +226,7 @@ const zh: Copy = {
       ordinal: (n) => `第 ${n} 个邮箱`,
       usernameLabel: (n) => `第 ${n} 个邮箱的用户名`,
       passwordLabel: (n) => `第 ${n} 个邮箱的密码`,
+      noQuota: "此域名暂未提供单邮箱配额，容量以服务器设置为准。",
     },
     notify: {
       label: "接收邮箱",
@@ -258,6 +268,7 @@ const zh: Copy = {
     passwordGenerated: "已生成一个随机密码，记得保存。",
     partial: (ok, failed) => `已开通 ${ok} 个；还有 ${failed} 个没成功，改好后再提交。`,
     challengePending: "开通前要先完成人机验证，正在验证；完成后再提交一次。",
+    domainChanged: (domain) => `这个兑换码开通的是 @${domain} 邮箱，地址已更新；核对后再提交一次。`,
     networkError: "连不上服务器，请稍后再试。",
     unknownError: "出了点问题，请稍后再试。",
   },
@@ -356,7 +367,10 @@ const zh: Copy = {
     description:
       "邮箱开通之后怎么用：登录网页邮箱、在手机或电脑的邮件客户端里收发，以及用它注册并登录 Claude 与 ChatGPT。",
     back: "返回兑换页",
+    eyebrow: "邮箱使用指南",
     heading: "开通之后。",
+    contents: "本页目录",
+    backToTop: "回到顶部",
     lede: "邮箱已经在手里了。这一页说三件事：怎么登录邮箱，怎么在常用的邮件客户端里收发，怎么用它注册并登录 Claude 与 ChatGPT。",
     sections: [
       {
@@ -499,6 +513,7 @@ const en: Copy = {
       ordinal: (n) => `Mailbox ${n}`,
       usernameLabel: (n) => `Username for mailbox ${n}`,
       passwordLabel: (n) => `Password for mailbox ${n}`,
+      noQuota: "Per-mailbox quota is unavailable for this domain; storage follows the server settings.",
     },
     notify: {
       label: "Email a copy",
@@ -540,6 +555,8 @@ const en: Copy = {
     passwordGenerated: "A random password was generated. Remember to save it.",
     partial: (ok, failed) => `${ok} created. ${failed} did not go through; fix them and submit again.`,
     challengePending: "A quick human check has to finish first. It is running now; submit again once it is done.",
+    domainChanged: (domain) =>
+      `This code creates mailboxes at @${domain}, and the addresses now show it. Check them, then submit again.`,
     networkError: "Could not reach the server. Try again in a moment.",
     unknownError: "Something went wrong. Try again in a moment.",
   },
@@ -641,7 +658,10 @@ const en: Copy = {
     description:
       "What to do with the new mailbox: log in to webmail, set it up in a mail app on your phone or computer, and use it to sign up for and log in to Claude and ChatGPT.",
     back: "Back to redeem",
+    eyebrow: "The mailbox guide",
     heading: "After you redeem.",
+    contents: "On this page",
+    backToTop: "Back to top",
     lede: "The mailbox is yours. This page covers three things: how to log in to it, how to read and send from the usual mail apps, and how to use it to sign up for and log in to Claude and ChatGPT.",
     sections: [
       {

@@ -164,16 +164,20 @@ async function getJson(url: string): Promise<unknown> {
 /**
  * Reads the release list. Uses latest.json when releases.json cannot be read; returns undefined when neither can,
  * in which case the download page still offers the fixed-address download buttons, just without the version number and past releases.
+ * Both files are requested at once, so the fallback is already on its way when the list fails and the page waits one timeout at most, not one after the other.
  * The result is not cached in the module: a Worker isolate handles many requests, and a module-level cache would pin the list to the first version read.
  */
 export async function fetchDesktopReleases(): Promise<DesktopReleases | undefined> {
+  const manifest = getJson(desktopDownloads.manifest).then(parseManifest);
+  // When the list reads fine the fallback is never looked at, and its failure is not an unhandled one.
+  manifest.catch(() => {});
   try {
     return parseReleaseIndex(await getJson(desktopDownloads.releases));
   } catch (error) {
     console.warn(`Could not read the desktop release list, falling back to latest.json: ${String(error)}`);
   }
   try {
-    return parseManifest(await getJson(desktopDownloads.manifest));
+    return await manifest;
   } catch (error) {
     console.warn(`Could not read the desktop release either; the download page shows no versions: ${String(error)}`);
     return undefined;

@@ -819,16 +819,31 @@ export async function openBillingPortal(subscriptionId: string, lang?: Lang): Pr
   return body.url;
 }
 
-/** Card amount: the smallest unit written with the currency symbol; an unknown currency falls back to "amount + code" so rendering does not throw. */
+/**
+ * Card amount: the smallest unit written with the currency symbol; an unknown currency falls back to "amount + code" so rendering does not throw.
+ * How many decimals the smallest unit stands for comes from the currency itself (2 for USD, 0 for JPY, 3 for KWD), as Intl formats it.
+ */
 export function formatMoney(minor: number, currency: string, lang?: Lang): string {
   try {
-    return new Intl.NumberFormat(lang === "en" ? "en" : "zh-CN", {
+    const format = new Intl.NumberFormat(lang === "en" ? "en" : "zh-CN", {
       style: "currency",
       currency: currency.toUpperCase(),
-    }).format(minor / 100);
+    });
+    return format.format(minor / 10 ** (format.resolvedOptions().maximumFractionDigits ?? 2));
   } catch {
     return `${(minor / 100).toFixed(2)} ${currency.toUpperCase()}`.trim();
   }
+}
+
+/** Date and time of an order or subscription in the page language; a value that is no date is shown as it came. */
+export function formatDateTime(value: string, lang: Lang): string {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(parsed);
 }
 
 export function formatCredits(cents: number): string {

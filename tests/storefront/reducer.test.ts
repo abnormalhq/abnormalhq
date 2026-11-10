@@ -157,6 +157,39 @@ test("username: a row repeating an earlier row's name gets the error; typing in 
   expect(stale.rows[1]!.availableEmail, "an address that differs from the current input is ignored").toBe("");
 });
 
+test("username: a duplicate error goes away when the earlier row is renamed, while a server result on another row stays", () => {
+  let s = run(resolved(), { type: "count/change", value: 3 });
+  const [a, b, c] = s.rows;
+  s = run(
+    s,
+    { type: "row/username", id: a!.id, value: "bob" },
+    { type: "row/username", id: b!.id, value: "bob" },
+    { type: "row/username", id: c!.id, value: "admin" },
+    { type: "row/check-failed", id: c!.id, email: "admin@abnormal.bid", text: t.kind.username_taken },
+  );
+  expect(s.rows[1]!.usernameNote).toEqual({ text: t.msg.duplicateUsername(1), state: "error" });
+
+  s = run(s, { type: "row/username", id: a!.id, value: "alice" });
+  expect(s.rows[1]!.usernameNote, "no longer a duplicate: back to the plain address").toEqual({
+    text: "bob@abnormal.bid",
+    state: "",
+  });
+  expect(s.rows[2]!.usernameNote.text, "the server result of a row that was no duplicate is kept").toBe(
+    t.kind.username_taken,
+  );
+
+  // The duplicate was reported at submit time, which also marks the field invalid.
+  s = run(
+    s,
+    { type: "row/username", id: a!.id, value: "bob" },
+    { type: "field/error", field: "username", index: 1, text: t.msg.duplicateUsername(1) },
+  );
+  expect(s.rows[1]!.usernameInvalid).toBe(true);
+  s = run(s, { type: "row/username", id: a!.id, value: "alice" });
+  expect(s.rows[1]!.usernameNote.text).toBe("bob@abnormal.bid");
+  expect(s.rows[1]!.usernameInvalid).toBe(false);
+});
+
 test("password: lists the missing rules live; after random generation the password is shown and focused", () => {
   let s = resolved();
   const id = s.rows[0]!.id;
@@ -320,6 +353,23 @@ test("activation result: successes go to the result panel, failures stay in the 
   expect(done.formHidden).toBe(true);
   expect(done.outcome?.notification, "each submit's notification result overwrites the previous one").toBe(null);
   expect(done.focus?.target).toBe("result");
+});
+
+test("activation result: a failure the server did not explain reads as the page's own generic error, in the page language", () => {
+  const s = run(resolved(), { type: "row/username", id: 1, value: "alice" });
+  const failed: RedeemResult = {
+    domain: "abnormal.bid",
+    mailboxes: [{ ok: false, index: 0, username: "alice", error: "", kind: "other", field: null }],
+    imap: null,
+    smtp: null,
+    webmail: null,
+    notification: null,
+  };
+  const zh = run(s, { type: "outcome", result: failed, submitted: [{ id: 1, username: "alice" }] });
+  expect(zh.rows[0]!.usernameNote).toStrictEqual({ text: t.msg.unknownError, state: "error" });
+  expect(zh.formNote.text).toBe(t.msg.unknownError);
+  const en = createReducer(copy.en)(s, { type: "outcome", result: failed, submitted: [{ id: 1, username: "alice" }] });
+  expect(en.rows[0]!.usernameNote.text).toBe(copy.en.msg.unknownError);
 });
 
 /** The result of one activation: successes given by index, the rest fail (username taken). */

@@ -10,6 +10,7 @@ import {
   ACCOUNT_PASSWORD_MAX,
   ACCOUNT_PASSWORD_MIN,
   formatCredits,
+  formatDateTime,
   finishGoogleLogin,
   formatMoney,
   getAccount,
@@ -56,6 +57,15 @@ import {
 } from "./ShopParts";
 import { ShopMailboxManager } from "./ShopMailboxManager";
 import { useTurnstile } from "./Turnstile";
+
+/** What stops a new password typed twice from being sent: its length (counted in characters), then the two entries differing; the empty string when nothing does. */
+function newPasswordProblem(password: string, again: string, lang: Lang): string {
+  const t = shopCopy[lang];
+  const length = [...password].length;
+  if (length < ACCOUNT_PASSWORD_MIN || length > ACCOUNT_PASSWORD_MAX)
+    return t.passwordLength(ACCOUNT_PASSWORD_MIN, ACCOUNT_PASSWORD_MAX);
+  return password === again ? "" : t.passwordMismatch;
+}
 
 /** The login link has been used or declined: drop the token from the address bar so a reload does not ask again. */
 function forgetLoginToken() {
@@ -189,10 +199,8 @@ export function ShopAccount({ lang }: { lang: Lang }) {
 
   async function register() {
     if (sending) return;
-    const length = [...password].length;
-    if (length < ACCOUNT_PASSWORD_MIN || length > ACCOUNT_PASSWORD_MAX)
-      return setError(t.passwordLength(ACCOUNT_PASSWORD_MIN, ACCOUNT_PASSWORD_MAX));
-    if (password !== passwordAgain) return setError(t.passwordMismatch);
+    const problem = newPasswordProblem(password, passwordAgain, lang);
+    if (problem) return setError(problem);
     setSending(true);
     setError("");
     try {
@@ -264,15 +272,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
     }
   }
 
-  function date(value: string): string {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime())
-      ? value
-      : new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(parsed);
-  }
+  const date = (value: string) => formatDateTime(value, lang);
 
   return (
     <div className={shopOrderPageClass}>
@@ -544,13 +544,24 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     <ShopMetaRow label={t.subscriptionEnds}>{date(subscription.currentPeriodEnd)}</ShopMetaRow>
                     <ShopMetaRow label={t.period}>
                       {t.periodValue(subscription.periodDays)}
-                      <br />
-                      {subscription.provider === "stripe"
-                        ? t.cardPrice(
-                            formatMoney(subscription.fiatRenewMinor ?? 0, subscription.currency || "usd", lang),
-                            subscription.periodDays,
-                          )
-                        : t.renewAt(formatCredits(subscription.renewPriceCents))}
+                      {subscription.provider !== "stripe" ? (
+                        <>
+                          <br />
+                          {t.renewAt(formatCredits(subscription.renewPriceCents))}
+                        </>
+                      ) : (
+                        // Without the amount or its currency there is no price to show: none rather than a guessed one.
+                        subscription.fiatRenewMinor !== undefined &&
+                        subscription.currency && (
+                          <>
+                            <br />
+                            {t.cardPrice(
+                              formatMoney(subscription.fiatRenewMinor, subscription.currency, lang),
+                              subscription.periodDays,
+                            )}
+                          </>
+                        )
+                      )}
                     </ShopMetaRow>
                     <ShopMetaRow label={t.renewMailboxes}>
                       {subscription.mailboxes.length > 0 ? (
@@ -608,10 +619,10 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                       <ShopOrderCode>{order.id}</ShopOrderCode>
                     </ShopMetaRow>
                     <ShopMetaRow label={t.createdAt}>
-                      {date(order.created)} ·{" "}
-                      {order.provider === "stripe"
-                        ? formatMoney(order.priceCents, order.currency || "usd", lang)
-                        : `${formatCredits(order.priceCents)} LDC`}
+                      {date(order.created)}
+                      {order.provider !== "stripe"
+                        ? ` · ${formatCredits(order.priceCents)} LDC`
+                        : order.currency && ` · ${formatMoney(order.priceCents, order.currency, lang)}`}
                     </ShopMetaRow>
                     {order.kind === "renewal" && (
                       <ShopMetaRow label={t.period}>{t.renewalPeriods(order.periods, order.periodDays)}</ShopMetaRow>
@@ -767,10 +778,8 @@ function ShopPasswordPanel({ lang, hasPassword, onSaved }: { lang: Lang; hasPass
 
   async function save() {
     if (busy) return;
-    const length = [...next].length;
-    if (length < ACCOUNT_PASSWORD_MIN || length > ACCOUNT_PASSWORD_MAX)
-      return setError(t.passwordLength(ACCOUNT_PASSWORD_MIN, ACCOUNT_PASSWORD_MAX));
-    if (next !== again) return setError(t.passwordMismatch);
+    const problem = newPasswordProblem(next, again, lang);
+    if (problem) return setError(problem);
     setBusy(true);
     setError("");
     try {
@@ -919,10 +928,8 @@ function ShopPasswordReset({
 
   async function submit() {
     if (busy) return;
-    const length = [...password].length;
-    if (length < ACCOUNT_PASSWORD_MIN || length > ACCOUNT_PASSWORD_MAX)
-      return setError(t.passwordLength(ACCOUNT_PASSWORD_MIN, ACCOUNT_PASSWORD_MAX));
-    if (password !== again) return setError(t.passwordMismatch);
+    const problem = newPasswordProblem(password, again, lang);
+    if (problem) return setError(problem);
     setBusy(true);
     setError("");
     try {

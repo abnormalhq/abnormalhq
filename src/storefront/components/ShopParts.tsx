@@ -108,17 +108,23 @@ export function ShopMailboxes({ mailboxes }: { mailboxes: string[] }) {
   );
 }
 
+/**
+ * A labelled field with a hint below. hintId goes on the hint so the control can point at it with aria-describedby; with invalid the hint is the field's error:
+ * it turns the error colour and is inserted anew as an alert, so it is read out even when the wording is the rule that was already shown.
+ */
 export function ShopField({
   htmlFor,
   label,
   hint,
   hintId,
+  invalid = false,
   children,
 }: {
   htmlFor: string;
   label: ReactNode;
   hint?: ReactNode;
   hintId?: string;
+  invalid?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -128,7 +134,12 @@ export function ShopField({
       </Label>
       {children}
       {hint !== undefined && (
-        <p className="max-w-[560px] text-xs/[1.6] text-muted-foreground" id={hintId}>
+        <p
+          key={invalid ? "error" : "hint"}
+          className={cn("max-w-[560px] text-xs/[1.6]", invalid ? "text-destructive" : "text-muted-foreground")}
+          id={hintId}
+          role={invalid ? "alert" : undefined}
+        >
           {hint}
         </p>
       )}

@@ -21,7 +21,7 @@ export function ShopDetails({
     | "priceCents"
   >;
   lang: Lang;
-  /** Stripe order: the renewal price is a fiat amount in this currency, not LDC. */
+  /** Stripe order: the renewal price is a fiat amount in this currency, not LDC. Empty when the backend did not say which: no renewal price is shown then. */
   stripeCurrency?: string;
 }) {
   const t = shopCopy[lang];
@@ -47,11 +47,13 @@ export function ShopDetails({
             {item.periodDays > 0 ? (
               <>
                 {t.periodValue(item.periodDays)}
-                {stripeCurrency ? (
-                  <>
-                    <br />
-                    {t.cardPrice(formatMoney(renewCents, stripeCurrency, lang), item.periodDays)}
-                  </>
+                {stripeCurrency !== undefined ? (
+                  stripeCurrency && (
+                    <>
+                      <br />
+                      {t.cardPrice(formatMoney(renewCents, stripeCurrency, lang), item.periodDays)}
+                    </>
+                  )
                 ) : renewCents !== item.priceCents ? (
                   // The price above already reads "per period"; only spell out a renewal price that differs from it.
                   <>
