@@ -534,12 +534,14 @@
   /*
    * Reduced motion stops enter, exit and attention animations. A waiting indicator is essential, not decoration: a
    * stopped ring reads as a broken control, so the spinner and anything else that spins keep turning, at half speed.
+   * An indeterminate progress bar is one too, and a stopped sweep is worse: a third-width bar reads as "33% done". It
+   * fills the track and breathes in place instead, so it still says "working" without anything crossing the screen.
    */
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
     }
-    *:not([data-slot="spinner"], .animate-spin),
+    *:not([data-slot="spinner"], .animate-spin, .animate-progress-sweep),
     *::before,
     *::after {
       animation: none !important;
@@ -549,6 +551,19 @@
     .animate-spin {
       animation-duration: 1.6s !important;
       transition: none !important;
+    }
+    .animate-progress-sweep {
+      width: 100% !important;
+      animation: progress-wait 1.6s ease-in-out infinite alternate !important;
+      transition: none !important;
+    }
+    @keyframes progress-wait {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0.35;
+      }
     }
   }
 }

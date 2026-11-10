@@ -146,11 +146,29 @@ function mockFetch(t: TestContext, responses: Record<string, unknown>) {
   return requested;
 }
 
-test("the loader reads releases.json and does not need latest.json", async (t) => {
-  const requested = mockFetch(t, { [desktopDownloads.releases]: releaseIndex });
+test("the loader reads releases.json and does not need latest.json, which it asks for at the same time", async (t) => {
+  const requested = mockFetch(t, { [desktopDownloads.releases]: releaseIndex, [desktopDownloads.manifest]: 503 });
+  const warn = t.mock.method(console, "warn", () => {});
   const releases = await fetchDesktopReleases();
   assert.equal(releases?.current.version, "0.2.0");
-  assert.deepEqual(requested, [desktopDownloads.releases]);
+  assert.deepEqual(requested.toSorted(), [desktopDownloads.manifest, desktopDownloads.releases].toSorted());
+  assert.equal(warn.mock.callCount(), 0, "an unused fallback that failed is not worth a warning");
+});
+
+test("the loader waits for one timeout at most: latest.json is already requested while releases.json is still pending", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  const requested: string[] = [];
+  let failList: (error: Error) => void = () => {};
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
+    const url = String(input);
+    requested.push(url);
+    if (url === desktopDownloads.manifest) return Response.json(releaseIndex.releases[1]);
+    return new Promise<Response>((_, reject) => (failList = reject));
+  });
+  const pending = fetchDesktopReleases();
+  assert.deepEqual(requested.toSorted(), [desktopDownloads.manifest, desktopDownloads.releases].toSorted());
+  failList(new DOMException("The operation timed out.", "TimeoutError"));
+  assert.equal((await pending)?.current.version, "0.1.0");
 });
 
 for (const [why, answer] of [
@@ -172,10 +190,10 @@ test("the loader gives no versions, without throwing, when neither file can be r
 });
 
 test("the loader asks again on every call, so a long-lived Worker sees new releases", async (t) => {
-  const requested = mockFetch(t, { [desktopDownloads.releases]: releaseIndex });
+  const requested = mockFetch(t, { [desktopDownloads.releases]: releaseIndex, [desktopDownloads.manifest]: 503 });
   await fetchDesktopReleases();
   await fetchDesktopReleases();
-  assert.equal(requested.length, 2);
+  assert.equal(requested.filter((url) => url === desktopDownloads.releases).length, 2);
 });
 
 test("the loader keeps Next.js from caching the list and lets the edge cache it for a minute", async (t) => {

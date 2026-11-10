@@ -96,7 +96,8 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
   const rowInputs = useRef(new Map<number, RowInputs>());
 
   function describe(error: unknown): string {
-    if (error instanceof ApiError) return error.kind === "other" ? error.message : t.kind[error.kind];
+    if (error instanceof ApiError)
+      return error.kind === "other" ? error.message || t.msg.unknownError : t.kind[error.kind];
     if (error instanceof NetworkError) return t.msg.networkError;
     return t.msg.unknownError;
   }
@@ -193,6 +194,14 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
     }
   }
 
+  function changeUsername(id: number, value: string): void {
+    // Rows that repeated an earlier username may be free of it after this edit: they are checked too (the check itself skips a row that is still a duplicate).
+    const before = stateRef.current.rows;
+    dispatch({ type: "row/username", id, value });
+    scheduleCheck(id);
+    for (const row of before) if (row.id !== id && duplicateOf(before, row)) scheduleCheck(row.id);
+  }
+
   function onUsernameInput(id: number, input: HTMLInputElement): void {
     // Upper-case letters are lower-cased as typed with the caret kept in place; @ and what follows are removed on blur, so a half-typed entry is not cut off.
     const lowered = input.value.toLowerCase();
@@ -201,15 +210,13 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
       input.value = lowered;
       if (caret !== null) input.setSelectionRange(caret, caret);
     }
-    dispatch({ type: "row/username", id, value: lowered });
-    scheduleCheck(id);
+    changeUsername(id, lowered);
   }
 
   function onUsernameBlur(id: number, input: HTMLInputElement): void {
     const normalized = normalizeUsername(input.value);
     if (normalized === input.value) return;
-    dispatch({ type: "row/username", id, value: normalized });
-    scheduleCheck(id);
+    changeUsername(id, normalized);
   }
 
   function onDomainChange(value: string): void {
@@ -450,11 +457,7 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
                     <span className={stepLabelClass}>{t.steps.accounts.label}</span>
                     <p className={stepHintClass}>{t.steps.accounts.hint}</p>
                     {state.cdk?.quotaSupportedByDomain?.[domain] === false && (
-                      <p className={stepHintClass}>
-                        {lang === "zh"
-                          ? "此域名暂未提供单邮箱配额，容量以服务器设置为准。"
-                          : "Per-mailbox quota is unavailable for this domain; storage follows the server settings."}
-                      </p>
+                      <p className={stepHintClass}>{t.steps.accounts.noQuota}</p>
                     )}
                   </div>
                   <div className={stepControlClass}>

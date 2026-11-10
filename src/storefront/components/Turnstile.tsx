@@ -63,6 +63,7 @@ export function useTurnstile(siteKey: string | null, action: TurnstileAction, la
   const widget = useRef<string | null>(null);
   const token = useRef("");
   // The state remembers which site key it belongs to: a changed (or newly received) key naturally counts as "in progress" with no reset in an effect.
+  // Removing the widget forgets the key, so a widget created again with the same key (the redeem code was edited, the login form came back after signing out) waits for its own token too.
   const [status, setStatusFor] = useState<{ key: string | null; value: "pending" | "ready" | "failed" }>({
     key: null,
     value: "pending",
@@ -71,7 +72,9 @@ export function useTurnstile(siteKey: string | null, action: TurnstileAction, la
   useEffect(() => {
     if (!siteKey) return;
     let cancelled = false;
-    const setStatus = (value: "pending" | "ready" | "failed") => setStatusFor({ key: siteKey, value });
+    const setStatus = (value: "pending" | "ready" | "failed") => {
+      if (!cancelled) setStatusFor({ key: siteKey, value });
+    };
     loadTurnstile().then(
       (api) => {
         if (cancelled || !container.current) return;
@@ -104,15 +107,14 @@ export function useTurnstile(siteKey: string | null, action: TurnstileAction, la
             },
           }) ?? null;
       },
-      () => {
-        if (!cancelled) setStatus("failed");
-      },
+      () => setStatus("failed"),
     );
     return () => {
       cancelled = true;
       if (widget.current) window.turnstile?.remove(widget.current);
       widget.current = null;
       token.current = "";
+      setStatusFor({ key: null, value: "pending" });
     };
   }, [siteKey, action, lang]);
 

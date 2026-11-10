@@ -7,7 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
-import { createRenewalOrder, formatCredits, getRenewal, type RenewalSummary } from "@/storefront/lib/shop";
+import {
+  createRenewalOrder,
+  formatCredits,
+  formatDateTime,
+  getRenewal,
+  type RenewalSummary,
+} from "@/storefront/lib/shop";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import { cn } from "@/lib/utils";
 import {
@@ -82,15 +88,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
     }
   }
 
-  function date(value: string): string {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime())
-      ? value
-      : new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(parsed);
-  }
+  const date = (value: string) => formatDateTime(value, lang);
 
   return (
     <div className={shopOrderPageClass}>

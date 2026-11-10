@@ -366,6 +366,13 @@ test("shop amounts: an unknown currency falls back to amount plus code instead o
   expect(formatMoney(499, "", "zh")).toBe("4.99");
 });
 
+test("shop amounts: the smallest unit follows the currency's own decimals, none for the yen and three for the Kuwaiti dinar", () => {
+  expect(formatMoney(500, "jpy", "en")).toBe("¥500");
+  expect(formatMoney(500, "krw", "en")).toBe("₩500");
+  expect(formatMoney(1500, "kwd", "en")).toBe("KWD\u00a01.500");
+  expect(formatMoney(499, "eur", "en")).toBe("€4.99");
+});
+
 test("shop client: with human verification on the catalog carries the site key, login requests carry the token, and a rejection reads the backend's explanation", async () => {
   respond({ ...catalogResponse, turnstileSiteKey: " 0x4AAAsite " });
   expect((await getShopCatalog()).turnstileSiteKey).toBe("0x4AAAsite");

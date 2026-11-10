@@ -17,6 +17,7 @@ import {
   type AccountMailbox,
   type AccountMailboxGroup,
   type AccountMailboxes,
+  ShopApiError,
 } from "@/storefront/lib/shop";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import { cn } from "@/lib/utils";
@@ -58,6 +59,8 @@ export function ShopMailboxManager({ lang }: { lang: Lang }) {
   // undefined: still loading; null: unavailable (logged out or old backend), this block is hidden.
   const [data, setData] = useState<AccountMailboxes | null | undefined>(undefined);
   const [reload, setReload] = useState(0);
+  // Why the list could not be read; shown with a retry button, apart from the error of a change (error).
+  const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [open, setOpen] = useState<Open>(null);
@@ -75,13 +78,15 @@ export function ShopMailboxManager({ lang }: { lang: Lang }) {
     const controller = new AbortController();
     getAccountMailboxes(controller.signal, lang)
       .then((next) => {
-        if (!controller.signal.aborted) setData(next);
+        if (controller.signal.aborted) return;
+        setData(next);
+        setLoadError("");
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
-        // Old backends without this endpoint (404) hide this block; other failures show the reason and keep the retry.
-        setData((current) => current ?? null);
-        setError(shopError(cause, lang));
+        // Old backends without this endpoint (404) hide this block; other failures show the reason and a retry, over the list read before if there is one.
+        if (cause instanceof ShopApiError && cause.status === 404) setData(null);
+        else setLoadError(shopError(cause, lang));
       });
     return () => controller.abort();
   }, [lang, reload]);
@@ -109,7 +114,7 @@ export function ShopMailboxManager({ lang }: { lang: Lang }) {
     }
   }
 
-  if (data === null && !error) return null;
+  if (data === null) return null;
 
   return (
     <ShopPanel>
@@ -125,6 +130,21 @@ export function ShopMailboxManager({ lang }: { lang: Lang }) {
         )}
       </div>
       <p className={shopTextClass}>{t.mailboxesHint}</p>
+      {loadError && (
+        <>
+          <ShopAlert className="mt-4">{loadError}</ShopAlert>
+          <ShopButton
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setLoadError("");
+              setReload((value) => value + 1);
+            }}
+          >
+            {t.retry}
+          </ShopButton>
+        </>
+      )}
       {error && <ShopAlert className="mt-4">{error}</ShopAlert>}
       {notice && (
         <p className="mt-4 text-sm/[1.7]" role="status">
@@ -132,10 +152,12 @@ export function ShopMailboxManager({ lang }: { lang: Lang }) {
         </p>
       )}
       {data === undefined ? (
-        <p className={shopTextClass} role="status">
-          {t.loading}
-        </p>
-      ) : data === null ? null : data.groups.length === 0 ? (
+        !loadError && (
+          <p className={shopTextClass} role="status">
+            {t.loading}
+          </p>
+        )
+      ) : data.groups.length === 0 ? (
         <p className={shopTextClass}>
           {t.mailboxesEmpty}{" "}
           <Link className="text-foreground underline underline-offset-4" href={`/${LANG_PATHS[lang]}shop/`}>
@@ -316,6 +338,7 @@ function MailboxRow({
   const [show, setShow] = useState(false);
   const [confirm, setConfirm] = useState("");
   const [problem, setProblem] = useState("");
+  const passwordInput = useRef<HTMLInputElement>(null);
   const id = `mailbox-${mailbox.id}`;
 
   function close() {
@@ -353,20 +376,33 @@ function MailboxRow({
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            const issue = passwordProblem(password);
-            if (issue) return setProblem(t.mailboxPasswordRule);
+            if (passwordProblem(password)) {
+              setProblem(t.mailboxPasswordRule);
+              // Focus goes back to the field, which reads out its error.
+              passwordInput.current?.focus();
+              return;
+            }
+            setProblem("");
             void onPassword(password).then((ok) => ok && close());
           }}
         >
-          <ShopField htmlFor={`${id}-password`} label={t.mailboxNewPassword} hint={problem || t.mailboxPasswordRule}>
+          <ShopField
+            htmlFor={`${id}-password`}
+            label={t.mailboxNewPassword}
+            hint={problem || t.mailboxPasswordRule}
+            hintId={`${id}-password-hint`}
+            invalid={problem !== ""}
+          >
             <InputGroup size="lg" className="max-w-[420px]">
               <InputGroupInput
+                ref={passwordInput}
                 id={`${id}-password`}
                 type={show ? "text" : "password"}
                 autoComplete="new-password"
                 required
                 maxLength={128}
                 aria-invalid={problem ? true : undefined}
+                aria-describedby={`${id}-password-hint`}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 disabled={busy}
@@ -453,6 +489,8 @@ function CreateMailboxForm({
   const [password, setPassword] = useState(() => generatePassword());
   const [show, setShow] = useState(true);
   const [problem, setProblem] = useState<{ field: "username" | "password"; message: string } | null>(null);
+  const usernameInput = useRef<HTMLInputElement>(null);
+  const passwordInput = useRef<HTMLInputElement>(null);
 
   return (
     <form
@@ -460,8 +498,17 @@ function CreateMailboxForm({
       onSubmit={(event) => {
         event.preventDefault();
         const name = normalizeUsername(username);
-        if (usernameProblem(name)) return setProblem({ field: "username", message: t.mailboxUsernameRule });
-        if (passwordProblem(password)) return setProblem({ field: "password", message: t.mailboxPasswordRule });
+        // Focus goes back to the field at fault, which reads out its error.
+        if (usernameProblem(name)) {
+          setProblem({ field: "username", message: t.mailboxUsernameRule });
+          usernameInput.current?.focus();
+          return;
+        }
+        if (passwordProblem(password)) {
+          setProblem({ field: "password", message: t.mailboxPasswordRule });
+          passwordInput.current?.focus();
+          return;
+        }
         setProblem(null);
         void onSubmit({ domain, username: name, password });
       }}
@@ -487,9 +534,12 @@ function CreateMailboxForm({
         htmlFor="mailbox-create-username"
         label={t.mailboxUsername}
         hint={problem?.field === "username" ? problem.message : t.mailboxUsernameRule}
+        hintId="mailbox-create-username-hint"
+        invalid={problem?.field === "username"}
       >
         <InputGroup size="lg" className="max-w-[420px]">
           <InputGroupInput
+            ref={usernameInput}
             id="mailbox-create-username"
             type="text"
             autoComplete="off"
@@ -499,6 +549,7 @@ function CreateMailboxForm({
             required
             maxLength={64}
             aria-invalid={problem?.field === "username" ? true : undefined}
+            aria-describedby="mailbox-create-username-hint"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             disabled={busy}
@@ -510,15 +561,19 @@ function CreateMailboxForm({
         htmlFor="mailbox-create-password"
         label={t.mailboxPassword}
         hint={problem?.field === "password" ? problem.message : t.mailboxPasswordRule}
+        hintId="mailbox-create-password-hint"
+        invalid={problem?.field === "password"}
       >
         <InputGroup size="lg" className="max-w-[420px]">
           <InputGroupInput
+            ref={passwordInput}
             id="mailbox-create-password"
             type={show ? "text" : "password"}
             autoComplete="new-password"
             required
             maxLength={128}
             aria-invalid={problem?.field === "password" ? true : undefined}
+            aria-describedby="mailbox-create-password-hint"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             disabled={busy}

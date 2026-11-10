@@ -158,6 +158,34 @@ test("submit: when a just-pasted, unverified redeem code has a smaller quota, th
   expect(h.redeemed.map((input) => input.mailboxes.map((item) => item.username))).toStrictEqual([["alice"]]);
 });
 
+test("submit: when a just-pasted, unverified redeem code activates on another domain than the rows showed, nothing is sent until the user has seen the new addresses", async () => {
+  const elsewhere: CdkInfo = { domains: ["mail.abnormal.bid", "abnormal.example"], expiresAt: null, usesLeft: 1 };
+  const h = harness({ [CODE_A]: three, [CODE_B]: elsewhere }, (input) => succeeded(input));
+  await filled(h, CODE_A, ["alice"]);
+  // Enter pressed before the 350ms pause: the rows still show the previous domain.
+  h.dispatch({ type: "code/input", value: CODE_B });
+  await h.submit();
+  expect(h.redeemed, "no activation request is sent").toHaveLength(0);
+  expect(h.state.formNote).toStrictEqual({ text: t.msg.domainChanged("mail.abnormal.bid"), state: "error" });
+  expect(h.state.focus).toMatchObject({ target: "submit" });
+  expect(h.state.busy).toBe(false);
+  expect(h.challenge.resets).toBe(0);
+  // Submitting again, now that the rows show the new domain, activates there.
+  await h.submit();
+  expect(h.redeemed.map((input) => input.domain)).toStrictEqual(["mail.abnormal.bid"]);
+
+  // A code verified at submit time that offers the domain the rows showed goes straight through.
+  const same = harness({ [CODE_A]: { ...elsewhere, domains: ["abnormal.example", "abnormal.bid"] } }, (input) =>
+    succeeded(input),
+  );
+  same.dispatch({ type: "code/input", value: CODE_A });
+  const id = same.state.rows[0]!.id;
+  same.dispatch({ type: "row/username", id, value: "alice" });
+  same.dispatch({ type: "row/password", id, value: "alice-password" });
+  await same.submit();
+  expect(same.redeemed.map((input) => input.domain)).toStrictEqual(["abnormal.bid"]);
+});
+
 test("submit: on partial failure the failed rows stay and the redeem code is re-verified; a server error pointing at a row goes on the row as submitted", async () => {
   const h = harness({ [CODE_A]: three }, (input) => succeeded(input, (index) => index !== 1));
   await filled(h, CODE_A, ["alice", "admin", "carol"]);
