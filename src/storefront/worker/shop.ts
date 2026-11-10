@@ -11,8 +11,14 @@ import {
 } from "./proxy";
 
 const SHOP_PATH =
-  /^\/api\/shop\/(catalog|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?))?)\/?$/;
+  /^\/api\/shop\/(catalog|address|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?))?)\/?$/;
 const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes"];
+/**
+ * The address check before buying (POST address: is this username free on this domain?). It is proposed in docs/storefront-api.md
+ * and not in mail yet, so it is not in docs/onboard-contract.json. It needs no session, so no cookie is forwarded to it, and a
+ * mail that does not have it answers 404, which is passed on as a JSON 404: the pages take that as "no address check" and hide it.
+ */
+export const ADDRESS_ROUTE = "address";
 // The cookie names, shapes and lifetimes are mail's (src/lib/shop/session.ts, customers.ts); tests/worker.test.ts checks
 // them against docs/onboard-contract.json.
 export const BUYER_COOKIE = "mailhq_shop";
@@ -68,6 +74,7 @@ function requestCookie(request: Request, name: string, pattern: RegExp): string 
 
 /** Only the purchase session and account session cookies are forwarded (plus the Google state cookie when completing Google login); admin credentials etc. never are. */
 function shopCookies(request: Request, route: string): string | null {
+  if (route === ADDRESS_ROUTE) return null;
   const cookies = [
     requestCookie(request, BUYER_COOKIE, BUYER_TOKEN),
     requestCookie(request, CUSTOMER_COOKIE, CUSTOMER_TOKEN),
@@ -266,6 +273,11 @@ async function forward(
         return failure(503, unavailable, notify);
       }
       return new Response(null, { status: 303, headers: { ...SHOP_HEADERS, Location: allowed } });
+    }
+    if (route === ADDRESS_ROUTE && upstream.status === 404) {
+      // A mail before the address check answers its own 404 page; say so in JSON rather than "unavailable", so the pages hide the check.
+      await upstream.body?.cancel();
+      return failure(404, localizer(request)("接口不存在。", "Endpoint not found."));
     }
     if (mediaType(upstream.headers) !== (notify ? "text/plain" : "application/json")) {
       await upstream.body?.cancel();

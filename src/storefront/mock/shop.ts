@@ -7,7 +7,7 @@
  * paying returns to the order page in the form's language, and errors come in the request's language.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
+import { normalizeUsername, passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
 import type {
   AccountMailbox,
   AccountMailboxes,
@@ -60,6 +60,17 @@ const SUBSCRIPTION_PRODUCT: ShopProduct = {
   fiatPriceMinor: 299,
 };
 const PRODUCTS = [PRODUCT, SUBSCRIPTION_PRODUCT];
+/** Plan names and descriptions in English: like mail, the catalog answers in the request's language. */
+const PRODUCT_TEXT_EN: Record<string, Pick<ShopProduct, "name" | "description">> = {
+  [PRODUCT.id]: {
+    name: "Demo plan · One mailbox",
+    description: "For local development only: paying is simulated and no real Credit is charged.",
+  },
+  [SUBSCRIPTION_PRODUCT.id]: {
+    name: "Demo plan · Monthly mailbox",
+    description: "For local development only: renews every 30 days, with a reminder before it expires.",
+  },
+};
 /** Token of the demo renewal link; the local subscription id is the purchase order number. */
 const RENEW_TOKEN = /^demo-([a-z0-9]{15})$/;
 const CUSTOMER_COOKIE = "mailhq_customer";
@@ -174,8 +185,15 @@ export class MockShopStore {
   private readonly owned = new Map<string, Set<string>>();
   private readonly now: () => number;
 
-  constructor(now: () => number = Date.now) {
+  /**
+   * Whether the demo backend has the address check (POST address, proposed in docs/storefront-api.md). Off, the catalog leaves
+   * `addressCheck` out and the endpoint answers 404 like a backend before it, to see the pages without the check.
+   */
+  private readonly addressCheck: boolean;
+
+  constructor(now: () => number = Date.now, addressCheck = process.env.MOCK_ADDRESS_CHECK !== "off") {
     this.now = now;
+    this.addressCheck = addressCheck;
   }
 
   async fetch(route: string, request: Request): Promise<Response> {
@@ -194,6 +212,7 @@ export class MockShopStore {
     if (
       ![
         "catalog",
+        ...(this.addressCheck ? ["address"] : []),
         "orders",
         "checkout",
         "pay",
@@ -239,8 +258,12 @@ export class MockShopStore {
       const catalog: ShopCatalog = {
         available: true,
         payment: { ldc: true, stripe: { currency: "usd" } },
-        products: structuredClone(PRODUCTS),
+        products: PRODUCTS.map((product) => ({
+          ...structuredClone(product),
+          ...(english ? PRODUCT_TEXT_EN[product.id] : {}),
+        })),
         onboardUrl,
+        ...(this.addressCheck ? { addressCheck: true as const } : {}),
       };
       return json(catalog);
     }
@@ -292,6 +315,19 @@ export class MockShopStore {
       return failure(400, badFormat);
     }
     const secure = origin.startsWith("https:") ? "; Secure" : "";
+    if (route === "address") {
+      // The address check before buying: no redeem code and no session; only domains of the plans on sale can be asked about.
+      if (
+        typeof body.domain !== "string" ||
+        !PRODUCTS.some((product) => product.domains.includes(body.domain as string))
+      )
+        return failure(400, say("请选择可用的域名。", "Choose an available domain."));
+      const username = normalizeUsername(typeof body.username === "string" ? body.username : "");
+      if (usernameProblem(username)) return failure(400, say("用户名格式不对。", "The username is not valid."));
+      const email = `${username}@${body.domain}`;
+      const exists = [...this.mailboxes.values()].some((items) => items.some((item) => item.email === email));
+      return json({ available: !TAKEN_USERNAMES.has(username) && !exists, email });
+    }
     if (route === "account/login") {
       if (typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()))
         return failure(400, say("联系邮箱格式不正确。", "The email address is not valid."));
