@@ -10,6 +10,8 @@ import { fillTemplate } from "@/lib/template";
 import { Icon } from "./Icon";
 
 export interface HelpSearchGroup {
+  /** The topic's id: language-independent and without spaces, so it can be part of an element id (a title cannot). */
+  id: string;
   title: string;
   entries: readonly HelpSearchEntry[];
 }
@@ -81,8 +83,8 @@ export function HelpSearch({ copy, groups }: { copy: Copy["help"]["search"]; gro
       </p>
       <div className="mt-8 grid gap-12 md:mt-10" id={`${id}-results`}>
         {visible.map((group) => (
-          <section aria-labelledby={`${id}-${group.title}`} key={group.title}>
-            <h2 className="text-xl/[1.4] font-semibold" id={`${id}-${group.title}`}>
+          <section aria-labelledby={`${id}-${group.id}`} key={group.id}>
+            <h2 className="text-xl/[1.4] font-semibold" id={`${id}-${group.id}`}>
               {group.title}
             </h2>
             <ul className="mt-4 grid border-t border-border md:grid-cols-2 md:gap-x-10">

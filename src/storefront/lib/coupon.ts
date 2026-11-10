@@ -118,7 +118,23 @@ export function orderCoupon(
   }
   if (!hint || hint.orderId !== order.id || hint.baseCents <= order.priceCents) return null;
   // An LDC order with a plan discount still carries its original price: the price before the code cannot be above it.
-  if (order.provider !== "stripe" && order.discountPercent > 0 && hint.baseCents >= order.originalPriceCents)
+  // It can equal it: a small plan discount rounds away (1% off 0.50 is still 0.50).
+  if (order.provider !== "stripe" && order.discountPercent > 0 && hint.baseCents > order.originalPriceCents)
     return null;
   return { code: hint.code, discountCents: hint.baseCents - order.priceCents, baseCents: hint.baseCents };
+}
+
+/**
+ * What the shop page says after "Apply": "applied" when a checked plan takes the code, "refused" when every plan and way of
+ * paying on offer was checked and none does, "unchecked" when none of the checked ones does but some were not asked about
+ * (the page previews a bounded number, and a request can fail part-way): checkout still decides for those, so the code is
+ * not called unusable.
+ */
+export function couponVerdict(
+  quotes: Readonly<Record<string, object | null>>,
+  offered: number,
+): "applied" | "refused" | "unchecked" {
+  const answers = Object.values(quotes);
+  if (answers.some(Boolean)) return "applied";
+  return answers.length >= offered ? "refused" : "unchecked";
 }

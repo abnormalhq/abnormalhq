@@ -5,6 +5,7 @@ import {
   COUPON_MAX_LENGTH,
   COUPON_STORAGE_KEY,
   normalizeCoupon,
+  couponVerdict,
   orderCoupon,
   recallCoupon,
   rememberCoupon,
@@ -250,8 +251,12 @@ test("order page: the discount of an order with a code is visible although mail 
   expect(orderCoupon(order, { ...hint, orderId: "zzzzzzzzzzzzzzz" })).toBeNull();
   expect(orderCoupon(order, { ...hint, baseCents: 400 })).toBeNull();
   expect(orderCoupon(order, { ...hint, baseCents: 300 })).toBeNull();
-  // A remembered price at or above the plan's original price is not a price after the plan discount.
-  expect(orderCoupon(discounted, { ...hint, baseCents: 1000 })).toBeNull();
+  // A remembered price above the plan's original price is not a price after the plan discount.
+  expect(orderCoupon(discounted, { ...hint, baseCents: 1001 })).toBeNull();
+  // It can equal it: 1% off 0.50 rounds back to 0.50, and a code that takes 0.05 off that still shows.
+  expect(
+    orderCoupon({ ...order, originalPriceCents: 50, discountPercent: 1, priceCents: 45 }, { ...hint, baseCents: 50 }),
+  ).toStrictEqual({ code: "WELCOME", discountCents: 5, baseCents: 50 });
   // A code never applies to a renewal order.
   expect(orderCoupon({ ...order, kind: "renewal" }, hint)).toBeNull();
 });
@@ -284,6 +289,8 @@ test("copy: both languages say that a code cannot be used without giving a reaso
   for (const lang of ["zh", "en"] as const) {
     const t = shopCopy[lang];
     expect(t.couponInvalid).not.toMatch(/expired|used up|过期|用完|不存在|unknown/i);
+    expect(t.couponUnchecked).not.toMatch(/expired|used up|过期|用完|不存在|unknown/i);
+    expect(t.couponUnchecked).not.toBe(t.couponInvalid);
     expect(t.orderCoupon("WELCOME")).toContain("WELCOME");
     expect(t.orderCoupon("")).not.toMatch(/\s$/);
     expect(t.couponWith("WELCOME", t.couponPriceLdc("6.00"))).toContain("6.00 LDC");
@@ -296,11 +303,28 @@ test("shop page: a typed code always goes with checkout, and the page never prev
   expect(source).toMatch(/createShopOrder\(productId, lang, email\.trim\(\), provider, typedCoupon\)/);
   // Each preview is a code guess against mail's limit of 10 per 10 minutes: only "Apply" asks, and for a bounded number of plans.
   expect(source.match(/previewCoupon\(/g)).toHaveLength(1);
-  expect(source).toMatch(/\.slice\(0, COUPON_PREVIEWS\)/);
+  expect(source).toMatch(/offered\.slice\(0, COUPON_PREVIEWS\)/);
   expect(source).not.toMatch(/onChange=\{[^}]*applyCoupon/);
   // A backend without discount codes, or a catalog that says so, hides the field.
   expect(source).toMatch(/catalog\?\.coupons !== false && !couponsMissing/);
   expect(source).toMatch(/error\.status === 404\) \{\s*setCouponsMissing\(true\)/);
+});
+
+test("shop page: a code is only called unusable once every plan and way of paying on offer was asked about", () => {
+  const quote = { code: "WELCOME", priceCents: 400 };
+  expect(couponVerdict({ "a:ldc": null, "a:stripe": quote }, 2)).toBe("applied");
+  expect(couponVerdict({ "a:ldc": null, "a:stripe": null }, 2)).toBe("refused");
+  // Six on offer, four previewed and refused: one of the other two may take the code, so checkout decides.
+  const four = { "a:ldc": null, "a:stripe": null, "b:ldc": null, "b:stripe": null };
+  expect(couponVerdict(four, 6)).toBe("unchecked");
+  expect(couponVerdict(four, 4)).toBe("refused");
+  // A preview that failed part-way leaves plans unasked too.
+  expect(couponVerdict({ "a:ldc": null }, 2)).toBe("unchecked");
+  const source = readFileSync("src/storefront/components/Shop.tsx", "utf8");
+  // What is on offer is counted before the preview limit cuts the list.
+  expect(source).toMatch(/const asks = offered\.slice\(0, COUPON_PREVIEWS\);/);
+  expect(source).toMatch(/setApplied\(\{ code, quotes, offered: offered\.length \}\)/);
+  expect(source).toMatch(/\[couponVerdict\(applied\.quotes, applied\.offered\)\]/);
 });
 
 /* ---- The mock API of next dev ---- */

@@ -17,7 +17,7 @@ import {
   formatMoney,
   type ShopPaymentProvider,
 } from "@/storefront/lib/shop";
-import { COUPON_MAX_LENGTH, normalizeCoupon, rememberCoupon } from "@/storefront/lib/coupon";
+import { COUPON_MAX_LENGTH, couponVerdict, normalizeCoupon, rememberCoupon } from "@/storefront/lib/coupon";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import {
   ADDRESS_PARAM,
@@ -97,7 +97,7 @@ export function Shop({ lang }: { lang: Lang }) {
   // Discount code: what is in the field is sent with checkout, whether or not it was previewed, so a typed code is never
   // dropped silently; mail then prices the order with it or refuses the checkout. "Apply" previews it per plan first.
   const [coupon, setCoupon] = useState("");
-  const [applied, setApplied] = useState<{ code: string; quotes: CouponQuotes } | null>(null);
+  const [applied, setApplied] = useState<{ code: string; quotes: CouponQuotes; offered: number } | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
   const [couponError, setCouponError] = useState("");
   // The backend has no discount codes (the preview answered 404): the field goes away.
@@ -158,12 +158,11 @@ export function Shop({ lang }: { lang: Lang }) {
     const products = [...catalog.products].sort(
       (a, b) => Number(b.id === selectedPlan) - Number(a.id === selectedPlan),
     );
-    const asks = products
-      .flatMap((product) => [
-        ...(catalog.payment.ldc ? [{ product, provider: "ldc" as const }] : []),
-        ...(catalog.payment.stripe && product.fiatPriceMinor ? [{ product, provider: "stripe" as const }] : []),
-      ])
-      .slice(0, COUPON_PREVIEWS);
+    const offered = products.flatMap((product) => [
+      ...(catalog.payment.ldc ? [{ product, provider: "ldc" as const }] : []),
+      ...(catalog.payment.stripe && product.fiatPriceMinor ? [{ product, provider: "stripe" as const }] : []),
+    ]);
+    const asks = offered.slice(0, COUPON_PREVIEWS);
     const quotes: CouponQuotes = {};
     let code = typedCoupon.toUpperCase();
     try {
@@ -184,7 +183,7 @@ export function Shop({ lang }: { lang: Lang }) {
       setCouponError(shopError(error, lang));
     }
     // What was answered before a failure still stands: the plans it covers show their price.
-    if (Object.keys(quotes).length > 0) setApplied({ code, quotes });
+    if (Object.keys(quotes).length > 0) setApplied({ code, quotes, offered: offered.length });
     setCouponChecking(false);
   }
 
@@ -339,8 +338,13 @@ export function Shop({ lang }: { lang: Lang }) {
                   </div>
                 </ShopField>
                 <p className="text-sm/[1.7]" role="status">
+                  {/* "Can't be used" only once every plan on offer was asked: an unchecked plan may still take the code. */}
                   {applied &&
-                    (Object.values(applied.quotes).some(Boolean) ? t.couponApplied(applied.code) : t.couponInvalid)}
+                    {
+                      applied: t.couponApplied(applied.code),
+                      refused: t.couponInvalid,
+                      unchecked: t.couponUnchecked,
+                    }[couponVerdict(applied.quotes, applied.offered)]}
                 </p>
               </form>
             </details>

@@ -332,6 +332,12 @@ test("help search: runs in the browser on what the page hands it, and the page w
   assert.match(search, /role="status"/);
   assert.match(search, /<label className="sr-only" htmlFor=/);
   assert.match(search, /aria-controls=/);
+  // A topic's heading names its section through the topic id: a title has spaces ("Getting started"), which aria-labelledby
+  // reads as several ids, none of them the heading's.
+  assert.match(search, /<section aria-labelledby=\{`\$\{id\}-\$\{group\.id\}`\} key=\{group\.id\}>/);
+  assert.match(search, /<h2 [^>]*id=\{`\$\{id\}-\$\{group\.id\}`\}/);
+  assert.doesNotMatch(search, /\$\{group\.title\}`/);
+  for (const category of helpCategoryIds) assert.match(category, /^[a-z]+$/);
   // The index hands it only this language's entries.
   const index = readFileSync("src/components/HelpCenter.tsx", "utf8");
   assert.ok(!index.startsWith('"use client"'));

@@ -20,6 +20,7 @@ export function HelpCenter({ lang }: { lang: Lang }) {
   const articles = helpArticles(lang);
   const email = site.contact.email.trim();
   const groups = helpCategoryIds.map((category) => ({
+    id: category,
     title: categories[category],
     entries: articles
       .filter((article) => article.category === category)
