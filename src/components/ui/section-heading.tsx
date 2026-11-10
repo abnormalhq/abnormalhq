@@ -19,14 +19,14 @@ function Eyebrow({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-/** The section title scale: 28px on phones, 34px on tablets, 40px on desktops. */
+/** The section title scale: 28px on phones, then the display scale: 34px on tablets, 40px on desktops. */
 function SectionTitle({ className, asChild = false, ...props }: React.ComponentProps<"h2"> & { asChild?: boolean }) {
   const Comp = asChild ? Slot.Root : "h2";
   return (
     <Comp
       data-slot="section-title"
       className={cn(
-        "mt-5 font-heading text-3xl/[1.3] font-semibold tracking-[-0.02em] md:text-[34px] lg:text-[40px] lg:leading-[1.25]",
+        "mt-5 font-heading text-3xl/[1.3] font-semibold tracking-[-0.02em] md:text-display-sm lg:text-display",
         className,
       )}
       {...props}
