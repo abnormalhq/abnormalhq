@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { BrandArrow } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -182,7 +183,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
             {d.webmailNote}
             {t.space}
             <TextLink href={links.webmail}>
-              {d.webmailLink} <Icon name="up-right" className="size-3.5" />
+              {d.webmailLink} <BrandArrow className="size-3" />
             </TextLink>
           </span>
         </div>
