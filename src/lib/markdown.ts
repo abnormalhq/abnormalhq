@@ -1,5 +1,5 @@
 /**
- * Markdown for agents: the home page is generated from the UI copy, the legal pages use the MDX body, the storefront pages (redeem, guide, shop)
+ * Markdown for agents: the home page is generated from the UI copy, the pricing page from the copy and the live catalog, the legal pages use the MDX body, the storefront pages (redeem, guide, shop)
  * come from src/storefront/lib/markdown.ts, and llms.txt is the index of all of them.
  * The copy exists only once, in src/i18n; change the UI copy and this follows.
  */
@@ -26,6 +26,8 @@ import {
   type DesktopReleases,
 } from "./releases.ts";
 import { pageFor, pagePaths } from "./pages.ts";
+import { planRows, planViews } from "./pricing.ts";
+import type { ShopCatalog } from "../storefront/lib/catalog.ts";
 import { storeMarkdownPaths, storeTitle } from "../storefront/lib/markdown.ts";
 
 const absolute = (path: string) => `${site.url}${path}`;
@@ -62,6 +64,12 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
       ...t.start.entries.map((entry) => `[${entry.title}](${links[entry.link]}): ${entry.description}`),
       ...t.start.secondary.map((item) => `[${item.label}](${links[item.link]})`),
     ]),
+    // Prices are live and this page is prerendered, so they are on the pricing page's own Markdown, linked here.
+    `## ${t.pricing.title}`,
+    `${t.pricing.intro.join(t.space)} [${t.pricing.compareLink}](${links.pricing})`,
+    `### ${t.pricing.included.title}`,
+    t.pricing.included.intro,
+    list(t.pricing.included.items.map((item) => `${item.title}: ${item.description}`)),
     `## ${t.services.titleLines.join(t.space)}`,
     ...t.services.products.flatMap((product) => [
       `### ${product.name}`,
@@ -147,6 +155,61 @@ export function downloadMarkdown(lang: Lang, releases: DesktopReleases | undefin
   ])}\n`;
 }
 
+/**
+ * Markdown of the pricing page: the plans on sale with the same values the page shows (src/lib/pricing.ts), the comparison as a table,
+ * and what every mailbox gets. `catalog` is read per request by the /md/pricing/ routes (src/lib/pricing-markdown.ts); null means it
+ * could not be read, and the text then says so and points at the catalog endpoint instead of listing prices.
+ */
+export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string {
+  const t = copies[lang];
+  const p = t.pricing;
+  const links = absoluteLinks(lang);
+  const plans = catalog ? planViews(catalog, lang, p, linksFor(lang).shop) : [];
+  const cell = (text: string) => text.replace(/[\\|]/g, "\\$&").replace(/\s*\n\s*/g, " ");
+  return `${paragraphs([
+    `# ${p.title}`,
+    p.pageIntro,
+    ...(!catalog
+      ? [`${p.errorTitle}${t.dot}${t.space}${p.errorBody}`]
+      : plans.length === 0
+        ? [`${p.closedTitle}${t.dot}${t.space}${p.closedBody}`]
+        : [
+            ...plans.flatMap((plan) => [
+              `## ${plan.name}`,
+              ...(plan.description ? [plan.description] : []),
+              list([
+                ...planRows.map(
+                  (row) =>
+                    `${p.compare.rows[row]}${t.legal.colon}${plan.rows[row]}${
+                      row === "price" && plan.discount
+                        ? ` (${plan.discount.label}, ${p.plan.originalPrice} ${plan.discount.original})`
+                        : ""
+                    }`,
+                ),
+              ]),
+              `[${plan.chooseLabel}](${absoluteUrl(plan.href)})`,
+            ]),
+            p.priceNote,
+            ...(plans.length > 1
+              ? [
+                  `## ${p.compare.title}`,
+                  [
+                    `| ${[p.compare.feature, ...plans.map((plan) => cell(plan.name))].join(" | ")} |`,
+                    `| ${["---", ...plans.map(() => "---")].join(" | ")} |`,
+                    ...planRows.map(
+                      (row) => `| ${[p.compare.rows[row], ...plans.map((plan) => cell(plan.rows[row]))].join(" | ")} |`,
+                    ),
+                  ].join("\n"),
+                ]
+              : []),
+          ]),
+    `## ${p.included.title}`,
+    p.included.intro,
+    list(p.included.items.map((item) => `${item.title}: ${item.description}`)),
+    `[${p.shopLink}](${links.shop})`,
+  ])}\n`;
+}
+
 /** Legal page paths in the copy are plain strings; this confirms the path really is a page in the list. */
 function toPagePath(path: string) {
   const match = pagePaths.find((pagePath) => pagePath === path);
@@ -186,6 +249,7 @@ function llmsSection(lang: Lang, heading: string): string {
     `## ${heading}`,
     list([
       `[${t.meta.title}](${absolute(pageFor(lang, "/").markdown)})`,
+      `[${t.pricing.metaTitle}](${absolute(pageFor(lang, "/pricing/").markdown)})`,
       ...storeMarkdownPaths.map((path) => `[${storeTitle(lang, path)}](${absolute(pageFor(lang, path).markdown)})`),
       `[${t.download.title}](${absolute(pageFor(lang, "/download/").markdown)})`,
       ...t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`),

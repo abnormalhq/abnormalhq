@@ -110,6 +110,7 @@ test('decorative labels are English in both languages, as their lang="en" says',
       copy.video.eyebrow,
       copy.features.eyebrow,
       copy.start.eyebrow,
+      copy.pricing.eyebrow,
       copy.services.eyebrow,
       copy.process.eyebrow,
       copy.faq.eyebrow,
@@ -135,6 +136,8 @@ test("every eyebrow on the site is marked English and takes its words from the c
   }
 });
 
+type Plan = Copy["pricing"]["plan"];
+
 /**
  * Every copy template and the slots its Template type declares. `satisfies` keeps each list equal to the type, and the
  * type keeps it equal to what the component passes, so a slot renamed on one side fails the type check.
@@ -148,6 +151,28 @@ const templateSlots = {
     TemplateSlot<Copy["video"]["seekTemplate"]>,
     true
   >,
+  // The pricing section and the address check render in the browser, like the inquiry dialog.
+  "pricing.plan.days": { days: true } satisfies Record<TemplateSlot<Plan["days"]>, true>,
+  "pricing.plan.unitPeriod": { period: true } satisfies Record<TemplateSlot<Plan["unitPeriod"]>, true>,
+  "pricing.plan.cardUnitPeriod": { period: true } satisfies Record<TemplateSlot<Plan["cardUnitPeriod"]>, true>,
+  "pricing.plan.discount": { percent: true } satisfies Record<TemplateSlot<Plan["discount"]>, true>,
+  "pricing.plan.cardOnce": { price: true } satisfies Record<TemplateSlot<Plan["cardOnce"]>, true>,
+  "pricing.plan.cardPeriod": { price: true, period: true } satisfies Record<TemplateSlot<Plan["cardPeriod"]>, true>,
+  "pricing.plan.cardRowPeriod": { price: true, period: true } satisfies Record<
+    TemplateSlot<Plan["cardRowPeriod"]>,
+    true
+  >,
+  "pricing.plan.mailboxes": { count: true } satisfies Record<TemplateSlot<Plan["mailboxes"]>, true>,
+  "pricing.plan.storage": { size: true } satisfies Record<TemplateSlot<Plan["storage"]>, true>,
+  "pricing.plan.billingPeriod": { period: true } satisfies Record<TemplateSlot<Plan["billingPeriod"]>, true>,
+  "pricing.plan.renewAt": { price: true, period: true } satisfies Record<TemplateSlot<Plan["renewAt"]>, true>,
+  "pricing.plan.codeDays": { days: true } satisfies Record<TemplateSlot<Plan["codeDays"]>, true>,
+  "pricing.plan.chooseAria": { name: true } satisfies Record<TemplateSlot<Plan["chooseAria"]>, true>,
+  "pricing.check.available": { email: true } satisfies Record<
+    TemplateSlot<Copy["pricing"]["check"]["available"]>,
+    true
+  >,
+  "pricing.check.taken": { email: true } satisfies Record<TemplateSlot<Copy["pricing"]["check"]["taken"]>, true>,
 };
 
 /** Each string in the copy that has {name} slots, by its path, with the names it uses. */
@@ -178,6 +203,22 @@ test("the inquiry's legal sentence keeps each language's own spacing around its 
     "Requests and services are covered by the <terms> and <privacy>.",
   );
   assert.throws(() => fillTemplate("适用{terms}与{privcy}。", links), /privcy/);
+});
+
+test("the header's entries are home page sections or pages, and the widest bar is kept for where they all fit", () => {
+  for (const copy of [zh, en]) {
+    for (const entry of copy.header.nav) {
+      assert.equal(Boolean(entry.anchor) !== Boolean(entry.path), true, `${copy.htmlLang}: ${entry.label}`);
+      if (entry.path)
+        assert.ok(
+          pages.some((page) => page.path === entry.path),
+          entry.path,
+        );
+    }
+    // Six links only fit the English bar from 1200px: below that at most five show, below 1100px four.
+    const shown = (hidden: string[]) => copy.header.nav.filter(({ wide }) => !hidden.includes(wide ?? "")).length;
+    assert.ok(shown(["bar"]) <= 5 && shown(["bar", "card"]) <= 4, copy.htmlLang);
+  }
 });
 
 test("the copyright line takes the year through a template slot", () => {

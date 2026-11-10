@@ -84,8 +84,12 @@ export interface Copy {
   header: {
     navLabel: string;
     mobileNavLabel: string;
-    /** wide: shown in the desktop bar only from the card breakpoint up, where there is room for it; always in the mobile menu. */
-    nav: readonly { anchor: string; label: string; wide?: boolean }[];
+    /**
+     * Each entry is either a section of the home page (anchor) or a page of its own (path, without the language prefix).
+     * wide: shown in the desktop bar only where there is room for it, "card" from the card breakpoint up (1100px) and "bar" from the
+     * bar breakpoint up (1200px); always in the mobile menu.
+     */
+    nav: readonly { anchor?: string; path?: string; label: string; wide?: "card" | "bar" }[];
     openMenu: string;
     closeMenu: string;
     login: string;
@@ -181,6 +185,112 @@ export interface Copy {
     }[];
     secondary: readonly LinkItem[];
     support: string;
+  };
+  /**
+   * Plans and prices: the home page's pricing section, the pricing page (/pricing/), the address check and the "what every mailbox gets"
+   * block. The plans themselves come from the live catalog (GET /api/shop/catalog); this is only the wording around them. The home
+   * page's section and the address check are client components and get this through props, so every sentence with a number in it is a
+   * template rather than a function.
+   */
+  pricing: {
+    metaTitle: string;
+    metaDescription: string;
+    eyebrow: string;
+    title: string;
+    intro: readonly [string, string];
+    /** Lead of the pricing page, under its h1. */
+    pageIntro: string;
+    /** Home section: link to the pricing page. */
+    compareLink: string;
+    loading: string;
+    /** The shop is not selling right now (catalog `available: false`, or no plans). */
+    closedTitle: string;
+    closedBody: string;
+    /** The catalog could not be read. */
+    errorTitle: string;
+    errorBody: string;
+    retry: string;
+    shopLink: string;
+    /** Under the plans: which currency the prices are in and when the buyer pays. */
+    priceNote: string;
+    plan: {
+      /** A period of one day, and of several: the {period} of the templates below. */
+      oneDay: string;
+      days: Template<"days">;
+      /** After the amount in LDC. */
+      unitOnce: string;
+      unitPeriod: Template<"period">;
+      /** After the amount when a plan can only be bought by card. */
+      cardUnitOnce: string;
+      cardUnitPeriod: Template<"period">;
+      discount: Template<"percent">;
+      /** Read out before the struck-through original price. */
+      originalPrice: string;
+      /** The card price next to an LDC price. */
+      cardOnce: Template<"price">;
+      cardPeriod: Template<"price" | "period">;
+      /** The card price of a subscription in the comparison table's "By card" row. */
+      cardRowPeriod: Template<"price" | "period">;
+      mailboxOne: string;
+      mailboxes: Template<"count">;
+      storage: Template<"size">;
+      /** quotaMb 0: the mail server's default quota applies. */
+      storageDefault: string;
+      /** No domain of the plan can enforce a per-mailbox quota; and only some can. */
+      storageUnavailable: string;
+      storageMixed: string;
+      billingOnce: string;
+      billingPeriod: Template<"period">;
+      renewAt: Template<"price" | "period">;
+      codeDays: Template<"days">;
+      codeNoExpiry: string;
+      choose: string;
+      chooseAria: Template<"name">;
+    };
+    compare: {
+      title: string;
+      intro: string;
+      /** Header of the first column, above the row names. */
+      feature: string;
+      rows: {
+        price: string;
+        card: string;
+        billing: string;
+        renewal: string;
+        mailboxes: string;
+        storage: string;
+        domains: string;
+        code: string;
+      };
+      /** A cell with nothing to say, such as the card price of a plan that cannot be bought by card. */
+      none: string;
+      /** The renewal of a one-time plan. */
+      noRenewal: string;
+    };
+    /** What every mailbox gets, whatever the plan: limits known from mail's rules, not from the catalog. */
+    included: {
+      title: string;
+      intro: string;
+      items: readonly { icon: IconName; title: string; description: string }[];
+    };
+    /** "Check your address" in the hero and on the pricing page (src/components/AddressCheck.tsx). */
+    check: {
+      title: string;
+      hint: string;
+      usernameLabel: string;
+      domainLabel: string;
+      placeholder: string;
+      /** The username rule, shown when what was typed breaks it. */
+      invalid: string;
+      checking: string;
+      available: Template<"email">;
+      taken: Template<"email">;
+      rateLimited: string;
+      failed: string;
+      /** Goes to the shop with the address carried along. */
+      proceed: string;
+      note: string;
+    };
   };
   services: {
     eyebrow: string;

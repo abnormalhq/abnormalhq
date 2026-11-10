@@ -5,6 +5,7 @@ import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { AddressCheck } from "./AddressCheck";
 import { Icon } from "./Icon";
 
 const avatars = [
@@ -55,6 +56,13 @@ export function Hero({ lang }: { lang: Lang }) {
               </a>
             </Button>
           </div>
+          {/* Shown only when the backend offers the address check; it renders nothing otherwise (see AddressCheck). */}
+          <AddressCheck
+            className="mt-7 max-w-[440px] max-md:mx-auto"
+            lang={lang}
+            copy={t.pricing.check}
+            shop={links.shop}
+          />
           <p className="mt-5 flex flex-wrap items-center gap-2 text-base/body text-muted-foreground max-md:justify-center">
             {h.loginPrompt}
             <TextLink href={links.account}>

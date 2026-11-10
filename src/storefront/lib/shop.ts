@@ -1,40 +1,41 @@
+/**
+ * Browser clients of the shop API that need a purchase or sign-in session: orders, renewals, the buyer account and its mailboxes.
+ * The catalog, the response validators and the money formatters live in catalog.ts and are re-exported here.
+ */
 import type { Lang } from "../i18n.ts";
-import { apiBase } from "../site.ts";
+import {
+  compact,
+  isBoolean,
+  isCount,
+  isCurrency,
+  isNullableString,
+  isString,
+  isStrings,
+  oneOf,
+  optional,
+  parseEntitlements,
+  record,
+  request,
+  ShopApiError,
+  type ShopPaymentProvider,
+  type ShopProduct,
+  type SubscriptionState,
+} from "./catalog.ts";
 
-export interface ShopProduct {
-  id: string;
-  name: string;
-  description: string;
-  originalPriceCents: number;
-  discountPercent: number;
-  priceCents: number;
-  mailboxCount: number;
-  quotaMb: number;
-  quotaSupportedByDomain?: Record<string, boolean>;
-  codeExpiresDays: number;
-  domains: string[];
-  /** Subscription period in days; 0 or absent means a one-off purchase and the mailbox never expires. */
-  periodDays?: number;
-  /** Renewal price per period; 0 means renew at the sale price. */
-  renewPriceCents?: number;
-  /** Card (Stripe) price in the smallest unit of the shop currency; 0 or absent means it cannot be bought by card. */
-  fiatPriceMinor?: number;
-}
-
-/** ldc = Linux DO Credit; stripe = card (Stripe Checkout). */
-export type ShopPaymentProvider = "ldc" | "stripe";
-
-export type SubscriptionState = "active" | "grace" | "suspended" | "expired";
-
-export interface ShopCatalog {
-  available: boolean;
-  /** Whether each of the two payment methods is available; old backends that omit it count as LDC only. */
-  payment: { ldc: boolean; stripe: { currency: string } | null };
-  products: ShopProduct[];
-  onboardUrl: string;
-  /** Site key when the login form must pass Cloudflare Turnstile; absent means no verification. */
-  turnstileSiteKey?: string;
-}
+export {
+  checkAddress,
+  formatCredits,
+  formatMoney,
+  getShopCatalog,
+  parseShopCatalog,
+  ShopApiError,
+  shopApiRoot,
+  type AddressAvailability,
+  type ShopCatalog,
+  type ShopPaymentProvider,
+  type ShopProduct,
+  type SubscriptionState,
+} from "./catalog.ts";
 
 export interface PublicShopOrder {
   order: Omit<ShopProduct, "name" | "description"> & {
@@ -90,137 +91,14 @@ export const CODE_STATUSES = ["available", "used", "expired", "disabled"] as con
 export const PAYMENT_PROVIDERS: readonly ShopPaymentProvider[] = ["ldc", "stripe"];
 export type CodeStatus = (typeof CODE_STATUSES)[number];
 
-export const shopApiRoot = `${apiBase}/api/shop`;
-
-export class ShopApiError extends Error {
-  readonly status: number;
-  /**
-   * A failed response with a JSON body is an answer from this site's Worker or from mail. Cloudflare's own error pages (Worker threw, CPU limit exceeded) are HTML,
-   * meaning the request did not get through the Worker's code.
-   */
-  readonly answered: boolean;
-
-  constructor(message: string, status = 0, answered = false) {
-    super(message);
-    this.name = "ShopApiError";
-    this.status = status;
-    this.answered = answered;
-  }
-}
-
-/*
- * Response validation: every field the components render is checked here one by one and assembled into a new typed object; any unknown shape counts as a failed request,
- * so half-right data never reaches the page (e.g. an unknown currency makes Intl.NumberFormat throw during render and blanks the whole page).
- */
-
-type Fields = Record<string, unknown>;
-
-function record(value: unknown): value is Fields {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isCount(value: unknown): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
-}
-
-function isString(value: unknown): value is string {
-  return typeof value === "string";
-}
-
-function isNullableString(value: unknown): value is string | null {
-  return value === null || typeof value === "string";
-}
-
-function isBoolean(value: unknown): value is boolean {
-  return typeof value === "boolean";
-}
-
-function isStrings(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(isString);
-}
-
-function oneOf<T extends string>(values: readonly T[]) {
-  return (value: unknown): value is T => (values as readonly unknown[]).includes(value);
-}
-
 const isProvider = oneOf(PAYMENT_PROVIDERS);
 const isState = oneOf(SUBSCRIPTION_STATES);
 const isCodeStatus = oneOf(CODE_STATUSES);
 const isKind = oneOf(["purchase", "renewal"] as const);
 const isOrderStatus = oneOf(["pending", "paid"] as const);
 
-/** Currency of a Stripe amount: a three-letter lower-case ISO 4217 code (as mail stores it); the empty string for LDC orders. */
-function isCurrency(value: unknown): value is string {
-  return value === "" || (typeof value === "string" && /^[a-z]{3}$/.test(value));
-}
-
-/** A field an old backend may omit: absent, or of the right shape. */
-function optional<T>(value: unknown, check: (value: unknown) => value is T): value is T | undefined {
-  return value === undefined || check(value);
-}
-
 function isNullableCodeStatus(value: unknown): value is CodeStatus | null {
   return value === null || isCodeStatus(value);
-}
-
-/** Drops keys whose value is undefined: optional fields an old backend did not return do not appear in the result either. */
-function compact<T extends object>(value: T): T {
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
-}
-
-function validPrice(value: Fields): boolean {
-  const { originalPriceCents, discountPercent, priceCents } = value;
-  return (
-    isCount(originalPriceCents) &&
-    originalPriceCents > 0 &&
-    isCount(priceCents) &&
-    priceCents > 0 &&
-    originalPriceCents >= priceCents &&
-    isCount(discountPercent) &&
-    discountPercent <= 99 &&
-    (discountPercent > 0 || originalPriceCents === priceCents)
-  );
-}
-
-type Entitlements = Omit<ShopProduct, "id" | "name" | "description">;
-
-/** Price and entitlement fields shared by plans and orders. */
-function parseEntitlements(value: Fields): Entitlements | null {
-  const { quotaSupportedByDomain } = value;
-  if (
-    !validPrice(value) ||
-    !isCount(value.mailboxCount) ||
-    !isCount(value.quotaMb) ||
-    !isCount(value.codeExpiresDays) ||
-    !isStrings(value.domains) ||
-    !optional(value.periodDays, isCount) ||
-    !optional(value.renewPriceCents, isCount) ||
-    !optional(value.fiatPriceMinor, isCount) ||
-    !(
-      quotaSupportedByDomain === undefined ||
-      (record(quotaSupportedByDomain) && Object.values(quotaSupportedByDomain).every(isBoolean))
-    )
-  )
-    return null;
-  return {
-    originalPriceCents: value.originalPriceCents as number,
-    discountPercent: value.discountPercent as number,
-    priceCents: value.priceCents as number,
-    mailboxCount: value.mailboxCount,
-    quotaMb: value.quotaMb,
-    quotaSupportedByDomain: quotaSupportedByDomain as Record<string, boolean> | undefined,
-    codeExpiresDays: value.codeExpiresDays,
-    domains: [...value.domains],
-    periodDays: value.periodDays,
-    renewPriceCents: value.renewPriceCents,
-    fiatPriceMinor: value.fiatPriceMinor,
-  };
-}
-
-function parseProduct(value: unknown): ShopProduct | null {
-  if (!record(value) || !isString(value.id) || !isString(value.name) || !isString(value.description)) return null;
-  const entitlements = parseEntitlements(value);
-  return entitlements && compact({ id: value.id, name: value.name, description: value.description, ...entitlements });
 }
 
 function parseOrder(value: unknown, orderId: string): PublicShopOrder["order"] | null {
@@ -273,56 +151,6 @@ function parseOrderSubscription(value: unknown): PublicShopOrder["subscription"]
     provider: value.provider,
     autoRenew: value.autoRenew,
   });
-}
-
-async function request(path: string, payload?: unknown, signal?: AbortSignal, lang?: Lang): Promise<unknown> {
-  const response = await fetch(`${shopApiRoot}/${path}`, {
-    method: payload === undefined ? "GET" : "POST",
-    mode: "same-origin",
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: {
-      Accept: "application/json",
-      ...(lang ? { "Accept-Language": lang } : {}),
-      ...(payload === undefined ? {} : { "Content-Type": "application/json" }),
-    },
-    ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-    signal,
-  });
-  const body: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new ShopApiError(
-      record(body) && typeof body.error === "string" ? body.error : "",
-      response.status,
-      record(body),
-    );
-  }
-  return body;
-}
-
-export async function getShopCatalog(signal?: AbortSignal, lang?: Lang): Promise<ShopCatalog> {
-  const body = await request("catalog", undefined, signal, lang);
-  if (!record(body) || !isBoolean(body.available) || !Array.isArray(body.products)) throw new ShopApiError("");
-  const products = body.products.map(parseProduct);
-  if (!products.every((product): product is ShopProduct => product !== null)) throw new ShopApiError("");
-  const payment = record(body.payment) ? body.payment : null;
-  // Card payment with a bad currency cannot show a price, so it counts as off.
-  const stripe =
-    payment && record(payment.stripe) && isCurrency(payment.stripe.currency) && payment.stripe.currency
-      ? { currency: payment.stripe.currency }
-      : null;
-  return {
-    available: body.available,
-    payment: {
-      ldc: payment ? payment.ldc === true : body.available,
-      stripe,
-    },
-    products,
-    onboardUrl: isString(body.onboardUrl) ? body.onboardUrl : "",
-    ...(isString(body.turnstileSiteKey) && body.turnstileSiteKey.trim()
-      ? { turnstileSiteKey: body.turnstileSiteKey.trim() }
-      : {}),
-  };
 }
 
 export async function createShopOrder(
@@ -819,22 +647,6 @@ export async function openBillingPortal(subscriptionId: string, lang?: Lang): Pr
   return body.url;
 }
 
-/**
- * Card amount: the smallest unit written with the currency symbol; an unknown currency falls back to "amount + code" so rendering does not throw.
- * How many decimals the smallest unit stands for comes from the currency itself (2 for USD, 0 for JPY, 3 for KWD), as Intl formats it.
- */
-export function formatMoney(minor: number, currency: string, lang?: Lang): string {
-  try {
-    const format = new Intl.NumberFormat(lang === "en" ? "en" : "zh-CN", {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    });
-    return format.format(minor / 10 ** (format.resolvedOptions().maximumFractionDigits ?? 2));
-  } catch {
-    return `${(minor / 100).toFixed(2)} ${currency.toUpperCase()}`.trim();
-  }
-}
-
 /** Date and time of an order or subscription in the page language; a value that is no date is shown as it came. */
 export function formatDateTime(value: string, lang: Lang): string {
   const parsed = new Date(value);
@@ -844,10 +656,6 @@ export function formatDateTime(value: string, lang: Lang): string {
         dateStyle: "medium",
         timeStyle: "short",
       }).format(parsed);
-}
-
-export function formatCredits(cents: number): string {
-  return (cents / 100).toFixed(2);
 }
 
 /* ---------------------------------------------------------------------------

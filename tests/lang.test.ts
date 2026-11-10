@@ -67,6 +67,14 @@ test("the toggle on the storefront's session pages carries their own parameters,
   const login = "A".repeat(43);
   const token = "eyJzIjoiYWJjZGVmZ2hpamtsbW5vIiwiZXhwIjoxfQ.abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQ";
   assert.equal(switchHref("/shop/", "zh", "?id=abcdefghijklmno"), "/zh/shop/?lang=zh");
+  // The shop keeps the plan a pricing card pointed out and the address picked in the address check.
+  assert.equal(
+    switchHref("/shop/", "zh", "?plan=abcdefghijklmno&address=ada.lovelace%40abnormalhq.com"),
+    "/zh/shop/?plan=abcdefghijklmno&address=ada.lovelace%40abnormalhq.com&lang=zh",
+  );
+  assert.equal(switchHref("/zh/shop/", "en", "?plan=../x&address=<script>@x"), "/shop/?lang=en");
+  // The pricing page has nothing to carry.
+  assert.equal(switchHref("/pricing/", "zh", "?plan=abcdefghijklmno"), "/zh/pricing/?lang=zh");
   assert.equal(
     switchHref("/zh/shop/orders/", "en", "?id=abcdefghijklmno&error=payment&x=1"),
     "/shop/orders/?id=abcdefghijklmno&error=payment&lang=en",

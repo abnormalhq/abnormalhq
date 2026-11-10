@@ -44,7 +44,12 @@ export function Header({
   const closeMenu = () => setMenuOpen(false);
 
   const links = linksFor(lang);
-  const nav = copy.nav.map(({ anchor, label, wide }) => ({ href: localePath(lang, `/#${anchor}`), label, wide }));
+  // An entry is a section of the home page (anchor) or a page of its own (path), such as the pricing page.
+  const nav = copy.nav.map(({ anchor, path, label, wide }) => ({
+    href: localePath(lang, path ?? `/#${anchor}`),
+    label,
+    wide,
+  }));
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
   // With ?lang=: the Worker stores the choice in the cookie shared by the three sites, so shared links open in this language from then on (src/lib/lang.ts).
@@ -92,7 +97,11 @@ export function Header({
             <Button
               asChild
               variant="ghost"
-              className={cn("border-0 px-2.5 font-normal max-nav:px-2", wide && "max-card:hidden")}
+              className={cn(
+                "border-0 px-2.5 font-normal max-nav:px-2",
+                wide === "card" && "max-card:hidden",
+                wide === "bar" && "max-bar:hidden",
+              )}
               key={href}
             >
               <Link href={href}>{label}</Link>

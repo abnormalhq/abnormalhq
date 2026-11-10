@@ -22,10 +22,11 @@ export const en: Copy = {
     navLabel: "Main navigation",
     mobileNavLabel: "Mobile navigation",
     nav: [
-      { anchor: "features", wide: true, label: "Features" },
+      { anchor: "features", wide: "card", label: "Features" },
+      { path: "/pricing/", label: "Pricing" },
       { anchor: "start", label: "Get started" },
       { anchor: "services", label: "Services" },
-      { anchor: "how-it-works", label: "How it works" },
+      { anchor: "how-it-works", wide: "bar", label: "How it works" },
       { anchor: "faq", label: "FAQ" },
     ],
     openMenu: "Open menu",
@@ -239,6 +240,129 @@ export const en: Copy = {
     ],
     support: "Support",
   },
+  pricing: {
+    metaTitle: "Pricing — Abnormal",
+    metaDescription:
+      "Abnormal mailbox plans with live prices: mailboxes included, storage per mailbox, domains, billing period and renewal price, plus what every mailbox gets.",
+    eyebrow: "Plain pricing",
+    title: "Plans and prices",
+    intro: ["Read live from the shop:", "what you see here is what you pay."],
+    pageIntro:
+      "Every plan on sale, with its price, mailboxes, storage and renewal terms. The numbers are read from the shop as this page loads, so they are the ones you pay at checkout.",
+    compareLink: "Compare plans in detail",
+    loading: "Loading plans…",
+    closedTitle: "No plans on sale right now",
+    closedBody:
+      "The shop isn't selling at the moment, so there are no prices to show. Codes you already have still work on the redeem page.",
+    errorTitle: "Couldn't load the plans",
+    errorBody: "Prices are read live from the shop, and it didn't answer. Try again, or open the shop directly.",
+    retry: "Try again",
+    shopLink: "Open the shop",
+    priceNote:
+      "Prices are in LDC (Linux DO Credit); plans that take cards show the card price too. You review the order before paying, and nothing is charged until you do.",
+    plan: {
+      oneDay: "day",
+      days: "{days} days",
+      unitOnce: "LDC / purchase",
+      unitPeriod: "LDC / {period}",
+      cardUnitOnce: "by card / purchase",
+      cardUnitPeriod: "by card / {period}",
+      discount: "{percent}% off",
+      originalPrice: "Original price",
+      cardOnce: "or {price} by card",
+      cardPeriod: "or {price} every {period} by card, renewing automatically",
+      cardRowPeriod: "{price} every {period}, renewing automatically",
+      mailboxOne: "1 mailbox",
+      mailboxes: "{count} mailboxes",
+      storage: "{size} per mailbox",
+      storageDefault: "Server default storage",
+      storageUnavailable: "No per-mailbox quota",
+      storageMixed: "Storage follows the domain you pick",
+      billingOnce: "One-time purchase; mailboxes never expire",
+      billingPeriod: "Subscription, every {period}",
+      renewAt: "{price} LDC every {period}",
+      codeDays: "Set up within {days} days of paying",
+      codeNoExpiry: "Set up whenever you like",
+      choose: "Choose this plan",
+      chooseAria: "Choose this plan: {name}",
+    },
+    compare: {
+      title: "Compare plans",
+      intro: "The same numbers, side by side.",
+      feature: "What you get",
+      rows: {
+        price: "Price",
+        card: "By card",
+        billing: "Billing",
+        renewal: "Renewal",
+        mailboxes: "Mailboxes",
+        storage: "Storage",
+        domains: "Domains",
+        code: "Redeem code",
+      },
+      none: "Not offered",
+      noRenewal: "Nothing to renew",
+    },
+    included: {
+      title: "What every mailbox gets",
+      intro:
+        "The plan sets the price, the number of mailboxes and the storage. Everything below is the same for every mailbox.",
+      items: [
+        {
+          icon: "inbox",
+          title: "Storage of its own",
+          description:
+            "Each mailbox gets the storage its plan states as its own quota. It is not pooled with your other mailboxes.",
+        },
+        {
+          icon: "user",
+          title: "A name you choose",
+          description:
+            "Any free username of up to 64 characters: lowercase letters, digits, dots, hyphens and underscores, starting and ending with a letter or digit.",
+        },
+        {
+          icon: "calendar",
+          title: "Clear expiry rules",
+          description:
+            "One-time plans never expire. A subscription that isn't renewed keeps working through a 7-day grace period, is then suspended (it still receives mail) and kept for 30 days before it may be deleted.",
+        },
+        {
+          icon: "globe",
+          title: "Open protocols",
+          description:
+            "IMAP and SMTP over TLS for any mail app, CalDAV and CardDAV for calendars and contacts. Import old mail over IMAP and export folders as mbox.",
+        },
+        {
+          icon: "laptop",
+          title: "Apps everywhere",
+          description:
+            "Webmail in the browser, installable as an app; desktop apps for macOS and Windows; and the mail, calendar and contacts apps already on your phone.",
+        },
+        {
+          icon: "mail",
+          title: "Attachments in webmail",
+          description:
+            "A message written in webmail carries up to 10 attachments, 3 MB in all. Larger files can be shared as download links.",
+        },
+      ],
+    },
+    check: {
+      title: "Check your address",
+      hint: "See whether the name you want is free before you buy.",
+      usernameLabel: "Username",
+      domainLabel: "Domain",
+      placeholder: "yourname",
+      invalid:
+        "Use lowercase letters, digits and . _ - only, starting and ending with a letter or digit, with no two dots in a row and at most 64 characters.",
+      checking: "Checking…",
+      available: "{email} is available.",
+      taken: "{email} is taken. Try another one.",
+      rateLimited: "Too many checks. Try again in a moment.",
+      failed: "Couldn't check right now. You can still pick the name when you set the mailbox up.",
+      proceed: "Get this address",
+      note: "The address is yours once the mailbox is set up; until then someone else can still take it.",
+    },
+  },
   services: {
     eyebrow: "Find your email",
     titleLines: ["A mailbox", "for every day"],
@@ -252,7 +376,7 @@ export const en: Copy = {
           "An @abnormalhq.com mailbox you buy and set up online, for everyday mail and signing up for the services you use.",
         tags: ["Buy online", "Self-service"],
         price: "Buy online",
-        priceNote: "Plans and prices as shown in the shop",
+        priceNote: "Live prices under Plans and prices",
         link: "shop",
         actionLabel: "Buy in the shop",
         featured: true,
@@ -291,7 +415,7 @@ export const en: Copy = {
     noteQuestion: "Need something else, or a team setup?",
     noteAction: "Talk to us",
     noteFine:
-      "Personal mailboxes follow the plans and prices in the shop. Other services are quoted once we've talked.",
+      "Personal mailbox plans, prices and limits are listed under Plans and prices. Other services are quoted once we've talked.",
   },
   process: {
     eyebrow: "A simple way to get started",
@@ -384,6 +508,7 @@ export const en: Copy = {
     contactLabel: "Contact",
     productLinks: [
       { link: "shop", label: "Buy a mailbox" },
+      { link: "pricing", label: "Pricing" },
       { link: "redeem", label: "Redeem" },
       { link: "webmail", label: "Webmail" },
       { link: "guide", label: "Guide" },

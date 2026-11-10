@@ -5,8 +5,20 @@
 import type { Lang } from "../data/site.ts";
 import { langs, localePath } from "../i18n/paths.ts";
 
-/** Page path without the language prefix. The storefront pages (redeem, guide, shop) came from the retired onboard site. */
-export const pagePaths = ["/", "/shop/", "/redeem/", "/guide/", "/download/", "/privacy/", "/terms/"] as const;
+/**
+ * Page path without the language prefix. The storefront pages (redeem, guide, shop) came from the retired onboard site.
+ * /pricing/ and /download/ render on the Worker on every request (live catalog, release list); the rest are prerendered.
+ */
+export const pagePaths = [
+  "/",
+  "/pricing/",
+  "/shop/",
+  "/redeem/",
+  "/guide/",
+  "/download/",
+  "/privacy/",
+  "/terms/",
+] as const;
 export type PagePath = (typeof pagePaths)[number];
 
 /**
