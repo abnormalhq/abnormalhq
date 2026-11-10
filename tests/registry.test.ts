@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { CN_THEME, cn } from "../src/lib/utils.ts";
 
 const componentsDir = "src/components";
 const ownComponents = readdirSync(componentsDir).filter((file) => file.endsWith(".tsx"));
@@ -55,4 +56,18 @@ test("registry components are not edited to import site code", () => {
       assert.match(path!, /^@\/(lib\/utils|components\/ui\/)/, `${file}: ${path}`);
     }
   }
+});
+
+test("cn knows every custom name in the installed theme", () => {
+  // utils.ts and abnormal.css are installed separately: a theme taken without its utils leaves cn guessing at the new names.
+  const theme = readFileSync("src/styles/abnormal.css", "utf8");
+  const tokens = (prefix: string) => [...theme.matchAll(new RegExp(`--${prefix}-([a-z-]+):`, "g"))].map((m) => m[1]!);
+  assert.deepEqual([...CN_THEME.radius].sort(), tokens("radius").sort());
+  assert.deepEqual([...CN_THEME.shadow].sort(), tokens("shadow").sort());
+  assert.deepEqual([...CN_THEME.animate].sort(), tokens("animate").sort());
+  const display = tokens("text").filter((name) => name.startsWith("display") && !name.endsWith("-line-height"));
+  assert.deepEqual([...CN_THEME.text].sort(), display.sort());
+  // A display size is a size, not a color: it stays beside a text color, and a later size replaces it.
+  assert.equal(cn("text-display", "text-foreground"), "text-display text-foreground");
+  assert.equal(cn("text-display-sm", "text-display"), "text-display");
 });
