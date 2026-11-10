@@ -33,7 +33,7 @@ type Result =
  * then asked of the server half a second after typing stops, with an earlier request dropped when a newer one starts.
  * A free address leads to the shop with the address carried along (src/storefront/lib/address.ts).
  *
- * The check exists only when the backend says so: the catalog carries `addressCheck` (POST /api/shop/address, proposed in
+ * The check exists only when the backend says so: the catalog carries `addressCheck` (POST /api/shop/address, described in
  * docs/storefront-api.md). Without the flag this renders nothing, and if the endpoint still answers 404 the form goes away.
  * `domains` comes from the server on the pricing page, which has already read the catalog; in the home page's hero it is left out
  * and the catalog is read here.

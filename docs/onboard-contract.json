@@ -46,6 +46,7 @@
       "reconcile": "POST",
       "renewal": "POST",
       "renew": "POST",
+      "address": "POST",
       "account/login": "POST",
       "account/peek": "POST",
       "account/verify": "POST",

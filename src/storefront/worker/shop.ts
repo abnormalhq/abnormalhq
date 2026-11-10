@@ -14,9 +14,10 @@ const SHOP_PATH =
   /^\/api\/shop\/(catalog|address|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?))?)\/?$/;
 const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes"];
 /**
- * The address check before buying (POST address: is this username free on this domain?). It is proposed in docs/storefront-api.md
- * and not in mail yet, so it is not in docs/onboard-contract.json. It needs no session, so no cookie is forwarded to it, and a
- * mail that does not have it answers 404, which is passed on as a JSON 404: the pages take that as "no address check" and hide it.
+ * The address check before buying (POST address: is this username free on this domain?), in docs/storefront-api.md and
+ * docs/onboard-contract.json. It needs no session, so no cookie is forwarded to it. mail answers 404 while the check is switched
+ * off in the sales settings, and a mail before the endpoint answers its own 404 page; either is passed on as a JSON 404, which
+ * the pages take as "no address check" and hide it.
  */
 export const ADDRESS_ROUTE = "address";
 // The cookie names, shapes and lifetimes are mail's (src/lib/shop/session.ts, customers.ts); tests/worker.test.ts checks
@@ -275,7 +276,7 @@ async function forward(
       return new Response(null, { status: 303, headers: { ...SHOP_HEADERS, Location: allowed } });
     }
     if (route === ADDRESS_ROUTE && upstream.status === 404) {
-      // A mail before the address check answers its own 404 page; say so in JSON rather than "unavailable", so the pages hide the check.
+      // The check is switched off (mail's JSON 404), or mail is from before it (its 404 page): say so in JSON rather than "unavailable", so the pages hide the check.
       await upstream.body?.cancel();
       return failure(404, localizer(request)("接口不存在。", "Endpoint not found."));
     }

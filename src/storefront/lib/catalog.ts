@@ -42,8 +42,9 @@ export interface ShopCatalog {
   /** Site key when the login form must pass Cloudflare Turnstile; absent means no verification. */
   turnstileSiteKey?: string;
   /**
-   * Present (true) when the backend answers POST /api/shop/address, the address check that needs no redeem code (proposed in
-   * docs/storefront-api.md). Absent on every backend before it: the pages then do not show the check at all.
+   * Present (true) while the backend answers POST /api/shop/address, the address check that needs no redeem code
+   * (docs/storefront-api.md). Absent while it is switched off in mail's sales settings, while nothing is on sale and on every
+   * backend before it: the pages then do not show the check at all.
    */
   addressCheck?: true;
 }
@@ -247,9 +248,9 @@ export interface AddressAvailability {
 }
 
 /**
- * Asks whether an address is free before buying (POST /api/shop/address, proposed in docs/storefront-api.md). Unlike the redeem
+ * Asks whether an address is free before buying (POST /api/shop/address, docs/storefront-api.md). Unlike the redeem
  * page's check it needs no redeem code, so it carries no cookies. A taken address is a normal answer (`available: false`); an
- * invalid username, an unknown domain, the rate limit and a backend without the endpoint (404) throw ShopApiError.
+ * invalid username, an unknown domain, the rate limit and a backend with the check off or without the endpoint (404) throw ShopApiError.
  */
 export async function checkAddress(
   domain: string,

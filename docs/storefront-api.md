@@ -184,6 +184,7 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | Method | Path                                   | Request                                                                                    | Success response                                                                     |
 | ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, onboardUrl }`                                |
+| POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")              |
 | POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider? }`                                                   | `201`, `{ orderId }`, and sets the buyer cookie                                      |
 | GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                       |
 | POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page        |
@@ -336,6 +337,59 @@ The platform notification is handled as plain text, the payment endpoint as form
   - Ownership: when a mailbox's redeem code is the redeem code of a paid purchase order of this account, this account manages it, including mailboxes that others created with a redeem code the buyer passed on. mail records it in the activity log as "shop account <email>".
 - `account/portal` is only for a logged-in account that owns this Stripe subscription, and returns the customer portal URL (change card, cancel or resume auto-renewal); the portal's return address is the account page in the same language.
 
+### Checking an address before buying
+
+`POST /api/shop/address` serves "Check your address" in the home page's hero and on the pricing page
+(`src/components/AddressCheck.tsx`): the visitor types a username, picks one of the domains the plans on sale offer, and sees whether
+the address is free, before there is an order or a redeem code. The existing `POST /api/onboard/username` cannot serve this: it
+requires a valid redeem code precisely so that it is not an entry point for probing usernames. This endpoint answers without one, so
+it is an enumeration oracle by design and the limits below are part of the contract, not an implementation detail. On mail's side it is
+`apps/console/src/app/api/shop/address/route.ts`, described in mail's `docs/shop.md`.
+
+Request: `{ "domain": "abnormalhq.com", "username": "kunish" }`, `Content-Type: application/json`, with the storefront's `Origin`
+(the Worker requires the same origin, and mail checks it against the storefront address in the sales settings like the other shop
+endpoints). No redeem code, no cookie (the browser sends `credentials: omit`, and the Worker forwards none to this route even when
+the browser has shop cookies), no Turnstile token: tokens are single-use and the check runs as the visitor types.
+
+Response `200`: `{ "available": true, "email": "kunish@abnormalhq.com" }`, or `{ "available": false, "email": "…" }` when the address
+cannot be had. `email` is the normalised address the answer is about.
+
+- `username` is normalised with `normalizeUsername` and validated against `LOCAL_PART_PATTERN`, exactly as `/api/onboard/username`
+  does; an empty one or one that fails is `400` with `{ error }` in the request language (the page then shows its own wording of the
+  rule).
+- `domain` must be a domain of a plan currently in `GET /api/shop/catalog` (listed, every domain still managed, payment open). Any
+  other domain, managed or not, gets the same `400`: the endpoint says nothing about domains that are not publicly for sale.
+- "Taken" is the same test as the redeem page's `assertUsernameAvailable` (the local records, and `listMailboxes(domain)` on the mail
+  server). Nothing tells why an address is unavailable. Unlike the redeem API, taken is a `200` answer here rather than a `409`
+  error: it is the normal outcome of a search, and shop errors have no `kind` to switch on.
+- Failure statuses, all `{ error }` in the request language like every shop endpoint: `400` (username or domain), `403` (`Origin` is
+  not the storefront address), `413` / `415` (body), `429` with `Retry-After` (rate limited), `503` (the mail server could not be
+  asked: the endpoint never answers `available: true` on a guess), and `404` while the check is switched off in the sales settings.
+- Rate limits, in mail's `shop_rate_limits`: 10 a minute and 100 a day per source IP (`CF-Connecting-IP`, which the Worker keeps),
+  counted before the body is read, and 600 an hour per domain across all sources, so a distributed sweep degrades to `429` instead of
+  listing a domain's mailboxes. The page asks once per pause in typing (500 ms debounce, one request in flight), so a person needs a
+  handful of requests. Every `429` of the shop API carries `Retry-After` (the seconds left in the counter's window). The username
+  asked about is neither stored nor logged.
+- The answer reserves nothing. The page says so, and the forms that create the mailbox (`account/mailboxes/create`,
+  `/api/onboard/redeem`) stay authoritative.
+
+`GET /api/shop/catalog` carries `addressCheck: true` while the endpoint answers and something is on sale; "Let visitors check whether
+an address is free" under Settings → Sales in mail (on by default) switches both off, and every backend before the endpoint leaves the
+flag out. The pages show the check only when the catalog carries the flag, so nothing appears, and no request is made, against a mail
+without it. As a second line, the Worker turns a `404` for this route (mail's JSON one while the check is off, or the HTML not-found
+page of a mail before the endpoint) into a JSON `404` instead of the usual `503 unavailable`, and the page removes the form when it
+sees one.
+
+What the website does with a free address: the result links to `/shop/?address=<name@domain>` (the plan cards link to
+`/shop/?plan=<product id>`; both parameters survive the header's language toggle). The shop points out the plan, shows the address and
+keeps it in the tab's `sessionStorage` (`abnormal-address`), because the way from the shop to the mailbox form leaves the site for the
+payment page. "My mailboxes" on the account page then opens its create form with the username and domain filled in when the order
+offers that domain, and the redeem page starts its first row with the username. None of this is sent to mail before the visitor submits
+one of those forms.
+
+`pnpm dev` implements all of this in the mock (`src/storefront/mock/shop.ts`); start it with `MOCK_ADDRESS_CHECK=off pnpm dev` to see
+the pages against a backend with the check switched off.
+
 ### Cookies, origin and caching
 
 - The purchase credential is `mailhq_shop` (64 lowercase hex characters), set only by the server via an HttpOnly, SameSite=Lax cookie; over HTTPS it is also Secure, the path is `/`,
@@ -371,64 +425,6 @@ The buyer's purchase, payment return, order lookup, renewal, account and code co
 Local integration uses the dual-Worker setup described above, with the storefront address in the local mail sales settings changed to this site's preview origin (`http://localhost:8786`).
 The shop origin setting and the redeem API's `ONBOARD_ORIGIN` are two independent settings; check both when changing ports. Never put production merchant credentials into browser-side code or the mock API.
 The shop mock API of `pnpm dev` (`src/storefront/mock/shop.ts`) answers by the same rules, and login links are printed in the dev server's terminal.
-
-## Proposed
-
-Nothing under this heading exists in mail yet. The website already implements its side against the contract below (client, Worker
-route, `pnpm dev` mock, tests), and hides the feature until mail has it; the routes are deliberately **not** in
-`docs/onboard-contract.json`, which must stay byte for byte equal to mail's copy. When mail implements one, move its section up
-into "Shop API", add the route to both copies of the contract file, and delete it from here.
-
-### `POST /api/shop/address` Check an address before buying
-
-"Check your address" in the home page's hero and on the pricing page (`src/components/AddressCheck.tsx`): the visitor types a
-username, picks one of the domains the plans on sale offer, and sees whether the address is free, before there is an order or a redeem
-code. The existing `POST /api/onboard/username` cannot serve this: it requires a valid redeem code precisely so that it is not an entry
-point for probing usernames. This endpoint answers without one, so it is an enumeration oracle by design and the limits below are part
-of the contract, not an implementation detail.
-
-Request: `{ "domain": "abnormalhq.com", "username": "kunish" }`, `Content-Type: application/json`, same-origin `Origin`. No redeem
-code, no cookie (the browser sends `credentials: omit`, and the Worker forwards none to this route even when the browser has shop
-cookies), no Turnstile token.
-
-Response `200`: `{ "available": true, "email": "kunish@abnormalhq.com" }`, or `{ "available": false, "email": "…" }` when the address
-cannot be had. `email` is the normalised address the answer is about.
-
-- `username` is normalised with `normalizeUsername` and validated against `LOCAL_PART_PATTERN`, exactly as `/api/onboard/username`
-  does; a username that fails is `400` with `{ error }` in the request language (the page then shows its own wording of the rule).
-- `domain` must be a domain of a product currently in `GET /api/shop/catalog` (on sale, domain still managed). Any other domain, managed
-  or not, is `400`: the endpoint must not reveal which addresses exist on domains that are not publicly for sale.
-- "Taken" is the same test as `assertUsernameAvailable` (local records, and `listMailboxes(domain)` on the Stalwart server). Reserved
-  and blocked names answer `available: false` like a taken one, with nothing to tell them apart. Unlike the redeem API, taken is a `200`
-  answer here rather than a `409` error: it is the normal outcome of a search, and shop errors have no `kind` to switch on.
-- Failure statuses, all `{ error }` in the request language like every shop endpoint: `400` (invalid username or domain), `403` (`Origin`
-  is not the storefront address), `413` / `415` (body), `429` with `Retry-After` (rate limited), `503` (the mail server could not be
-  asked: never answer `available: true` on a guess). `404` means "this backend has no address check".
-- Rate limiting, per source IP (`CF-Connecting-IP`, which the Worker keeps): the page asks once per pause in typing (500 ms debounce,
-  one request in flight), so a person needs a handful of requests. Proposed: 10 per minute and 100 per day per IP in a new
-  `shop:address` rule (stricter than `ONBOARD_RULES.lookup`'s 30 per minute, which is protected by a redeem code), plus a global ceiling
-  per domain (for example 600 per hour) so a distributed sweep degrades to `429` instead of listing the domain's mailboxes. Usernames
-  asked about are not logged or stored.
-- Turnstile is deliberately not part of the request: tokens are single-use and the check runs as the visitor types. If rate limiting
-  proves too weak, the fallback is to require a token (action `shop-address`) and have the page check on an explicit button press
-  instead of on a pause; that would be a contract change on both sides.
-- The answer reserves nothing. The page says so, and the forms that create the mailbox (`account/mailboxes/create`, `/api/onboard/redeem`)
-  stay authoritative.
-
-`GET /api/shop/catalog` gains `addressCheck: true` when the endpoint is available (a sales setting may switch it off; absent on every
-backend before it). The pages show the check only when the catalog carries the flag, so nothing appears, and no request is made, against
-a mail that does not have the endpoint. As a second line, the Worker turns mail's `404` for this route (Next.js's HTML not-found page
-included) into a JSON `404` instead of the usual `503 unavailable`, and the page removes the form when it sees one.
-
-What the website does with a free address: the result links to `/shop/?address=<name@domain>` (the plan cards link to
-`/shop/?plan=<product id>`; both parameters survive the header's language toggle). The shop points out the plan, shows the address and
-keeps it in the tab's `sessionStorage` (`abnormal-address`), because the way from the shop to the mailbox form leaves the site for the
-payment page. "My mailboxes" on the account page then opens its create form with the username and domain filled in when the order
-offers that domain, and the redeem page starts its first row with the username. None of this is sent to mail before the visitor submits
-one of those forms.
-
-`pnpm dev` implements all of this in the mock (`src/storefront/mock/shop.ts`); start it with `MOCK_ADDRESS_CHECK=off pnpm dev` to see
-the pages against a backend without the endpoint.
 
 ## Self-hosted mail server and quotas
 

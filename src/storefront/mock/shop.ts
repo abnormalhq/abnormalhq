@@ -186,8 +186,8 @@ export class MockShopStore {
   private readonly now: () => number;
 
   /**
-   * Whether the demo backend has the address check (POST address, proposed in docs/storefront-api.md). Off, the catalog leaves
-   * `addressCheck` out and the endpoint answers 404 like a backend before it, to see the pages without the check.
+   * Whether the demo backend has the address check (POST address, docs/storefront-api.md). Off, the catalog leaves
+   * `addressCheck` out and the endpoint answers 404, like a backend with the check switched off or one before it, to see the pages without the check.
    */
   private readonly addressCheck: boolean;
 
