@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type SyntheticEvent } from "react";
+import { BrandArrow } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { linksFor, type Lang } from "@/data/site";
@@ -176,7 +177,7 @@ export function Header({
             </Button>
             <Button asChild variant="outline" size="lg">
               <a href={links.webmail} onClick={closeMenu}>
-                {copy.loginWebmail} <Icon name="up-right" className="size-4" />
+                {copy.loginWebmail} <BrandArrow className="size-3.5" />
               </a>
             </Button>
             <Button asChild variant="outline" size="lg">

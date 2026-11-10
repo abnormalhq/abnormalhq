@@ -12,6 +12,9 @@
  * - control and input are semi-transparent ink, so they read the same over the page, the sidebar and popovers.
  * - hover is opaque: pinned table columns rely on it to cover the content scrolling underneath.
  *   Floating surfaces (menus, selects, popovers, dialogs) use popover-hover: in dark mode hover is the popover color.
+ * - The ink shell: a product's navigation column and the frame around its content can be the brand ink in both themes,
+ *   with the content a sheet of paper set into it. Put `ink` on that column or frame: inside it the dark values apply
+ *   whatever the page's theme, and `--ink` is the color of the frame itself (see .ink below).
  *
  * The theme is written on <html data-theme="light|dark">. Before any script runs it follows the system preference.
  */
@@ -19,7 +22,8 @@
 /*
  * dark: follows the same rule as the tokens below: data-theme="dark", or the system preference while no script has
  * written data-theme="light". Without the second half a dark system with JS off would get dark tokens but light dark:
- * utilities, such as a yellow band under light text.
+ * utilities, such as a yellow band under light text. The ink shell (.ink) is not part of it: dark: asks about the
+ * page's theme (which icon the theme button shows, the ring around a floating dock), and that does not change in the shell.
  */
 @custom-variant dark {
   &:where([data-theme="dark"], [data-theme="dark"] *) {
@@ -91,6 +95,8 @@
   --sidebar: #f2f2ee;
   --sidebar-foreground: var(--text);
   --sidebar-border: var(--border);
+  /* The ink shell's own color (see .ink): the brand ink on a paper page, one step darker than the page in dark mode. */
+  --ink: #141412;
   /* Focus outline: 3.3:1 against the paper background, meeting the non-text contrast requirement. */
   --focus: #8a8a80;
   --panel-shadow: 0 0 #0000;
@@ -125,6 +131,7 @@
   --destructive: #ff8a96;
   --popover-bg: #1c1c19;
   --sidebar: #0f0f0d;
+  --ink: #0f0f0d;
   /* 3.6:1 against #141412. */
   --focus: #6f6f66;
   --popover-shadow: 0 0 0 1px #f0f0ea08, 0 16px 48px #00000080;
@@ -157,6 +164,7 @@
     --destructive: #ff8a96;
     --popover-bg: #1c1c19;
     --sidebar: #0f0f0d;
+    --ink: #0f0f0d;
     --focus: #6f6f66;
     --popover-shadow: 0 0 0 1px #f0f0ea08, 0 16px 48px #00000080;
     --chart-1: #3987e5;
@@ -183,6 +191,63 @@
   --accent: var(--hover);
   --accent-foreground: var(--text);
   --ring: var(--focus);
+}
+
+/*
+ * The ink shell: a navigation column, or the frame around a product's content, in the brand ink in both themes, so the
+ * content reads as a sheet of paper set into it. Inside .ink the dark values apply whatever the page's theme: the
+ * primary button is paper with ink text, the current item is highlighter yellow, signal is yellow. control is a step
+ * stronger than the dark theme's, because here it sits on the darkest surface there is.
+ * The shadcn names are mapped again because a custom property that refers to another is resolved where it is declared
+ * (:root), not where it is used. Paper inside the shell is a sibling of the .ink element, never a descendant of it.
+ * popover-shadow keeps the page's value: a shadow falls on what is behind the element, and that is the page.
+ */
+.ink {
+  --bg: var(--ink);
+  --brand: #f0f0ea;
+  --brand-foreground: #141412;
+  --highlight-muted: #34311b;
+  --signal: #ffe14d;
+  --surface: #252520;
+  --text: #f0f0ea;
+  --text-secondary: #a6a69c;
+  --border: #2e2e29;
+  --hover: #1c1c19;
+  --popover-hover: #292924;
+  --control: #f0f0ea12;
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a6a69c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  --input: #f0f0ea1f;
+  --badge-ink: #e8b85a;
+  --success: #a8c48f;
+  --destructive: #ff8a96;
+  --popover-bg: #1c1c19;
+  --focus: #6f6f66;
+  --card: var(--bg);
+  --sidebar: var(--bg);
+  --sidebar-foreground: var(--text);
+  --sidebar-border: var(--border);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card-foreground: var(--text);
+  --popover: var(--popover-bg);
+  --popover-foreground: var(--text);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--hover);
+  --accent-foreground: var(--text);
+  --ring: var(--focus);
+}
+/* The shell's own fill and text color are defaults, in the base layer, so a utility on the same element (bg-*, text-*) still wins. */
+@layer base {
+  .ink {
+    color-scheme: dark;
+    background-color: var(--bg);
+    color: var(--text);
+  }
 }
 
 @theme inline {
@@ -217,6 +282,7 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  --color-ink: var(--ink);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);

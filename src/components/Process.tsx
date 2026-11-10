@@ -1,5 +1,6 @@
 import { Container } from "@/components/ui/container";
 import { IconTile } from "@/components/ui/icon-tile";
+import { Marker } from "@/components/ui/marker";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
@@ -33,16 +34,13 @@ export function Process({ lang }: { lang: Lang }) {
           {t.process.steps.map((step, index) => (
             <article className="min-w-0" key={step.title}>
               <div className="mb-[1.3rem] flex items-center gap-5 md:mb-7">
-                {/*
-                 * The number looks highlighted with a marker: a band of yellow across its lower half. The text uses the foreground color, half on the
-                 * page background and half on the yellow, so dark mode swaps in a dim yellow and the light text stays clear on both (11.5:1).
-                 */}
-                <span
-                  className="bg-[linear-gradient(transparent_56%,var(--step-band)_56%_90%,transparent_90%)] px-[0.06em] text-[2.75rem] leading-none font-light tracking-[-0.04em] text-foreground [--step-band:var(--highlight)] md:text-[3.25rem] dark:[--step-band:var(--highlight-muted)]"
+                {/* The number is highlighted with the registry's Marker: a band of yellow across its lower half, dim yellow in dark mode. */}
+                <Marker
+                  className="text-[2.75rem] leading-none font-light tracking-[-0.04em] text-foreground md:text-[3.25rem]"
                   aria-hidden="true"
                 >
                   {String(index + 1).padStart(2, "0")}
-                </span>
+                </Marker>
                 <span className="h-px flex-1 bg-border" aria-hidden="true"></span>
                 <IconTile variant="outline">
                   <Icon name={step.icon} />
