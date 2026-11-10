@@ -31,6 +31,8 @@ export function DocArticle({
   summary,
   trail,
   sections,
+  meta,
+  crumb,
   children,
 }: {
   lang: Lang;
@@ -41,6 +43,10 @@ export function DocArticle({
   /** The pages above this one, nearest last; the home page comes first by itself. Paths without the language prefix. */
   trail: readonly { label: string; path: string }[];
   sections: readonly DocSection[];
+  /** A line under the lead, such as the date the page was last reviewed. */
+  meta?: ReactNode;
+  /** The page's name in the breadcrumb, when the title is too long for it. */
+  crumb?: string;
   children?: ReactNode;
 }) {
   const { t, path } = useCopy(lang);
@@ -64,7 +70,7 @@ export function DocArticle({
                 </Fragment>
               ))}
               <BreadcrumbItem>
-                <BreadcrumbPage>{title}</BreadcrumbPage>
+                <BreadcrumbPage>{crumb ?? title}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -75,6 +81,7 @@ export function DocArticle({
               <HeadingMark>{t.dot}</HeadingMark>
             </h1>
             <p className="mt-5 text-md/prose text-muted-foreground">{summary}</p>
+            {meta && <p className="mt-4 text-sm/body text-muted-foreground">{meta}</p>}
           </div>
         </Container>
       </section>

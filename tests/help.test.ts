@@ -345,5 +345,5 @@ test("help article page: a breadcrumb back to the index, and the way to the inde
   assert.match(article, /href=\{`mailto:\$\{email\}`\}/);
   const doc = readFileSync("src/components/DocArticle.tsx", "utf8");
   assert.match(doc, /<Breadcrumb label=\{h\.breadcrumbLabel\}>/);
-  assert.match(doc, /<BreadcrumbPage>\{title\}<\/BreadcrumbPage>/);
+  assert.match(doc, /<BreadcrumbPage>\{crumb \?\? title\}<\/BreadcrumbPage>/);
 });

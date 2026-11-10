@@ -5,6 +5,7 @@
  */
 import { helpArticles, helpPath, type HelpArticle } from "../content/help/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
+import { securityContent } from "../content/security/index.ts";
 import { absoluteUrl, configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
 import { copies } from "../i18n/index.ts";
 import { langs, localePath } from "../i18n/paths.ts";
@@ -238,6 +239,25 @@ export function helpArticleStructuredData(lang: Lang, article: HelpArticle) {
       ...(howTos.length > 0 && { mainEntity: howTos.map((howTo) => ({ "@id": howTo["@id"] })) }),
     },
     ...howTos,
+  ]);
+}
+
+/** The security and privacy overview: the page, when its statements were last checked, and a breadcrumb. No certification or rating is claimed. */
+export function securityStructuredData(lang: Lang) {
+  const t = copies[lang];
+  const page = webPage(lang, "/security/", t.security.metaTitle, t.security.metaDescription);
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      dateModified: securityContent[lang].reviewed,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: t.security.navLabel, url: page.url as string },
+      ]),
+    },
   ]);
 }
 

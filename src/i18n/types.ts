@@ -357,6 +357,19 @@ export interface Copy {
     /** At the foot of every article: back to the index, or on to support. */
     wrong: { title: string; body: string; index: string; contact: string };
   };
+  /** The security and privacy overview (/security/): the wording around it. The text itself is in src/content/security/. */
+  security: {
+    metaTitle: string;
+    metaDescription: string;
+    /** The entry in the footer and the breadcrumb's own name of the page. */
+    navLabel: string;
+    eyebrow: string;
+    /** Before the date the statements were last checked. */
+    reviewedLabel: string;
+    /** At the foot of the page: on to the full policy and to the help center. */
+    policyLink: string;
+    helpLink: string;
+  };
   closing: {
     eyebrow: string;
     titleLines: readonly [string, string];

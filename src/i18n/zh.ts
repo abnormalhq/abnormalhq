@@ -498,6 +498,16 @@ export const zh: Copy = {
       contact: "写信给客服",
     },
   },
+  security: {
+    metaTitle: "安全与隐私 — Abnormal",
+    metaDescription:
+      "Abnormal 如何保护邮箱：传输加密、两步验证与应用专用密码、钓鱼提醒与病毒扫描、哪些内容加密保存、不提供什么（没有端到端加密和零访问加密）、数据在哪里处理，以及如何报告漏洞。",
+    navLabel: "安全与隐私",
+    eyebrow: "Security overview",
+    reviewedLabel: "最近核对",
+    policyLink: "阅读隐私政策",
+    helpLink: "前往帮助中心",
+  },
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["下一封邮件，", "从这里开始"],
@@ -522,6 +532,7 @@ export const zh: Copy = {
       { link: "account", label: "我的账户" },
       { link: "register", label: "注册账户" },
       { link: "status", label: "服务状态" },
+      { link: "security", label: "安全与隐私" },
     ],
     faq: "常见问题",
     emailAria: (email) => `客服邮箱：${email}`,

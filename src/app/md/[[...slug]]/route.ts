@@ -1,7 +1,14 @@
 import { legalFrontmatters } from "@/content/legal/frontmatter";
 import { legalSources } from "@/content/legal/sources";
 import { helpSlugOf } from "@/content/help";
-import { helpArticleMarkdown, helpIndexMarkdown, homeMarkdown, legalMarkdown, stripFrontmatter } from "@/lib/markdown";
+import {
+  helpArticleMarkdown,
+  helpIndexMarkdown,
+  homeMarkdown,
+  legalMarkdown,
+  securityMarkdown,
+  stripFrontmatter,
+} from "@/lib/markdown";
 import { markdownResponse } from "@/lib/markdown-response";
 import { pages, type Page } from "@/lib/pages";
 import { storeMarkdown, storeMarkdownPaths, type StoreMarkdownPath } from "@/storefront/lib/markdown";
@@ -25,6 +32,7 @@ function render({ lang, path }: Page): string {
   if (path === "/") return homeMarkdown(lang);
   if (isStorePage(path)) return storeMarkdown(lang, path);
   if (path === "/help/") return helpIndexMarkdown(lang);
+  if (path === "/security/") return securityMarkdown(lang);
   const article = helpSlugOf(path);
   if (article) return helpArticleMarkdown(lang, article);
   if (path === "/privacy/" || path === "/terms/")

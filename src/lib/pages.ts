@@ -19,6 +19,7 @@ export const pagePaths = [
   // The help center: its index, then one page per article (src/content/help/).
   "/help/",
   ...helpSlugs.map(helpPath),
+  "/security/",
   "/download/",
   "/privacy/",
   "/terms/",

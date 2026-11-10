@@ -21,6 +21,7 @@ import {
   helpPath,
   type HelpSlug,
 } from "../content/help/index.ts";
+import { securityContent } from "../content/security/index.ts";
 import { copies, langs, localePath } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { sectionsMarkdown } from "./docs.ts";
@@ -97,6 +98,7 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
     `[${t.faq.help}](${links.help})`,
     `## ${t.footer.contactLabel}`,
     `${t.start.support}: [${email}](mailto:${email})`,
+    `[${t.security.navLabel}](${links.security})`,
     `## ${t.footer.legalLabel}`,
     list(t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`)),
   ])}\n`;
@@ -261,6 +263,22 @@ export function helpArticleMarkdown(lang: Lang, slug: HelpSlug): string {
   ])}\n`;
 }
 
+/** The security and privacy overview: its sections as written, the date they were last checked, and the way on to the policy. */
+export function securityMarkdown(lang: Lang): string {
+  const t = copies[lang];
+  const content = securityContent[lang];
+  return `${paragraphs([
+    `# ${content.title}`,
+    content.summary,
+    `${t.security.reviewedLabel}${t.legal.colon}${content.reviewed}`,
+    ...sectionsMarkdown(content.sections, lang),
+    list([
+      `[${t.security.policyLink}](${absolute(pageFor(lang, "/privacy/").markdown)})`,
+      `[${t.security.helpLink}](${absolute(pageFor(lang, "/help/").markdown)})`,
+    ]),
+  ])}\n`;
+}
+
 /** Legal page paths in the copy are plain strings; this confirms the path really is a page in the list. */
 function toPagePath(path: string) {
   const match = pagePaths.find((pagePath) => pagePath === path);
@@ -306,6 +324,7 @@ function llmsSection(lang: Lang, heading: string): string {
       ...helpArticles(lang).map(
         (article) => `[${article.title}](${absolute(pageFor(lang, helpPath(article.slug)).markdown)})`,
       ),
+      `[${t.security.navLabel}](${absolute(pageFor(lang, "/security/").markdown)})`,
       `[${t.download.title}](${absolute(pageFor(lang, "/download/").markdown)})`,
       ...t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`),
       ...[...t.footer.productLinks, ...t.footer.supportLinks].map((item) => `[${item.label}](${links[item.link]})`),

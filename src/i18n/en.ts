@@ -527,6 +527,16 @@ export const en: Copy = {
       contact: "Email support",
     },
   },
+  security: {
+    metaTitle: "Security and privacy — Abnormal",
+    metaDescription:
+      "How Abnormal protects mailboxes: encryption in transit, two-step verification and app passwords, phishing warnings and virus scanning, what is stored encrypted, what is not offered (no end-to-end or zero-access encryption), where data is processed, and how to report a vulnerability.",
+    navLabel: "Security and privacy",
+    eyebrow: "Security overview",
+    reviewedLabel: "Last reviewed",
+    policyLink: "Read the Privacy Policy",
+    helpLink: "Go to the help center",
+  },
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["Your next email", "starts here"],
@@ -551,6 +561,7 @@ export const en: Copy = {
       { link: "account", label: "My account" },
       { link: "register", label: "Create an account" },
       { link: "status", label: "Service status" },
+      { link: "security", label: "Security and privacy" },
     ],
     faq: "FAQ",
     emailAria: (email) => `Support email: ${email}`,
