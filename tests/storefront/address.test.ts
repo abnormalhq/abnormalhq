@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   ADDRESS_STORAGE_KEY,
   forgetAddress,
@@ -10,6 +10,7 @@ import {
   shopHref,
   storedAddress,
   subscribeAddress,
+  withoutAddress,
 } from "@/storefront/lib/address";
 import { catalogDomains, checkAddress, getShopCatalog, parseShopCatalog, ShopApiError } from "@/storefront/lib/catalog";
 import {
@@ -18,6 +19,7 @@ import {
   readCatalog,
   type CatalogCache,
 } from "@/storefront/lib/catalog-server";
+import { switchHref } from "@/i18n/paths";
 import { LOCAL_PART_PATTERN } from "@/storefront/lib/onboard";
 import { MockShopStore } from "@/storefront/mock/shop";
 import { storefrontApi as worker, type StorefrontEnv } from "@/storefront/worker/index";
@@ -135,6 +137,20 @@ test("address: blocked storage means the address is simply not carried", () => {
   expect(() => forgetAddress()).not.toThrow();
 });
 
+test("address: dismissed in the shop it leaves the page's address too, so neither a reload nor the language toggle brings it back", () => {
+  const search = "?plan=demoproduct0001&address=ada%40abnormalhq.com&utm=x";
+  expect(switchHref("/shop/", "zh", search)).toBe(
+    "/zh/shop/?plan=demoproduct0001&address=ada%40abnormalhq.com&lang=zh",
+  );
+  const rest = withoutAddress(search);
+  expect(rest).toBe("?plan=demoproduct0001&utm=x");
+  expect(parseAddress(new URLSearchParams(rest).get("address"))).toBeNull();
+  expect(switchHref("/shop/", "zh", rest)).toBe("/zh/shop/?plan=demoproduct0001&lang=zh");
+  expect(withoutAddress("?address=ada%40abnormalhq.com")).toBe("");
+  expect(withoutAddress("?address=a%40b.com&address=c%40d.com")).toBe("");
+  expect(withoutAddress("")).toBe("");
+});
+
 /* ---- The browser client ---- */
 
 test("catalog client: the address check exists only when the backend says so", async () => {
@@ -148,6 +164,73 @@ test("catalog client: the address check exists only when the backend says so", a
   }
   vi.stubGlobal("fetch", async () => Response.json({ ...catalogResponse, addressCheck: true }));
   expect((await getShopCatalog()).addressCheck).toBe(true);
+});
+
+/* ---- The catalog shared on the home page ---- */
+
+/** The module keeps its requests for as long as it lives: each test starts with a fresh one. */
+async function freshSharedCatalog() {
+  vi.resetModules();
+  return import("@/storefront/lib/catalog-shared");
+}
+
+beforeEach(() => {
+  vi.useRealTimers();
+});
+
+test("shared catalog: one request for the page's readers, and a good answer is reused for a minute only", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  const { sharedCatalog, SHARED_CATALOG_SECONDS } = await freshSharedCatalog();
+  expect(SHARED_CATALOG_SECONDS).toBe(CATALOG_CACHE_SECONDS);
+  let name = "Before";
+  const product = catalogResponse.products[0]!;
+  const fetched = vi.fn(async () => Response.json({ ...catalogResponse, products: [{ ...product, name }] }));
+  vi.stubGlobal("fetch", fetched);
+
+  const [pricing, check] = await Promise.all([sharedCatalog("en"), sharedCatalog("en")]);
+  expect(fetched).toHaveBeenCalledTimes(1);
+  expect(check).toBe(pricing);
+  // The other language is another answer.
+  await sharedCatalog("zh");
+  expect(fetched).toHaveBeenCalledTimes(2);
+
+  // Home -> pricing -> home without a page load: the module is the same, the catalog has changed meanwhile.
+  name = "After";
+  vi.advanceTimersByTime((SHARED_CATALOG_SECONDS - 1) * 1000);
+  expect(await sharedCatalog("en")).toBe(pricing);
+  vi.advanceTimersByTime(1000);
+  const later = await sharedCatalog("en");
+  expect(fetched).toHaveBeenCalledTimes(3);
+  expect([pricing.products[0]!.name, later.products[0]!.name]).toStrictEqual(["Before", "After"]);
+});
+
+test("shared catalog: after a failed request, one reader's retry reaches the others too", async () => {
+  const { sharedCatalog, subscribeCatalog } = await freshSharedCatalog();
+  let up = false;
+  const fetched = vi.fn(async () =>
+    up ? Response.json({ ...catalogResponse, addressCheck: true }) : Response.json({}, { status: 503 }),
+  );
+  vi.stubGlobal("fetch", fetched);
+
+  // The address check, as mounted: it reads once and listens.
+  const seen: boolean[] = [];
+  const unsubscribe = subscribeCatalog("en", (catalog) => seen.push(catalog.addressCheck === true));
+  const other = vi.fn();
+  subscribeCatalog("zh", other);
+  await expect(sharedCatalog("en")).rejects.toMatchObject({ status: 503 });
+  expect(seen).toStrictEqual([]);
+
+  // The pricing section's "Try again".
+  up = true;
+  await sharedCatalog("en");
+  expect(fetched).toHaveBeenCalledTimes(2);
+  expect(seen).toStrictEqual([true]);
+  expect(other).not.toHaveBeenCalled();
+
+  // Reusing the answer announces nothing; a reader that has left hears nothing.
+  await sharedCatalog("en");
+  expect(seen).toStrictEqual([true]);
+  unsubscribe();
 });
 
 test("catalog client: the address check offers each domain on sale once, in catalog order", () => {

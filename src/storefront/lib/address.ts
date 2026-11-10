@@ -53,6 +53,14 @@ export function shopHref(shop: string, choice: { plan?: string; address?: Chosen
   return query ? `${shop}?${query}` : shop;
 }
 
+/** A query string without the carried address, its other values kept: the shop's own once the address is dismissed there. */
+export function withoutAddress(search: string): string {
+  const params = new URLSearchParams(search);
+  params.delete(ADDRESS_PARAM);
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
 /** Storage can be blocked (private modes, embedded contexts): the address is then simply not carried. */
 function storage(): Storage | null {
   try {
@@ -100,4 +108,10 @@ export function forgetAddress(): void {
     // Nothing to forget.
   }
   for (const listener of listeners) listener();
+}
+
+/** Once the carried address exists as a mailbox it has done its job: forgets it when it is among the addresses just created. */
+export function forgetCreatedAddress(created: readonly string[]): void {
+  const address = recallAddress();
+  if (address && created.includes(formatAddress(address))) forgetAddress();
 }

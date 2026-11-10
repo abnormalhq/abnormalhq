@@ -11,8 +11,8 @@ import type { Copy } from "@/i18n/types";
 import { fillText } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import { rememberAddress, shopHref, type ChosenAddress } from "@/storefront/lib/address";
-import { catalogDomains, checkAddress, ShopApiError } from "@/storefront/lib/catalog";
-import { sharedCatalog } from "@/storefront/lib/catalog-shared";
+import { catalogDomains, checkAddress, ShopApiError, type ShopCatalog } from "@/storefront/lib/catalog";
+import { sharedCatalog, subscribeCatalog } from "@/storefront/lib/catalog-shared";
 import { normalizeUsername, usernameProblem } from "@/storefront/lib/onboard";
 import { Icon } from "./Icon";
 
@@ -64,13 +64,15 @@ export function AddressCheck({
   useEffect(() => {
     if (given) return;
     let current = true;
-    sharedCatalog(lang).then(
-      (catalog) => current && setLoaded(catalog.available && catalog.addressCheck ? catalogDomains(catalog) : []),
-      // No catalog, no domains to offer: the check stays out of the page, and the pricing section says what went wrong.
-      () => current && setLoaded([]),
-    );
+    const show = (catalog: ShopCatalog) =>
+      current && setLoaded(catalog.available && catalog.addressCheck ? catalogDomains(catalog) : []);
+    // No catalog, no domains to offer: the check stays out of the page, and the pricing section says what went wrong.
+    sharedCatalog(lang).then(show, () => current && setLoaded([]));
+    // The pricing section's "Try again" reads the catalog anew; its answer brings the check back.
+    const unsubscribe = subscribeCatalog(lang, show);
     return () => {
       current = false;
+      unsubscribe();
     };
   }, [given, lang]);
 

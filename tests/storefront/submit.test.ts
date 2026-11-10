@@ -1,5 +1,6 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { copy } from "@/storefront/i18n";
+import { ADDRESS_STORAGE_KEY } from "@/storefront/lib/address";
 import { ApiError, type CdkInfo, type RedeemInput, type RedeemResult } from "@/storefront/lib/api";
 import { normalizeCdk } from "@/storefront/lib/onboard";
 import { createReducer, initialState, type Action, type State } from "@/storefront/components/onboard/reducer";
@@ -203,6 +204,36 @@ test("submit: on partial failure the failed rows stay and the redeem code is re-
   expect(rejected.state.rows[0]!.usernameNote.state).not.toBe("error");
   expect(rejected.state.focus).toMatchObject({ target: "username", id: rejected.state.rows[1]!.id });
   expect(rejected.state.busy).toBe(false);
+});
+
+test("submit: the address carried from the address check is forgotten once a redemption creates it, also in a batch that partly failed", async () => {
+  const items = new Map<string, string>();
+  vi.stubGlobal("sessionStorage", {
+    getItem: (key: string) => items.get(key) ?? null,
+    setItem: (key: string, value: string) => void items.set(key, value),
+    removeItem: (key: string) => void items.delete(key),
+  });
+
+  // The same name on another domain is another address: it stays for the form that can create it.
+  items.set(ADDRESS_STORAGE_KEY, "alice@abnormalhq.com");
+  const other = harness({ [CODE_A]: three }, (input) => succeeded(input));
+  await filled(other, CODE_A, ["alice"]);
+  await other.submit();
+  expect(items.get(ADDRESS_STORAGE_KEY)).toBe("alice@abnormalhq.com");
+
+  // The row with the carried address failed: it is still wanted.
+  items.set(ADDRESS_STORAGE_KEY, "admin@abnormal.bid");
+  const failed = harness({ [CODE_A]: three }, (input) => succeeded(input, (index) => index !== 1));
+  await filled(failed, CODE_A, ["alice", "admin", "carol"]);
+  await failed.submit();
+  expect(items.get(ADDRESS_STORAGE_KEY)).toBe("admin@abnormal.bid");
+
+  items.set(ADDRESS_STORAGE_KEY, "alice@abnormal.bid");
+  const partial = harness({ [CODE_A]: three }, (input) => succeeded(input, (index) => index !== 1));
+  await filled(partial, CODE_A, ["alice", "admin", "carol"]);
+  await partial.submit();
+  expect(partial.state.formNote.text).toBe(t.msg.partial(2, 1));
+  expect(items.has(ADDRESS_STORAGE_KEY)).toBe(false);
 });
 
 test("submit: an invalid redeem code puts focus back on the redeem code, a network failure goes to the bottom of the form", async () => {

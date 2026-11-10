@@ -23,6 +23,7 @@ import {
   rememberAddress,
   storedAddress,
   subscribeAddress,
+  withoutAddress,
 } from "@/storefront/lib/address";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -54,6 +55,18 @@ function readSearch(): string {
 function subscribeToHistory(onChange: () => void): () => void {
   window.addEventListener("popstate", onChange);
   return () => window.removeEventListener("popstate", onChange);
+}
+
+/**
+ * "Don't use this address": out of the tab's storage and out of the page's address too, or a reload or the language toggle
+ * (which carries ?address=, src/i18n/paths.ts) would keep it again.
+ */
+function dismissAddress(): void {
+  const { pathname, search, hash } = window.location;
+  if (new URLSearchParams(search).has(ADDRESS_PARAM)) {
+    window.history.replaceState(null, "", `${pathname}${withoutAddress(search)}${hash}`);
+  }
+  forgetAddress();
 }
 
 export function Shop({ lang }: { lang: Lang }) {
@@ -183,7 +196,7 @@ export function Shop({ lang }: { lang: Lang }) {
                 {t.carriedAddress(`${carried.username}@${carried.domain}`)}
               </AlertDescription>
               <div>
-                <Button variant="link" className="text-sm" type="button" onClick={forgetAddress}>
+                <Button variant="link" className="text-sm" type="button" onClick={dismissAddress}>
                   {t.carriedRemove}
                 </Button>
               </div>

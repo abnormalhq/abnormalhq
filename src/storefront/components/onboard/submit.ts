@@ -5,6 +5,7 @@
  * When the backend has human verification on, the activation request carries the Turnstile token; a token can be used once, so a new one is fetched after the request whether it succeeded or not.
  */
 import type { Copy, Lang } from "@/storefront/i18n";
+import { forgetCreatedAddress } from "@/storefront/lib/address";
 import { ApiError, type CdkInfo, type RedeemInput, type RedeemResult } from "@/storefront/lib/api";
 import {
   REDEEM_MAX_MAILBOXES,
@@ -118,6 +119,8 @@ export async function submitRedeem(deps: SubmitDeps): Promise<void> {
       deps.challenge.reset();
     }
     dispatch({ type: "outcome", result: outcome, submitted });
+    // The address picked in the address check started the first row; if it now exists, also in a batch that partly failed, it is done.
+    forgetCreatedAddress(outcome.mailboxes.flatMap((item) => (item.ok ? [item.email] : [])));
     // Something failed: the quota changed, so verify the redeem code once more.
     if (outcome.mailboxes.some((item) => !item.ok)) await deps.lookup(true);
   } catch (error) {
