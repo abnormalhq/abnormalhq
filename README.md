@@ -45,6 +45,12 @@ The order, renewal and account pages depend on a purchase or login session: they
 
 Buying happens at `/shop/` with Linux DO Credit or a card (Stripe); the order page collects the code after payment, and "My account" manages mailboxes, orders and subscriptions.
 
+### Discount codes
+
+"I have a discount code" on the shop page opens a field. "Apply" previews the code against the plans on the page (`POST /api/shop/coupon`, at most 4 requests per press, since mail limits code guesses to 10 per 10 minutes per IP and counts previews and checkouts together), and each plan then shows its price with the code, or that the code cannot be used for it. mail gives one answer for every reason a code cannot be used, so the page shows one sentence and no reason. Whatever is in the field is sent with checkout, for Linux DO Credit and card alike: mail prices the order with it or refuses the checkout, so a typed code is never dropped silently.
+
+mail does not publish an order's code yet, and publishes an order with a code and no plan discount with its original price equal to the price paid. The shop page therefore keeps the code and the price before it in the tab's `sessionStorage` (`abnormal-coupon`, `src/storefront/lib/coupon.ts`) for each order it creates with a code, and the order page shows "Discount code WELCOME, −1.00 LDC" with the earlier price struck through from the difference. In another browser the order shows its price without the breakdown. There is no catalog flag for discount codes, so the field is always offered and disappears when the preview answers 404; the route, the order fields and a flag are listed under "Proposed" in [docs/storefront-api.md](docs/storefront-api.md), and the route is not in `docs/onboard-contract.json` until mail's copy takes it.
+
 ### Code
 
 ```text
@@ -70,7 +76,7 @@ The storefront's breakpoints (`max-narrow:`, `max-tablet:`, `max-desk:`, `max-gu
 The browser requests this site's own API, and `worker.ts` answers every `/api` request before OpenNext, calling mailhq internally through the `MAIL` Service Binding (`abnormalhq-mailhq`) by a path and method allowlist:
 
 - `/api/onboard/cdk`, `username`, `redeem`: the three POST redeem endpoints.
-- `/api/shop/catalog`, `orders`, `notify`, `account`, `account/mailboxes`: GET; `address` (the address check, see "Pricing and the address check"): POST, without cookies; `checkout`, `pay`, `pay/stripe`, `reconcile`, `renewal`, `renew` and the `account/*` endpoints (login, password, Google sign-in, mailbox management): POST.
+- `/api/shop/catalog`, `orders`, `notify`, `account`, `account/mailboxes`: GET; `address` (the address check, see "Pricing and the address check"): POST, without cookies; `coupon` (the discount code preview, see "Discount codes"), `checkout`, `pay`, `pay/stripe`, `reconcile`, `renewal`, `renew` and the `account/*` endpoints (login, password, Google sign-in, mailbox management): POST.
 
 The Worker keeps the browser's `Origin` and `CF-Connecting-IP` so mailhq can check the origin, rate-limit and verify Turnstile tokens; the redeem endpoints carry no cookies, and the shop endpoints forward only the `mailhq_shop` buyer cookie and the `mailhq_customer` account session. Response headers are built by the Worker, API responses are never cached, and request bodies, passwords and redeem codes are never logged. `vars.MAIL_ORIGIN` in `wrangler.jsonc` (`https://console.abnormalhq.com`) is only the URL of internal requests, so mail's OpenNext recognises its own origin. The full contract is in [docs/storefront-api.md](docs/storefront-api.md).
 
@@ -91,7 +97,7 @@ On mail's side, `ONBOARD_ORIGIN` must list this site's origin, and the sales set
 | `EXPD-EXPD-EXPD-EXPD` | Expired                                                                                                   |
 | `GONE-GONE-GONE-GONE` | Disabled                                                                                                  |
 
-In the mock API `admin`, `support`, `postmaster`, `abuse`, `noreply`, `hello` and `kunish` are taken; a notification address ending in `@bounce.example` simulates a delivery failure. The demo plan at `/shop/` costs 7.50 LDC after a 25% discount, and paying only simulates success. Mock login sends no email: login and registration links are printed in the dev server terminal; after login "My mailboxes" works on the demo orders, in memory only.
+In the mock API `admin`, `support`, `postmaster`, `abuse`, `noreply`, `hello` and `kunish` are taken; a notification address ending in `@bounce.example` simulates a delivery failure. The demo plan at `/shop/` costs 7.50 LDC after a 25% discount, and paying only simulates success. The mock knows three discount codes: `WELCOME` (20% off everything), `LDC1` (1.00 LDC off, not for card orders) and `MONTHLY` (half off the monthly plan's first period); `MOCK_COUPONS=off pnpm dev` behaves like a backend without discount codes. Mock login sends no email: login and registration links are printed in the dev server terminal; after login "My mailboxes" works on the demo orders, in memory only.
 
 To try the real API against a local mail: in mail set `ONBOARD_ORIGIN=http://localhost:8786` in `.dev.vars` and run `pnpm cf:preview --port 8788`; here run `cp .dev.vars.example .dev.vars` and `pnpm cf:preview`, then open `http://localhost:8786`. When mail is not running the API answers `503` with `kind: "unavailable"` and never falls back to production.
 
@@ -380,6 +386,6 @@ pnpm cf:deploy
 ## Other
 
 - Uses native `<dialog>` and `<details>`, with keyboard operation, Esc to close, focus restoration and the reduced motion preference.
-- Contains no analytics scripts or customer data storage; the only cookie is `abnormal_lang`, written when the language is switched by hand (see "Chinese and English") and described in the privacy policy. An address picked in the address check stays in the tab's `sessionStorage` until the mailbox is created or the tab closes, which the privacy policy describes too.
+- Contains no analytics scripts or customer data storage; the only cookie is `abnormal_lang`, written when the language is switched by hand (see "Chinese and English") and described in the privacy policy. An address picked in the address check stays in the tab's `sessionStorage` until the mailbox is created or the tab closes, which the privacy policy describes too. So does the discount code of an order placed with one (with the price before it, for the order page), until the tab closes.
 - Fonts are self-hosted with the site; no third-party font service is requested.
 - The mailbox interface and address card in the hero are a conceptual illustration of the service, not an actual mail client interface.

@@ -4,7 +4,8 @@
  * signed in belong to the account, a sign-in link only claims this browser's orders when this browser asked for it,
  * a password can be set without the current one only within 10 minutes of signing in by link and signs other browsers out,
  * registering mails (logs) a confirmation link that sets the password, the mailbox manager only touches the account's own orders' mailboxes,
- * paying returns to the order page in the form's language, and errors come in the request's language.
+ * paying returns to the order page in the form's language, errors come in the request's language, and a discount code is
+ * priced by the server, refused with one message for every reason, and not published with the order.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { normalizeUsername, passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
@@ -71,6 +72,56 @@ const PRODUCT_TEXT_EN: Record<string, Pick<ShopProduct, "name" | "description">>
     description: "For local development only: renews every 30 days, with a reminder before it expires.",
   },
 };
+/**
+ * Demo discount codes, priced like mail's (packages/core/src/lib/shop/coupon-rules.ts): a percentage off, or a fixed amount
+ * per way of paying; a code with no amount for a way of paying does not work for it, and `products` limits it to those plans.
+ */
+interface MockCoupon {
+  percentOff?: number;
+  /** Fixed amount off an LDC order, in hundredths. */
+  amountOffCents?: number;
+  /** Fixed amount off a card order, in the currency's smallest unit. */
+  fiatAmountOffMinor?: number;
+  products?: readonly string[];
+}
+export const MOCK_COUPONS: Readonly<Record<string, MockCoupon>> = {
+  /** 20% off every plan, either way of paying. */
+  WELCOME: { percentOff: 20 },
+  /** 1.00 LDC off: no card amount, so it cannot be used for a card order. */
+  LDC1: { amountOffCents: 100 },
+  /** Half off the first period of the monthly plan only. */
+  MONTHLY: { percentOff: 50, products: [SUBSCRIPTION_PRODUCT.id] },
+};
+
+/** The price with a code, from the price before it; null when the code cannot be used for this purchase. */
+function couponPrice(
+  product: ShopProduct,
+  provider: "ldc" | "stripe",
+  typed: string,
+): { code: string; baseCents: number; priceCents: number; discountCents: number } | null {
+  const code = typed.trim().toUpperCase();
+  const coupon = Object.hasOwn(MOCK_COUPONS, code) ? MOCK_COUPONS[code] : undefined;
+  const baseCents = provider === "stripe" ? (product.fiatPriceMinor ?? 0) : product.priceCents;
+  if (!coupon || baseCents < 1 || (coupon.products && !coupon.products.includes(product.id))) return null;
+  const off = provider === "stripe" ? coupon.fiatAmountOffMinor : coupon.amountOffCents;
+  // A percentage is rounded half up, like the plan discount.
+  const priceCents = coupon.percentOff
+    ? Math.floor((baseCents * (100 - coupon.percentOff) + 50) / 100)
+    : off
+      ? baseCents - off
+      : baseCents;
+  // A code never makes an order free, and one that takes nothing off does not apply.
+  if (priceCents < 1 || priceCents >= baseCents) return null;
+  return { code, baseCents, priceCents, discountCents: baseCents - priceCents };
+}
+
+/** A request's `coupon` as mail reads it: absent, null or blank is no code, anything that is not a string is a code that cannot be used. */
+function couponFrom(body: Record<string, unknown>): string | null {
+  if (body.coupon === undefined || body.coupon === null) return null;
+  if (typeof body.coupon !== "string") return "?";
+  return body.coupon.trim().slice(0, 64) || null;
+}
+
 /** Token of the demo renewal link; the local subscription id is the purchase order number. */
 const RENEW_TOKEN = /^demo-([a-z0-9]{15})$/;
 const CUSTOMER_COOKIE = "mailhq_customer";
@@ -89,6 +140,8 @@ interface StoredOrder {
   /** Request language at order time; when the payment form carries no lang, payment returns to the order page in this language (same as mail's payment return address). */
   locale: "zh" | "en";
   order: PublicShopOrder["order"];
+  /** The discount code of the order and what it took off. Like mail, kept with the order and not published with it yet. */
+  coupon?: { code: string; discountCents: number };
 }
 
 interface StoredLogin {
@@ -190,10 +243,20 @@ export class MockShopStore {
    * `addressCheck` out and the endpoint answers 404, like a backend with the check switched off or one before it, to see the pages without the check.
    */
   private readonly addressCheck: boolean;
+  /**
+   * Whether the demo backend has discount codes (POST coupon, and `coupon` at checkout). Off, the preview answers 404 and
+   * checkout ignores the field, like a mail before them, to see the shop page hide the field.
+   */
+  private readonly coupons: boolean;
 
-  constructor(now: () => number = Date.now, addressCheck = process.env.MOCK_ADDRESS_CHECK !== "off") {
+  constructor(
+    now: () => number = Date.now,
+    addressCheck = process.env.MOCK_ADDRESS_CHECK !== "off",
+    coupons = process.env.MOCK_COUPONS !== "off",
+  ) {
     this.now = now;
     this.addressCheck = addressCheck;
+    this.coupons = coupons;
   }
 
   async fetch(route: string, request: Request): Promise<Response> {
@@ -213,6 +276,7 @@ export class MockShopStore {
       ![
         "catalog",
         ...(this.addressCheck ? ["address"] : []),
+        ...(this.coupons ? ["coupon"] : []),
         "orders",
         "checkout",
         "pay",
@@ -327,6 +391,30 @@ export class MockShopStore {
       const email = `${username}@${body.domain}`;
       const exists = [...this.mailboxes.values()].some((items) => items.some((item) => item.email === email));
       return json({ available: !TAKEN_USERNAMES.has(username) && !exists, email });
+    }
+    if (route === "coupon") {
+      // The preview of a discount code: one answer for every reason it cannot be used, and nothing is reserved.
+      if (typeof body.productId !== "string" || !ORDER_ID.test(body.productId))
+        return failure(400, say("请选择套餐。", "Choose a plan."));
+      if (body.provider !== undefined && body.provider !== "ldc" && body.provider !== "stripe")
+        return failure(400, say("请选择支付方式。", "Choose a way of paying."));
+      const typed = couponFrom(body);
+      if (!typed) return failure(400, say("请输入优惠码。", "Enter a discount code."));
+      const provider = body.provider === "stripe" ? "stripe" : "ldc";
+      const product = PRODUCTS.find((item) => item.id === body.productId);
+      const quote = product ? couponPrice(product, provider, typed) : null;
+      if (!product || !quote) return json({ valid: false });
+      return json({
+        valid: true,
+        code: quote.code,
+        provider,
+        currency: provider === "stripe" ? "usd" : "",
+        basePriceCents: quote.baseCents,
+        discountCents: quote.discountCents,
+        priceCents: quote.priceCents,
+        // A subscription renews at the price before the code.
+        firstPeriodOnly: Boolean(product.periodDays),
+      });
     }
     if (route === "account/login") {
       if (typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()))
@@ -569,6 +657,12 @@ export class MockShopStore {
       if (route === "checkout" && !product) return failure(409, unavailableProduct);
       if (route === "checkout" && body.provider === "stripe" && !product?.fiatPriceMinor)
         return failure(409, unavailableProduct);
+      // Like mail: a code that cannot be used fails the checkout with one message for every reason, and no order is created.
+      const typed = route === "checkout" && this.coupons ? couponFrom(body) : null;
+      const quote =
+        typed && product ? couponPrice(product, body.provider === "stripe" ? "stripe" : "ldc", typed) : null;
+      if (typed && !quote)
+        return failure(400, say("此优惠码不能用于这笔订单。", "This discount code can't be used for this order."));
       const periods = renewal ? body.periods : 1;
       if (typeof periods !== "number" || !Number.isSafeInteger(periods) || periods < 1 || periods > RENEW_MAX_PERIODS)
         return failure(
@@ -589,6 +683,7 @@ export class MockShopStore {
       }
       const contactEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       this.orders.set(id, {
+        ...(quote ? { coupon: { code: quote.code, discountCents: quote.discountCents } } : {}),
         buyerHash: hash(buyer),
         // mail's order creation records the account email when no contact email was given; renewal orders record only one that was given.
         contactEmail: contactEmail || (route === "checkout" ? (customer ?? "") : ""),
@@ -615,9 +710,11 @@ export class MockShopStore {
           : {
               id,
               productName: product!.name,
-              originalPriceCents: product!.originalPriceCents,
+              // mail does not publish an order's code yet. With a plan discount the three price fields stay as stored, with the
+              // lower price actually paid; without one the original price is published as the price paid (mail's toPublicOrder).
+              originalPriceCents: quote && !product!.discountPercent ? quote.priceCents : product!.originalPriceCents,
               discountPercent: product!.discountPercent,
-              priceCents: product!.priceCents,
+              priceCents: quote ? quote.priceCents : product!.priceCents,
               mailboxCount: product!.mailboxCount,
               quotaMb: product!.quotaMb,
               quotaSupportedByDomain: { ...product!.quotaSupportedByDomain },
@@ -631,8 +728,8 @@ export class MockShopStore {
                 ? {
                     provider: "stripe" as const,
                     currency: "usd",
-                    priceCents: product!.fiatPriceMinor ?? 0,
-                    originalPriceCents: product!.fiatPriceMinor ?? 0,
+                    priceCents: quote ? quote.priceCents : (product!.fiatPriceMinor ?? 0),
+                    originalPriceCents: quote ? quote.priceCents : (product!.fiatPriceMinor ?? 0),
                     discountPercent: 0,
                     // Same as the backend: Stripe subscriptions charge the fiat price from purchase time each period.
                     renewPriceCents: product!.fiatPriceMinor ?? 0,

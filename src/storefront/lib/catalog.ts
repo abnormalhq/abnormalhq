@@ -47,6 +47,12 @@ export interface ShopCatalog {
    * backend before it: the pages then do not show the check at all.
    */
   addressCheck?: true;
+  /**
+   * Whether the shop takes discount codes (POST /api/shop/coupon, "Proposed" in docs/storefront-api.md). mail does not send the
+   * flag yet: absent means unknown, and the shop then offers the field and hides it if the endpoint answers 404. An explicit
+   * `false` hides the field without asking.
+   */
+  coupons?: boolean;
 }
 
 export const shopApiRoot = `${apiBase}/api/shop`;
@@ -117,7 +123,12 @@ export function compact<T extends object>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
 }
 
-export function validPrice(value: Fields): boolean {
+/**
+ * The three price fields agree: without a plan discount the original price is the price paid. `couponDiscountCents` is what a
+ * discount code took off an order (0 for a plan, and for an order without one): an order without a plan discount may then
+ * also carry the price before the code as its original price.
+ */
+export function validPrice(value: Fields, couponDiscountCents = 0): boolean {
   const { originalPriceCents, discountPercent, priceCents } = value;
   return (
     isCount(originalPriceCents) &&
@@ -127,17 +138,19 @@ export function validPrice(value: Fields): boolean {
     originalPriceCents >= priceCents &&
     isCount(discountPercent) &&
     discountPercent <= 99 &&
-    (discountPercent > 0 || originalPriceCents === priceCents)
+    (discountPercent > 0 ||
+      originalPriceCents === priceCents ||
+      (couponDiscountCents > 0 && originalPriceCents === priceCents + couponDiscountCents))
   );
 }
 
 export type Entitlements = Omit<ShopProduct, "id" | "name" | "description">;
 
 /** Price and entitlement fields shared by plans and orders. */
-export function parseEntitlements(value: Fields): Entitlements | null {
+export function parseEntitlements(value: Fields, couponDiscountCents = 0): Entitlements | null {
   const { quotaSupportedByDomain } = value;
   if (
-    !validPrice(value) ||
+    !validPrice(value, couponDiscountCents) ||
     !isCount(value.mailboxCount) ||
     !isCount(value.quotaMb) ||
     !isCount(value.codeExpiresDays) ||
@@ -229,6 +242,7 @@ export function parseShopCatalog(body: unknown): ShopCatalog {
       ? { turnstileSiteKey: body.turnstileSiteKey.trim() }
       : {}),
     ...(body.addressCheck === true ? { addressCheck: true } : {}),
+    ...(isBoolean(body.coupons) ? { coupons: body.coupons } : {}),
   };
 }
 

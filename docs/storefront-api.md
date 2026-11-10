@@ -185,7 +185,8 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, onboardUrl }`                                |
 | POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")              |
-| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider? }`                                                   | `201`, `{ orderId }`, and sets the buyer cookie                                      |
+| POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon }`                                                   | `200`, `{ valid: true, … }` or `{ valid: false }` (see "Discount codes")             |
+| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon? }`                                          | `201`, `{ orderId }`, and sets the buyer cookie                                      |
 | GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                       |
 | POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page        |
 | POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`            |
@@ -215,7 +216,7 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 
 Failure statuses: except for `pay` (always `303`, see below), every shop POST may return `403` (`Origin` is not the storefront address in the sales settings; the Worker rejects cross-site origins first),
 `415` (wrong body type), `413` (body over 4 KiB), `400` (invalid body or field), `429` (rate limited, with `Retry-After`) and `503` (backend temporarily unavailable).
-Per endpoint, additionally: `checkout` has `409` (product withdrawn, domain no longer managed or no card price) and `503` (sales paused or this payment method not enabled);
+Per endpoint, additionally: `checkout` has `409` (product withdrawn, domain no longer managed or no card price), `400` (a discount code that cannot be used) and `503` (sales paused or this payment method not enabled);
 `orders` and `reconcile` have `404` (order does not exist or credential does not match); `renewal` has `404` (token invalid or expired); `renew` has `404` (token),
 `409` (Stripe subscriptions cannot be renewed manually) and `400` (wrong number of periods or total over the per-payment limit); `account` has `401` (not logged in);
 `account/peek` and `account/verify` have `400` (link invalid, expired or already used); `account/login` has `403` (human verification on and token missing, invalid or already used)
@@ -390,6 +391,66 @@ one of those forms.
 `pnpm dev` implements all of this in the mock (`src/storefront/mock/shop.ts`); start it with `MOCK_ADDRESS_CHECK=off pnpm dev` to see
 the pages against a backend with the check switched off.
 
+### Discount codes
+
+Besides a plan's own discount percentage, mail has discount codes that a buyer types in (mail's `docs/shop.md`, "Discount codes":
+a percentage or a fixed amount per way of paying, optionally limited to plans, an expiry, a total number of uses and uses per
+buyer). mail implements all of the endpoints below. The shop page uses the preview and `coupon` at checkout; what is still open
+between the two repositories is under "Proposed" at the end of this document.
+
+- **Preview**: `POST /api/shop/coupon`, JSON `{ productId, provider?, coupon }` with the storefront's `Origin`; `provider` as at
+  checkout (`ldc` by default). It answers `200` with
+  `{ valid: true, code, provider, currency, basePriceCents, discountCents, priceCents, firstPeriodOnly }` (amounts in hundredths
+  of an LDC, or in the smallest unit of `currency` for `stripe`, where `currency` is `""` for LDC; `basePriceCents` is the price
+  before the code: the plan's discounted LDC price or its card price; `firstPeriodOnly` is true for a subscription plan), or with
+  `{ valid: false }`. The second answer is the same whatever the reason (unknown, disabled, expired, used up, another plan,
+  another way of paying, a plan that is not on sale), so there is no reason to show and the page shows one sentence. It reserves
+  nothing, and checkout has the final say. `400` is a malformed request (no plan id, an unknown provider, no code), `403` a wrong
+  origin, `429` with `Retry-After` the rate limit. The client (`previewCoupon` in `src/storefront/lib/shop.ts`) treats an answer
+  whose three amounts do not agree, or that is for another way of paying than asked, as a failed request.
+- **The Worker** proxies it like `checkout`: same-origin `Origin`, JSON, the client IP kept, and the `mailhq_shop` and
+  `mailhq_customer` cookies forwarded, so that a per-buyer limit is known to the preview. Nothing is set in the answer. A mail before
+  discount codes answers its own `404` page; the Worker turns that into a JSON `404` (as for the address check), and the shop page
+  then hides the field.
+- **Pricing**: the code is applied after the plan's discount, to the plan's discounted LDC price or to its card price; a percentage
+  is rounded half up, and a code never makes an order free. For a subscription it lowers the first period only: the order's
+  `renewPriceCents` is the price before the code, and LDC renewal orders and Stripe's automatic renewals are at the full price.
+- **Checkout**: optional `coupon` (a string; absent, `null` or blank means none). mail prices the order; a code that cannot be used
+  fails the checkout with `400` and one message for every reason, and no order is created, so a buyer is never silently charged
+  the full price. The redemption is taken when the order is created and only _held_ while it is unpaid (30 minutes, 25 hours once
+  the payment was opened); when the hold lapsed and the code can no longer be taken, `pay/stripe` answers `409` and the pay form
+  returns to the order page with `&error=payment`, and the buyer places a new order.
+- **Rate limit**: code guesses are limited to 10 per 10 minutes per source IP across the preview, `checkout` (when it carries a
+  code) and the pay endpoints, on top of each endpoint's own limit. This is why the shop page does not preview as the buyer types.
+- **`pay` and `pay/stripe`** also take an optional `coupon` (form field or JSON) that adds a code to an unpaid purchase order
+  without one, before its first payment page is opened. The storefront does not send it: the order page has no code field.
+
+What the shop page does (`src/storefront/components/Shop.tsx`):
+
+- "I have a discount code" opens a field above the plans. "Apply" (or Enter) previews the code for the plans on the page, once per
+  way of paying a plan offers, the plan the visitor arrived for (`?plan=`) first, and at most 4 requests per press
+  (`COUPON_PREVIEWS`), because every preview is a guess against the limit above. A plan shows "With CODE: price" per way of paying,
+  that the code applies to the first period only for a subscription, or that the code cannot be used for it; plans past the 4
+  requests say the code is checked when ordering. When no plan can use it the field shows one sentence, "This code can't be used."
+- Whatever is in the field goes with `checkout`, for Linux DO Credit and card alike, whether or not it was previewed. So a typed
+  code is applied or the checkout is refused with mail's message (the form stays as it is); to buy without it the buyer removes it.
+- There is no catalog flag for discount codes yet, so the field is always offered and goes away when the preview answers `404`.
+  The page already honours an explicit `coupons: false` in the catalog (see "Proposed").
+- **The order page** shows the code and what it took off under the price: "Discount code WELCOME, −1.00 LDC" and the price before
+  the code struck through, plus the first-period note for a subscription. mail does not publish the code with the order yet, and
+  publishes an order with a code but no plan discount with `originalPriceCents` equal to `priceCents` (with a plan discount the
+  stored original price and percentage stay, next to the lower price actually paid), so the fields alone show no discount.
+  The shop page therefore remembers, for each order it creates with a code, the code and the price before it (the plan's
+  `priceCents`, or `fiatPriceMinor` for a card order) in the tab's `sessionStorage` (`abnormal-coupon`, the last 5 orders;
+  `src/storefront/lib/coupon.ts`), since paying leaves the site and comes back. The order page takes the difference between that
+  price and the order's `priceCents` as the discount, and only when the order really is cheaper. Opened in another browser, a
+  new tab or from the account page, the order shows its price without the breakdown. The remembered values are only shown; they
+  are never sent to mail and play no part in billing.
+
+`pnpm dev` implements the preview and `coupon` at checkout in the mock, with three codes: `WELCOME` (20% off every plan, either
+way of paying), `LDC1` (1.00 LDC off, so not for card orders) and `MONTHLY` (half off the monthly plan's first period only).
+`MOCK_COUPONS=off pnpm dev` behaves like a mail before discount codes: the preview answers `404` and checkout ignores the field.
+
 ### Cookies, origin and caching
 
 - The purchase credential is `mailhq_shop` (64 lowercase hex characters), set only by the server via an HttpOnly, SameSite=Lax cookie; over HTTPS it is also Secure, the path is `/`,
@@ -425,6 +486,29 @@ The buyer's purchase, payment return, order lookup, renewal, account and code co
 Local integration uses the dual-Worker setup described above, with the storefront address in the local mail sales settings changed to this site's preview origin (`http://localhost:8786`).
 The shop origin setting and the redeem API's `ONBOARD_ORIGIN` are two independent settings; check both when changing ports. Never put production merchant credentials into browser-side code or the mock API.
 The shop mock API of `pnpm dev` (`src/storefront/mock/shop.ts`) answers by the same rules, and login links are printed in the dev server's terminal.
+
+## Proposed
+
+Nothing under this heading is agreed in data form yet: none of it is in `docs/onboard-contract.json`, which must stay byte for byte
+equal to mail's copy, and mail's `docs/shop.md` lists the same points under "Proposed: storefront contract". The endpoints
+themselves exist in mail and the storefront already uses them (see "Discount codes" above); `tests/storefront/coupon.test.ts`
+fails once the contract file takes the route, as a reminder to delete this section.
+
+- **Route**: add `"coupon": "POST"` to `shop.routes` in both copies of the contract file. The Worker already proxies it (`COUPON_ROUTE`
+  in `src/storefront/worker/shop.ts`); the contract tests on both sides would then cover it like every other route.
+- **Order fields**: add `couponCode` (string, `""` without a code) and `couponDiscountCents` (number, 0 without one, in the unit of
+  `priceCents`) to `publicOrderFields`, and publish the stored `originalPriceCents` for every order. The storefront's parser
+  already accepts both fields when present, and its price check already allows `originalPriceCents === priceCents +
+couponDiscountCents` for an order without a plan discount, so mail can start publishing them without waiting for a storefront
+  release; the order page then uses them instead of what the browser remembered, and the breakdown also shows in other browsers
+  and after sign-in. Until then mail keeps publishing `originalPriceCents` equal to `priceCents` for such orders.
+- **Catalog flag**: `coupons` in `GET /api/shop/catalog`. mail's proposal is `coupons: true` while at least one code is usable,
+  absent otherwise. A flag that is always present would be cleaner for the storefront: `coupons: true | false` on every backend
+  with discount codes, where `false` hides the field without a request, `true` shows it, and only an absent flag (an old backend)
+  falls back to today's "offer the field, hide it on `404`". The storefront reads the flag that way already.
+- **A code on the order page**: a field on an unpaid purchase order without a code, sent as `coupon` with the pay form or
+  `pay/stripe` (it only works before the first press on "Pay"). Not built: the Worker's pay form handling and the order page would
+  both need it, and the shop page covers the common case.
 
 ## Self-hosted mail server and quotas
 

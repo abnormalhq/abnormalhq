@@ -11,7 +11,7 @@ import {
 } from "./proxy";
 
 const SHOP_PATH =
-  /^\/api\/shop\/(catalog|address|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?))?)\/?$/;
+  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?))?)\/?$/;
 const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes"];
 /**
  * The address check before buying (POST address: is this username free on this domain?), in docs/storefront-api.md and
@@ -20,6 +20,15 @@ const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes
  * the pages take as "no address check" and hide it.
  */
 export const ADDRESS_ROUTE = "address";
+/**
+ * The preview of a discount code (POST coupon: what would this plan cost with this code?). mail implements it, but the
+ * storefront side of discount codes is still "Proposed" in docs/storefront-api.md and mail's docs/shop.md, so the route is not
+ * in docs/onboard-contract.json yet (both copies must stay equal, and mail's has not taken it). It is proxied like checkout:
+ * same-origin Origin, the client IP kept, and the purchase and account cookies forwarded, so that a per-buyer limit is known
+ * to the preview. A mail before discount codes answers its own 404 page, which is passed on as a JSON 404: the shop page
+ * takes that as "no discount codes" and hides the field.
+ */
+export const COUPON_ROUTE = "coupon";
 // The cookie names, shapes and lifetimes are mail's (src/lib/shop/session.ts, customers.ts); tests/worker.test.ts checks
 // them against docs/onboard-contract.json.
 export const BUYER_COOKIE = "mailhq_shop";
@@ -275,8 +284,8 @@ async function forward(
       }
       return new Response(null, { status: 303, headers: { ...SHOP_HEADERS, Location: allowed } });
     }
-    if (route === ADDRESS_ROUTE && upstream.status === 404) {
-      // The check is switched off (mail's JSON 404), or mail is from before it (its 404 page): say so in JSON rather than "unavailable", so the pages hide the check.
+    if ((route === ADDRESS_ROUTE || route === COUPON_ROUTE) && upstream.status === 404) {
+      // The check is switched off (mail's JSON 404), or mail is from before it (its 404 page): say so in JSON rather than "unavailable", so the pages hide the check. The same for the discount code preview of a mail before discount codes.
       await upstream.body?.cancel();
       return failure(404, localizer(request)("接口不存在。", "Endpoint not found."));
     }
