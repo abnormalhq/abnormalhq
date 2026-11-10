@@ -165,7 +165,7 @@ export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string
   const p = t.pricing;
   const links = absoluteLinks(lang);
   const plans = catalog ? planViews(catalog, lang, p, linksFor(lang).shop) : [];
-  const cell = (text: string) => text.replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ");
+  const cell = (text: string) => text.replace(/[\\|]/g, "\\$&").replace(/\s*\n\s*/g, " ");
   return `${paragraphs([
     `# ${p.title}`,
     p.pageIntro,

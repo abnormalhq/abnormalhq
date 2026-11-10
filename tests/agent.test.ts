@@ -336,3 +336,14 @@ test("negotiated responses add Accept to Vary and keep everything else", async (
 
   assert.equal(varyOnAccept(new Response(null)).headers.get("vary"), "Accept");
 });
+
+test("pricing Markdown escapes backslashes and pipes in table cells, so a plan name cannot break out of its cell", () => {
+  const first = catalog.products[0]!;
+  const markdown = pricingMarkdown("en", {
+    ...catalog,
+    products: [{ ...first, name: "Solo\\|Duo" }, ...catalog.products.slice(1)],
+  });
+  const header = markdown.split("\n").find((line) => line.startsWith("|") && line.includes("Solo"));
+  assert.ok(header, "the comparison table names the plan");
+  assert.ok(header.includes("Solo\\\\\\|Duo"), header);
+});
