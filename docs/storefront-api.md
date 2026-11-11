@@ -487,7 +487,8 @@ alike; absent or `0` when the plan has none) says how many domains of their own 
 - A period renews at `seats × (renewPriceCents || priceCents)` (LDC) or `seats × fiatPriceMinor` (card).
 - There is no quote endpoint for a purchase without a discount code, so the shop page computes the total with exactly this rule
   (`seatOrderPrice` and `seatCardPrice` in `catalog.ts`) and marks it as an estimate confirmed at checkout. The order page then
-  shows what mail charged.
+  shows what mail charged. The limit on what one order can charge is applied per way of paying (`seatTotals`): a quantity
+  whose LDC total is above it can still be bought by card and the other way round, so only that way's button is disabled.
 
 **Checkout and the code preview.** `POST /api/shop/checkout` takes `quantity` (a JSON number) for a seat plan: `400` when it is
 missing, `null`, not a whole number or outside `seatMin`…`seatMax`, or when the total is above what one order can charge
@@ -642,7 +643,10 @@ defines none), live, or suspended by the provider. The page never writes DNS and
 once as the page opens (the list carries no records), then again after 20, 30, 45, 60, 60 and 60 seconds, and then stops with a
 "Check again" button, which starts the rounds over. No check runs while the tab is hidden (`document.hidden`); coming back
 starts the wait again. A failed or rate-limited check ends the automatic rounds. Polling ends for good when the domain is live
-with every required record in place, and never runs for a reservation or a suspended domain.
+with every required record in place, and never runs for a reservation or a suspended domain. That schedule is one
+domain's, while mail's limit on `check` is per account: the cards of the page therefore share one budget (`domainCheckBudget`,
+24 checks in any 10 minutes, below mail's 30), so that several waiting domains do not run into the limit together. When it is
+used up a card stops its rounds as it does after the sixth; "Check again" is never held back by the page, but counts.
 
 **Where mail's code differs from its `docs/shop.md`** (the storefront follows the code):
 

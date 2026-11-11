@@ -5,8 +5,11 @@ import {
   checkAccountDomain,
   DNS_RECORD_PURPOSES,
   DNS_RECORD_STATUSES,
+  DOMAIN_CHECK_BUDGET,
+  DOMAIN_CHECK_WINDOW_SECONDS,
   DOMAIN_POLL_SECONDS,
   DOMAIN_STATUSES,
+  domainCheckBudget,
   domainPollDelay,
   domainSettled,
   getAccountDomains,
@@ -238,6 +241,66 @@ test("domains: polling backs off, stays within mail's limits and stops by itself
   expect(panel).toMatch(/document\.hidden/);
   expect(panel).toMatch(/visibilitychange/);
   expect(panel).not.toMatch(/console\.|localStorage|sessionStorage|setInterval/);
+});
+
+/**
+ * The checks of `count` domain cards on one page, each following its own schedule (one check as the page opens, then the
+ * backed-off rounds) and all drawing from one budget, like DomainCard does: the times, in seconds, of the checks that were made.
+ */
+function pollTogether(count: number, budget = domainCheckBudget()): number[] {
+  const made: number[] = [];
+  const cards = Array.from({ length: count }, () => ({ at: 0, done: 0, stopped: false }));
+  for (;;) {
+    const next = cards.filter((card) => !card.stopped).sort((a, b) => a.at - b.at)[0];
+    if (!next) return made;
+    if (!budget.take(next.at * 1000, true)) {
+      next.stopped = true;
+      continue;
+    }
+    made.push(next.at);
+    const delay = domainPollDelay(next.done);
+    if (delay === null) next.stopped = true;
+    else {
+      next.at += delay;
+      next.done += 1;
+    }
+  }
+}
+
+test("domains: the cards of one page share the account's check limit, however many domains are waiting", () => {
+  const MAIL_LIMIT = 30;
+  const rounds = 1 + DOMAIN_POLL_SECONDS.length;
+  expect(DOMAIN_CHECK_BUDGET).toBeLessThan(MAIL_LIMIT);
+  expect(DOMAIN_CHECK_WINDOW_SECONDS).toBe(600);
+  // Five domains in review, each on its own allowance, would make 35 checks in under five minutes: over mail's 30 per 10 minutes.
+  expect(pollTogether(5, domainCheckBudget(Number.POSITIVE_INFINITY))).toHaveLength(5 * rounds);
+  expect(5 * rounds).toBeGreaterThan(MAIL_LIMIT);
+  // On the shared budget the page stays under the limit for any number of domains (a plan allows up to 20).
+  for (const count of [1, 2, 3, 5, 8, 20]) {
+    const made = pollTogether(count);
+    expect(made.length, String(count)).toBe(Math.min(count * rounds, DOMAIN_CHECK_BUDGET));
+    for (const start of made) {
+      const inWindow = made.filter((at) => at >= start && at < start + DOMAIN_CHECK_WINDOW_SECONDS);
+      expect(inWindow.length, String(count)).toBeLessThanOrEqual(DOMAIN_CHECK_BUDGET);
+    }
+  }
+  // Every one of five domains still gets its check as the page opens and several rounds; a few domains keep the whole schedule.
+  expect(pollTogether(5).filter((at) => at === 0)).toHaveLength(5);
+  expect(pollTogether(3)).toHaveLength(3 * rounds);
+
+  // "Check again" is the buyer's: never refused by the page (mail decides), but counted, and the window slides.
+  const budget = domainCheckBudget(2, 600);
+  expect([budget.take(0, true), budget.take(1000, true), budget.take(2000, true)]).toStrictEqual([true, true, false]);
+  expect(budget.take(3000, false)).toBe(true);
+  expect(budget.take(600_000, true)).toBe(false);
+  expect(budget.take(603_000, true)).toBe(true);
+
+  // One budget per panel, handed to every card, and every check a card makes goes through it.
+  const panel = readFileSync("src/storefront/components/ShopDomains.tsx", "utf8");
+  expect(panel.match(/useState\(domainCheckBudget\)/g)).toHaveLength(1);
+  expect(panel).toMatch(/<DomainCard[^>]*budget=\{budget\}/s);
+  expect(panel).toMatch(/if \(!budget\.take\(Date\.now\(\), timed\)\) \{\s*setAuto\(false\);/);
+  expect(panel.match(/checkAccountDomain\(/g)).toHaveLength(1);
 });
 
 test("domains: every status, phase, record status and purpose mail names has wording in both languages", () => {

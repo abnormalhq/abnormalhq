@@ -257,7 +257,8 @@ export function recordHost(name: string, domain: string): string {
  * Polling `check` after ownership is verified. mail allows 30 checks per 10 minutes per account (each one queries public DNS)
  * and asks for no more than one every 20 seconds, so the page backs off: 20 s, 30 s, 45 s, then every minute, and stops by
  * itself after six rounds (about four and a half minutes), leaving a "Check again" button; DNS changes can take hours, and the
- * provider's review is a person's decision. Seconds until the automatic check after `done` of them; null when there is none.
+ * provider's review is a person's decision. That is one domain's schedule; the account's limit is kept by the budget below,
+ * which all the cards of a page share. Seconds until the automatic check after `done` of them; null when there is none.
  */
 export const DOMAIN_POLL_SECONDS: readonly number[] = [20, 30, 45, 60, 60, 60];
 
@@ -265,6 +266,38 @@ export function domainPollDelay(done: number): number | null {
   return Number.isSafeInteger(done) && done >= 0 && done < DOMAIN_POLL_SECONDS.length
     ? DOMAIN_POLL_SECONDS[done]!
     : null;
+}
+
+/**
+ * mail's limit on `check` is per account, not per domain, and every domain card on the page polls by itself: five domains in
+ * review would make 35 checks in under five minutes (one as the page opens and six rounds each) and run into the limit of 30
+ * per 10 minutes, which ends the automatic checks with an error. So the cards of one page draw from one budget: at most
+ * DOMAIN_CHECK_BUDGET checks in any 10 minutes, a few below mail's 30 to leave room for "Check again" and another tab.
+ */
+export const DOMAIN_CHECK_BUDGET = 24;
+export const DOMAIN_CHECK_WINDOW_SECONDS = 600;
+
+export interface DomainCheckBudget {
+  /**
+   * Called before a check, with the time in milliseconds. An automatic check is refused (false) while the window is full,
+   * and the card then stops its rounds. A check the buyer asked for is never refused here (mail decides), but it is counted.
+   */
+  take(now: number, automatic: boolean): boolean;
+}
+
+export function domainCheckBudget(
+  limit: number = DOMAIN_CHECK_BUDGET,
+  windowSeconds: number = DOMAIN_CHECK_WINDOW_SECONDS,
+): DomainCheckBudget {
+  let taken: number[] = [];
+  return {
+    take(now, automatic) {
+      taken = taken.filter((at) => now - at < windowSeconds * 1000);
+      if (automatic && taken.length >= limit) return false;
+      taken.push(now);
+      return true;
+    },
+  };
 }
 
 /**

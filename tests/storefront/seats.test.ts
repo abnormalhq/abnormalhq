@@ -14,6 +14,7 @@ import {
   quoteSeats,
   removeSeats,
   seatOrderPrice,
+  seatTotals,
   ShopApiError,
 } from "@/storefront/lib/shop";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
@@ -178,6 +179,43 @@ test("quantity: typed values are kept inside the plan's range", () => {
 });
 
 /* ---- Checkout and the code preview ---- */
+
+test("quantity: each way of paying has its own limit, so one that can take the quantity stays open", () => {
+  const both = { ldc: true, card: true };
+  // 1,500.00 LDC a seat is above one order's 1,000,000.00 at 700 seats; 19.99 by card is far below it.
+  const dear = { originalPriceCents: 150_000, discountPercent: 0, fiatPriceMinor: 1999 };
+  expect(seatTotals(dear, 700, both)).toStrictEqual({
+    ldc: null,
+    card: 1_399_300,
+    ldcTooMany: true,
+    cardTooMany: false,
+    tooMany: false,
+  });
+  // The other way round: a card price in a currency with small units passes the limit while the LDC total does not.
+  const smallUnits = { originalPriceCents: 333, discountPercent: 10, fiatPriceMinor: 250_000 };
+  expect(seatTotals(smallUnits, 500, both)).toStrictEqual({
+    ldc: { originalPriceCents: 166_500, priceCents: 149_850 },
+    card: null,
+    ldcTooMany: false,
+    cardTooMany: true,
+    tooMany: false,
+  });
+  // Only when no way on offer can take it is the whole quantity refused; a way that is not offered is never "too many".
+  expect(seatTotals({ ...dear, fiatPriceMinor: 250_000 }, 700, both).tooMany).toBe(true);
+  expect(seatTotals(dear, 700, { ldc: true, card: false })).toMatchObject({ cardTooMany: false, tooMany: true });
+  expect(seatTotals(dear, 700, { ldc: false, card: true })).toMatchObject({ ldcTooMany: false, tooMany: false });
+  expect(seatTotals(dear, 2, both)).toMatchObject({ ldcTooMany: false, cardTooMany: false, tooMany: false });
+
+  // The page closes each button by its own way of paying, and says which one in both languages.
+  const source = readFileSync("src/storefront/components/Shop.tsx", "utf8");
+  expect(source).toMatch(/disabled=\{buying !== null \|\| Boolean\(totals\?\.ldcTooMany\)\}/);
+  expect(source).toMatch(/disabled=\{buying !== null \|\| Boolean\(totals\?\.cardTooMany\)\}/);
+  for (const lang of ["en", "zh"] as const) {
+    const t = shopCopy[lang];
+    expect(new Set([t.seatTooMany, t.seatTooManyLdc, t.seatTooManyCard]).size).toBe(3);
+    expect(t.seatTooManyLdc).toContain("LDC");
+  }
+});
 
 test("checkout and the code preview send the quantity of a seat plan, and nothing new for a fixed plan", async () => {
   let calls = respond({ orderId: "abcdefghijklmno" }, 201);

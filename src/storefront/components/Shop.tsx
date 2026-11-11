@@ -15,6 +15,7 @@ import {
   previewCoupon,
   seatCardPrice,
   seatOrderPrice,
+  seatTotals,
   ShopApiError,
   type CouponQuote,
   type ShopCatalog,
@@ -387,11 +388,13 @@ export function Shop({ lang }: { lang: Lang }) {
               const seatPlan = isSeatProduct(product) ? product : null;
               const seats = seatsOf(product);
               const days = product.periodDays ?? 0;
-              // The order's total by mail's rule (the discount on the whole order, rounded once), and by card; null above what one order can charge.
-              const seatLdc = seatPlan && catalog.payment.ldc ? seatOrderPrice(product, seats) : null;
-              const seatCard = seatPlan && stripeCurrency && cardPrice ? seatCardPrice(product, seats) : null;
-              const tooMany =
-                Boolean(seatPlan) && ((catalog.payment.ldc && !seatLdc) || (Boolean(cardPrice) && !seatCard));
+              // The order's total by mail's rule (the discount on the whole order, rounded once), and by card. Each way of paying
+              // has its own limit on what one order can charge: a quantity too many for one is still sold by the other.
+              const totals = seatPlan
+                ? seatTotals(product, seats, { ldc: catalog.payment.ldc, card: Boolean(cardPrice) })
+                : null;
+              const seatLdc = totals?.ldc ?? null;
+              const seatCard = totals?.card ?? null;
               // The applied code on this plan, per way of paying the card offers: a quote, null (cannot be used) or undefined (not asked).
               const ldcQuote = catalog.payment.ldc ? applied?.quotes[`${product.id}:ldc:${seats}`] : undefined;
               const cardQuote = cardPrice ? applied?.quotes[`${product.id}:stripe:${seats}`] : undefined;
@@ -491,7 +494,7 @@ export function Shop({ lang }: { lang: Lang }) {
                           {/* Read out when the quantity changes: the total is what the buyer is deciding on. */}
                           <div className="text-sm/[1.7]" role="status">
                             <p className="text-xs/body text-muted-foreground">{t.seatTotal}</p>
-                            {tooMany ? (
+                            {totals?.tooMany ? (
                               <p className="text-destructive">{t.seatTooMany}</p>
                             ) : (
                               <>
@@ -511,6 +514,9 @@ export function Shop({ lang }: { lang: Lang }) {
                                     {t.seatTotalCard(formatMoney(seatCard, stripeCurrency, lang), days)}
                                   </p>
                                 )}
+                                {/* Only the way of paying that cannot take this quantity is closed, and says why. */}
+                                {totals?.ldcTooMany && <p className="text-destructive">{t.seatTooManyLdc}</p>}
+                                {totals?.cardTooMany && <p className="text-destructive">{t.seatTooManyCard}</p>}
                               </>
                             )}
                           </div>
@@ -553,7 +559,7 @@ export function Shop({ lang }: { lang: Lang }) {
                       {catalog.payment.ldc && (
                         <ShopButton
                           type="button"
-                          disabled={buying !== null || tooMany}
+                          disabled={buying !== null || Boolean(totals?.ldcTooMany)}
                           onClick={() => void checkout(product.id)}
                           aria-label={`${t.buy} · ${product.name}`}
                         >
@@ -565,7 +571,7 @@ export function Shop({ lang }: { lang: Lang }) {
                         <ShopButton
                           variant={catalog.payment.ldc ? "outline" : "default"}
                           type="button"
-                          disabled={buying !== null || tooMany}
+                          disabled={buying !== null || Boolean(totals?.cardTooMany)}
                           onClick={() => void checkout(product.id, "stripe")}
                           aria-label={`${t.payCard} · ${product.name}`}
                         >

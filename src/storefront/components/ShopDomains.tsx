@@ -7,6 +7,7 @@ import type { Lang } from "@/storefront/i18n";
 import {
   addAccountDomain,
   checkAccountDomain,
+  domainCheckBudget,
   domainPollDelay,
   domainSettled,
   getAccountDomains,
@@ -17,6 +18,7 @@ import {
   verifyAccountDomain,
   type AccountDomain,
   type AccountDomains,
+  type DomainCheckBudget,
   type DomainCheck,
   type DomainRecord,
 } from "@/storefront/lib/domains";
@@ -63,6 +65,8 @@ export function ShopDomains({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  // mail limits checks per account, so the cards do not each poll on their own allowance: they share this one.
+  const [budget] = useState(domainCheckBudget);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -144,6 +148,7 @@ export function ShopDomains({
               key={domain.id}
               lang={lang}
               domain={domain}
+              budget={budget}
               onUpdate={update}
               onLive={onLive}
               onRemoved={() => {
@@ -247,12 +252,15 @@ function CopyField({
 function DomainCard({
   lang,
   domain,
+  budget,
   onUpdate,
   onRemoved,
   onLive,
 }: {
   lang: Lang;
   domain: AccountDomain;
+  /** The page's allowance of checks, shared by all its cards (domainCheckBudget). */
+  budget: DomainCheckBudget;
   onUpdate: (domain: AccountDomain) => void;
   onRemoved: () => void;
   onLive: () => void;
@@ -286,8 +294,14 @@ function DomainCard({
     status.current = result.domain.status;
   }
 
-  async function runCheck(automatic: boolean) {
+  /** `timed`: started by the page (the check as it opens, or a round), not by the buyer; `automatic`: a round. */
+  async function runCheck(automatic: boolean, timed = automatic) {
     if (busy) return;
+    // The account's limit is shared by every card: a check the page starts by itself waits for "Check again" once it is used up.
+    if (!budget.take(Date.now(), timed)) {
+      setAuto(false);
+      return;
+    }
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
@@ -329,7 +343,7 @@ function DomainCard({
     // Politely: never while the tab is hidden. Coming back to the tab starts the wait again.
     const arm = () => {
       window.clearTimeout(timer);
-      if (!document.hidden) timer = window.setTimeout(() => void latestCheck.current(!first), delay * 1000);
+      if (!document.hidden) timer = window.setTimeout(() => void latestCheck.current(!first, true), delay * 1000);
     };
     arm();
     document.addEventListener("visibilitychange", arm);
@@ -362,7 +376,6 @@ function DomainCard({
     domain.status === "live" && check && !check.ready
       ? t.domainStatusNotes.liveNotReady
       : t.domainStatusNotes[domain.status];
-  const polling = delay !== null && !first;
 
   return (
     <section className={shopAccountItemClass} aria-labelledby={`${id}-name`}>
@@ -493,7 +506,7 @@ function DomainCard({
               </ShopActions>
               {domain.status !== "suspended" && (
                 <p className="mt-3 text-xs/[1.6] text-muted-foreground">
-                  {polling || busy === "check" || first ? t.domainPolling : t.domainPollingStopped}
+                  {delay !== null || busy === "check" ? t.domainPolling : t.domainPollingStopped}
                 </p>
               )}
             </>

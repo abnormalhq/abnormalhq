@@ -33,6 +33,7 @@ export {
   parseShopCatalog,
   seatCardPrice,
   seatOrderPrice,
+  seatTotals,
   ShopApiError,
   shopApiRoot,
   type AddressAvailability,

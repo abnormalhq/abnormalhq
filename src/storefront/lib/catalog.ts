@@ -249,6 +249,30 @@ export function seatCardPrice(product: Pick<ShopProduct, "fiatPriceMinor">, quan
   return Number.isSafeInteger(quantity) && quantity >= 1 && total >= 1 && total <= SHOP_PRICE_MAX_CENTS ? total : null;
 }
 
+/**
+ * What `quantity` seats cost by each way of paying the shop offers, each judged on its own: mail refuses an order above what one
+ * order can charge per way of paying (the LDC total and the card total are different amounts in different units), so a quantity
+ * that is too many for one can still be bought with the other. `ldcTooMany` / `cardTooMany` are true only for a way that is
+ * offered and cannot take the quantity; `tooMany` when no offered way can.
+ */
+export function seatTotals(
+  product: Pick<ShopProduct, "originalPriceCents" | "discountPercent" | "fiatPriceMinor">,
+  quantity: number,
+  offered: { ldc: boolean; card: boolean },
+): {
+  ldc: { originalPriceCents: number; priceCents: number } | null;
+  card: number | null;
+  ldcTooMany: boolean;
+  cardTooMany: boolean;
+  tooMany: boolean;
+} {
+  const ldc = offered.ldc ? seatOrderPrice(product, quantity) : null;
+  const card = offered.card ? seatCardPrice(product, quantity) : null;
+  const ldcTooMany = offered.ldc && !ldc;
+  const cardTooMany = offered.card && !card;
+  return { ldc, card, ldcTooMany, cardTooMany, tooMany: !ldc && !card };
+}
+
 /** A quantity typed or stepped to, kept inside the plan's range; anything that is no whole number becomes the minimum. */
 export function clampSeats(value: number, plan: Pick<SeatProduct, "seatMin" | "seatMax">): number {
   if (!Number.isFinite(value)) return plan.seatMin;
