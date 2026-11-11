@@ -9,7 +9,6 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import {
   createRenewalOrder,
-  clampSeats,
   formatCredits,
   formatMoney,
   type ShopPaymentProvider,
@@ -45,6 +44,7 @@ import {
 } from "./ShopParts";
 import { COUPON_MAX_LENGTH, normalizeCoupon } from "@/storefront/lib/coupon";
 import { paidPeriodLimit, trialCopy } from "@/storefront/lib/trial";
+import { ShopSeatStepper } from "./ShopSeatStepper";
 import { ShopSession } from "./ShopSession";
 
 export function ShopRenew({ lang }: { lang: Lang }) {
@@ -249,16 +249,18 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                       <>
                         <p className={shopTextClass}>{trial.planSummary(selected.quotaMb, selected.customDomains)}</p>
                         <ShopField htmlFor="shop-upgrade-seats" label={trial.seats}>
-                          <Input
+                          {/* The stepper keeps what is typed until the field loses focus: bringing each keystroke into the range turned
+                              "15" into "25" when the plan starts at two mailboxes. A change of plan starts the field again. */}
+                          <ShopSeatStepper
+                            key={selected.id}
                             id="shop-upgrade-seats"
-                            type="number"
+                            value={quantity}
                             min={selected.seatMin}
                             max={selected.seatMax}
-                            step={1}
-                            className={cn(shopInputClass, "max-w-[200px]")}
-                            value={quantity}
-                            onChange={(event) => setQuantity(clampSeats(Number(event.target.value), selected))}
                             disabled={creating}
+                            fewerLabel={t.seatFewer}
+                            moreLabel={t.seatMore}
+                            onChange={setQuantity}
                           />
                         </ShopField>
                       </>
