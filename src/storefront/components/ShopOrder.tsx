@@ -360,6 +360,13 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                     {copyNotice}
                   </p>
                 </>
+              ) : order.trial ? (
+                <>
+                  <p className={shopTextClass}>{trialCopy[lang].claimed}</p>
+                  <ShopButton asChild>
+                    <Link href={`/${LANG_PATHS[lang]}shop/account/`}>{t.setUpInAccount}</Link>
+                  </ShopButton>
+                </>
               ) : (
                 <p className={shopTextClass} role="alert">
                   {t.codeMissing}

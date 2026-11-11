@@ -149,7 +149,8 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void submit();
+                  const button = (event.nativeEvent as SubmitEvent).submitter;
+                  void submit(button instanceof HTMLButtonElement && button.value === "stripe" ? "stripe" : "ldc");
                 }}
               >
                 <ShopField htmlFor="shop-renew-periods" label={t.periodsLabel}>
@@ -201,15 +202,16 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                 )}
                 {error && <ShopAlert>{error}</ShopAlert>}
                 <ShopActions>
-                  <ShopButton type="submit" disabled={creating || summary.maxPeriods < 1}>
-                    {creating ? t.renewing : t.renewButton}
+                  <ShopButton type="submit" name="provider" value="ldc" disabled={creating || summary.maxPeriods < 1}>
+                    {creating ? t.renewing : summary.fiatRenewMinor ? trialCopy[lang].credits : t.renewButton}
                     <span aria-hidden="true">↗</span>
                   </ShopButton>
                   {Boolean(summary.fiatRenewMinor && summary.currency) && (
                     <ShopButton
-                      type="button"
+                      type="submit"
+                      name="provider"
+                      value="stripe"
                       disabled={creating || summary.maxPeriods < 1}
-                      onClick={() => void submit("stripe")}
                     >
                       {creating ? t.renewing : trialCopy[lang].card}
                     </ShopButton>
