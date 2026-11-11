@@ -181,7 +181,8 @@ export function AddressCheck({
       <Label className="sr-only" htmlFor={`${id}-username`}>
         {copy.usernameLabel}
       </Label>
-      <div className="mt-3 flex gap-2 max-phone:flex-col">
+      {/* One row at every width, whether there is one domain or several: the form is then as tall while the catalog loads as after. */}
+      <div className="mt-3 flex gap-2">
         <InputGroup size="lg" className="min-w-0 flex-1">
           <InputGroupInput
             id={`${id}-username`}
@@ -220,7 +221,7 @@ export function AddressCheck({
         {domains.length > 1 && (
           <NativeSelect
             size="lg"
-            className="w-auto max-w-[55%] cursor-pointer max-phone:max-w-none"
+            className="w-auto max-w-[55%] cursor-pointer max-phone:max-w-[62%] max-phone:bg-position-[right_0.5rem_center] max-phone:pr-7 max-phone:pl-2.5"
             aria-label={copy.domainLabel}
             value={domain}
             onChange={(event) => {
