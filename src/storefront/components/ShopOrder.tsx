@@ -204,7 +204,9 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
       <ShopSession
         lang={lang}
         onSignedOut={() => {
-          // This order may only be visible to the account: re-read it after logging out.
+          // This order may only be visible to the account: re-read it after logging out. Reading a paid order again is
+          // not a new payment: it is not celebrated a second time.
+          awaited.current = false;
           setResult(null);
           setError("");
           setAttempt((value) => value + 1);
