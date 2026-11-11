@@ -52,6 +52,35 @@ test("trial reads and claims use the account endpoint, without collecting paymen
   expect(fetcher.mock.calls[1][1]).toMatchObject({ method: "POST", body: "{}", credentials: "same-origin" });
 });
 
+test("a backend without the trial route offers no trial: the Worker answers a JSON 404 and the page shows nothing", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const env: StorefrontEnv = {
+    // A mail before free trials answers its own 404 page.
+    MAIL: {
+      fetch: async () =>
+        new Response("<html>Not found</html>", { status: 404, headers: { "Content-Type": "text/html" } }),
+    },
+    MAIL_ORIGIN: "https://console.abnormalhq.com",
+  };
+  const url = "https://abnormalhq.com/api/shop/account/trial";
+  for (const [lang, error] of [
+    ["en", "Endpoint not found."],
+    ["zh", "接口不存在。"],
+  ] as const) {
+    const response = await worker.fetch(
+      new Request(url, { headers: { Cookie: `mailhq_customer=${"c".repeat(43)}`, "Accept-Language": lang } }),
+      env,
+    );
+    expect([response.status, await response.json()]).toStrictEqual([404, { error }]);
+  }
+  // Through the client: no offer, not a failure. Any other failure is still one.
+  vi.stubGlobal("fetch", async () => Response.json({ error: "Endpoint not found." }, { status: 404 }));
+  expect(await getTrial(new AbortController().signal, "en")).toBeNull();
+  vi.stubGlobal("fetch", async () => Response.json({ error: "unavailable" }, { status: 503 }));
+  await expect(getTrial(new AbortController().signal, "en")).rejects.toMatchObject({ status: 503 });
+  vi.restoreAllMocks();
+});
+
 test("card upgrades select Stripe explicitly on the existing renewal endpoint", async () => {
   const fetcher = vi.fn(async () => Response.json({ orderId: "trialorder00001" }));
   vi.stubGlobal("fetch", fetcher);

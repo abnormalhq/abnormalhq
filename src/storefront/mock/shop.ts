@@ -8,6 +8,9 @@
  * priced by the server, refused with one message for every reason, and published with the order. A seat plan is priced
  * for its quantity by mail's rounding rule, seats are added for the rest of the period (an LDC order to pay, or the card
  * charged) and removed only at the next renewal, and an order that adds seats is published as a renewal order.
+ * Like mail since contract version 3 (docs/onboard-contract.json), POST quote says what an order would cost before it exists,
+ * a seat plan says its range and the prices of one seat outright, and the refusals about a quantity, a discount code, a plan
+ * or a buyer's domain carry a stable code and their text in both languages.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { normalizeUsername, passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
@@ -18,10 +21,9 @@ import type {
   PublicShopOrder,
   RenewalSummary,
   SeatProduct,
-  ShopCatalog,
   ShopProduct,
 } from "@/storefront/lib/shop";
-import { seatCardPrice, seatOrderPrice } from "@/storefront/lib/catalog";
+import { isSeatProduct, seatCardPrice, seatOrderPrice, SHOP_PRICE_MAX_CENTS } from "@/storefront/lib/catalog";
 import { MockDomains } from "./domains";
 
 const COOKIE = "mailhq_shop";
@@ -85,8 +87,13 @@ export const SEAT_PRODUCT: SeatProduct = {
   periodDays: 30,
   renewPriceCents: 0,
   fiatPriceMinor: 199,
-  seatMin: 2,
-  seatMax: 50,
+  minQuantity: 2,
+  maxQuantity: 50,
+  unitOriginalPriceCents: 333,
+  unitPriceCents: 300,
+  // No renewal price of its own: a seat renews at its discounted price.
+  unitRenewPriceCents: 300,
+  unitFiatPriceMinor: 199,
 };
 /**
  * "Use my own domain": how many domains of their own a buyer of each demo plan may connect (mail's `customDomains`, recorded on
@@ -149,14 +156,7 @@ function couponPrice(
 ): { code: string; baseCents: number; priceCents: number; discountCents: number } | null {
   const code = typed.trim().toUpperCase();
   const coupon = Object.hasOwn(MOCK_COUPONS, code) ? MOCK_COUPONS[code] : undefined;
-  const baseCents =
-    quantity > 0
-      ? provider === "stripe"
-        ? (seatCardPrice(product, quantity) ?? 0)
-        : (seatOrderPrice(product, quantity)?.priceCents ?? 0)
-      : provider === "stripe"
-        ? (product.fiatPriceMinor ?? 0)
-        : product.priceCents;
+  const baseCents = purchaseTerms(product, provider === "stripe", quantity)?.priceCents ?? 0;
   if (!coupon || baseCents < 1 || (coupon.products && !coupon.products.includes(product.id))) return null;
   const off = provider === "stripe" ? coupon.fiatAmountOffMinor : coupon.amountOffCents;
   // A percentage is rounded half up, like the plan discount.
@@ -177,16 +177,47 @@ function couponFrom(body: Record<string, unknown>): string | null {
   return body.coupon.trim().slice(0, 64) || null;
 }
 
-/** A quantity mail would take for a seat plan: a whole number inside the plan's range. */
-function seatQuantity(value: unknown, plan: SeatProduct): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= plan.seatMin && value <= plan.seatMax;
+/**
+ * What a request's `quantity` is for a plan, like mail's orderQuantity (apps/console/src/lib/shop/quote.ts): absent or null
+ * reads as 0; anything that is not a whole number is "invalid", and so is a quantity above 1 for a fixed plan (which
+ * otherwise takes none: 0); a seat plan's must be inside its range, and without one it is "range" as well.
+ */
+function orderQuantity(product: ShopProduct | SeatProduct, value: unknown): number | "invalid" | "range" {
+  const quantity = value === undefined || value === null ? 0 : value;
+  if (typeof quantity !== "number" || !Number.isSafeInteger(quantity) || quantity < 0) return "invalid";
+  if (!isSeatProduct(product)) return quantity > 1 ? "invalid" : 0;
+  return quantity < product.minQuantity || quantity > product.maxQuantity ? "range" : quantity;
 }
 
-function seatRangeMessage(plan: SeatProduct, say: (zh: string, en: string) => string): string {
-  return say(
-    `请选择 ${plan.seatMin} ～ ${plan.seatMax} 个席位。`,
-    `Choose between ${plan.seatMin} and ${plan.seatMax} seats.`,
-  );
+/**
+ * What an order costs before a discount code, like mail's purchaseTerms (apps/console/src/lib/shop/orders.ts): a fixed plan's
+ * own prices, or a seat plan's for `seats` seats (the discount on the whole order, rounded once; by card, seats × the
+ * seat's card price). `renewPriceCents` is each later period, 0 for a one-time plan. null when that many seats cost more
+ * than one order can charge, now or at renewal.
+ */
+function purchaseTerms(
+  product: ShopProduct | SeatProduct,
+  card: boolean,
+  seats: number,
+): { originalPriceCents: number; priceCents: number; renewPriceCents: number } | null {
+  const recurring = Boolean(product.periodDays);
+  if (!isSeatProduct(product)) {
+    const priceCents = card ? (product.fiatPriceMinor ?? 0) : product.priceCents;
+    return {
+      originalPriceCents: card ? priceCents : product.originalPriceCents,
+      priceCents,
+      renewPriceCents: recurring ? (card ? priceCents : product.renewPriceCents || priceCents) : 0,
+    };
+  }
+  const unit = card ? product.unitFiatPriceMinor : product.unitRenewPriceCents || product.unitPriceCents;
+  const total = card ? seatCardPrice(product, seats) : null;
+  const price = card
+    ? total === null
+      ? null
+      : { originalPriceCents: total, priceCents: total }
+    : seatOrderPrice(product, seats);
+  if (!price || unit * seats > SHOP_PRICE_MAX_CENTS) return null;
+  return { ...price, renewPriceCents: recurring ? unit * seats : 0 };
 }
 
 /** Token of the demo renewal link; the local subscription id is the purchase order number. */
@@ -352,6 +383,15 @@ export class MockShopStore {
    * answer 404, like a mail before them: the account page then shows nothing about own domains.
    */
   private readonly buyerDomains: MockDomains | null;
+  /**
+   * Whether the demo backend is at contract version 3 (docs/onboard-contract.json): POST quote, the explicit fields of a seat
+   * plan (`planKind`, `minQuantity`, `maxQuantity`, `unit…`), `periodDays` on a subscription's seats, and coded refusals
+   * (`{ error, code, messages, ...details }`). Off (`MOCK_QUOTE=off`), it behaves like the mail before all of that: the quote
+   * answers 404, a seat plan carries only `kind`, `seatMin`, `seatMax` and its per-seat price fields, every refusal is
+   * `{ error }`, and the discount preview answers "can't be used" for a total above what one order can charge. That is the
+   * backend the storefront may still be deployed against, to see the pages fall back to what they did before.
+   */
+  private readonly v3: boolean;
 
   constructor(
     now: () => number = Date.now,
@@ -360,12 +400,14 @@ export class MockShopStore {
     seats = process.env.MOCK_SEATS !== "off",
     domains = process.env.MOCK_DOMAINS !== "off",
     domainApproval = process.env.MOCK_DOMAIN_APPROVAL !== "off",
+    v3 = process.env.MOCK_QUOTE !== "off",
   ) {
     this.now = now;
     this.addressCheck = addressCheck;
     this.coupons = coupons;
     this.seats = seats;
-    this.buyerDomains = domains ? new MockDomains(now, domainApproval) : null;
+    this.v3 = v3;
+    this.buyerDomains = domains ? new MockDomains(now, domainApproval, v3) : null;
   }
 
   /** `customDomains` of a plan as the catalog publishes it: absent while the plan allows none or the backend has no buyer domains. */
@@ -405,12 +447,54 @@ export class MockShopStore {
     );
     const renewalInvalid = say("续费链接无效或已过期。", "This renewal link is invalid or has expired.");
     const notSignedIn = say("请先登录。", "Please sign in first.");
-    const unavailableProduct = say("该演示套餐暂不可购买。", "This demo plan cannot be bought right now.");
+    // A refusal with a stable code (`shop.refusalCodes`), in mail's wording: the code, the text in both languages and the
+    // numbers that go with it. A demo backend before contract version 3 answers `{ error }` only.
+    const refusalBody = (code: string, zh: string, en: string, details: Record<string, number> = {}) => ({
+      error: say(zh, en),
+      code,
+      messages: { zh, en },
+      ...details,
+    });
+    const refuse = (
+      status: number,
+      code: string,
+      zh: string,
+      en: string,
+      details: Record<string, number> = {},
+    ): Response => json(this.v3 ? refusalBody(code, zh, en, details) : { error: say(zh, en) }, status);
+    const UNAVAILABLE = [
+      "product_unavailable",
+      "该套餐暂不可购买。",
+      "This plan is not available for purchase.",
+    ] as const;
+    const TOO_LARGE = [
+      "seat_total_too_large",
+      "这么多席位的总价超过了单笔订单的上限，请减少数量。",
+      "That many seats cost more than one order can charge. Choose fewer.",
+    ] as const;
+    const unavailableProduct = () => refuse(409, ...UNAVAILABLE);
+    // `extra` is what mail adds for a request that listed several plans: `index`, the entry refused (the code preview).
+    const badQuantity = (extra: Record<string, number> = {}) =>
+      refuse(400, "seat_quantity_invalid", "请填写整数席位数量。", "Enter a whole number of seats.", extra);
+    const outOfRange = (plan: SeatProduct, extra: Record<string, number> = {}) => {
+      const { minQuantity: min, maxQuantity: max } = plan;
+      return refuse(
+        400,
+        "seat_quantity_out_of_range",
+        min === max ? `这个套餐固定为 ${min} 个席位。` : `请选择 ${min} ～ ${max} 个席位。`,
+        min === max ? `This plan is sold with ${min} seats.` : `Choose between ${min} and ${max} seats.`,
+        { min, max, ...extra },
+      );
+    };
+    // One number for every way of paying, in the unit that way charges in (hundredths of an LDC, or cents by card).
+    const totalTooLarge = (extra: Record<string, number> = {}) =>
+      refuse(400, ...TOO_LARGE, { maxTotalCents: SHOP_PRICE_MAX_CENTS, ...extra });
     if (
       ![
         "catalog",
         ...(this.addressCheck ? ["address"] : []),
         ...(this.coupons ? ["coupon"] : []),
+        ...(this.v3 ? ["quote"] : []),
         "orders",
         "checkout",
         "pay",
@@ -468,17 +552,43 @@ export class MockShopStore {
     const base = apiIndex > 0 ? url.pathname.slice(0, apiIndex) : "";
     const onboardUrl = `${origin}${base}/`;
     if (route === "catalog") {
+      // A seat plan as mail publishes it: every field of a product (each price for one seat), `kind: "seat"`, `seatMin` and
+      // `seatMax`, and since contract version 3 the same facts said outright (`shop.seats.planFields`).
+      const {
+        minQuantity,
+        maxQuantity,
+        unitOriginalPriceCents,
+        unitPriceCents,
+        unitRenewPriceCents,
+        unitFiatPriceMinor,
+        ...seatFields
+      } = structuredClone(SEAT_PRODUCT);
       const seatEntry = {
-        ...structuredClone(SEAT_PRODUCT),
+        ...seatFields,
         ...this.customDomains(SEAT_PRODUCT.id),
         kind: "seat",
+        seatMin: minQuantity,
+        seatMax: maxQuantity,
+        ...(this.v3
+          ? {
+              planKind: "seats",
+              minQuantity,
+              maxQuantity,
+              unitOriginalPriceCents,
+              unitPriceCents,
+              unitRenewPriceCents,
+              unitFiatPriceMinor,
+            }
+          : {}),
         ...(english ? PRODUCT_TEXT_EN[SEAT_PRODUCT.id] : {}),
       };
-      const catalog: ShopCatalog = {
+      const catalog = {
         available: true,
         payment: { ldc: true, stripe: { currency: "usd" } },
         products: PRODUCTS.map((product) => ({
           ...structuredClone(product),
+          // Since contract version 3 a fixed plan says how it is sold too, in the word a seat plan and a quote use.
+          ...(this.v3 ? { planKind: "fixed" } : {}),
           ...this.customDomains(product.id),
           ...(english ? PRODUCT_TEXT_EN[product.id] : {}),
         })),
@@ -588,12 +698,20 @@ export class MockShopStore {
       const typed = couponFrom(body);
       if (!typed) return failure(400, say("请输入优惠码。", "Enter a discount code."));
       const quotes = [];
-      for (const { productId, provider, quantity } of items) {
+      for (const [index, { productId, provider, quantity }] of items.entries()) {
+        // Like mail: the refusal of an entry of `products` says which one, by its position.
+        const at: Record<string, number> = many ? { index } : {};
         const product = this.plans().find((item) => item.id === productId);
-        // Like mail: a seat plan's preview needs the quantity, and its amounts are for that many seats.
-        const seatPlan = product && "seatMax" in product ? product : null;
-        if (seatPlan && !seatQuantity(quantity, seatPlan)) return failure(400, seatRangeMessage(seatPlan, say));
-        const quote = product ? couponPrice(product, provider, typed, seatPlan ? (quantity as number) : 0) : null;
+        const open = product && (provider === "ldc" || Boolean(product.fiatPriceMinor));
+        // Like mail: a seat plan's preview needs the quantity, and its amounts are for that many seats. A quantity the plan
+        // does not sell is never "the code can't be used": it fails the whole request with its own code. (A mail before
+        // contract version 3 answered "can't be used" for a total above what one order can charge.)
+        const seatPlan = open && isSeatProduct(product) ? product : null;
+        const seats = seatPlan ? orderQuantity(seatPlan, quantity) : 0;
+        if (seats === "invalid") return badQuantity(at);
+        if (seats === "range") return outOfRange(seatPlan!, at);
+        if (seatPlan && this.v3 && !purchaseTerms(seatPlan, provider === "stripe", seats)) return totalTooLarge(at);
+        const quote = open ? couponPrice(product, provider, typed, seats) : null;
         quotes.push(
           product && quote
             ? {
@@ -615,6 +733,83 @@ export class MockShopStore {
         });
       const [quote] = quotes;
       return json(quote ? { valid: true, ...quote } : { valid: false });
+    }
+    if (route === "quote") {
+      // What an order would cost before it exists, like mail's POST /api/shop/quote (apps/console/src/lib/shop/quote.ts):
+      // the same terms checkout writes, nothing reserved. A code that cannot be used does not fail the quote.
+      if (typeof body.productId !== "string" || !ORDER_ID.test(body.productId))
+        return failure(400, say("请选择有效的套餐。", "Please choose a valid plan."));
+      // `providers` lists the ways of paying to price (each once); the single `provider` is a list of one, LDC when
+      // neither is sent, and `providers` wins when both are.
+      const asked: unknown = body.providers === undefined ? [body.provider ?? "ldc"] : body.providers;
+      if (
+        !Array.isArray(asked) ||
+        asked.length < 1 ||
+        asked.length > 2 ||
+        !asked.every((provider) => provider === "ldc" || provider === "stripe") ||
+        new Set(asked).size !== asked.length
+      )
+        return failure(400, say("请选择有效的支付方式。", "Choose a valid payment method."));
+      const providers = asked as ("ldc" | "stripe")[];
+      const product = this.plans().find((item) => item.id === body.productId);
+      if (!product) return unavailableProduct();
+      // The quantity is the same whichever way the order is paid: a wrong one refuses the whole request.
+      const seats = orderQuantity(product, body.quantity);
+      if (seats === "invalid") return badQuantity();
+      if (seats === "range") return outOfRange(product as SeatProduct);
+      const seatPlan = isSeatProduct(product) ? product : null;
+      const typed = this.coupons ? couponFrom(body) : null;
+      // One entry per way asked, in the order asked: its price, or the refusal a quote for that way alone would get.
+      const prices = providers.map((provider) => {
+        const card = provider === "stripe";
+        if (card && !product.fiatPriceMinor)
+          return { provider, available: false, refusal: refusalBody(...UNAVAILABLE) };
+        const terms = purchaseTerms(product, card, seats);
+        if (!terms)
+          return {
+            provider,
+            available: false,
+            refusal: refusalBody(...TOO_LARGE, { maxTotalCents: SHOP_PRICE_MAX_CENTS }),
+          };
+        const applied = typed ? couponPrice(product, provider, typed, seats) : null;
+        return {
+          provider,
+          available: true,
+          currency: card ? "usd" : "",
+          unitOriginalPriceCents: card ? (product.fiatPriceMinor ?? 0) : product.originalPriceCents,
+          unitPriceCents: card ? (product.fiatPriceMinor ?? 0) : product.priceCents,
+          subtotalCents: terms.originalPriceCents,
+          discountPercent: card ? 0 : product.discountPercent,
+          planDiscountCents: terms.originalPriceCents - terms.priceCents,
+          basePriceCents: terms.priceCents,
+          coupon: !typed
+            ? null
+            : applied
+              ? {
+                  valid: true,
+                  code: applied.code,
+                  discountCents: applied.discountCents,
+                  // A subscription renews at the price before the code.
+                  firstPeriodOnly: Boolean(product.periodDays),
+                }
+              : { valid: false },
+          totalCents: applied ? applied.priceCents : terms.priceCents,
+          renewPriceCents: terms.renewPriceCents,
+        };
+      });
+      // No way asked about can take the order: the request is refused, with the first one's refusal.
+      const [first] = prices;
+      if (first?.refusal && !prices.some((price) => price.available))
+        return json(first.refusal, first.refusal.code === UNAVAILABLE[0] ? 409 : 400);
+      return json({
+        productId: product.id,
+        planKind: seatPlan ? "seats" : "fixed",
+        quantity: seatPlan ? seats : 1,
+        minQuantity: seatPlan ? seatPlan.minQuantity : 1,
+        maxQuantity: seatPlan ? seatPlan.maxQuantity : 1,
+        periodDays: product.periodDays ?? 0,
+        prices,
+      });
     }
     if (route === "account/login") {
       if (typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()))
@@ -869,41 +1064,29 @@ export class MockShopStore {
             "This subscription renews automatically through Stripe and can't be renewed here. Sign in to your account to manage auto-renewal or update your card.",
           ),
         );
-      if (route === "checkout" && !product) return failure(409, unavailableProduct);
-      if (route === "checkout" && body.provider === "stripe" && !product?.fiatPriceMinor)
-        return failure(409, unavailableProduct);
-      // Like mail: a seat plan is ordered by the seat, within its range, and a fixed plan takes no quantity (one above 1 is refused).
-      const seatPlan = route === "checkout" && product && "seatMax" in product ? product : null;
-      const quantity = body.quantity === undefined || body.quantity === null ? 0 : body.quantity;
-      if (route === "checkout") {
-        if (typeof quantity !== "number" || !Number.isSafeInteger(quantity) || quantity < 0)
-          return failure(400, say("请填写整数的席位数量。", "Enter a whole number of seats."));
-        if (seatPlan ? !seatQuantity(quantity, seatPlan) : quantity > 1)
-          return failure(
-            400,
-            seatPlan
-              ? seatRangeMessage(seatPlan, say)
-              : say("请填写整数的席位数量。", "Enter a whole number of seats."),
-          );
-      }
-      const seats = seatPlan ? (quantity as number) : 0;
+      if (route === "checkout" && !product) return unavailableProduct();
+      if (route === "checkout" && body.provider === "stripe" && !product?.fiatPriceMinor) return unavailableProduct();
+      // Like mail: a seat plan is ordered by the seat, within its range, and a fixed plan takes no quantity (one above 1 is
+      // refused). Each refusal has its code: not a whole number, outside the range (with the range), too large a total.
+      const seatPlan = route === "checkout" && product && isSeatProduct(product) ? product : null;
+      const asked = route === "checkout" && product ? orderQuantity(product, body.quantity) : 0;
+      if (asked === "invalid") return badQuantity();
+      if (asked === "range") return outOfRange(seatPlan!);
+      const seats = seatPlan ? asked : 0;
       const card = body.provider === "stripe";
       // What the order costs before a discount code: for a seat plan, the whole order priced by mail's rule.
-      const seatLdc = seatPlan ? seatOrderPrice(seatPlan, seats) : null;
-      const seatCard = seatPlan ? seatCardPrice(seatPlan, seats) : null;
-      if (seatPlan && (card ? !seatCard : !seatLdc))
-        return failure(
-          400,
-          say(
-            "这么多席位超出了单笔订单的金额上限，请减少数量。",
-            "That many seats cost more than one order can charge. Choose fewer.",
-          ),
-        );
+      const terms = route === "checkout" && product ? purchaseTerms(product, card, seats) : null;
+      if (route === "checkout" && !terms) return totalTooLarge();
       // Like mail: a code that cannot be used fails the checkout with one message for every reason, and no order is created.
       const typed = route === "checkout" && this.coupons ? couponFrom(body) : null;
       const quote = typed && product ? couponPrice(product, card ? "stripe" : "ldc", typed, seats) : null;
       if (typed && !quote)
-        return failure(400, say("此优惠码不能用于这笔订单。", "This discount code can't be used for this order."));
+        return refuse(
+          400,
+          "coupon_invalid",
+          "此优惠码不能用于这笔订单。",
+          "This discount code can't be used for this order.",
+        );
       const periods = renewal ? body.periods : 1;
       if (typeof periods !== "number" || !Number.isSafeInteger(periods) || periods < 1 || periods > RENEW_MAX_PERIODS)
         return failure(
@@ -917,10 +1100,8 @@ export class MockShopStore {
       } while (this.orders.has(id));
       const price = renewal ? renewal.renewPriceCents * periods : 0;
       // A seat plan's order: the seats in mailboxCount, the total in the price fields, and seats × the seat's renewal price per period.
-      const seatUnit = seatPlan ? seatPlan.renewPriceCents || seatPlan.priceCents : 0;
-      const fixedOriginal = seatLdc ? seatLdc.originalPriceCents : product?.originalPriceCents;
-      const fixedPrice = seatLdc ? seatLdc.priceCents : product?.priceCents;
-      const cardPrice = seatPlan ? (seatCard ?? 0) : (product?.fiatPriceMinor ?? 0);
+      const ldcTerms = product && !card ? terms : null;
+      const cardPrice = card ? (terms?.priceCents ?? 0) : 0;
       // Orders placed while logged in belong to this account from the start (like mail's customer_id).
       if (customer) {
         const owned = this.owned.get(customer) ?? new Set<string>();
@@ -960,9 +1141,9 @@ export class MockShopStore {
               id,
               productName: product!.name,
               // Like mail: the stored original price, with the code and what it took off priceCents ("" and 0 without one).
-              originalPriceCents: fixedOriginal!,
+              originalPriceCents: ldcTerms?.originalPriceCents ?? cardPrice,
               discountPercent: product!.discountPercent,
-              priceCents: quote ? quote.priceCents : fixedPrice!,
+              priceCents: quote ? quote.priceCents : (ldcTerms?.priceCents ?? cardPrice),
               mailboxCount: seatPlan ? seats : product!.mailboxCount,
               quotaMb: product!.quotaMb,
               quotaSupportedByDomain: { ...product!.quotaSupportedByDomain },
@@ -971,7 +1152,8 @@ export class MockShopStore {
               kind: "purchase",
               periods: 1,
               periodDays: product!.periodDays,
-              renewPriceCents: seatPlan ? seatUnit * seats : product!.renewPriceCents,
+              // A fixed plan's order carries the plan's renewal price as it is (0: renew at the sale price); a seat order's is for its seats.
+              renewPriceCents: seatPlan ? (ldcTerms?.renewPriceCents ?? 0) : product!.renewPriceCents,
               ...(card
                 ? {
                     provider: "stripe" as const,
@@ -1097,6 +1279,8 @@ export class MockShopStore {
                       seatPriceCents: seats.seatPriceCents,
                       provider: subscription.stripe ? ("stripe" as const) : ("ldc" as const),
                       currency: subscription.stripe ? "usd" : "",
+                      // The length of the period a seat's price is for (mail since contract version 3).
+                      ...(this.v3 ? { periodDays: subscription.periodDays } : {}),
                       periodEnd: new Date(subscription.end).toISOString(),
                       removing: [...seats.removing],
                     }
@@ -1318,13 +1502,13 @@ export class MockShopStore {
     }
     // Orders carry the plan's name as the catalog has it, which is how the demo finds the plan again.
     const plan = this.plans().find((item) => item.name === order.productName);
-    const seatPlan = plan && "seatMax" in plan ? plan : null;
+    const seatPlan = plan && isSeatProduct(plan) ? plan : null;
     const stripe = order.provider === "stripe";
     // What one seat costs per period at renewal: the card price, or the plan's renewal price (its discounted price when it has none).
     const seatPriceCents = seatPlan
       ? stripe
-        ? (seatPlan.fiatPriceMinor ?? 0)
-        : seatPlan.renewPriceCents || seatPlan.priceCents
+        ? seatPlan.unitFiatPriceMinor
+        : seatPlan.unitRenewPriceCents || seatPlan.unitPriceCents
       : 0;
     this.subscriptions.set(id, {
       productName: order.productName,
@@ -1337,8 +1521,8 @@ export class MockShopStore {
         ? {
             seats: {
               seats: order.mailboxCount,
-              min: seatPlan.seatMin,
-              max: seatPlan.seatMax,
+              min: seatPlan.minQuantity,
+              max: seatPlan.maxQuantity,
               seatPriceCents,
               pending: 0,
               removing: [],

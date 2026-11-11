@@ -64,8 +64,12 @@ export const seatPlan: SeatProduct = {
   renewPriceCents: 0,
   fiatPriceMinor: 199,
   customDomains: 2,
-  seatMin: 2,
-  seatMax: 50,
+  minQuantity: 2,
+  maxQuantity: 50,
+  unitOriginalPriceCents: 333,
+  unitPriceCents: 300,
+  unitRenewPriceCents: 300,
+  unitFiatPriceMinor: 199,
 };
 
 /** The same catalog with the seat plan on sale. */

@@ -69,6 +69,28 @@ const error = (status: number, message: string, headers?: Record<string, string>
   headers,
 });
 
+/**
+ * A refusal with a stable code, as mail answers them since contract version 3 (`shop.refusalCodes` in
+ * docs/onboard-contract.json): `error` in the request's language, the code, and the buyer-facing text in both languages.
+ * The wording is mail's (packages/i18n/src/messages/{zh,en}/shop.ts). A demo backend before version 3 (`coded` off)
+ * answers `{ error }` only, like every refusal did then.
+ */
+function refusal(
+  coded: boolean,
+  say: Say,
+  status: number,
+  code: string,
+  zh: string,
+  en: string,
+  headers?: Record<string, string>,
+): DomainAnswer {
+  return {
+    status,
+    body: coded ? { error: say(zh, en), code, messages: { zh, en } } : { error: say(zh, en) },
+    headers,
+  };
+}
+
 function related(a: string, b: string): boolean {
   return a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`);
 }
@@ -78,10 +100,13 @@ export class MockDomains {
   private readonly now: () => number;
   /** Whether a verified domain waits for the provider's approval (mail's default) or goes live at once. */
   private readonly approval: boolean;
+  /** Whether refusals of verify, check and refresh carry a code and both texts (mail since contract version 3). */
+  private readonly coded: boolean;
 
-  constructor(now: () => number, approval = process.env.MOCK_DOMAIN_APPROVAL !== "off") {
+  constructor(now: () => number, approval = process.env.MOCK_DOMAIN_APPROVAL !== "off", coded = true) {
     this.now = now;
     this.approval = approval;
+    this.coded = coded;
   }
 
   private label(domain: StoredDomain): string {
@@ -178,10 +203,8 @@ export class MockDomains {
   }
 
   write(action: string, owner: string, body: Record<string, unknown>, say: Say, limit: number): DomainAnswer {
-    const unavailable = say(
-      "暂时无法接入域名，请稍后再试。",
-      "Domains can't be set up right now. Please try again later.",
-    );
+    const refuse = (status: number, code: string, zh: string, en: string) =>
+      refusal(this.coded, say, status, code, zh, en);
     if (action === "add") {
       const name = typeof body.domain === "string" && body.domain.length <= 255 ? body.domain.trim().toLowerCase() : "";
       if (!DOMAIN_NAME.test(name))
@@ -233,30 +256,34 @@ export class MockDomains {
     }
     const domain = typeof body.id === "string" && ID.test(body.id) ? this.domains.get(body.id) : undefined;
     // The same answer whether or not the domain exists.
-    if (!domain || domain.owner !== owner) return error(404, say("域名不存在。", "Domain not found."));
+    if (!domain || domain.owner !== owner) return refuse(404, "domain_not_found", "域名不存在。", "Domain not found.");
     const label = this.label(domain);
     if (action === "verify") {
       if (label === "busy")
         return error(429, say("操作过于频繁，请稍后重试。", "Too many requests. Please try again later."), {
           "Retry-After": "300",
         });
-      if (label === "down") return error(503, unavailable);
+      if (label === "down")
+        return refuse(
+          503,
+          "domain_unavailable",
+          "暂时无法接入域名，请稍后再试。",
+          "Domains can't be set up right now. Please try again later.",
+        );
       if (domain.state === "pending") {
         if (domain.expires <= this.now())
-          return error(
+          return refuse(
             409,
-            say(
-              "所有权验证值已过期，请重新生成后再更新 DNS。",
-              "The ownership verification value has expired. Regenerate it, then update DNS.",
-            ),
+            "domain_ownership_expired",
+            "验证值已过期。请获取新的验证值并更新 TXT 记录，然后重新验证。",
+            "The verification value has expired. Get a new one, update the TXT record, then verify again.",
           );
         if (label === "pending")
-          return error(
+          return refuse(
             409,
-            say(
-              "还没有找到匹配的所有权 TXT 记录。请核对主机名和记录值，并等待 DNS 生效。",
-              "No matching ownership TXT record found yet. Check the host name and value, and wait for DNS to propagate.",
-            ),
+            "domain_ownership_not_found",
+            "暂时查不到验证用的 TXT 记录。请在 DNS 服务商处核对记录的名称和值，等待解析生效后再验证。",
+            "The verification TXT record isn't visible yet. Check its name and value at your DNS host, wait for the change to spread, then verify again.",
           );
         // Ownership is verified: the mail service sets the domain up, at once or (`slow-`) over the next two checks.
         if (label === "slow") {
@@ -275,12 +302,11 @@ export class MockDomains {
     }
     if (action === "refresh") {
       if (domain.state !== "pending")
-        return error(
+        return refuse(
           409,
-          say(
-            "只有等待验证所有权的记录才能重新生成验证值。",
-            "Only records awaiting ownership verification can have their verification value regenerated.",
-          ),
+          "domain_already_verified",
+          "这个域名的所有权已经验证，不需要新的验证值。",
+          "This domain's ownership is already verified, so it needs no new verification value.",
         );
       domain.token = randomBytes(16).toString("hex");
       domain.expires = this.now() + SEVEN_DAYS;

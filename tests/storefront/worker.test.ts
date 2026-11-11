@@ -15,6 +15,7 @@ import {
   ORDER_ID,
   ORDER_PAGE,
   paymentLocation,
+  SHOP_ROUTES,
 } from "@/storefront/worker/shop";
 
 /** docs/onboard-contract.json: the values mail and this Worker must agree on (mail keeps an identical copy). */
@@ -26,7 +27,13 @@ const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) 
     originForbiddenStatus: number;
   };
   shop: {
-    routes: Record<string, "GET" | "POST">;
+    routes: Record<string, ("GET" | "POST")[]>;
+    // Version 3: the routes mail added after the first list, each in a list of its own. Every list gives a route the
+    // list of its methods (shop.trials.routes has one that answers two).
+    seats: { routes: Record<string, ("GET" | "POST")[]> };
+    quote: { routes: Record<string, ("GET" | "POST")[]> };
+    buyerDomains: { routes: Record<string, ("GET" | "POST")[]> };
+    trials: { routes: Record<string, ("GET" | "POST")[]> };
     cookies: Record<"buyer" | "customer", { name: string; pattern: string; maxAgeSeconds: number }> & {
       google: { name: string; pattern: string; maxAgeSeconds: number; path: string };
     };
@@ -1153,7 +1160,7 @@ test("shop proxy: logout clears the session cookie whatever mail answers; cross-
   }
 });
 
-test("contract: the redeem and shop routes and methods the Worker forwards match mail's, every other path is 404", async () => {
+test("contract: the redeem and shop routes and methods the Worker forwards match mail's route lists, every other path is 404", async () => {
   for (const route of contract.redeem.routes) {
     const mail = vi.fn(async () => Response.json({}));
     expect((await worker.fetch(post(`/api/onboard/${route}`), bindings(mail))).status, route).toBe(200);
@@ -1161,31 +1168,81 @@ test("contract: the redeem and shop routes and methods the Worker forwards match
   }
   expect((await worker.fetch(post("/api/onboard/lookup"), bindings())).status).toBe(404);
 
-  for (const [route, method] of Object.entries(contract.shop.routes)) {
+  // The route lists of the contract (shop.routes, and the seat, quote, buyer-domain and trial routes mail lists apart):
+  // the Worker proxies every one of them, and nothing else under /api/shop/. Every list has the same form, a route with
+  // the list of its methods, which is also the form of the Worker's table.
+  const lists: Record<string, ("GET" | "POST")[]>[] = [
+    contract.shop.routes,
+    contract.shop.seats.routes,
+    contract.shop.quote.routes,
+    contract.shop.buyerDomains.routes,
+    contract.shop.trials.routes,
+  ];
+  for (const methods of lists.flatMap((list) => Object.values(list))) {
+    expect(Array.isArray(methods)).toBe(true);
+    expect(methods.length).toBeGreaterThan(0);
+  }
+  // No route is in two lists, as mail's own contract test requires.
+  const listed = lists.flatMap((list) => Object.keys(list));
+  expect(new Set(listed).size).toBe(listed.length);
+  const routes: Record<string, ("GET" | "POST")[]> = Object.assign({}, ...lists);
+  expect(Object.keys(contract.shop.quote.routes)).toStrictEqual(["quote"]);
+  // The Worker's own table names exactly these routes and methods: a route added to either side alone fails here.
+  expect(
+    Object.fromEntries(
+      Object.entries(SHOP_ROUTES)
+        .map(([route, methods]) => [route, [...methods]] as const)
+        .toSorted(([a], [b]) => a.localeCompare(b)),
+    ),
+  ).toEqual(Object.fromEntries(Object.entries(routes).toSorted(([a], [b]) => a.localeCompare(b))));
+
+  for (const [route, methods] of Object.entries(routes)) {
     const form = route === "pay";
-    const headers: Record<string, string> = { Origin: siteOrigin, Cookie: `mailhq_customer=${"c".repeat(43)}` };
-    if (method === "POST") headers["Content-Type"] = form ? "application/x-www-form-urlencoded" : "application/json";
-    const request = (verb: string) =>
-      new Request(`${siteOrigin}/api/shop/${route}`, {
+    const request = (verb: string) => {
+      const headers: Record<string, string> = { Origin: siteOrigin, Cookie: `mailhq_customer=${"c".repeat(43)}` };
+      if (verb === "POST") headers["Content-Type"] = form ? "application/x-www-form-urlencoded" : "application/json";
+      return new Request(`${siteOrigin}/api/shop/${route}`, {
         method: verb,
         headers,
         ...(verb === "POST" ? { body: form ? "orderId=abcdefghijklmno" : "{}" } : {}),
       });
-    const mail = vi.fn(async () =>
-      form
-        ? new Response(null, { status: 303, headers: { Location: `${siteOrigin}/shop/orders/?id=abcdefghijklmno` } })
-        : route === "notify"
-          ? new Response("success", { headers: { "Content-Type": "text/plain" } })
-          : Response.json({}),
-    );
-    const response = await worker.fetch(request(method), bindings(mail));
-    expect(mail, route).toHaveBeenCalledOnce();
-    expect(response.status, route).toBe(form ? 303 : 200);
-    const wrong = await worker.fetch(request(method === "GET" ? "POST" : "GET"), bindings());
-    expect([wrong.status, wrong.headers.get("Allow")], route).toEqual([405, method]);
+    };
+    for (const method of methods) {
+      const mail = vi.fn(async (forwarded: Request) => {
+        // The route and the method reach mail as they are.
+        expect([new URL(forwarded.url).pathname, forwarded.method], route).toEqual([`/api/shop/${route}`, method]);
+        return form
+          ? new Response(null, { status: 303, headers: { Location: `${siteOrigin}/shop/orders/?id=abcdefghijklmno` } })
+          : route === "notify"
+            ? new Response("success", { headers: { "Content-Type": "text/plain" } })
+            : Response.json({});
+      });
+      const response = await worker.fetch(request(method), bindings(mail));
+      expect(mail, route).toHaveBeenCalledOnce();
+      expect(response.status, route).toBe(form ? 303 : 200);
+      // With or without the trailing slash.
+      const slashed = new Request(`${siteOrigin}/api/shop/${route}/`, request(method));
+      expect((await worker.fetch(slashed, bindings(mail))).status, route).toBe(form ? 303 : 200);
+    }
+    // Every other method is refused before mail is called, and the answer names the ones the route takes.
+    for (const verb of ["GET", "POST", "PUT", "DELETE"].filter((verb) => !(methods as string[]).includes(verb))) {
+      const wrong = await worker.fetch(request(verb), bindings());
+      expect([wrong.status, wrong.headers.get("Allow")], `${verb} ${route}`).toEqual([405, methods.join(", ")]);
+    }
   }
   // Stripe calls its webhook on mail's own host; the storefront never proxies it.
-  for (const route of ["stripe/webhook", "account/delete", "admin"]) {
+  for (const route of [
+    "stripe/webhook",
+    "account/delete",
+    "admin",
+    "quote/extra",
+    "account/seats",
+    "account/seats/quote/extra",
+    "account/domains/approve",
+    "account/trial/claim",
+    "constructor",
+    "__proto__",
+  ]) {
     expect((await worker.fetch(shopRequest(route), bindings())).status, route).toBe(404);
   }
 });

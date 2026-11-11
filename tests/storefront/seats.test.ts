@@ -128,11 +128,17 @@ test("catalog: seat plans come under seatProducts, and products keeps ignoring t
       codeExpiresDays: 30,
       domains: ["abnormal.bid"],
       periodDays: 30,
-      renewPriceCents: 0,
+      // A mail before the explicit fields (contract version 3): the range comes from seatMin and seatMax, and the prices of
+      // one seat from the plan's own price fields; a seat renews at its discounted price when the plan names none.
+      renewPriceCents: 300,
       fiatPriceMinor: 199,
       customDomains: 2,
-      seatMin: 2,
-      seatMax: 50,
+      minQuantity: 2,
+      maxQuantity: 50,
+      unitOriginalPriceCents: 333,
+      unitPriceCents: 300,
+      unitRenewPriceCents: 300,
+      unitFiatPriceMinor: 199,
     },
   ]);
   expect(catalogPlans(catalog).map((product) => product.id)).toStrictEqual(["productabcdefgh", "seatplanabcdefg"]);
@@ -145,6 +151,7 @@ test("catalog: seat plans come under seatProducts, and products keeps ignoring t
   // A seat plan that slipped into `products` is a fixed plan to the parser: its seat fields are dropped, never half-read.
   const [stray] = parseShopCatalog({ ...catalogResponse, products: [seatProduct] }).products;
   expect(stray).not.toHaveProperty("seatMin");
+  expect(stray).not.toHaveProperty("minQuantity");
   expect(stray).not.toHaveProperty("kind");
 });
 
@@ -172,10 +179,15 @@ test("catalog: a seat plan with an unusable range or kind fails the whole answer
 });
 
 test("quantity: typed values are kept inside the plan's range", () => {
-  const plan = { seatMin: 2, seatMax: 50 };
-  expect([1, 2, 7.9, 50, 51, Number.NaN, -3].map((value) => clampSeats(value, plan))).toStrictEqual([
-    2, 2, 7, 50, 50, 2, 2,
-  ]);
+  // A catalog seat plan's range, and the old names an upgrade plan of the renewal page carries.
+  for (const plan of [
+    { minQuantity: 2, maxQuantity: 50 },
+    { seatMin: 2, seatMax: 50 },
+  ]) {
+    expect([1, 2, 7.9, 50, 51, Number.NaN, -3].map((value) => clampSeats(value, plan))).toStrictEqual([
+      2, 2, 7, 50, 50, 2, 2,
+    ]);
+  }
 });
 
 /* ---- Checkout and the code preview ---- */
@@ -206,10 +218,14 @@ test("quantity: each way of paying has its own limit, so one that can take the q
   expect(seatTotals(dear, 700, { ldc: false, card: true })).toMatchObject({ ldcTooMany: false, tooMany: false });
   expect(seatTotals(dear, 2, both)).toMatchObject({ ldcTooMany: false, cardTooMany: false, tooMany: false });
 
+  // The limit is mail's to say: once a refusal named another one (`maxTotalCents`), the estimate follows it.
+  expect(seatTotals(dear, 700, both, 200_000_000)).toMatchObject({ ldcTooMany: false, tooMany: false });
+  expect(seatTotals(dear, 2, both, 250_000)).toMatchObject({ ldcTooMany: true, cardTooMany: false });
+
   // The page closes each button by its own way of paying, and says which one in both languages.
   const source = readFileSync("src/storefront/components/Shop.tsx", "utf8");
-  expect(source).toMatch(/disabled=\{buying !== null \|\| Boolean\(totals\?\.ldcTooMany\)\}/);
-  expect(source).toMatch(/disabled=\{buying !== null \|\| Boolean\(totals\?\.cardTooMany\)\}/);
+  expect(source).toMatch(/disabled=\{buying !== null \|\| !open\.ldc\}/);
+  expect(source).toMatch(/disabled=\{buying !== null \|\| !open\.card\}/);
   for (const lang of ["en", "zh"] as const) {
     const t = shopCopy[lang];
     expect(new Set([t.seatTooMany, t.seatTooManyLdc, t.seatTooManyCard]).size).toBe(3);
@@ -447,7 +463,7 @@ test("dev shop: a seat plan is ordered by the seat and priced for the whole orde
   const catalog = await getShopCatalog(undefined, "en");
   expect(catalog.seatProducts).toHaveLength(1);
   const plan = catalog.seatProducts![0]!;
-  expect([plan.seatMin, plan.seatMax, plan.customDomains, plan.name]).toStrictEqual([
+  expect([plan.minQuantity, plan.maxQuantity, plan.customDomains, plan.name]).toStrictEqual([
     2,
     50,
     2,
@@ -502,6 +518,7 @@ test("dev shop: seats are added to an LDC subscription through an order for the 
     seatPriceCents: 300,
     provider: "ldc",
     currency: "",
+    periodDays: 30,
     periodEnd: new Date(NOW + 30 * DAY).toISOString(),
     removing: [],
   });
@@ -814,14 +831,30 @@ test("shop proxy: a mail before seat plans answers a JSON 404; mail's own refusa
   expect(broken.status).toBe(503);
 });
 
-test("contract: the seat routes and fields stay out of the contract file until mail's copy takes them", () => {
+test("contract: the account's seat routes and fields are the contract file's; the order fields mail still proposes stay out", async () => {
   const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
-    shop: { routes: Record<string, string>; publicOrderFields: string[] };
+    shop: {
+      routes: Record<string, string[]>;
+      publicOrderFields: string[];
+      seats: { routes: Record<string, string[]>; accountFields: string[]; maxQuantity: number };
+    };
   };
-  // mail's docs/shop.md lists them under "Proposed: storefront contract" and its contract test leaves them out. When mail's
-  // copy gains them, copy the file here byte for byte: this test then fails, as the reminder to move "Seat plans" out of
-  // "Proposed" in docs/storefront-api.md and to read `quantity`, `seatPriceCents` and the order kind "seats".
-  for (const route of SEAT_ROUTES) expect(contract.shop.routes, route).not.toHaveProperty(route);
+  // Contract version 3 lists the seat routes apart from `shop.routes` (the order quote has its own place, `shop.quote`;
+  // tests/storefront/quote.test.ts); this Worker proxies every one of them.
+  expect(Object.keys(contract.shop.seats.routes)).toStrictEqual(SEAT_ROUTES);
+  for (const route of SEAT_ROUTES) {
+    expect(contract.shop.seats.routes[route], route).toStrictEqual(["POST"]);
+    expect(contract.shop.routes, route).not.toHaveProperty(route);
+  }
+  // The seats of a mailbox group, read field by field as mail lists them (`periodDays` since version 3).
+  respond({ ...mailboxes, groups: [{ ...group, seats: { ...seats, periodDays: 30 } }] });
+  const [read] = (await getAccountMailboxes())!.groups;
+  expect(Object.keys(read!.seats!).toSorted()).toStrictEqual(contract.shop.seats.accountFields.toSorted());
+  // A count above the contract's most is no seat count on any seat route.
+  respond({ ...mailboxes, groups: [{ ...group, seats: { ...seats, max: contract.shop.seats.maxQuantity + 1 } }] });
+  await expect(getAccountMailboxes()).rejects.toBeInstanceOf(ShopApiError);
+  // Still proposed in mail's docs/shop.md, and not in the file: `quantity` and `seatPriceCents` on an order and the order
+  // kind "seats". When mail's copy gains them this fails, as the reminder to read them (see "Proposed" in docs/storefront-api.md).
   for (const field of ["quantity", "seatPriceCents"]) expect(contract.shop.publicOrderFields).not.toContain(field);
-  expect(readFileSync("docs/storefront-api.md", "utf8")).toMatch(/^- \*\*Seat plans\*\*/m);
+  expect(readFileSync("docs/storefront-api.md", "utf8")).toMatch(/^- \*\*Seat orders\*\*/m);
 });

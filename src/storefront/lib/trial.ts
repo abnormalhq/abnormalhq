@@ -5,8 +5,18 @@ export type TrialOffer =
   | { claimed: true; orderId: string }
   | { claimed: false; days: number; quotaMb: number; domains: string[]; productName: string };
 
+/**
+ * The account's free trial offer; null when there is none. A backend without the route (a mail before free trials, and the
+ * dev mock) answers 404, which reads the same: the account page then shows nothing about a trial rather than an error.
+ */
 export async function getTrial(signal: AbortSignal, lang: Lang): Promise<TrialOffer | null> {
-  const body = await request("account/trial", undefined, signal, lang);
+  let body: unknown;
+  try {
+    body = await request("account/trial", undefined, signal, lang);
+  } catch (error) {
+    if (error instanceof ShopApiError && error.status === 404) return null;
+    throw error;
+  }
   if (!record(body)) throw new ShopApiError("");
   const value = body.trial;
   if (value === null) return null;

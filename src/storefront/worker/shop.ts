@@ -10,9 +10,63 @@ import {
   type StorefrontEnv,
 } from "./proxy";
 
-const SHOP_PATH =
-  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|trial|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?|seats\/(?:quote|add|remove|keep)|domains(?:\/(?:add|verify|check|refresh|remove))?))?)\/?$/;
-const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes", "account/domains"];
+type ShopMethod = "GET" | "POST";
+
+/**
+ * Every route of mail's shop API this Worker proxies, with the methods each answers. Anything else under /api/shop/ is a
+ * JSON 404 and never reaches mail (Stripe's webhook, for one, is called on mail's own host). The table is what
+ * docs/onboard-contract.json lists, in five places: `shop.routes`, and the routes mail added later under `shop.seats.routes`,
+ * `shop.quote.routes`, `shop.buyerDomains.routes` and `shop.trials.routes`, each route with the list of its methods as
+ * here; tests/storefront/worker.test.ts checks that the table and the lists name the same routes and methods, as mail's
+ * contract test does for its own routes.
+ */
+export const SHOP_ROUTES: Readonly<Record<string, readonly ShopMethod[]>> = {
+  catalog: ["GET"],
+  orders: ["GET"],
+  notify: ["GET"],
+  account: ["GET"],
+  checkout: ["POST"],
+  pay: ["POST"],
+  "pay/stripe": ["POST"],
+  reconcile: ["POST"],
+  renewal: ["POST"],
+  renew: ["POST"],
+  address: ["POST"],
+  coupon: ["POST"],
+  quote: ["POST"],
+  "account/login": ["POST"],
+  "account/peek": ["POST"],
+  "account/verify": ["POST"],
+  "account/logout": ["POST"],
+  "account/portal": ["POST"],
+  "account/password-login": ["POST"],
+  "account/password": ["POST"],
+  "account/register": ["POST"],
+  "account/forgot": ["POST"],
+  "account/reset": ["POST"],
+  "account/google/start": ["POST"],
+  "account/google": ["POST"],
+  "account/google/unlink": ["POST"],
+  "account/mailboxes": ["GET"],
+  "account/mailboxes/create": ["POST"],
+  "account/mailboxes/password": ["POST"],
+  "account/mailboxes/status": ["POST"],
+  "account/mailboxes/delete": ["POST"],
+  "account/seats/quote": ["POST"],
+  "account/seats/add": ["POST"],
+  "account/seats/remove": ["POST"],
+  "account/seats/keep": ["POST"],
+  "account/domains": ["GET"],
+  "account/domains/add": ["POST"],
+  "account/domains/verify": ["POST"],
+  "account/domains/check": ["POST"],
+  "account/domains/refresh": ["POST"],
+  "account/domains/remove": ["POST"],
+  // Reading the trial offer and claiming it are one route with two methods.
+  "account/trial": ["GET", "POST"],
+};
+/** One route under /api/shop/, with or without a trailing slash; whether it is proxied is SHOP_ROUTES' to say. */
+const SHOP_PATH = /^\/api\/shop\/(.+?)\/?$/;
 /**
  * The address check before buying (POST address: is this username free on this domain?), in docs/storefront-api.md and
  * docs/onboard-contract.json. It needs no session, so no cookie is forwarded to it. mail answers 404 while the check is switched
@@ -29,20 +83,28 @@ export const ADDRESS_ROUTE = "address";
  */
 export const COUPON_ROUTE = "coupon";
 /**
+ * What an order would cost before it exists (POST quote: a plan and a quantity priced for every way of paying asked about,
+ * with the breakdown of each; `shop.quote` in docs/onboard-contract.json, "Seat plans" in docs/storefront-api.md). It is proxied like
+ * the code preview: same-origin Origin, the client IP kept (mail limits quotes per source IP) and the purchase and account
+ * cookies forwarded, since a quote may carry a discount code with a per-buyer limit. A mail before the quote answers its own
+ * 404 page, passed on as a JSON 404: the pages then show the totals they work out themselves, as they did before it.
+ */
+export const QUOTE_ROUTE = "quote";
+/**
  * Seats of a seat subscription on the account page (POST account/seats/quote, add, remove, keep; "Seat plans" in
- * docs/storefront-api.md). mail implements them, but they are "Proposed" in mail's docs/shop.md and not in
- * docs/onboard-contract.json yet. They are proxied like account/mailboxes/create: same-origin Origin, the client IP kept, the
- * purchase and account cookies forwarded; `add` may start a purchase session like `renew` (an LDC order to pay). A mail before
- * seat plans answers its own 404 page, passed on as a JSON 404 rather than as an outage.
+ * docs/storefront-api.md, `shop.seats.routes` in docs/onboard-contract.json). They are
+ * proxied like account/mailboxes/create: same-origin Origin, the client IP kept, the purchase and account cookies forwarded;
+ * `add` may start a purchase session like `renew` (an LDC order to pay). A mail before seat plans answers its own 404 page,
+ * passed on as a JSON 404 rather than as an outage.
  */
 export const SEAT_ROUTES = ["account/seats/quote", "account/seats/add", "account/seats/remove", "account/seats/keep"];
 /**
  * "Use my own domain" on the account page (GET account/domains, POST account/domains/add, verify, check, refresh, remove;
- * "Buyer domains" in docs/storefront-api.md). Also implemented by mail and still "Proposed" in its docs/shop.md, so not in
- * docs/onboard-contract.json yet. They are proxied like account/mailboxes/*, with one difference mail's document states: only
- * the account session cookie is forwarded, since a domain belongs to an account and never to a purchase session. A domain name
- * travels in the body only and is never logged; a mail before buyer domains answers its own 404 page, passed on as a JSON 404,
- * which the account page takes as "not offered" and shows nothing.
+ * "Buyer domains" in docs/storefront-api.md, `shop.buyerDomains.routes` in docs/onboard-contract.json). They are proxied like
+ * account/mailboxes/*, with one difference mail's document states: only the account session cookie is forwarded, since a
+ * domain belongs to an account and never to a purchase session. A domain name travels in the body only and is never logged; a
+ * mail before buyer domains answers its own 404 page, passed on as a JSON 404, which the account page takes as "not offered"
+ * and shows nothing.
  */
 export const DOMAINS_ROUTE = "account/domains";
 export const DOMAIN_ROUTES = [
@@ -53,10 +115,21 @@ export const DOMAIN_ROUTES = [
   "account/domains/refresh",
   "account/domains/remove",
 ];
+/**
+ * The account's free trial (GET account/trial reads the offer, POST claims it; `shop.trials.routes` in
+ * docs/onboard-contract.json). A mail before free trials answers its own 404 page, passed on as a JSON 404, which the account
+ * page takes as "no trial offered".
+ */
+export const TRIAL_ROUTE = "account/trial";
 /** Routes of features an older mail does not have: its 404 page becomes a JSON 404, which the pages take as "not offered". */
 function optionalRoute(route: string): boolean {
   return (
-    route === ADDRESS_ROUTE || route === COUPON_ROUTE || SEAT_ROUTES.includes(route) || DOMAIN_ROUTES.includes(route)
+    route === ADDRESS_ROUTE ||
+    route === COUPON_ROUTE ||
+    route === QUOTE_ROUTE ||
+    route === TRIAL_ROUTE ||
+    SEAT_ROUTES.includes(route) ||
+    DOMAIN_ROUTES.includes(route)
   );
 }
 // The cookie names, shapes and lifetimes are mail's (src/lib/shop/session.ts, customers.ts); tests/worker.test.ts checks
@@ -207,11 +280,13 @@ export async function proxyShop(request: Request, env: StorefrontEnv): Promise<R
   const localize = localizer(request);
   const unavailable = unavailableMessage(localize);
   const route = SHOP_PATH.exec(url.pathname)?.[1];
-  if (!route) return failure(404, localize("接口不存在。", "Endpoint not found."));
+  const methods = route !== undefined && Object.hasOwn(SHOP_ROUTES, route) ? SHOP_ROUTES[route] : undefined;
+  if (route === undefined || !methods) return failure(404, localize("接口不存在。", "Endpoint not found."));
   const notify = route === "notify";
-  const method = GET_ROUTES.includes(route) || (route === "account/trial" && request.method === "GET") ? "GET" : "POST";
-  if (request.method !== method) {
-    return failure(405, localize(`只接受 ${method}。`, `Only ${method} is accepted.`), notify, { Allow: method });
+  const method = methods.find((allowed) => allowed === request.method);
+  if (!method) {
+    const allowed = methods.join(", ");
+    return failure(405, localize(`只接受 ${allowed}。`, `Only ${allowed} is accepted.`), notify, { Allow: allowed });
   }
   const secure = url.protocol === "https:";
   // Without a session cookie that the Worker would forward, all mail can answer is "not signed in": answer that here, so

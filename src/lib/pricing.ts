@@ -146,8 +146,8 @@ export function planView(
       billing: days > 0 ? fillText(t.billingPeriod, { period }) : t.billingOnce,
       renewal: days > 0 ? (payment.ldc || !cardRow ? renewal : cardRow) : compare.noRenewal,
       mailboxes:
-        seat && seat.seatMax > seat.seatMin
-          ? fillText(t.seatMailboxes, { min: seat.seatMin, max: seat.seatMax })
+        seat && seat.maxQuantity > seat.minQuantity
+          ? fillText(t.seatMailboxes, { min: seat.minQuantity, max: seat.maxQuantity })
           : product.mailboxCount === 1
             ? t.mailboxOne
             : fillText(t.mailboxes, { count: product.mailboxCount }),
@@ -169,7 +169,7 @@ export function planView(
           offer: {
             price: decimal,
             currency: currency.toUpperCase(),
-            ...(seat ? { seats: { unit: t.seatUnitName, min: seat.seatMin, max: seat.seatMax } } : {}),
+            ...(seat ? { seats: { unit: t.seatUnitName, min: seat.minQuantity, max: seat.maxQuantity } } : {}),
           },
         }
       : {}),

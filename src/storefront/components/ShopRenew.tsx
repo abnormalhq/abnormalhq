@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import {
   createRenewalOrder,
-  seatOrderPrice,
   clampSeats,
   formatCredits,
   formatMoney,
@@ -18,6 +17,7 @@ import {
   getRenewal,
   type RenewalSummary,
 } from "@/storefront/lib/shop";
+import { QuoteBoard, upgradePeriodPrices, viewOf } from "@/storefront/lib/quote";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import { cn } from "@/lib/utils";
 import {
@@ -71,10 +71,36 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
   const trial = trialCopy[lang];
   const selected = summary?.trial ? summary.upgradePlans?.find((plan) => plan.id === productId) : undefined;
   const periodDays = selected?.periodDays ?? summary?.periodDays ?? 30;
-  const baseLdc = selected ? (seatOrderPrice(selected, quantity)?.priceCents ?? 0) : (summary?.renewPriceCents ?? 0);
-  const ldcRenewal = selected ? selected.renewPriceCents * quantity : (summary?.renewPriceCents ?? 0);
-  const cardPeriod = selected ? selected.fiatPriceMinor * quantity : (summary?.fiatRenewMinor ?? 0);
   const currency = selected ? summary?.upgradePayment?.stripe?.currency : summary?.currency;
+  // An upgrade to a seat plan is priced by mail for the seats chosen (POST /api/shop/quote, one request for every way of
+  // paying on offer; src/storefront/lib/quote.ts). The board asks again when the plan or the seats change, after a pause and
+  // cancelling what was asked before; without a quote (a mail before the endpoint, one on its way, the rate limit, a
+  // refusal) the page works the same figures out itself, as it did before. No discount code goes with the quote: `renew` applies it.
+  const [board] = useState(() => new QuoteBoard({ lang }));
+  const quotes = useSyncExternalStore(board.subscribe, board.snapshot, board.snapshot);
+  useEffect(() => () => board.clear(), [board]);
+  const upgradeId = selected?.id ?? "";
+  const quoteLdc = Boolean(selected && summary?.upgradePayment?.ldc);
+  const quoteCard = Boolean(selected && currency && selected.fiatPriceMinor > 0);
+  useEffect(() => {
+    const providers: ShopPaymentProvider[] = [
+      ...(quoteLdc ? ["ldc" as const] : []),
+      ...(quoteCard ? ["stripe" as const] : []),
+    ];
+    if (providers.length > 0) board.want("upgrade", { productId: upgradeId, providers, quantity });
+    else board.drop("upgrade");
+  }, [board, upgradeId, quantity, quoteLdc, quoteCard]);
+  const upgrade = selected
+    ? upgradePeriodPrices(
+        selected,
+        quantity,
+        quoteLdc ? viewOf(quotes, "upgrade", selected.id, quantity, "ldc") : undefined,
+        quoteCard ? viewOf(quotes, "upgrade", selected.id, quantity, "stripe") : undefined,
+      )
+    : null;
+  const baseLdc = upgrade ? upgrade.firstLdcCents : (summary?.renewPriceCents ?? 0);
+  const ldcRenewal = upgrade ? upgrade.renewLdcCents : (summary?.renewPriceCents ?? 0);
+  const cardPeriod = upgrade ? upgrade.cardCents : (summary?.fiatRenewMinor ?? 0);
   const ldcTotal = baseLdc + ldcRenewal * (periods - 1);
   const cardTotal = cardPeriod * periods;
   const ldcMaxPeriods = selected

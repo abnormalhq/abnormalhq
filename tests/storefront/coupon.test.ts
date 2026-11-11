@@ -672,9 +672,14 @@ test("dev shop: checkout prices the order with the code or creates none, and pub
     { productId: ONE_TIME, coupon: 7 },
   ]) {
     const refused = await checkout(body, { "Accept-Language": "en" });
+    // Since contract version 3 the refusal carries its code and the text in both languages next to `error`.
     expect([refused.status, await refused.json()], JSON.stringify(body)).toStrictEqual([
       400,
-      { error: "This discount code can't be used for this order." },
+      {
+        error: "This discount code can't be used for this order.",
+        code: "coupon_invalid",
+        messages: { zh: "此优惠码不能用于这笔订单。", en: "This discount code can't be used for this order." },
+      },
     ]);
     expect(refused.headers.get("Set-Cookie")).toBeNull();
   }
@@ -766,7 +771,7 @@ test("dev shop: several plans are previewed in one request, like mail, and the c
   const catalog = await getShopCatalog();
   expect(catalog.coupons).toBe(true);
   const asks = catalogPlans(catalog).flatMap((product) => {
-    const quantity = isSeatProduct(product) ? product.seatMin : 0;
+    const quantity = isSeatProduct(product) ? product.minQuantity : 0;
     return [
       { productId: product.id, provider: "ldc" as const, quantity },
       ...(product.fiatPriceMinor ? [{ productId: product.id, provider: "stripe" as const, quantity }] : []),
@@ -963,11 +968,11 @@ test("shop proxy: a mail before discount codes answers a JSON 404, so the shop h
 
 test("contract: the code preview and the order's code fields are in the contract file, as in mail's copy", () => {
   const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
-    shop: { routes: Record<string, string>; publicOrderFields: string[] };
+    shop: { routes: Record<string, string[]>; publicOrderFields: string[] };
   };
   // mail's copy took the route and the two order fields (mail #221); both copies must stay byte for byte equal. The Worker's
   // contract test (tests/storefront/worker.test.ts) now covers the route like every other, and the order fixture carries the fields.
-  expect(contract.shop.routes.coupon).toBe("POST");
+  expect(contract.shop.routes.coupon).toStrictEqual(["POST"]);
   expect(contract.shop.publicOrderFields).toEqual(expect.arrayContaining(["couponCode", "couponDiscountCents"]));
   // The prose follows: nothing about discount codes is described as missing from mail or unused by the storefront any more.
   // (What is still open between the two repositories, seat plans and buyer domains, has its own tests.)

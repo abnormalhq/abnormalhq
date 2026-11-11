@@ -20,6 +20,13 @@ import {
   type SubscriptionState,
 } from "./catalog.ts";
 
+/*
+ * The enums below are mail's, as data in docs/onboard-contract.json since version 3 (`shop.buyerDomains.statuses`, `phases`,
+ * `recordStatuses`, `recordTypes`, `recordPurposes`; mail's packages/core/src/lib/shop/refusals.ts). The parsers accept exactly
+ * these, the types are derived from them, and tests/storefront/contract.test.ts checks each list against the contract file,
+ * so a status mail adds fails a test here before it fails a page.
+ */
+
 /**
  * Where a domain stands: pending (publish the ownership TXT, then verify), provisioning (ownership verified, the mail service
  * is still setting the domain up), review (waiting for the provider's approval), live, or suspended (by the provider).
@@ -34,7 +41,7 @@ export type DnsRecordType = (typeof DNS_RECORD_TYPES)[number];
 export const DNS_RECORD_STATUSES = ["matched", "missing", "conflict", "error", "pending"] as const;
 export type DnsRecordStatus = (typeof DNS_RECORD_STATUSES)[number];
 
-/** The purposes mail names today; a record with one the page does not know is still shown, by its type. */
+/** The purposes mail names today (`shop.buyerDomains.recordPurposes`); a record with one the page does not know is still shown, by its type. */
 export const DNS_RECORD_PURPOSES = [
   "ownership",
   "mx",
@@ -50,9 +57,10 @@ export const DNS_RECORD_PURPOSES = [
 ] as const;
 export type DnsRecordPurpose = (typeof DNS_RECORD_PURPOSES)[number];
 
-const PHASES: readonly SubscriptionState[] = ["active", "grace", "suspended", "expired"];
+/** Where the buyer's plans that allow own domains stand (`shop.buyerDomains.phases`): the states of a subscription. */
+export const DOMAIN_PHASES: readonly SubscriptionState[] = ["active", "grace", "suspended", "expired"];
 const isStatus = oneOf(DOMAIN_STATUSES);
-const isPhase = oneOf(PHASES);
+const isPhase = oneOf(DOMAIN_PHASES);
 const isRecordType = oneOf(DNS_RECORD_TYPES);
 const isRecordStatus = oneOf(DNS_RECORD_STATUSES);
 
@@ -75,7 +83,8 @@ export interface DomainRecord {
   /** For SRV: `priority weight port target`, the whole record data. */
   value: string;
   priority?: number;
-  purpose: string;
+  /** One of DNS_RECORD_PURPOSES today. Kept as mail sent it: a record with a purpose the page does not know yet is still shown, by its type. */
+  purpose: DnsRecordPurpose | (string & {});
   /** false: optional (the DMARC suggestion, the client-discovery records); the domain works without it. */
   required: boolean;
   status: DnsRecordStatus;
@@ -307,4 +316,45 @@ export function domainCheckBudget(
  */
 export function domainSettled(domain: Pick<AccountDomain, "status">, ready: boolean): boolean {
   return domain.status === "pending" || domain.status === "suspended" || (domain.status === "live" && ready);
+}
+
+/**
+ * The check a domain card makes next without the buyer pressing "Check again", or null when it makes none:
+ * - `recovery`: "Verify" was refused because ownership is verified already (another tab, another device), and the card
+ *   reads where the domain stands. It is the end of the buyer's own action, so it is made at once, is not an automatic
+ *   round (it starts the rounds over) and is never refused by the page's budget, only counted in it: a card still showing
+ *   the reservation has no "Check again" to fall back on, and a refused recovery would leave the buyer on the ownership
+ *   screen until a reload. It is made even after the automatic checks stopped.
+ * - `opening`: the one check as the page opens for a domain past its reservation (its records are not in the list).
+ * - `round`: a backed-off automatic round, while there is something left to wait for.
+ * `delay` is in seconds; `automatic` and `timed` are what DomainCard's runCheck takes (`timed`: drawn from the shared
+ * budget as a check the page started by itself, so refused while the window is full).
+ */
+export interface DomainNextCheck {
+  kind: "recovery" | "opening" | "round";
+  delay: number;
+  automatic: boolean;
+  timed: boolean;
+}
+
+export function domainNextCheck(card: {
+  status: DomainStatus;
+  /** Whether the card has the answer of a check, and whether that answer said every required record matches. */
+  checked: boolean;
+  ready: boolean;
+  /** "Verify" answered `domain_already_verified` and the domain has not been read since. */
+  recheck: boolean;
+  /** Whether the automatic checks go on (a failed or refused one stops them). */
+  auto: boolean;
+  busy: boolean;
+  /** Automatic rounds made since the buyer last acted. */
+  done: number;
+}): DomainNextCheck | null {
+  if (card.busy) return null;
+  if (card.recheck) return { kind: "recovery", delay: 0, automatic: false, timed: false };
+  if (!card.auto) return null;
+  if (!card.checked && card.status !== "pending") return { kind: "opening", delay: 0, automatic: false, timed: true };
+  if (domainSettled(card, card.ready)) return null;
+  const delay = domainPollDelay(card.done);
+  return delay === null ? null : { kind: "round", delay, automatic: true, timed: true };
 }

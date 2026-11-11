@@ -10,13 +10,12 @@ import { Button } from "@/components/ui/button";
 import { LANG_PATHS, storePath, type Lang } from "@/storefront/i18n";
 import {
   catalogPlans,
+  clampSeats,
   createShopOrder,
   formatCredits,
   getShopCatalog,
   isSeatProduct,
   previewCouponPlans,
-  seatCardPrice,
-  seatOrderPrice,
   seatTotals,
   ShopApiError,
   type CouponQuote,
@@ -25,6 +24,7 @@ import {
   type ShopPaymentProvider,
 } from "@/storefront/lib/shop";
 import { COUPON_MAX_LENGTH, couponVerdict, normalizeCoupon, rememberCoupon } from "@/storefront/lib/coupon";
+import { QuoteBoard, seatFigure, seatRefusal, seatTerms, viewOf, type SeatFigure } from "@/storefront/lib/quote";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import {
   ADDRESS_PARAM,
@@ -91,6 +91,11 @@ function dismissAddress(): void {
  */
 type CouponQuotes = Record<string, CouponQuote | null>;
 
+/** Whether a seat plan's total for one way of paying is something mail would sell: its quote, or the page's estimate while there is none. */
+function sold(figure: SeatFigure | null): figure is Extract<SeatFigure, { kind: "quoted" | "estimate" }> {
+  return figure?.kind === "quoted" || figure?.kind === "estimate";
+}
+
 export function Shop({ lang }: { lang: Lang }) {
   const t = shopCopy[lang];
   const router = useRouter();
@@ -125,16 +130,77 @@ export function Shop({ lang }: { lang: Lang }) {
   const hasSelected = Boolean(selectedPlan && plans.some((product) => product.id === selectedPlan));
   // How many mailboxes of each seat plan: the plan's minimum until the buyer changes it.
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const seatsOf = (product: (typeof plans)[number]) =>
-    isSeatProduct(product) ? (quantities[product.id] ?? product.seatMin) : 0;
+  // What each seat plan costs for its quantity is mail's to say (POST /api/shop/quote, src/storefront/lib/quote.ts): the
+  // board asks when a quantity changes (after a pause, cancelling what was asked before) and remembers the answers.
+  // Without a quote (a mail before the endpoint, one on its way, the rate limit, a failed request) the card shows the
+  // page's own estimate, as it did before quotes.
+  const [board] = useState(() => new QuoteBoard({ lang }));
+  const quotes = useSyncExternalStore(board.subscribe, board.snapshot, board.snapshot);
+  useEffect(() => () => board.clear(), [board]);
+  /** The range of a seat plan's quantity: as mail last said it in a quote or a refusal, else as the catalog has it. */
+  const rangeOf = (product: (typeof plans)[number]) => {
+    if (!isSeatProduct(product)) return null;
+    const known = quotes.ranges[product.id];
+    return known
+      ? { minQuantity: known.min, maxQuantity: known.max }
+      : { minQuantity: product.minQuantity, maxQuantity: product.maxQuantity };
+  };
+  const seatsOf = (product: (typeof plans)[number]) => {
+    const range = rangeOf(product);
+    return range ? clampSeats(quantities[product.id] ?? range.minQuantity, range) : 0;
+  };
 
-  /** Which ways of paying a plan can be bought with right now: offered by the shop and, for a seat plan, able to take the quantity. */
+  /**
+   * What a plan costs and which ways of paying it can be bought with right now: offered by the shop and, for a seat plan,
+   * able to take the quantity. A seat plan's totals are mail's quotes; the estimate stands in while there is none.
+   */
   const waysOf = (product: (typeof plans)[number]) => {
     const ldc = Boolean(catalog?.payment.ldc);
     const card = Boolean(catalog?.payment.stripe && product.fiatPriceMinor);
-    const totals = isSeatProduct(product) ? seatTotals(product, seatsOf(product), { ldc, card }) : null;
-    return { ldc: ldc && !totals?.ldcTooMany, card: card && !totals?.cardTooMany, totals };
+    if (!isSeatProduct(product)) return { ldc, card, ldcFigure: null, cardFigure: null, asking: false };
+    const seats = seatsOf(product);
+    const estimate = seatTotals(product, seats, { ldc, card }, quotes.maxTotalCents ?? undefined);
+    const ldcView = viewOf(quotes, product.id, product.id, seats, "ldc");
+    const cardView = viewOf(quotes, product.id, product.id, seats, "stripe");
+    const ldcFigure = ldc ? seatFigure(ldcView, estimate.ldc) : null;
+    const cardFigure = card
+      ? seatFigure(
+          cardView,
+          estimate.card === null ? null : { originalPriceCents: estimate.card, priceCents: estimate.card },
+        )
+      : null;
+    return {
+      ldc: sold(ldcFigure),
+      card: sold(cardFigure),
+      ldcFigure,
+      cardFigure,
+      asking: (ldc && ldcView?.state === "loading") || (card && cardView?.state === "loading"),
+    };
   };
+
+  // One quote per seat plan, for the quantity on the card and every way of paying on offer: mail prices them in one
+  // answer, so a change of quantity is one request per plan. No discount code goes with it: a quote with a code is a guess
+  // against mail's limit on code guesses, and these are asked without the buyer pressing anything.
+  const seatAsks = !catalog
+    ? []
+    : plans.filter(isSeatProduct).flatMap((product) => {
+        const providers = [
+          ...(catalog.payment.ldc ? ["ldc"] : []),
+          ...(catalog.payment.stripe && product.fiatPriceMinor ? ["stripe"] : []),
+        ];
+        return providers.length > 0 ? [`${product.id}:${providers.join("+")}:${seatsOf(product)}`] : [];
+      });
+  const seatAskKey = seatAsks.join(" ");
+  useEffect(() => {
+    for (const entry of seatAskKey ? seatAskKey.split(" ") : []) {
+      const [productId, providers, quantity] = entry.split(":") as [string, string, string];
+      board.want(productId, {
+        productId,
+        providers: providers.split("+") as ShopPaymentProvider[],
+        quantity: Number(quantity),
+      });
+    }
+  }, [board, seatAskKey]);
 
   useEffect(() => {
     const address = parseAddress(linkedAddress);
@@ -187,7 +253,7 @@ export function Shop({ lang }: { lang: Lang }) {
     // The plan the visitor arrived for first, then catalog order; each plan once per way of paying it offers.
     const products = [...plans].sort((a, b) => Number(b.id === selectedPlan) - Number(a.id === selectedPlan));
     // A way of paying that cannot take a seat plan's quantity is not on offer and is not asked about: mail refuses the
-    // whole request for such a total (400), which would read as a backend without the several-plans form.
+    // whole request for such a total (400 `seat_total_too_large`), and no plan would get its price.
     const offered = products.flatMap((product) => {
       const open = waysOf(product);
       // The quantity as it is now: the answer is for it, whatever the stepper says by the time it arrives.
@@ -221,7 +287,29 @@ export function Shop({ lang }: { lang: Lang }) {
         setCouponChecking(false);
         return;
       }
-      setCouponError(shopError(result.error, lang));
+      // A seat quantity mail does not sell fails the whole preview with a code and its numbers: the plan's range, or the
+      // most one order can charge. That is not "this code can't be used", and it means the page's picture of the plans is
+      // out of date: the board takes the numbers and asks for its totals again, and the buyer applies the code once more.
+      const refusal = seatRefusal(result.error);
+      if (refusal) {
+        // mail says which entry it refused (`index`), so the range goes to that plan however many seat plans the page
+        // has. A mail before `index` does not say: with one seat plan on the page there is no doubt, with several the
+        // range is not pinned on any (every total is asked again all the same).
+        const about = result.errorAt === undefined ? undefined : offered[result.errorAt];
+        const seatPlans = [...new Set(offered.filter(({ seats }) => seats > 0).map(({ product }) => product.id))];
+        board.learn(result.error, about ? about.product.id : seatPlans.length === 1 ? seatPlans[0] : undefined);
+        // The most one order can charge is one number, counted in the unit of the way of paying refused.
+        const cardCurrency = about?.provider === "stripe" ? catalog?.payment.stripe?.currency : undefined;
+        setCouponError(
+          refusal.code === "seat_quantity_out_of_range"
+            ? t.couponSeatRange(refusal.min, refusal.max)
+            : t.couponSeatTotal(
+                cardCurrency
+                  ? formatMoney(refusal.maxTotalCents, cardCurrency, lang)
+                  : formatCredits(refusal.maxTotalCents),
+              ),
+        );
+      } else setCouponError(shopError(result.error, lang));
     }
     // What was answered before a failure still stands: the plans it covers show their price.
     if (Object.keys(quotes).length > 0) setApplied({ code, quotes, offered: offered.length });
@@ -241,12 +329,15 @@ export function Shop({ lang }: { lang: Lang }) {
         // mail took the code (it refuses the checkout otherwise). It publishes the code and what it took off with the order,
         // and the order page uses that; the price before the code is still remembered for this tab, only as the fallback for
         // a mail before those fields (src/storefront/lib/coupon.ts).
+        const figure = product && (provider === "stripe" ? waysOf(product).cardFigure : waysOf(product).ldcFigure);
         const baseCents = !product
           ? undefined
-          : seats > 0
-            ? provider === "stripe"
-              ? seatCardPrice(product, seats)
-              : seatOrderPrice(product, seats)?.priceCents
+          : figure
+            ? figure.kind === "quoted"
+              ? figure.basePriceCents
+              : figure.kind === "estimate"
+                ? figure.totalCents
+                : undefined
             : provider === "stripe"
               ? product.fiatPriceMinor
               : product.priceCents;
@@ -254,6 +345,9 @@ export function Shop({ lang }: { lang: Lang }) {
       }
       router.push(`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(id)}`);
     } catch (error) {
+      // mail's refusal in the page language. One about the quantity (the plan's range changed, the total is too large)
+      // also corrects the card: the board takes its numbers and asks for the totals again.
+      board.learn(error, productId);
       setCheckoutError(shopError(error, lang));
       setBuying(null);
       checkoutLock.current = false;
@@ -445,11 +539,19 @@ export function Shop({ lang }: { lang: Lang }) {
               const seatPlan = isSeatProduct(product) ? product : null;
               const seats = seatsOf(product);
               const days = product.periodDays ?? 0;
-              // The order's total by mail's rule (the discount on the whole order, rounded once), and by card. Each way of paying
-              // has its own limit on what one order can charge: a quantity too many for one is still sold by the other.
-              const { totals, ...open } = waysOf(product);
-              const seatLdc = totals?.ldc ?? null;
-              const seatCard = totals?.card ?? null;
+              // The order's total for either way of paying: mail's quote, or the page's estimate by mail's rule while there is
+              // none. Each way has its own limit on what one order can charge: a quantity too many for one is still sold by the other.
+              const { ldcFigure, cardFigure, asking, ...open } = waysOf(product);
+              const range = rangeOf(product);
+              const figures = [ldcFigure, cardFigure].filter((figure) => figure !== null);
+              // What each total is labelled with: the quote's own currency, period and discount for a quoted total (the
+              // catalog can be older than the quote), the catalog's only for the page's estimate.
+              const catalogTerms = { periodDays: days, discountPercent: product.discountPercent };
+              const ldcTerms = sold(ldcFigure) ? seatTerms(ldcFigure, { ...catalogTerms, currency: "" }) : null;
+              const cardTerms = sold(cardFigure)
+                ? seatTerms(cardFigure, { ...catalogTerms, currency: stripeCurrency ?? "" })
+                : null;
+              const tooMany = figures.length > 0 && figures.every((figure) => figure.kind === "tooMany");
               // The applied code on this plan, per way of paying the card offers: a quote, null (cannot be used) or undefined (not asked).
               const ldcQuote = open.ldc ? applied?.quotes[`${product.id}:ldc:${seats}`] : undefined;
               const cardQuote = open.card ? applied?.quotes[`${product.id}:stripe:${seats}`] : undefined;
@@ -531,19 +633,21 @@ export function Shop({ lang }: { lang: Lang }) {
                           {seatPlan ? t.seatCardEach(cardPrice, days) : t.cardPrice(cardPrice, days)}
                         </p>
                       ) : null}
-                      {seatPlan && (
+                      {seatPlan && range && (
                         <div className="mt-4 border-t border-border pt-4">
                           <ShopField
                             htmlFor={`shop-seats-${product.id}`}
                             label={t.seatQuantity}
-                            hint={t.seatRange(seatPlan.seatMin, seatPlan.seatMax)}
+                            hint={t.seatRange(range.minQuantity, range.maxQuantity)}
                             hintId={`shop-seats-${product.id}-hint`}
                           >
                             <ShopSeatStepper
+                              // A range mail corrected starts the field again, with the quantity brought into it.
+                              key={`${range.minQuantity}-${range.maxQuantity}`}
                               id={`shop-seats-${product.id}`}
                               value={seats}
-                              min={seatPlan.seatMin}
-                              max={seatPlan.seatMax}
+                              min={range.minQuantity}
+                              max={range.maxQuantity}
                               disabled={buying !== null}
                               fewerLabel={t.seatFewer}
                               moreLabel={t.seatMore}
@@ -552,46 +656,79 @@ export function Shop({ lang }: { lang: Lang }) {
                             />
                           </ShopField>
                           {/* Read out when the quantity changes: the total is what the buyer is deciding on. */}
-                          <div className="text-sm/[1.7]" role="status">
+                          <div className="text-sm/[1.7]" role="status" aria-busy={asking || undefined}>
                             <p className="text-xs/body text-muted-foreground">{t.seatTotal}</p>
-                            {totals?.tooMany ? (
+                            {tooMany ? (
                               <p className="text-destructive">{t.seatTooMany}</p>
                             ) : (
                               <>
-                                {seatLdc && (
+                                {sold(ldcFigure) && ldcTerms && (
                                   // Keyed by the amount: a new total rises in, so a change of quantity is seen to land.
-                                  <p className="animate-arrive font-semibold" key={seatLdc.priceCents}>
-                                    {t.seatTotalLdc(formatCredits(seatLdc.priceCents), days)}
-                                    {seatLdc.originalPriceCents > seatLdc.priceCents && (
+                                  <p className="animate-arrive font-semibold" key={ldcFigure.totalCents}>
+                                    {t.seatTotalLdc(formatCredits(ldcFigure.totalCents), ldcTerms.periodDays)}
+                                    {ldcFigure.subtotalCents > ldcFigure.totalCents && (
                                       <span className="ml-2 font-normal text-muted-foreground">
                                         <span className="sr-only">{t.seatWas} </span>
-                                        <s>{formatCredits(seatLdc.originalPriceCents)} LDC</s>
+                                        <s>{formatCredits(ldcFigure.subtotalCents)} LDC</s>
                                       </span>
                                     )}
                                   </p>
                                 )}
-                                {seatCard && stripeCurrency && (
+                                {/* What each later period costs is mail's number too; said only when it is not the total above. */}
+                                {ldcFigure?.kind === "quoted" &&
+                                  ldcFigure.renewPriceCents > 0 &&
+                                  ldcFigure.renewPriceCents !== ldcFigure.totalCents && (
+                                    <p className="text-muted-foreground">
+                                      {t.seatRenewsAt(
+                                        `${formatCredits(ldcFigure.renewPriceCents)} LDC`,
+                                        ldcFigure.periodDays,
+                                      )}
+                                    </p>
+                                  )}
+                                {sold(cardFigure) && cardTerms?.currency && (
                                   <p
                                     className={cn(
                                       "animate-arrive",
-                                      seatLdc ? "text-muted-foreground" : "font-semibold",
+                                      sold(ldcFigure) ? "text-muted-foreground" : "font-semibold",
                                     )}
-                                    key={seatCard}
+                                    key={cardFigure.totalCents}
                                   >
-                                    {t.seatTotalCard(formatMoney(seatCard, stripeCurrency, lang), days)}
+                                    {t.seatTotalCard(
+                                      formatMoney(cardFigure.totalCents, cardTerms.currency, lang),
+                                      cardTerms.periodDays,
+                                    )}
                                   </p>
                                 )}
                                 {/* Only the way of paying that cannot take this quantity is closed, and says why. */}
-                                {totals?.ldcTooMany && <p className="text-destructive">{t.seatTooManyLdc}</p>}
-                                {totals?.cardTooMany && <p className="text-destructive">{t.seatTooManyCard}</p>}
+                                {ldcFigure?.kind === "tooMany" && (
+                                  <p className="text-destructive">{t.seatTooManyLdc}</p>
+                                )}
+                                {cardFigure?.kind === "tooMany" && (
+                                  <p className="text-destructive">{t.seatTooManyCard}</p>
+                                )}
+                                {/* Any other refusal of a quote is mail's own sentence, once when both ways got the same. */}
+                                {[
+                                  ...new Set(
+                                    figures.flatMap((figure) => (figure.kind === "refused" ? [figure.message] : [])),
+                                  ),
+                                ].map((message) => (
+                                  <p className="text-destructive" key={message}>
+                                    {message}
+                                  </p>
+                                ))}
                               </>
                             )}
                           </div>
                           <p className="mt-2 text-xs/[1.6] text-muted-foreground">
-                            {seatLdc &&
-                              product.discountPercent > 0 &&
-                              `${t.seatDiscountNote(product.discountPercent)} `}
-                            {t.seatEstimate}
+                            {ldcTerms &&
+                              ldcTerms.discountPercent > 0 &&
+                              `${t.seatDiscountNote(ldcTerms.discountPercent)} `}
+                            {/* An estimate says so; mail's own total says that instead. */}
+                            {figures.some((figure) => figure.kind === "estimate")
+                              ? t.seatEstimate
+                              : figures.some((figure) => figure.kind === "quoted")
+                                ? t.seatQuoted
+                                : null}
                           </p>
                         </div>
                       )}
@@ -618,7 +755,7 @@ export function Shop({ lang }: { lang: Lang }) {
                       <ShopDetails
                         item={product}
                         lang={lang}
-                        seatRange={seatPlan ? { min: seatPlan.seatMin, max: seatPlan.seatMax } : undefined}
+                        seatRange={range ? { min: range.minQuantity, max: range.maxQuantity } : undefined}
                       />
                       {carried && !product.domains.includes(carried.domain) && (
                         <p className="mt-3 text-xs/body text-muted-foreground">{t.planWithoutDomain(carried.domain)}</p>
@@ -629,7 +766,7 @@ export function Shop({ lang }: { lang: Lang }) {
                         <ShopButton
                           type="button"
                           loading={buying === `${product.id}:ldc`}
-                          disabled={buying !== null || Boolean(totals?.ldcTooMany)}
+                          disabled={buying !== null || !open.ldc}
                           onClick={() => void checkout(product.id)}
                           aria-label={`${t.buy} · ${product.name}`}
                         >
@@ -642,7 +779,7 @@ export function Shop({ lang }: { lang: Lang }) {
                           variant={catalog.payment.ldc ? "outline" : "default"}
                           type="button"
                           loading={buying === `${product.id}:stripe`}
-                          disabled={buying !== null || Boolean(totals?.cardTooMany)}
+                          disabled={buying !== null || !open.card}
                           onClick={() => void checkout(product.id, "stripe")}
                           aria-label={`${t.payCard} · ${product.name}`}
                         >

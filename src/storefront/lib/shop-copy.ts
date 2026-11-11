@@ -325,6 +325,14 @@ export const shopCopy = {
     seatTotalCard: (price: string, days: number) => (days > 0 ? `银行卡 ${price} / ${days} 天` : `银行卡 ${price}`),
     seatWas: "优惠前",
     seatEstimate: "合计为预估金额，以下单时商店确认的价格为准。",
+    seatQuoted: "合计是商店按所选数量给出的价格。",
+    seatRenewsAt: (price: string, days: number) => `之后每 ${days} 天续费 ${price}`,
+    couponSeatRange: (min: number, max: number) =>
+      min === max
+        ? `这个套餐固定为 ${min} 个邮箱，请调整数量后再使用优惠码。`
+        : `这个套餐可选 ${min} ～ ${max} 个邮箱，请调整数量后再使用优惠码。`,
+    couponSeatTotal: (amount: string) =>
+      `所选数量超出了单笔订单的金额上限（${amount}），请减少邮箱数量后再使用优惠码。`,
     seatDiscountNote: (percent: number) => `${percent}% 的优惠按整笔订单计算，只取整一次。`,
     seatTooMany: "这个数量超出了单笔订单的金额上限，请减少邮箱数量。",
     seatTooManyLdc: "这个数量超出了 LDC 单笔订单的金额上限，可以用银行卡购买，或减少邮箱数量。",
@@ -335,7 +343,7 @@ export const shopCopy = {
     seatsTitle: "席位",
     seatsUsed: (used: number, total: number) => `已用 ${used} / ${total} 个席位`,
     seatsPriceLabel: "每个席位",
-    seatsPriceValue: (price: string) => `${price} / 周期`,
+    seatsPriceValue: (price: string, days?: number) => (days ? `${price} / ${days} 天` : `${price} / 周期`),
     seatsPeriodEnd: "本期到期",
     seatsAdd: "增加席位",
     seatsAddCount: "增加的席位数",
@@ -348,7 +356,10 @@ export const shopCopy = {
       `增加 ${n} 个席位，按本期剩余时间（到 ${date}）计费：${price} LDC。现在下单就是这个价格，时间越晚越少。`,
     seatsQuoteCard: (n: number, price: string, date: string) =>
       `增加 ${n} 个席位，按本期剩余时间（到 ${date}）计费：约 ${price}。这是预估金额，最终金额由 Stripe 计算，并从订阅绑定的银行卡扣款。`,
-    seatsQuoteAfter: (total: number, renew: string) => `增加后共 ${total} 个席位，之后每期续费 ${renew}。`,
+    seatsQuoteAfter: (total: number, renew: string, days?: number) =>
+      days
+        ? `增加后共 ${total} 个席位，之后每 ${days} 天续费 ${renew}。`
+        : `增加后共 ${total} 个席位，之后每期续费 ${renew}。`,
     seatsConfirmLdc: "创建订单并前往支付",
     seatsConfirmCard: "确认并从银行卡扣款",
     seatsAdding: "正在处理…",
@@ -829,6 +840,14 @@ export const shopCopy = {
       days > 0 ? `${price} every ${days} days by card` : `${price} by card`,
     seatWas: "Before the discount",
     seatEstimate: "The total is an estimate; the shop confirms the price when you place the order.",
+    seatQuoted: "The total is the shop's price for this quantity.",
+    seatRenewsAt: (price: string, days: number) => `Then ${price} every ${days} ${days === 1 ? "day" : "days"}`,
+    couponSeatRange: (min: number, max: number) =>
+      min === max
+        ? `This plan sells exactly ${min} ${min === 1 ? "mailbox" : "mailboxes"}. Adjust the quantity, then apply the code again.`
+        : `This plan sells ${min} to ${max} mailboxes. Adjust the quantity, then apply the code again.`,
+    couponSeatTotal: (amount: string) =>
+      `That many mailboxes cost more than one order can charge (${amount} at most). Choose fewer, then apply the code again.`,
     seatDiscountNote: (percent: number) => `The ${percent}% discount is taken off the whole order and rounded once.`,
     seatTooMany: "That many mailboxes cost more than one order can charge. Choose fewer.",
     seatTooManyLdc: "That many mailboxes cost more than one LDC order can charge. Pay by card, or choose fewer.",
@@ -839,7 +858,8 @@ export const shopCopy = {
     seatsTitle: "Seats",
     seatsUsed: (used: number, total: number) => `${used} of ${total} seats used`,
     seatsPriceLabel: "Each seat",
-    seatsPriceValue: (price: string) => `${price} per period`,
+    seatsPriceValue: (price: string, days?: number) =>
+      days ? `${price} every ${days} ${days === 1 ? "day" : "days"}` : `${price} per period`,
     seatsPeriodEnd: "Current period ends",
     seatsAdd: "Add seats",
     seatsAddCount: "Seats to add",
@@ -852,8 +872,10 @@ export const shopCopy = {
       `${n} more ${n === 1 ? "seat" : "seats"} for the rest of this period (until ${date}): ${price} LDC. That is the price if you order now; it falls as the period runs down.`,
     seatsQuoteCard: (n: number, price: string, date: string) =>
       `${n} more ${n === 1 ? "seat" : "seats"} for the rest of this period (until ${date}): about ${price}. This is an estimate; Stripe works out the final amount and charges the card on the subscription.`,
-    seatsQuoteAfter: (total: number, renew: string) =>
-      `You will then have ${total} seats, renewing at ${renew} per period.`,
+    seatsQuoteAfter: (total: number, renew: string, days?: number) =>
+      days
+        ? `You will then have ${total} seats, renewing at ${renew} every ${days} ${days === 1 ? "day" : "days"}.`
+        : `You will then have ${total} seats, renewing at ${renew} per period.`,
     seatsConfirmLdc: "Create the order and pay",
     seatsConfirmCard: "Confirm and charge my card",
     seatsAdding: "Working…",
@@ -996,7 +1018,7 @@ export const shopCopy = {
 };
 
 /**
- * The human-readable sentence for a failed shop request. The backend's explanation in the request language is the most accurate, so it is used when present: the same 404 means different things
+ * The human-readable sentence for a failed shop request. The backend's explanation in the page language is the most accurate, so it is used when present: the same 404 means different things
  * for a missing order, an expired renewal link or a customer portal that cannot open. Only without an explanation is generic copy chosen by status; the generic 404 wording varies per call and comes from the caller (notFound),
  * defaulting to "request failed".
  */
@@ -1005,6 +1027,10 @@ export function shopError(error: unknown, lang: Lang, fallback: { notFound?: str
   if (error instanceof ShopApiError) {
     // A rate limit that says how long: mail's own sentence only says "later", so the wait is spelled out (every 429 of the shop API carries Retry-After).
     if (error.status === 429 && error.retryAfter) return t.rateLimitedWait(error.retryAfter);
+    // A coded refusal says its text in both languages (`messages`): the page's own wins over `error`, which is in whatever
+    // language the request asked for. A refusal without a code, or without text for this language, shows `error` as before.
+    const coded = error.code ? error.messages[lang]?.trim() : "";
+    if (coded) return coded;
     if (error.message.trim()) return error.message;
     if (error.status === 404 && fallback.notFound) return fallback.notFound;
     if (error.status === 429) return t.rateLimited;

@@ -147,7 +147,10 @@ export function ShopSeats({
         <p className="text-sm/[1.5]">{t.seatsUsed(mailboxes.length, seats.seats)}</p>
       </div>
       <ShopMeta>
-        <ShopMetaRow label={t.seatsPriceLabel}>{t.seatsPriceValue(money(seats.seatPriceCents))}</ShopMetaRow>
+        {/* The length of the period comes from mail (`seats.periodDays`); a mail before the field says "per period". */}
+        <ShopMetaRow label={t.seatsPriceLabel}>
+          {t.seatsPriceValue(money(seats.seatPriceCents), seats.periodDays)}
+        </ShopMetaRow>
         <ShopMetaRow label={t.seatsPeriodEnd}>{periodEnd}</ShopMetaRow>
         {pending && (
           <>
@@ -249,7 +252,7 @@ export function ShopSeats({
                     )}
               </p>
               <p className="mt-1 text-muted-foreground">
-                {t.seatsQuoteAfter(quote.seats, money(seats.seatPriceCents * quote.seats))}
+                {t.seatsQuoteAfter(quote.seats, money(seats.seatPriceCents * quote.seats), seats.periodDays)}
               </p>
             </div>
           )}
