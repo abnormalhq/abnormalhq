@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { orderCoupon } from "@/storefront/lib/coupon";
-import { claimTrial, getTrial } from "@/storefront/lib/trial";
+import { claimTrial, getTrial, paidPeriodLimit } from "@/storefront/lib/trial";
 import { getShopOrder, createRenewalOrder, getRenewal } from "@/storefront/lib/shop";
 import { renewalResponse } from "./fixtures/shop-contract";
 import { parseShopCatalog } from "@/storefront/lib/catalog";
@@ -174,3 +174,11 @@ test.each(["ldc", "stripe"] as const)(
     );
   },
 );
+
+test("each payment method has its own period cap and allows the first-period price to differ", () => {
+  expect(paidPeriodLimit(100_000_001, 100_000_001)).toBe(0);
+  expect(paidPeriodLimit(199, 199)).toBe(12);
+  expect(paidPeriodLimit(1, 50_000_000)).toBe(2);
+  expect(paidPeriodLimit(100_000_000, 1)).toBe(1);
+  expect(paidPeriodLimit(0, 199)).toBe(0);
+});

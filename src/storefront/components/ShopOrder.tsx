@@ -317,6 +317,9 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               />
             )}
             <ShopMeta>
+              {order.trialUpgrade && (
+                <ShopMetaRow label={trialCopy[lang].seats}>{t.quantity(order.mailboxCount)}</ShopMetaRow>
+              )}
               <ShopMetaRow label={t.orderId}>
                 <ShopOrderCode>{order.id}</ShopOrderCode>
               </ShopMetaRow>

@@ -1,4 +1,4 @@
-import { isCount, isString, isStrings, record, request, ShopApiError } from "./catalog.ts";
+import { SHOP_PRICE_MAX_CENTS, isCount, isString, isStrings, record, request, ShopApiError } from "./catalog.ts";
 import type { Lang } from "../i18n.ts";
 
 export type TrialOffer =
@@ -36,6 +36,19 @@ export async function claimTrial(lang: Lang): Promise<string> {
   const body = await request("account/trial", {}, undefined, lang);
   if (!record(body) || !isString(body.orderId) || !/^[a-z0-9]{15}$/.test(body.orderId)) throw new ShopApiError("");
   return body.orderId;
+}
+
+/** Maximum payable periods for one payment method, before any first-period discount. */
+export function paidPeriodLimit(first: number, renewal: number): number {
+  if (
+    !Number.isSafeInteger(first) ||
+    !Number.isSafeInteger(renewal) ||
+    first < 1 ||
+    renewal < 1 ||
+    first > SHOP_PRICE_MAX_CENTS
+  )
+    return 0;
+  return Math.min(12, 1 + Math.floor((SHOP_PRICE_MAX_CENTS - first) / renewal));
 }
 
 export const trialCopy = {

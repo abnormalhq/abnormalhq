@@ -44,7 +44,7 @@ import {
   shopTextClass,
 } from "./ShopParts";
 import { COUPON_MAX_LENGTH, normalizeCoupon } from "@/storefront/lib/coupon";
-import { trialCopy } from "@/storefront/lib/trial";
+import { paidPeriodLimit, trialCopy } from "@/storefront/lib/trial";
 import { ShopSession } from "./ShopSession";
 
 export function ShopRenew({ lang }: { lang: Lang }) {
@@ -77,9 +77,13 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
   const currency = selected ? summary?.upgradePayment?.stripe?.currency : summary?.currency;
   const ldcTotal = baseLdc + ldcRenewal * (periods - 1);
   const cardTotal = cardPeriod * periods;
-  const maxPeriods = selected
-    ? Math.max(0, Math.min(12, Math.floor(100_000_000 / Math.max(baseLdc, ldcRenewal, cardPeriod))))
+  const ldcMaxPeriods = selected
+    ? summary?.upgradePayment?.ldc
+      ? paidPeriodLimit(baseLdc, ldcRenewal)
+      : 0
     : (summary?.maxPeriods ?? 0);
+  const cardMaxPeriods = currency ? paidPeriodLimit(cardPeriod, cardPeriod) : 0;
+  const maxPeriods = Math.max(ldcMaxPeriods, cardMaxPeriods);
   const expired = Boolean(summary?.trial && summary.state === "expired");
   const [creating, setCreating] = useState(false);
   const lock = useRef(false);
@@ -311,17 +315,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                 )}
                 {error && <ShopAlert>{error}</ShopAlert>}
                 <ShopActions>
-                  <ShopButton
-                    type="submit"
-                    name="provider"
-                    value="ldc"
-                    disabled={
-                      creating ||
-                      maxPeriods < 1 ||
-                      (Boolean(selected) && !summary.upgradePayment?.ldc) ||
-                      ldcTotal > 100_000_000
-                    }
-                  >
+                  <ShopButton type="submit" name="provider" value="ldc" disabled={creating || periods > ldcMaxPeriods}>
                     {creating
                       ? t.renewing
                       : summary.trial || summary.fiatRenewMinor
@@ -334,7 +328,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                       type="submit"
                       name="provider"
                       value="stripe"
-                      disabled={creating || maxPeriods < 1 || cardTotal > 100_000_000}
+                      disabled={creating || periods > cardMaxPeriods}
                     >
                       {creating ? t.renewing : trialCopy[lang].card}
                     </ShopButton>
