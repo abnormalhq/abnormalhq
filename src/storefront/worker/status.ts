@@ -50,6 +50,7 @@ export async function proxyStatus(request: Request, env: StorefrontEnv, now: num
       { status: 405, headers: { Allow: "GET", "Cache-Control": "no-store" } },
     );
   }
+  const expired = cached;
   if (!cached || now - cached.at >= STATUS_MAX_AGE_SECONDS * 1000) {
     let summary: StatusSummary | null = null;
     try {
@@ -61,7 +62,11 @@ export async function proxyStatus(request: Request, env: StorefrontEnv, now: num
     }
     // A summary that could not be refreshed is not served past its minute: a stale "all systems operational" during an
     // outage of mail itself would be the wrong thing to say.
-    cached = summary ? { at: now, summary } : null;
+    // Requests that overlap at expiry each ask mail (a promise is not shared between requests: one awaited from another
+    // request is dropped if the request that started it ends first). So a failure here only clears the summary it set out
+    // to replace, never a newer one another request has saved meanwhile.
+    if (summary) cached = { at: now, summary };
+    else if (cached === expired) cached = null;
   }
   if (!cached) {
     return Response.json(

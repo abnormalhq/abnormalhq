@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Copy } from "@/i18n/types";
 import { fillText } from "@/lib/pricing";
-import { formatUptime, sharedStatus, type StatusSummary } from "@/lib/status";
+import { formatUptime, watchStatus, type StatusSummary } from "@/lib/status";
 import { cn } from "@/lib/utils";
 
 const DOT = { up: "bg-success", down: "bg-destructive", maintenance: "bg-badge-ink" } as const;
@@ -14,7 +14,8 @@ const DOT = { up: "bg-success", down: "bg-destructive", maintenance: "bg-badge-i
  * (src/lib/status.ts), answered by this site's Worker from mail's public status page.
  *
  * Pages are prerendered, so the status is read in the browser and nothing is rendered before it is known: with no answer, a
- * failed one, or no data yet ("pending") this stays empty, and the footer's "Service status" link is still there. The text is
+ * failed one, or no data yet ("pending") this stays empty, and the footer's "Service status" link is still there. It is read
+ * again every minute while the page is open, and a refresh that fails empties it again. The text is
  * never announced as it appears; it is ordinary content, not an alert.
  */
 export function ServiceStatus({
@@ -29,13 +30,8 @@ export function ServiceStatus({
 }) {
   const [summary, setSummary] = useState<StatusSummary | null>(null);
 
-  useEffect(() => {
-    let current = true;
-    void sharedStatus().then((answer) => current && setSummary(answer));
-    return () => {
-      current = false;
-    };
-  }, []);
+  // Read now and again every minute while mounted; a refresh that fails clears what is shown.
+  useEffect(() => watchStatus(setSummary), []);
 
   if (!summary || summary.status === "pending") return null;
   const state = copy.states[summary.status];

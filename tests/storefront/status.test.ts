@@ -9,6 +9,9 @@ import {
   formatUptime,
   readStatusSummary,
   sharedStatus,
+  watchStatus,
+  type StatusSummary,
+  type StatusWatchHost,
 } from "@/lib/status";
 import { storefrontApi as worker, type StorefrontEnv } from "@/storefront/worker/index";
 import { MAIL_STATUS_PATH, forgetStatus, proxyStatus } from "@/storefront/worker/status";
@@ -158,6 +161,103 @@ test("the figure reads 100 only when no check failed", () => {
   expect(formatUptime(99.98)).toBe("99.98");
   expect(formatUptime(99.5)).toBe("99.50");
   expect(formatUptime(0)).toBe("0.00");
+  // mail's two decimals are shown as they are, whatever their binary form.
+  expect(formatUptime(0.29)).toBe("0.29");
+  expect(formatUptime(16.65)).toBe("16.65");
+  expect(formatUptime(99.99)).toBe("99.99");
+  expect(formatUptime(99.996)).toBe("99.99");
+});
+
+test("requests that overlap at expiry do not erase each other's answer", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const start = 1_800_000_000_000;
+  const pending: ((response: Response) => void)[] = [];
+  const env = bindings(() => new Promise<Response>((resolve) => pending.push(resolve)));
+  const first = proxyStatus(get(), env, start);
+  const second = proxyStatus(get(), env, start);
+  await vi.waitFor(() => expect(pending).toHaveLength(2));
+  // The first is answered, then the second fails: the summary the first saved stays.
+  pending[0]!(Response.json(summary));
+  expect((await first).status).toBe(200);
+  pending[1]!(new Response(null, { status: 503 }));
+  expect((await second).status).toBe(200);
+  const up = bindings(async () => expect.unreachable("the saved summary is still fresh"));
+  expect(await (await proxyStatus(get(), up, start + 1000)).json()).toEqual(summary);
+});
+
+test("a page left open reads the status again every minute, and a failed refresh clears it", async () => {
+  let now = 1_800_000_000_000;
+  let hidden = false;
+  let tick = () => {};
+  let shown = () => {};
+  const stopped = vi.fn();
+  const answers: (() => Promise<Response>)[] = [];
+  const fetcher = vi.fn(() => answers.shift()!()) as unknown as typeof fetch;
+  const host: StatusWatchHost = {
+    fetcher,
+    now: () => now,
+    every: (ms, run) => {
+      expect(ms).toBe(60_000);
+      tick = run;
+      return stopped;
+    },
+    hidden: () => hidden,
+    onVisible: (run) => {
+      shown = run;
+      return stopped;
+    },
+  };
+  const footer: (StatusSummary | null)[] = [];
+  const hero: (StatusSummary | null)[] = [];
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  answers.push(async () => Response.json(summary));
+  const stopFooter = watchStatus((answer) => footer.push(answer), host);
+  const stopHero = watchStatus((answer) => hero.push(answer), host);
+  await settle();
+  expect([footer, hero]).toEqual([[summary], [summary]]);
+  expect(fetcher).toHaveBeenCalledOnce();
+
+  // A minute on, an outage: both hear the new state from one request.
+  now += 60_000;
+  answers.push(async () => Response.json({ ...summary, status: "down" }));
+  tick();
+  await settle();
+  expect(footer.at(-1)?.status).toBe("down");
+  expect(hero.at(-1)?.status).toBe("down");
+  expect(fetcher).toHaveBeenCalledTimes(2);
+
+  // The refresh fails: what was shown is cleared, not kept.
+  now += 60_000;
+  answers.push(async () => new Response(null, { status: 503 }));
+  tick();
+  await settle();
+  expect([footer.at(-1), hero.at(-1)]).toEqual([null, null]);
+
+  // A background tab does not ask; it asks as soon as it is shown again.
+  now += 60_000;
+  hidden = true;
+  tick();
+  await settle();
+  expect(fetcher).toHaveBeenCalledTimes(3);
+  hidden = false;
+  answers.push(async () => Response.json(summary));
+  shown();
+  await settle();
+  expect(footer.at(-1)).toEqual(summary);
+  expect(fetcher).toHaveBeenCalledTimes(4);
+
+  // The hero leaves (another page), the footer stays and keeps the timer; the last one out stops it.
+  stopHero();
+  expect(stopped).not.toHaveBeenCalled();
+  now += 60_000;
+  answers.push(async () => Response.json(summary));
+  const heard = hero.length;
+  tick();
+  await settle();
+  expect(hero).toHaveLength(heard);
+  stopFooter();
+  expect(stopped).toHaveBeenCalledTimes(2);
 });
 
 test("a page's parts share one request, a failure is null and is asked again", async () => {
