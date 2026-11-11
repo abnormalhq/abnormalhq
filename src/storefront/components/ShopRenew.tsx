@@ -10,6 +10,8 @@ import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import {
   createRenewalOrder,
   formatCredits,
+  formatMoney,
+  type ShopPaymentProvider,
   formatDateTime,
   getRenewal,
   type RenewalSummary,
@@ -39,6 +41,7 @@ import {
   shopPriceUnitClass,
   shopTextClass,
 } from "./ShopParts";
+import { trialCopy } from "@/storefront/lib/trial";
 import { ShopSession } from "./ShopSession";
 
 export function ShopRenew({ lang }: { lang: Lang }) {
@@ -73,13 +76,13 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
     return () => controller.abort();
   }, [token, lang]);
 
-  async function submit() {
+  async function submit(provider: ShopPaymentProvider = "ldc") {
     if (lock.current) return;
     lock.current = true;
     setCreating(true);
     setError("");
     try {
-      const id = await createRenewalOrder(token, periods, lang, email.trim());
+      const id = await createRenewalOrder(token, periods, lang, email.trim(), provider);
       router.push(`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(id)}`);
     } catch (cause) {
       setError(renewalError(cause, lang));
@@ -95,7 +98,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
       <ShopTextLink href={`/${LANG_PATHS[lang]}shop/`}>← {t.backToShop}</ShopTextLink>
       <ShopSession lang={lang} />
       <ShopHero eyebrow={t.renewEyebrow} title={t.renewTitle}>
-        {t.renewDescription}
+        {summary?.trial ? trialCopy[lang].expiry : t.renewDescription}
       </ShopHero>
       {loadError ? (
         <Card asChild className={shopEmptyClass}>
@@ -116,6 +119,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
               <h2 className={shopHeadingClass}>{summary.productName}</h2>
               <ShopStatus active={summary.state === "active"}>{t.subscriptionStates[summary.state]}</ShopStatus>
             </div>
+            {summary.trial && <p className={shopTextClass}>{trialCopy[lang].manual}</p>}
             <ShopMeta>
               <ShopMetaRow label={t.subscriptionEnds}>{date(summary.currentPeriodEnd)}</ShopMetaRow>
               <ShopMetaRow label={t.period}>
@@ -189,12 +193,27 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                   <strong className={shopPriceAmountClass}>{formatCredits(summary.renewPriceCents * periods)}</strong>
                   <span className={shopPriceUnitClass}>LDC</span>
                 </p>
+                {Boolean(summary.fiatRenewMinor && summary.currency) && (
+                  <p className={shopTextClass}>
+                    {trialCopy[lang].card}:{" "}
+                    {formatMoney((summary.fiatRenewMinor ?? 0) * periods, summary.currency ?? "usd", lang)}
+                  </p>
+                )}
                 {error && <ShopAlert>{error}</ShopAlert>}
                 <ShopActions>
                   <ShopButton type="submit" disabled={creating || summary.maxPeriods < 1}>
                     {creating ? t.renewing : t.renewButton}
                     <span aria-hidden="true">↗</span>
                   </ShopButton>
+                  {Boolean(summary.fiatRenewMinor && summary.currency) && (
+                    <ShopButton
+                      type="button"
+                      disabled={creating || summary.maxPeriods < 1}
+                      onClick={() => void submit("stripe")}
+                    >
+                      {creating ? t.renewing : trialCopy[lang].card}
+                    </ShopButton>
+                  )}
                 </ShopActions>
               </form>
             </ShopPanel>

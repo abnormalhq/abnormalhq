@@ -43,6 +43,7 @@ export const catalogResponse = {
  */
 export const orderResponse = {
   order: {
+    trial: false,
     id: ORDER_ID,
     productName: "月付邮箱",
     originalPriceCents: 499,

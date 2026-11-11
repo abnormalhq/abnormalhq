@@ -46,6 +46,7 @@ export {
 
 export interface PublicShopOrder {
   order: Omit<ShopProduct, "name" | "description"> & {
+    trial?: boolean;
     productName: string;
     status: "pending" | "paid";
     created: string;
@@ -85,6 +86,9 @@ export interface PublicShopOrder {
 
 /** Subscription info read by the renewal page. */
 export interface RenewalSummary {
+  trial?: boolean;
+  fiatRenewMinor?: number;
+  currency?: string;
   subscriptionId: string;
   productName: string;
   mailboxCount: number;
@@ -119,6 +123,7 @@ function parseOrder(value: unknown, orderId: string): PublicShopOrder["order"] |
   if (
     !record(value) ||
     value.id !== orderId ||
+    !optional(value.trial, isBoolean) ||
     !isString(value.productName) ||
     !isOrderStatus(value.status) ||
     !isString(value.created) ||
@@ -132,10 +137,13 @@ function parseOrder(value: unknown, orderId: string): PublicShopOrder["order"] |
     !optional(value.couponDiscountCents, isCount)
   )
     return null;
-  const entitlements = parseEntitlements(value, value.couponDiscountCents ?? 0);
+  const freeTrial =
+    value.trial === true && value.status === "paid" && value.kind === "purchase" && value.mailboxCount === 1;
+  const entitlements = parseEntitlements(value, value.couponDiscountCents ?? 0, freeTrial);
   if (!entitlements) return null;
   return compact({
     id: orderId,
+    trial: value.trial,
     productName: value.productName,
     ...entitlements,
     status: value.status,
@@ -386,6 +394,9 @@ export async function getRenewal(token: string, signal?: AbortSignal, lang?: Lan
   const body = await request("renewal", { token }, signal, lang);
   if (
     !record(body) ||
+    !optional(body.trial, isBoolean) ||
+    !optional(body.fiatRenewMinor, isCount) ||
+    !optional(body.currency, isCurrency) ||
     !isString(body.subscriptionId) ||
     !isString(body.productName) ||
     !isString(body.currentPeriodEnd) ||
@@ -401,6 +412,9 @@ export async function getRenewal(token: string, signal?: AbortSignal, lang?: Lan
   )
     throw new ShopApiError("");
   return compact({
+    trial: body.trial,
+    fiatRenewMinor: body.fiatRenewMinor,
+    currency: body.currency,
     subscriptionId: body.subscriptionId,
     productName: body.productName,
     mailboxCount: body.mailboxCount,
@@ -417,8 +431,19 @@ export async function getRenewal(token: string, signal?: AbortSignal, lang?: Lan
 }
 
 /** Places a renewal order for a subscription and returns the order number; payment then happens on the order page as usual. */
-export async function createRenewalOrder(token: string, periods: number, lang?: Lang, email = ""): Promise<string> {
-  const body = await request("renew", email ? { token, periods, email } : { token, periods }, undefined, lang);
+export async function createRenewalOrder(
+  token: string,
+  periods: number,
+  lang?: Lang,
+  email = "",
+  provider: ShopPaymentProvider = "ldc",
+): Promise<string> {
+  const body = await request(
+    "renew",
+    { token, periods, ...(email ? { email } : {}), ...(provider === "stripe" ? { provider } : {}) },
+    undefined,
+    lang,
+  );
   if (!record(body) || typeof body.orderId !== "string" || !/^[a-z0-9]{15}$/.test(body.orderId))
     throw new ShopApiError("");
   return body.orderId;
@@ -436,6 +461,7 @@ export interface CustomerAccount {
   /** Linked Google account (the email Google most recently verified), null when none is linked; old backends without Google login omit this field. */
   google?: { email: string } | null;
   subscriptions: {
+    trial?: boolean;
     id: string;
     productName: string;
     state: SubscriptionState;
@@ -451,6 +477,7 @@ export interface CustomerAccount {
     fiatRenewMinor?: number;
   }[];
   orders: {
+    trial?: boolean;
     id: string;
     kind: "purchase" | "renewal";
     productName: string;
@@ -476,6 +503,7 @@ type AccountOrder = CustomerAccount["orders"][number];
 function parseAccountSubscription(item: unknown): AccountSubscription | null {
   if (
     !record(item) ||
+    !optional(item.trial, isBoolean) ||
     !isString(item.id) ||
     !isString(item.productName) ||
     !isState(item.state) ||
@@ -492,6 +520,7 @@ function parseAccountSubscription(item: unknown): AccountSubscription | null {
   )
     return null;
   return compact({
+    trial: item.trial,
     id: item.id,
     productName: item.productName,
     state: item.state,
@@ -511,6 +540,7 @@ function parseAccountSubscription(item: unknown): AccountSubscription | null {
 function parseAccountOrder(item: unknown): AccountOrder | null {
   if (
     !record(item) ||
+    !optional(item.trial, isBoolean) ||
     !isString(item.id) ||
     !isKind(item.kind) ||
     !isString(item.productName) ||
@@ -529,6 +559,7 @@ function parseAccountOrder(item: unknown): AccountOrder | null {
   )
     return null;
   return compact({
+    trial: item.trial,
     id: item.id,
     kind: item.kind,
     productName: item.productName,

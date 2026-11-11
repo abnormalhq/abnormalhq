@@ -21,7 +21,7 @@ export function ShopDetails({
     | "renewPriceCents"
     | "priceCents"
     | "customDomains"
-  >;
+  > & { trial?: boolean };
   lang: Lang;
   /** Stripe order: the renewal price is a fiat amount in this currency, not LDC. Empty when the backend did not say which: no renewal price is shown then. */
   stripeCurrency?: string;
@@ -47,7 +47,7 @@ export function ShopDetails({
         {seatRange ? t.seatCountValue(seatRange.min, seatRange.max) : t.quantity(item.mailboxCount)}
       </Row>
       <Row label={t.quota}>{quota}</Row>
-      {item.periodDays !== undefined && (
+      {item.periodDays !== undefined && !item.trial && (
         <Row label={t.period}>
           <>
             {item.periodDays > 0 ? (

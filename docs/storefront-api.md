@@ -794,3 +794,11 @@ Orders keep `quotaMb` and the other sales terms from the time of purchase; `quot
 
 The portal URL is returned from `STALWART_WEBMAIL_URL`, currently configured in the repository as `https://webmail.abnormalhq.com`.
 Users can view client settings and change their password with the current password under "Settings" in the webmail; forgotten passwords are still reset by an administrator after verification.
+
+## Free trials
+
+`GET /api/shop/account/trial` requires a verified account session and returns `{ trial: null }`, an unclaimed offer (`claimed: false`, `days`, `quotaMb`, `domains`, `productName`), or the account's lifetime claim (`claimed: true`, `orderId`). `POST` to the same endpoint with `{}` and a same-origin request claims the offer atomically and returns `{ orderId }`; retries return the same claim. It collects no card or payment information. The catalog's optional `trial: { days, quotaMb }` advertises an enabled, available offer.
+
+Trial orders have `trial: true`, `status: "paid"` (the entitlement is available), and zero price; no payment was collected. Only this explicit grant shape permits a zero-price order. Trial subscriptions publish `trial: true` and skip the usual grace period. The existing account mailbox manager sets up the one mailbox and rejects changes at expiry.
+
+The renewal response may include `trial`, `fiatRenewMinor` and `currency`. A request to `POST /api/shop/renew` can select `provider: "stripe"` for a manual card payment when that amount is offered. Otherwise it uses LDC as before. This buys only the selected periods and never starts auto-renewal. The first paid upgrade keeps the trial's mailbox and starts its paid term at payment time. The account's single trial remains used after upgrading or expiry.

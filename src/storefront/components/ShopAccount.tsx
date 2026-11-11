@@ -55,6 +55,8 @@ import {
   shopOrderPageClass,
   shopTextClass,
 } from "./ShopParts";
+import { ShopTrial } from "./ShopTrial";
+import { trialCopy } from "@/storefront/lib/trial";
 import { ShopDomains } from "./ShopDomains";
 import { ShopMailboxManager } from "./ShopMailboxManager";
 import { useTurnstile } from "./Turnstile";
@@ -501,6 +503,14 @@ export function ShopAccount({ lang }: { lang: Lang }) {
               </ShopButton>
             </div>
           </ShopPanel>
+          <ShopTrial
+            key={account.email}
+            lang={lang}
+            onClaimed={() => {
+              setMailboxRefresh((value) => value + 1);
+              setReload((value) => value + 1);
+            }}
+          />
           <ShopMailboxManager lang={lang} refresh={mailboxRefresh} />
           {/* "Use my own domain": hidden by itself while the backend or the account's plans do not offer it. */}
           <ShopDomains lang={lang} onLive={() => setMailboxRefresh((value) => value + 1)} />
@@ -540,6 +550,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                   <div className={shopHeadingRowClass}>
                     <h3 className="text-md/[1.2]">{subscription.productName}</h3>
                     <ShopStatus active={subscription.state === "active"}>
+                      {subscription.trial ? `${trialCopy[lang].title} · ` : ""}
                       {t.subscriptionStates[subscription.state]}
                       {subscription.provider === "stripe" &&
                         ` · ${subscription.autoRenew ? t.autoRenewOn : t.autoRenewOff}`}
@@ -547,7 +558,11 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                   </div>
                   <ShopMeta>
                     <ShopMetaRow label={t.subscriptionEnds}>{date(subscription.currentPeriodEnd)}</ShopMetaRow>
-                    <ShopMetaRow label={t.period}>
+                    <ShopMetaRow
+                      label={
+                        subscription.trial ? (lang === "zh" ? "升级后服务期" : "Paid period after upgrade") : t.period
+                      }
+                    >
                       {t.periodValue(subscription.periodDays)}
                       {subscription.provider !== "stripe" ? (
                         <>
@@ -593,7 +608,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     <ShopActions>
                       <ShopButton asChild variant="outline">
                         <Link href={`/${LANG_PATHS[lang]}shop/renew/?t=${encodeURIComponent(subscription.renewToken)}`}>
-                          {t.renewLink}
+                          {subscription.trial ? trialCopy[lang].upgrade : t.renewLink}
                           <span aria-hidden="true">↗</span>
                         </Link>
                       </ShopButton>
@@ -616,7 +631,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                       {order.kind === "renewal" && ` · ${t.renewalLabel}`}
                     </h3>
                     <ShopStatus active={order.status === "paid"}>
-                      {order.status === "paid" ? t.paid : t.pending}
+                      {order.trial ? trialCopy[lang].title : order.status === "paid" ? t.paid : t.pending}
                     </ShopStatus>
                   </div>
                   <ShopMeta>
