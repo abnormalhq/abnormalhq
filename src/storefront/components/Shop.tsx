@@ -24,7 +24,7 @@ import {
   type ShopPaymentProvider,
 } from "@/storefront/lib/shop";
 import { COUPON_MAX_LENGTH, couponVerdict, normalizeCoupon, rememberCoupon } from "@/storefront/lib/coupon";
-import { QuoteBoard, seatFigure, seatRefusal, viewOf, type SeatFigure } from "@/storefront/lib/quote";
+import { QuoteBoard, seatFigure, seatRefusal, seatTerms, viewOf, type SeatFigure } from "@/storefront/lib/quote";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import {
   ADDRESS_PARAM,
@@ -544,6 +544,13 @@ export function Shop({ lang }: { lang: Lang }) {
               const { ldcFigure, cardFigure, asking, ...open } = waysOf(product);
               const range = rangeOf(product);
               const figures = [ldcFigure, cardFigure].filter((figure) => figure !== null);
+              // What each total is labelled with: the quote's own currency, period and discount for a quoted total (the
+              // catalog can be older than the quote), the catalog's only for the page's estimate.
+              const catalogTerms = { periodDays: days, discountPercent: product.discountPercent };
+              const ldcTerms = sold(ldcFigure) ? seatTerms(ldcFigure, { ...catalogTerms, currency: "" }) : null;
+              const cardTerms = sold(cardFigure)
+                ? seatTerms(cardFigure, { ...catalogTerms, currency: stripeCurrency ?? "" })
+                : null;
               const tooMany = figures.length > 0 && figures.every((figure) => figure.kind === "tooMany");
               // The applied code on this plan, per way of paying the card offers: a quote, null (cannot be used) or undefined (not asked).
               const ldcQuote = open.ldc ? applied?.quotes[`${product.id}:ldc:${seats}`] : undefined;
@@ -655,10 +662,10 @@ export function Shop({ lang }: { lang: Lang }) {
                               <p className="text-destructive">{t.seatTooMany}</p>
                             ) : (
                               <>
-                                {sold(ldcFigure) && (
+                                {sold(ldcFigure) && ldcTerms && (
                                   // Keyed by the amount: a new total rises in, so a change of quantity is seen to land.
                                   <p className="animate-arrive font-semibold" key={ldcFigure.totalCents}>
-                                    {t.seatTotalLdc(formatCredits(ldcFigure.totalCents), days)}
+                                    {t.seatTotalLdc(formatCredits(ldcFigure.totalCents), ldcTerms.periodDays)}
                                     {ldcFigure.subtotalCents > ldcFigure.totalCents && (
                                       <span className="ml-2 font-normal text-muted-foreground">
                                         <span className="sr-only">{t.seatWas} </span>
@@ -678,7 +685,7 @@ export function Shop({ lang }: { lang: Lang }) {
                                       )}
                                     </p>
                                   )}
-                                {sold(cardFigure) && stripeCurrency && (
+                                {sold(cardFigure) && cardTerms?.currency && (
                                   <p
                                     className={cn(
                                       "animate-arrive",
@@ -686,7 +693,10 @@ export function Shop({ lang }: { lang: Lang }) {
                                     )}
                                     key={cardFigure.totalCents}
                                   >
-                                    {t.seatTotalCard(formatMoney(cardFigure.totalCents, stripeCurrency, lang), days)}
+                                    {t.seatTotalCard(
+                                      formatMoney(cardFigure.totalCents, cardTerms.currency, lang),
+                                      cardTerms.periodDays,
+                                    )}
                                   </p>
                                 )}
                                 {/* Only the way of paying that cannot take this quantity is closed, and says why. */}
@@ -710,9 +720,9 @@ export function Shop({ lang }: { lang: Lang }) {
                             )}
                           </div>
                           <p className="mt-2 text-xs/[1.6] text-muted-foreground">
-                            {sold(ldcFigure) &&
-                              product.discountPercent > 0 &&
-                              `${t.seatDiscountNote(product.discountPercent)} `}
+                            {ldcTerms &&
+                              ldcTerms.discountPercent > 0 &&
+                              `${t.seatDiscountNote(ldcTerms.discountPercent)} `}
                             {/* An estimate says so; mail's own total says that instead. */}
                             {figures.some((figure) => figure.kind === "estimate")
                               ? t.seatEstimate

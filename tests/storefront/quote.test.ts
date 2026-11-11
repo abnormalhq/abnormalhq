@@ -20,6 +20,7 @@ import {
   quotePurchase,
   seatFigure,
   seatRefusal,
+  seatTerms,
   upgradePeriodPrices,
   viewOf,
   type PlanQuote,
@@ -1152,6 +1153,7 @@ test("figure: mail's quote is shown as it is; without one the page's estimate st
   // A quote: every number is mail's, including what later periods cost, which the page could only guess before.
   expect(seatFigure({ state: "quoted", quote: quote as PurchaseQuote }, estimate)).toStrictEqual({
     kind: "quoted",
+    currency: "",
     totalCents: 2098,
     subtotalCents: 2331,
     discountPercent: 10,
@@ -1761,4 +1763,49 @@ test("shop proxy: a mail before the quote answers a JSON 404; mail's coded refus
     bindings(async () => new Response("upstream down", { status: 502, headers: { "Content-Type": "text/plain" } })),
   );
   expect(broken.status).toBe(503);
+});
+
+test("seat totals: a quoted total is labelled with the quote's currency, period and discount, an estimate with the catalog's", () => {
+  // The catalog the page loaded: 30 days, 10% off, cards charged in USD. The plan changed since: mail now quotes 90 days,
+  // 20% off and EUR. The fresh amounts must not be shown as "every 30 days", "10% discount" or dollars.
+  const catalog = { periodDays: 30, discountPercent: 10 };
+  const fresh = { ...quote, periodDays: 90, discountPercent: 20, planDiscountCents: 466, basePriceCents: 1865 };
+  const ldc = seatFigure(
+    { state: "quoted", quote: { ...fresh, totalCents: 1865, renewPriceCents: 6993 } as PurchaseQuote },
+    { originalPriceCents: 2331, priceCents: 2098 },
+  );
+  const card = seatFigure(
+    { state: "quoted", quote: { ...cardQuote, currency: "eur", periodDays: 90 } as PurchaseQuote },
+    { originalPriceCents: 1393, priceCents: 1393 },
+  );
+  if (ldc.kind !== "quoted" || card.kind !== "quoted") throw new Error("expected quoted figures");
+  expect(ldc).toMatchObject({ currency: "", periodDays: 90, discountPercent: 20 });
+  expect(card).toMatchObject({ currency: "eur", periodDays: 90, discountPercent: 0 });
+  expect(seatTerms(ldc, { ...catalog, currency: "" })).toStrictEqual({
+    currency: "",
+    periodDays: 90,
+    discountPercent: 20,
+  });
+  expect(seatTerms(card, { ...catalog, currency: "usd" })).toStrictEqual({
+    currency: "eur",
+    periodDays: 90,
+    discountPercent: 0,
+  });
+  // The total's period is then the one the renewal line under it names.
+  expect(seatTerms(ldc, { ...catalog, currency: "" }).periodDays).toBe(ldc.periodDays);
+
+  // Without a quote the page works the total out from the catalog, and labels it with the catalog.
+  const estimate = seatFigure(undefined, { originalPriceCents: 2331, priceCents: 2098 });
+  if (estimate.kind !== "estimate") throw new Error("expected an estimate");
+  expect(seatTerms(estimate, { ...catalog, currency: "usd" })).toStrictEqual({
+    currency: "usd",
+    periodDays: 30,
+    discountPercent: 10,
+  });
+
+  // The plan card labels every seat total through these terms, never with the catalog's values directly.
+  const page = readFileSync("src/storefront/components/Shop.tsx", "utf8");
+  expect(page).toMatch(/t\.seatTotalLdc\(formatCredits\(ldcFigure\.totalCents\), ldcTerms\.periodDays\)/);
+  expect(page).toMatch(/formatMoney\(cardFigure\.totalCents, cardTerms\.currency, lang\),\s*cardTerms\.periodDays/);
+  expect(page).toMatch(/t\.seatDiscountNote\(ldcTerms\.discountPercent\)/);
 });

@@ -604,6 +604,8 @@ export class QuoteBoard {
 export type SeatFigure =
   | {
       kind: "quoted";
+      /** The currency the total is counted in, as the quote says it; "" for LDC. */
+      currency: string;
       totalCents: number;
       /** The order before the plan's discount; equal to the total when there is none. */
       subtotalCents: number;
@@ -627,8 +629,18 @@ export function seatFigure(
   estimate: { originalPriceCents: number; priceCents: number } | null,
 ): SeatFigure {
   if (view?.state === "quoted") {
-    const { totalCents, subtotalCents, discountPercent, renewPriceCents, periodDays, basePriceCents } = view.quote;
-    return { kind: "quoted", totalCents, subtotalCents, discountPercent, renewPriceCents, periodDays, basePriceCents };
+    const { currency, totalCents, subtotalCents, discountPercent, renewPriceCents, periodDays, basePriceCents } =
+      view.quote;
+    return {
+      kind: "quoted",
+      currency,
+      totalCents,
+      subtotalCents,
+      discountPercent,
+      renewPriceCents,
+      periodDays,
+      basePriceCents,
+    };
   }
   if (view?.state === "refused") {
     return view.code === "seat_total_too_large" ? { kind: "tooMany" } : { kind: "refused", message: view.message };
@@ -636,6 +648,25 @@ export function seatFigure(
   return estimate
     ? { kind: "estimate", totalCents: estimate.priceCents, subtotalCents: estimate.originalPriceCents }
     : { kind: "tooMany" };
+}
+
+/** What a total is labelled with: the currency it is counted in ("" for LDC), the billing period and the plan's discount. */
+export interface SeatTerms {
+  currency: string;
+  periodDays: number;
+  discountPercent: number;
+}
+
+/**
+ * The terms a seat plan's total is labelled with. A quoted total is mail's answer of this moment, and the catalog the page
+ * loaded can be older than it (a plan's period, discount or card currency changed since): the quote's own terms label it,
+ * so the amount, its currency, its period, the discount note and the renewal line all say the same thing. Only an estimate,
+ * which the page works out from the catalog, is labelled with the catalog's terms.
+ */
+export function seatTerms(figure: Extract<SeatFigure, { kind: "quoted" | "estimate" }>, catalog: SeatTerms): SeatTerms {
+  return figure.kind === "quoted"
+    ? { currency: figure.currency, periodDays: figure.periodDays, discountPercent: figure.discountPercent }
+    : catalog;
 }
 
 /** A range mail would accept for a quantity field: whole numbers, 1 to SEAT_MAX, min not above max. */
