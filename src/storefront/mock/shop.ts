@@ -5,7 +5,7 @@
  * a password can be set without the current one only within 10 minutes of signing in by link and signs other browsers out,
  * registering mails (logs) a confirmation link that sets the password, the mailbox manager only touches the account's own orders' mailboxes,
  * paying returns to the order page in the form's language, errors come in the request's language, and a discount code is
- * priced by the server, refused with one message for every reason, and not published with the order. A seat plan is priced
+ * priced by the server, refused with one message for every reason, and published with the order. A seat plan is priced
  * for its quantity by mail's rounding rule, seats are added for the rest of the period (an LDC order to pay, or the card
  * charged) and removed only at the next renewal, and an order that adds seats is published as a renewal order.
  */
@@ -207,7 +207,7 @@ interface StoredOrder {
   /** Request language at order time; when the payment form carries no lang, payment returns to the order page in this language (same as mail's payment return address). */
   locale: "zh" | "en";
   order: PublicShopOrder["order"];
-  /** The discount code of the order and what it took off. Like mail, kept with the order and not published with it yet. */
+  /** The discount code of the order and what it took off, as the order also publishes them (couponCode, couponDiscountCents). */
   coupon?: { code: string; discountCents: number };
   /**
    * An order that adds seats to a seat subscription (mail's kind "seats"): published as `kind: "renewal"` with `periods: 1`, and
@@ -916,6 +916,8 @@ export class MockShopStore {
               periods,
               periodDays: renewal.periodDays,
               subscriptionId: renewal.subscriptionId,
+              couponCode: "",
+              couponDiscountCents: 0,
               status: "pending",
               created: new Date(this.now()).toISOString(),
               paidAt: null,
@@ -923,9 +925,8 @@ export class MockShopStore {
           : {
               id,
               productName: product!.name,
-              // mail does not publish an order's code yet. With a plan discount the three price fields stay as stored, with the
-              // lower price actually paid; without one the original price is published as the price paid (mail's toPublicOrder).
-              originalPriceCents: quote && !product!.discountPercent ? quote.priceCents : fixedOriginal!,
+              // Like mail: the stored original price, with the code and what it took off priceCents ("" and 0 without one).
+              originalPriceCents: fixedOriginal!,
               discountPercent: product!.discountPercent,
               priceCents: quote ? quote.priceCents : fixedPrice!,
               mailboxCount: seatPlan ? seats : product!.mailboxCount,
@@ -942,12 +943,14 @@ export class MockShopStore {
                     provider: "stripe" as const,
                     currency: "usd",
                     priceCents: quote ? quote.priceCents : cardPrice,
-                    originalPriceCents: quote ? quote.priceCents : cardPrice,
+                    originalPriceCents: cardPrice,
                     discountPercent: 0,
                     // Same as the backend: Stripe subscriptions charge the fiat price from purchase time each period.
                     renewPriceCents: cardPrice,
                   }
                 : { provider: "ldc" as const }),
+              couponCode: quote?.code ?? "",
+              couponDiscountCents: quote?.discountCents ?? 0,
               status: "pending",
               created: new Date(this.now()).toISOString(),
               paidAt: null,
@@ -1443,6 +1446,8 @@ export class MockShopStore {
           subscriptionId: order.id,
           provider: "ldc",
           currency: "",
+          couponCode: "",
+          couponDiscountCents: 0,
           status: "pending",
           created: new Date(this.now()).toISOString(),
           paidAt: null,

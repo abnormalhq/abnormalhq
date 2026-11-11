@@ -57,6 +57,9 @@ export const orderResponse = {
     periods: 1,
     provider: "stripe",
     currency: "usd",
+    // An order without a discount code: mail publishes "" and 0.
+    couponCode: "",
+    couponDiscountCents: 0,
     status: "paid",
     created: "2026-09-22T00:00:00.000Z",
     paidAt: "2026-09-22T00:01:00.000Z",

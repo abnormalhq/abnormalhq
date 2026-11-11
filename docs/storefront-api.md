@@ -444,13 +444,13 @@ What the shop page does (`src/storefront/components/Shop.tsx`):
   requests say the code is checked when ordering. When no plan can use it the field shows one sentence, "This code can't be used."
 - Whatever is in the field goes with `checkout`, for Linux DO Credit and card alike, whether or not it was previewed. So a typed
   code is applied or the checkout is refused with mail's message (the form stays as it is); to buy without it the buyer removes it.
-- There is no catalog flag for discount codes yet, so the field is always offered and goes away when the preview answers `404`.
-  The page already honours an explicit `coupons: false` in the catalog (see "Proposed").
+- The catalog's `coupons` flag decides whether the field is offered: `false` hides it without a request, `true` shows it, and
+  without the flag (a mail before it) the field is offered and goes away when the preview answers `404`.
 - **The order page** shows the code and what it took off under the price: "Discount code WELCOME, −1.00 LDC" and the price before
-  the code struck through, plus the first-period note for a subscription. mail does not publish the code with the order yet, and
-  publishes an order with a code but no plan discount with `originalPriceCents` equal to `priceCents` (with a plan discount the
-  stored original price and percentage stay, next to the lower price actually paid), so the fields alone show no discount.
-  The shop page therefore remembers, for each order it creates with a code, the code and the price before it (the plan's
+  the code struck through, plus the first-period note for a subscription. mail publishes both with the order (`couponCode`, `couponDiscountCents`)
+  and the page uses them. A mail before those fields published neither, and published an order with a code but no plan discount
+  with `originalPriceCents` equal to `priceCents`, so the fields alone showed no discount. For such a backend the shop page
+  still remembers, for each order it creates with a code, the code and the price before it (the plan's
   `priceCents`, or `fiatPriceMinor` for a card order) in the tab's `sessionStorage` (`abnormal-coupon`, the last 5 orders;
   `src/storefront/lib/coupon.ts`), since paying leaves the site and comes back. The order page takes the difference between that
   price and the order's `priceCents` as the discount, and only when the order really is cheaper. Opened in another browser, a
@@ -724,21 +724,18 @@ The shop mock API of `pnpm dev` (`src/storefront/mock/shop.ts`) answers by the s
 
 Nothing under this heading is agreed in data form yet: none of it is in `docs/onboard-contract.json`, which must stay byte for byte
 equal to mail's copy, and mail's `docs/shop.md` lists the same points under "Proposed: storefront contract". The endpoints
-themselves exist in mail and the storefront already uses them (see "Discount codes" above); `tests/storefront/coupon.test.ts`
-fails once the contract file takes the route, as a reminder to delete this section.
+themselves exist in mail and the storefront already uses them; `tests/storefront/seats.test.ts` and `domains.test.ts` fail once
+the contract file takes their routes, as a reminder to move those points out.
 
-- **Route**: add `"coupon": "POST"` to `shop.routes` in both copies of the contract file. The Worker already proxies it (`COUPON_ROUTE`
-  in `src/storefront/worker/shop.ts`); the contract tests on both sides would then cover it like every other route.
-- **Order fields**: add `couponCode` (string, `""` without a code) and `couponDiscountCents` (number, 0 without one, in the unit of
-  `priceCents`) to `publicOrderFields`, and publish the stored `originalPriceCents` for every order. The storefront's parser
-  already accepts both fields when present, and its price check already allows `originalPriceCents === priceCents +
-couponDiscountCents` for an order without a plan discount, so mail can start publishing them without waiting for a storefront
-  release; the order page then uses them instead of what the browser remembered, and the breakdown also shows in other browsers
-  and after sign-in. Until then mail keeps publishing `originalPriceCents` equal to `priceCents` for such orders.
-- **Catalog flag**: `coupons` in `GET /api/shop/catalog`. mail's proposal is `coupons: true` while at least one code is usable,
-  absent otherwise. A flag that is always present would be cleaner for the storefront: `coupons: true | false` on every backend
-  with discount codes, where `false` hides the field without a request, `true` shows it, and only an absent flag (an old backend)
-  falls back to today's "offer the field, hide it on `404`". The storefront reads the flag that way already.
+- **Discount codes** are no longer proposed: mail's copy of the contract file took the `coupon` route and the order fields
+  `couponCode` and `couponDiscountCents` (mail #221), and this repository's copy follows byte for byte. mail now publishes the
+  stored `originalPriceCents` for every order (so `originalPriceCents === priceCents + couponDiscountCents` for an order with a
+  code and no plan discount, which the storefront's `validPrice` allows), and the catalog always carries `coupons: true | false`,
+  which the shop page reads as: `false` hides the field without a request, `true` shows it, absent (a mail before the flag)
+  shows it and hides it when the preview answers `404`. The order page uses mail's fields when they are there; what the shop page
+  remembers in `sessionStorage` is only the fallback for a mail before them. Not used by the storefront yet: the preview's
+  several-plans form (`{ products: [...], coupon }`, one guess for up to 8 plans), which would replace the up-to-4 single
+  previews of one "Apply", and the code fields in the account's order list.
 - **Seat plans**: add `"account/seats/quote"`, `"account/seats/add"`, `"account/seats/remove"` and `"account/seats/keep"`
   (all `POST`) to `shop.routes` in both copies of the contract file; the Worker already proxies them (`SEAT_ROUTES`) and
   `tests/storefront/seats.test.ts` fails once the file takes them, as the reminder to move this point out. Also proposed by mail:

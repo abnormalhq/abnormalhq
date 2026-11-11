@@ -20,9 +20,9 @@ const colon: Record<Lang, string> = { zh: "：", en: ": " };
 
 const catalogNote: Record<Lang, (url: string) => string> = {
   zh: (url) =>
-    `当前在售的套餐、价格与可选域名见[套餐目录](${url})（JSON）。其中 \`priceCents\` 是实付金额，单位为百分之一 LDC；\`available\` 为 \`false\` 表示暂未开放购买。`,
+    `当前在售的套餐、价格与可选域名见[套餐目录](${url})（JSON）。其中 \`priceCents\` 是实付金额，单位为百分之一 LDC；\`available\` 为 \`false\` 表示暂未开放购买。按邮箱数量计价的套餐列在 \`seatProducts\` 下，其中的价格是单个邮箱的价格，可购买 \`seatMin\` 到 \`seatMax\` 个；\`customDomains\` 大于 0 的套餐可以接入相应数量的自有域名。`,
   en: (url) =>
-    `The plans on sale, their prices and domains are in the [catalog](${url}) (JSON). \`priceCents\` is the amount to pay in hundredths of an LDC; \`available\` is \`false\` while the shop is closed.`,
+    `The plans on sale, their prices and domains are in the [catalog](${url}) (JSON). \`priceCents\` is the amount to pay in hundredths of an LDC; \`available\` is \`false\` while the shop is closed. Plans sold per mailbox are listed under \`seatProducts\`: their prices are for one mailbox, and \`seatMin\` to \`seatMax\` of them can be bought. A plan with \`customDomains\` above 0 lets its buyer connect that many domains of their own.`,
 };
 
 type Kind = "home" | "guide" | "shop";

@@ -47,6 +47,7 @@
       "renewal": "POST",
       "renew": "POST",
       "address": "POST",
+      "coupon": "POST",
       "account/login": "POST",
       "account/peek": "POST",
       "account/verify": "POST",
@@ -102,6 +103,8 @@
       "periods",
       "provider",
       "currency",
+      "couponCode",
+      "couponDiscountCents",
       "status",
       "created",
       "paidAt"

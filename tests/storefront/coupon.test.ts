@@ -111,25 +111,28 @@ test("checkout client: the code is sent only when there is one, next to the othe
   ]);
 });
 
-test("catalog client: the discount code flag is three-state, since mail does not send it yet", () => {
+test("catalog client: the discount code flag is three-state, since a mail before it does not send it", () => {
   expect(parseShopCatalog(catalogResponse)).not.toHaveProperty("coupons");
   expect(parseShopCatalog({ ...catalogResponse, coupons: true }).coupons).toBe(true);
   expect(parseShopCatalog({ ...catalogResponse, coupons: false }).coupons).toBe(false);
   expect(parseShopCatalog({ ...catalogResponse, coupons: "yes" })).not.toHaveProperty("coupons");
 });
 
-test("order client: an order with a code is accepted as mail publishes it today, and with the proposed fields", async () => {
+test("order client: an order with a code is accepted as mail publishes it, and as a mail before the code fields did", async () => {
   const pending = { ...orderResponse, code: null, codeStatus: null, subscription: null };
-  const order = { ...orderResponse.order, provider: "ldc", currency: "", status: "pending", paidAt: null };
+  // A mail before the two code fields publishes neither.
+  const { couponCode: _code, couponDiscountCents: _discount, ...before } = orderResponse.order;
+  void [_code, _discount];
+  const order = { ...before, provider: "ldc", currency: "", status: "pending", paidAt: null };
   const read = async (fields: object) => {
     vi.stubGlobal("fetch", async () => Response.json({ ...pending, order: { ...order, ...fields } }));
     return (await getShopOrder(order.id)).order;
   };
-  // Today, without a plan discount: the original price is published as the price paid.
+  // Before the fields, without a plan discount: the original price was published as the price paid.
   expect(await read({ originalPriceCents: 400, discountPercent: 0, priceCents: 400 })).not.toHaveProperty("couponCode");
-  // Today, with a plan discount: the stored original price and percentage, and the lower price actually paid.
+  // With a plan discount: the stored original price and percentage, and the lower price actually paid.
   expect((await read({ originalPriceCents: 1000, discountPercent: 25, priceCents: 600 })).priceCents).toBe(600);
-  // Proposed: the code and what it took off, and the stored original price even without a plan discount.
+  // Now: the code and what it took off, and the stored original price even without a plan discount.
   const published = await read({
     originalPriceCents: 500,
     discountPercent: 0,
@@ -416,7 +419,7 @@ test("dev shop: the preview prices a code like mail, with one answer for every r
   expect(await viaClient(ONE_TIME, "ldc", "MONTHLY")).toBeNull();
 });
 
-test("dev shop: checkout prices the order with the code or creates none, and publishes the order as mail does today", async () => {
+test("dev shop: checkout prices the order with the code or creates none, and publishes the order with its code as mail does", async () => {
   const store = new MockShopStore(() => NOW);
   const checkout = (body: unknown, headers?: HeadersInit) =>
     store.fetch("checkout", mockPost("checkout", body, headers));
@@ -430,26 +433,39 @@ test("dev shop: checkout prices the order with the code or creates none, and pub
     return ((await read.json()) as { order: Record<string, unknown> }).order;
   };
 
-  // No plan discount (the monthly plan): the original price is published as the price paid, and renewals stay at the full price.
+  // No plan discount (the monthly plan): the stored original price, the code and what it took off; renewals stay at the full price.
   const monthly = await order(await checkout({ productId: MONTHLY, coupon: "monthly" }));
   expect(monthly).toMatchObject({
-    originalPriceCents: 250,
+    originalPriceCents: 500,
     discountPercent: 0,
     priceCents: 250,
     renewPriceCents: 400,
+    couponCode: "MONTHLY",
+    couponDiscountCents: 250,
   });
   // A plan discount stays as stored, with the lower price actually paid.
   const oneTime = await order(await checkout({ productId: ONE_TIME, coupon: "LDC1" }));
-  expect(oneTime).toMatchObject({ originalPriceCents: 1000, discountPercent: 25, priceCents: 650 });
+  expect(oneTime).toMatchObject({
+    originalPriceCents: 1000,
+    discountPercent: 25,
+    priceCents: 650,
+    couponCode: "LDC1",
+    couponDiscountCents: 100,
+  });
   // A card order: the fiat price with the code, and the full price for every later period.
   const card = await order(await checkout({ productId: MONTHLY, provider: "stripe", coupon: "WELCOME" }));
-  expect(card).toMatchObject({ originalPriceCents: 239, priceCents: 239, renewPriceCents: 299, currency: "usd" });
-  // The code is not published with the order yet.
-  for (const published of [monthly, oneTime, card]) {
-    expect(published).not.toHaveProperty("couponCode");
-    expect(published).not.toHaveProperty("couponDiscountCents");
-    expect(published).not.toHaveProperty("coupon");
-  }
+  expect(card).toMatchObject({
+    originalPriceCents: 299,
+    priceCents: 239,
+    renewPriceCents: 299,
+    currency: "usd",
+    couponCode: "WELCOME",
+    couponDiscountCents: 60,
+  });
+  // Published with the order since mail's contract took the two fields; an order without a code carries "" and 0.
+  const plain = await order(await checkout({ productId: MONTHLY }));
+  expect(plain).toMatchObject({ couponCode: "", couponDiscountCents: 0, originalPriceCents: 500, priceCents: 500 });
+  for (const published of [monthly, oneTime, card, plain]) expect(published).not.toHaveProperty("coupon");
 
   // A code that cannot be used fails the checkout with one message and sets no purchase cookie: the buyer is never charged the full price silently.
   for (const body of [
@@ -571,13 +587,14 @@ test("shop proxy: a mail before discount codes answers a JSON 404, so the shop h
   expect([limited.status, limited.headers.get("Retry-After")]).toStrictEqual([429, "540"]);
 });
 
-test("contract: the code preview is proxied outside the contract file, as both repositories' docs say", () => {
+test("contract: the code preview and the order's code fields are in the contract file, as in mail's copy", () => {
   const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
     shop: { routes: Record<string, string>; publicOrderFields: string[] };
   };
-  // mail's copy leaves the route and the order's code fields out until the storefront contract is no longer "Proposed"; when
-  // it takes them, this test fails and the "Proposed" sections of docs/storefront-api.md and mail's docs/shop.md go away.
-  expect(contract.shop.routes).not.toHaveProperty("coupon");
-  expect(contract.shop.publicOrderFields).not.toContain("couponCode");
+  // mail's copy took the route and the two order fields (mail #221); both copies must stay byte for byte equal. The Worker's
+  // contract test (tests/storefront/worker.test.ts) now covers the route like every other, and the order fixture carries the fields.
+  expect(contract.shop.routes.coupon).toBe("POST");
+  expect(contract.shop.publicOrderFields).toEqual(expect.arrayContaining(["couponCode", "couponDiscountCents"]));
+  // What is still open between the two repositories (seat plans, buyer domains, a code on the order page) stays under "Proposed".
   expect(readFileSync("docs/storefront-api.md", "utf8").includes("\n## Proposed\n")).toBe(true);
 });
