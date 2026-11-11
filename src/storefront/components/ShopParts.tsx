@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Eyebrow } from "@/components/ui/section-heading";
+import { Stepper, StepperContent, StepperIndicator, StepperItem, StepperTitle } from "@/components/ui/stepper";
 import { TextLink } from "@/components/ui/text-link";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +25,24 @@ export const shopEmptyClass = "block px-7 py-12 text-center";
 /** One subscription or order block on the account page; from the second block on there is a thin line above. */
 export const shopAccountItemClass = "[&+&]:mt-5 [&+&]:border-t [&+&]:border-border [&+&]:pt-5";
 
-export function ShopHero({ eyebrow, title, children }: { eyebrow: ReactNode; title: ReactNode; children: ReactNode }) {
+/** Panels and cards rise into place as they appear; the registry's reduced-motion rule leaves them simply shown. */
+export const shopArriveClass = "animate-arrive [animation-duration:0.28s]";
+
+export function ShopHero({
+  eyebrow,
+  title,
+  mark,
+  children,
+}: {
+  eyebrow: ReactNode;
+  title: ReactNode;
+  /** Shown above the eyebrow: the success mark of a paid order. */
+  mark?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <header className="max-w-[810px] pt-[38px] pb-[46px] max-narrow:pt-7 max-narrow:pb-8">
+      {mark && <div className="mb-6">{mark}</div>}
       <Eyebrow>{eyebrow}</Eyebrow>
       <h1 className="mt-[22px] text-[clamp(34px,4.4vw,52px)] leading-[1.15] tracking-[-0.035em] max-narrow:text-[32px] [&:lang(zh)]:tracking-[-0.02em]">
         {title}
@@ -144,5 +160,77 @@ export function ShopField({
         </p>
       )}
     </div>
+  );
+}
+
+/** A grey block standing in for content that is loading; it breathes, and holds still under reduced motion. */
+export function ShopSkeleton({ className }: { className?: string }) {
+  return <span className={cn("block animate-pulse rounded-control bg-control", className)} aria-hidden="true" />;
+}
+
+/**
+ * Payment went through: a highlighter disc pops in and its check draws itself. Decorative, the heading beside it says
+ * the same in words.
+ */
+export function ShopSuccessMark({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "grid size-12 animate-pop place-items-center rounded-full bg-highlight text-highlight-foreground [animation-duration:0.32s]",
+        className,
+      )}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={2.5}>
+        <path
+          className="animate-draw"
+          d="M5 12.5l4.5 4.5L19 7.5"
+          pathLength={1}
+          strokeDasharray={1}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  );
+}
+
+/**
+ * Where the order is: created, paid, and what the payment gives. The line after a step that has just been completed fills
+ * from that step (keyed by status, so it runs again when the order turns paid on the open page).
+ */
+export function ShopProgress({
+  label,
+  doneLabel,
+  steps,
+}: {
+  label: string;
+  /** "Completed", read out after a finished step's title. */
+  doneLabel: string;
+  steps: { key: string; title: ReactNode; status: "complete" | "current" | "upcoming" }[];
+}) {
+  return (
+    <Stepper aria-label={label} className="mb-8 max-w-[560px]">
+      {steps.map((step, index) => (
+        <StepperItem
+          key={`${step.key}:${step.status}`}
+          status={step.status}
+          statusLabel={step.status === "complete" ? doneLabel : undefined}
+          className="data-[status=complete]:after:animate-fill-line"
+        >
+          <StepperIndicator
+            className={cn(
+              "transition-[background-color,border-color,color] duration-300",
+              step.status === "current" && "animate-pop",
+            )}
+          >
+            {index + 1}
+          </StepperIndicator>
+          <StepperContent>
+            <StepperTitle className="text-sm/body transition-colors duration-300">{step.title}</StepperTitle>
+          </StepperContent>
+        </StepperItem>
+      ))}
+    </Stepper>
   );
 }
