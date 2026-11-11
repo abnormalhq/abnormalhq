@@ -750,6 +750,21 @@ Local integration uses the dual-Worker setup described above, with the storefron
 The shop origin setting and the redeem API's `ONBOARD_ORIGIN` are two independent settings; check both when changing ports. Never put production merchant credentials into browser-side code or the mock API.
 The shop mock API of `pnpm dev` (`src/storefront/mock/shop.ts`) answers by the same rules, and login links are printed in the dev server's terminal.
 
+## Service status
+
+The footer of every page and the home page's hero show the live service status as one link to the status page: the state and the availability of the last 30 days, for example "All systems operational · 99.98% uptime over the last 30 days" (`src/components/ServiceStatus.tsx`). It is mail's public status page (`https://console.abnormalhq.com/status`) in one line, so it never says more than that page does: no service names, hosts, outage periods or maintenance text.
+
+- **Browser to this site**: `GET /api/status` (same origin, no cookies). Response `200`: `{ "status": "up", "days": 30, "uptime": 99.98, "updatedAt": "2026-11-10T12:00:00.000Z" }`.
+  - `status`: `up` (every service up), `down` (an outage outside maintenance), `maintenance` (a maintenance in progress and no other outage) or `pending` (no data yet).
+  - `uptime`: successful checks out of all checks of every service on the status page over the last `days` days (today included), as a percentage with two decimals, rounded down so it reads `100` only when no check failed; `null` before the first check.
+  - `updatedAt`: when mail read the data (ISO 8601).
+- **This site to mail**: the Worker (`src/storefront/worker/status.ts`) reads mail's `GET /api/status/summary` through the `MAIL` binding. Nothing of the browser's request is sent on (no cookie, client IP, language or body): the answer is the same for everyone. mail's `src/proxy.ts` lets the route through signed out, and mail reads its database for it at most once a minute.
+- **Caching**: a Worker instance keeps the summary for 60 seconds and answers with `Cache-Control: public, max-age=<what is left of them>`; a tab also shares one request between the footer and the hero and reuses it for a minute across pages (`src/lib/status.ts`). A summary is at most about two minutes old when shown.
+- **Failure**: the Worker passes on only a summary it has checked, rebuilt from the four fields. Anything else (mail unreachable, a mail before the endpoint answering `401`, a redirect, a non-JSON or malformed body, an unknown state, a figure outside 0 to 100) is a JSON `503` with `kind: "unavailable"`, `Cache-Control: no-store` and `Retry-After: 60`, and a summary that could not be refreshed is not served past its minute. The pages then show nothing, as they do for `pending`; the footer's "Service status" link stays.
+- **Contract**: the route, method, states, fields, days and cache lifetime are in `docs/onboard-contract.json` (`status`), checked by `tests/storefront/status.test.ts` here and by mail's contract test.
+- Other methods get `405` with `Allow: GET`; nothing else under `/api/status` exists here (mail's subscription endpoints are not proxied).
+- `pnpm dev` answers `/api/status` with a fixed summary (`src/app/api/status/route.dev.ts`).
+
 ## Proposed
 
 Nothing under this heading is agreed in data form yet: none of it is in `docs/onboard-contract.json`, which must stay byte for byte

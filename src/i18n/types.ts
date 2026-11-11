@@ -405,6 +405,17 @@ export interface Copy {
     buy: string;
     custom: string;
   };
+  /**
+   * The live service status in the footer and under the hero (src/components/ServiceStatus.tsx): the state, then the availability
+   * figure when there is one. It links to the status page.
+   */
+  serviceStatus: {
+    states: { up: string; down: string; maintenance: string };
+    /** {percent} is the figure without its sign, {days} how many days it covers. */
+    uptime: Template<"percent" | "days">;
+    /** What the link is, for assistive technology, before the state. */
+    label: string;
+  };
   footer: {
     /** The one-liner under the brand mark. */
     tagline: string;

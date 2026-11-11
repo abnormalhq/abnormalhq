@@ -99,6 +99,7 @@ The browser requests this site's own API, and `worker.ts` answers every `/api` r
 
 - `/api/onboard/cdk`, `username`, `redeem`: the three POST redeem endpoints.
 - `/api/shop/catalog`, `orders`, `notify`, `account`, `account/mailboxes`: GET; `address` (the address check, see "Pricing and the address check"): POST, without cookies; `coupon` (the discount code preview, see "Discount codes"), `checkout`, `pay`, `pay/stripe`, `reconcile`, `renewal`, `renew` and the `account/*` endpoints (login, password, Google sign-in, mailbox management, seats, own domains): POST, except `account/domains` (the list): GET.
+- `/api/status`: GET, the service status shown in the footer and the hero (state and 30-day availability, from mail's public status page; see "Service status" in [docs/storefront-api.md](docs/storefront-api.md)). Nothing of the browser's request is sent to mail for it, and the answer is cached for a minute.
 
 The Worker keeps the browser's `Origin` and `CF-Connecting-IP` so mailhq can check the origin, rate-limit and verify Turnstile tokens; the redeem endpoints carry no cookies, and the shop endpoints forward only the `mailhq_shop` buyer cookie and the `mailhq_customer` account session (the `account/domains` routes the account session alone). Response headers are built by the Worker, API responses are never cached, and request bodies, passwords and redeem codes are never logged. `vars.MAIL_ORIGIN` in `wrangler.jsonc` (`https://console.abnormalhq.com`) is only the URL of internal requests, so mail's OpenNext recognises its own origin. The full contract is in [docs/storefront-api.md](docs/storefront-api.md).
 
@@ -106,7 +107,7 @@ On mail's side, `ONBOARD_ORIGIN` must list this site's origin, and the sales set
 
 ### Development
 
-`pnpm dev` mounts mock APIs under `/api/onboard/` and `/api/shop/` (`src/storefront/mock/`), with errors in the page language. These redeem codes can be tried directly:
+`pnpm dev` mounts mock APIs under `/api/onboard/` and `/api/shop/` (`src/storefront/mock/`), with errors in the page language. `/api/status` answers a fixed summary (`src/app/api/status/route.dev.ts`). These redeem codes can be tried directly:
 
 | Redeem code           | Situation                                                                                                 |
 | --------------------- | --------------------------------------------------------------------------------------------------------- |

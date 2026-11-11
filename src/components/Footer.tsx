@@ -7,6 +7,7 @@ import { fillTemplate } from "@/lib/template";
 import { Brand } from "./Brand";
 import { CurrentYear } from "./CurrentYear";
 import { Icon } from "./Icon";
+import { ServiceStatus } from "./ServiceStatus";
 
 const labelClass = "mb-3 text-sm/[1.6] text-muted-foreground";
 const linkClass = "text-base/body text-muted-foreground transition-colors duration-150 hover:text-foreground";
@@ -85,6 +86,8 @@ export function Footer({ lang }: { lang: Lang }) {
             ))}
           </span>
           <div className="flex flex-col gap-3 md:items-end card:flex-row card:items-center card:gap-7">
+            {/* Shown once the status is known; nothing while it is not (see ServiceStatus). */}
+            <ServiceStatus copy={t.serviceStatus} href={links.status} />
             <p>
               <a
                 className="inline-flex items-center gap-1.5 transition-colors duration-150 hover:text-foreground"

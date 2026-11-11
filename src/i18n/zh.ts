@@ -538,6 +538,11 @@ export const zh: Copy = {
     buy: "购买邮箱",
     custom: "咨询配置协助",
   },
+  serviceStatus: {
+    states: { up: "所有服务运行正常", down: "部分服务中断", maintenance: "维护中" },
+    uptime: "近 {days} 天可用率 {percent}%",
+    label: "服务状态",
+  },
   footer: {
     tagline: "Abnormally good.",
     productLabel: "产品 / PRODUCT",
