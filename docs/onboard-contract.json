@@ -122,5 +122,13 @@
       "shop/account/register": "shop-login",
       "shop/account/forgot": "shop-login"
     }
+  },
+  "status": {
+    "route": "status/summary",
+    "method": "GET",
+    "states": ["up", "down", "maintenance", "pending"],
+    "days": 30,
+    "fields": ["status", "days", "uptime", "updatedAt"],
+    "maxAgeSeconds": 60
   }
 }

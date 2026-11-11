@@ -148,6 +148,11 @@ type Plan = Copy["pricing"]["plan"];
 const templateSlots = {
   "theme.ariaTemplate": { label: true } satisfies Record<TemplateSlot<Copy["theme"]["ariaTemplate"]>, true>,
   "theme.titleTemplate": { label: true } satisfies Record<TemplateSlot<Copy["theme"]["titleTemplate"]>, true>,
+  // The service status renders in the browser, once its request is answered.
+  "serviceStatus.uptime": { percent: true, days: true } satisfies Record<
+    TemplateSlot<Copy["serviceStatus"]["uptime"]>,
+    true
+  >,
   "footer.copyright": { year: true } satisfies Record<TemplateSlot<Copy["footer"]["copyright"]>, true>,
   "inquiry.legal": { terms: true, privacy: true } satisfies Record<TemplateSlot<Copy["inquiry"]["legal"]>, true>,
   "video.seekTemplate": { current: true, duration: true } satisfies Record<

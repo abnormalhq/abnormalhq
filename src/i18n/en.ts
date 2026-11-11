@@ -570,6 +570,11 @@ export const en: Copy = {
     buy: "Buy a mailbox",
     custom: "Ask for setup help",
   },
+  serviceStatus: {
+    states: { up: "All systems operational", down: "Partial outage", maintenance: "Under maintenance" },
+    uptime: "{percent}% uptime over the last {days} days",
+    label: "Service status",
+  },
   footer: {
     tagline: "Abnormally good.",
     productLabel: "Product",

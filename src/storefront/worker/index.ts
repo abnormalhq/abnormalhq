@@ -8,6 +8,7 @@ import {
   unavailableMessage,
 } from "./proxy";
 import { proxyShop } from "./shop";
+import { isStatusApi, proxyStatus } from "./status";
 
 const ONBOARD_PATH = /^\/api\/onboard\/(cdk|username|redeem)\/?$/;
 const ONBOARD_HEADERS = { "Cache-Control": "no-store" };
@@ -24,8 +25,8 @@ export function isStorefrontApi(pathname: string): boolean {
 }
 
 /**
- * The storefront API, called by worker.ts before OpenNext for every /api request: the shop goes to shop.ts, the three
- * redeem endpoints are handled here, anything else under /api is a JSON 404.
+ * The storefront API, called by worker.ts before OpenNext for every /api request: the shop goes to shop.ts, the service
+ * status the pages show to status.ts, the three redeem endpoints are handled here, anything else under /api is a JSON 404.
  */
 export const storefrontApi = {
   async fetch(request: Request, env: StorefrontEnv): Promise<Response> {
@@ -34,6 +35,7 @@ export const storefrontApi = {
     if (url.pathname === "/api/shop" || url.pathname.startsWith("/api/shop/")) {
       return proxyShop(request, env);
     }
+    if (isStatusApi(url.pathname)) return proxyStatus(request, env);
 
     const localize = localizer(request);
     const route = ONBOARD_PATH.exec(url.pathname)?.[1];

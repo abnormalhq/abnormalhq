@@ -7,6 +7,7 @@ import { useCopy } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { AddressCheck } from "./AddressCheck";
 import { Icon } from "./Icon";
+import { ServiceStatus } from "./ServiceStatus";
 
 const avatars = [
   { className: "text-brand", icon: "spark" },
@@ -80,6 +81,10 @@ export function Hero({ lang }: { lang: Lang }) {
                 {promise}
               </span>
             ))}
+          </div>
+          {/* The line keeps its height while the status is unknown, so the hero does not move when it arrives. */}
+          <div className="mt-4 flex min-h-6 text-xs/body max-md:justify-center">
+            <ServiceStatus copy={t.serviceStatus} href={links.status} />
           </div>
         </div>
 
