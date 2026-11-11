@@ -437,10 +437,17 @@ export async function createRenewalOrder(
   lang?: Lang,
   email = "",
   provider: ShopPaymentProvider = "ldc",
+  coupon = "",
 ): Promise<string> {
   const body = await request(
     "renew",
-    { token, periods, ...(email ? { email } : {}), ...(provider === "stripe" ? { provider } : {}) },
+    {
+      token,
+      periods,
+      ...(email ? { email } : {}),
+      ...(provider === "stripe" ? { provider } : {}),
+      ...(coupon ? { coupon } : {}),
+    },
     undefined,
     lang,
   );

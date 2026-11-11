@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
+import { orderCoupon } from "@/storefront/lib/coupon";
 import { claimTrial, getTrial } from "@/storefront/lib/trial";
 import { getShopOrder, createRenewalOrder } from "@/storefront/lib/shop";
 import { parseShopCatalog } from "@/storefront/lib/catalog";
@@ -84,3 +85,38 @@ test("the trial proxy forwards the account session and blocks cross-origin claim
   ).toBe(403);
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+test.each(["ldc", "stripe"] as const)(
+  "upgrade requests carry the code with %s and server-priced renewal discounts are displayed",
+  async (provider) => {
+    const fetcher = vi.fn(async () => Response.json({ orderId: "trialorder00001" }));
+    vi.stubGlobal("fetch", fetcher);
+    await createRenewalOrder("signed-token", 3, "zh", "", provider, "WELCOME10");
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringContaining("/renew"),
+      expect.objectContaining({
+        body: JSON.stringify({
+          token: "signed-token",
+          periods: 3,
+          ...(provider === "stripe" ? { provider } : {}),
+          coupon: "WELCOME10",
+        }),
+      }),
+    );
+    expect(
+      orderCoupon(
+        {
+          id: "trialorder00001",
+          kind: "renewal",
+          provider,
+          priceCents: 4350,
+          originalPriceCents: 4500,
+          discountPercent: 0,
+          couponCode: "WELCOME10",
+          couponDiscountCents: 150,
+        },
+        null,
+      ),
+    ).toEqual({ code: "WELCOME10", discountCents: 150, baseCents: 4500 });
+  },
+);

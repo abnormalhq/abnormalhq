@@ -41,6 +41,7 @@ import {
   shopPriceUnitClass,
   shopTextClass,
 } from "./ShopParts";
+import { COUPON_MAX_LENGTH, normalizeCoupon } from "@/storefront/lib/coupon";
 import { trialCopy } from "@/storefront/lib/trial";
 import { ShopSession } from "./ShopSession";
 
@@ -62,6 +63,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
   const [error, setError] = useState("");
   const [periods, setPeriods] = useState(1);
   const [email, setEmail] = useState("");
+  const [coupon, setCoupon] = useState("");
   const [creating, setCreating] = useState(false);
   const lock = useRef(false);
 
@@ -82,7 +84,14 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
     setCreating(true);
     setError("");
     try {
-      const id = await createRenewalOrder(token, periods, lang, email.trim(), provider);
+      const id = await createRenewalOrder(
+        token,
+        periods,
+        lang,
+        email.trim(),
+        provider,
+        summary?.trial ? normalizeCoupon(coupon) : "",
+      );
       router.push(`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(id)}`);
     } catch (cause) {
       setError(renewalError(cause, lang));
@@ -189,6 +198,28 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                     aria-describedby="shop-renew-email-hint"
                   />
                 </ShopField>
+                {summary.trial && (
+                  <ShopField
+                    htmlFor="shop-upgrade-coupon"
+                    label={trialCopy[lang].couponLabel}
+                    hint={trialCopy[lang].couponHint}
+                    hintId="shop-upgrade-coupon-hint"
+                  >
+                    <Input
+                      id="shop-upgrade-coupon"
+                      className={cn(shopInputClass, "max-w-[420px]")}
+                      value={coupon}
+                      onChange={(event) => setCoupon(event.target.value)}
+                      maxLength={COUPON_MAX_LENGTH}
+                      disabled={creating}
+                      placeholder="WELCOME10"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      aria-describedby="shop-upgrade-coupon-hint"
+                    />
+                  </ShopField>
+                )}
                 <p className={shopPriceLineClass}>
                   <span className={shopPriceUnitClass}>{t.total}</span>
                   <strong className={shopPriceAmountClass}>{formatCredits(summary.renewPriceCents * periods)}</strong>
