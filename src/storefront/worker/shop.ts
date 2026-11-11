@@ -114,12 +114,19 @@ export const DOMAIN_ROUTES = [
   "account/domains/refresh",
   "account/domains/remove",
 ];
+/**
+ * The account's free trial (GET account/trial reads the offer, POST claims it; `shop.trials.routes` in
+ * docs/onboard-contract.json). A mail before free trials answers its own 404 page, passed on as a JSON 404, which the account
+ * page takes as "no trial offered".
+ */
+export const TRIAL_ROUTE = "account/trial";
 /** Routes of features an older mail does not have: its 404 page becomes a JSON 404, which the pages take as "not offered". */
 function optionalRoute(route: string): boolean {
   return (
     route === ADDRESS_ROUTE ||
     route === COUPON_ROUTE ||
     route === QUOTE_ROUTE ||
+    route === TRIAL_ROUTE ||
     SEAT_ROUTES.includes(route) ||
     DOMAIN_ROUTES.includes(route)
   );
