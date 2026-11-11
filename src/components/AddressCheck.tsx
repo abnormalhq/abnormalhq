@@ -35,6 +35,7 @@ type Result =
  *
  * The check exists only when the backend says so: the catalog carries `addressCheck` (POST /api/shop/address, described in
  * docs/storefront-api.md). Without the flag this renders nothing, and if the endpoint still answers 404 the form goes away.
+ * While the catalog is still being read the form is laid out but invisible and inert, so what follows it keeps its place.
  * `domains` comes from the server on the pricing page, which has already read the catalog; in the home page's hero it is left out
  * and the catalog is read here.
  */
@@ -84,9 +85,12 @@ export function AddressCheck({
     [],
   );
 
+  // In the hero the catalog is read in the browser. Until it answers, the form holds its place unseen and out of reach,
+  // so the hero below it does not jump when the check appears; it fades in then, or goes away if there is none to offer.
+  const pending = !given && loaded === null;
   const domains = given ?? loaded ?? [];
   const domain = domains.includes(chosenDomain) ? chosenDomain : (domains[0] ?? "");
-  if (hidden || domains.length === 0) return null;
+  if (hidden || (!pending && domains.length === 0)) return null;
 
   function cancel(): void {
     window.clearTimeout(timer.current);
@@ -159,7 +163,8 @@ export function AddressCheck({
 
   return (
     <form
-      className={cn("text-left", className)}
+      className={cn("text-left", pending ? "invisible" : !given && "animate-fade-in", className)}
+      inert={pending}
       aria-labelledby={`${id}-title`}
       noValidate
       onSubmit={(event) => {
