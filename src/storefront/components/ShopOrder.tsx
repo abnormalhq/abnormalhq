@@ -236,7 +236,22 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
         </Card>
       ) : order ? (
         <>
-          {!paid && paymentError && !embeddedCard && <ShopAlert>{t.paymentError}</ShopAlert>}
+          {!paid && paymentError && !embeddedCard && (
+            <ShopAlert>
+              {t.paymentError}
+              {/* mail publishes an order that adds seats as a renewal order, and refuses to open its payment once the subscription
+                  was renewed after it was priced: the page cannot tell the two apart, so it says what to do in that case. */}
+              {renewal && (
+                <>
+                  {" "}
+                  {t.seatsOrderHint}{" "}
+                  <Link className="underline underline-offset-4" href={`/${LANG_PATHS[lang]}shop/account/`}>
+                    {t.accountNav}
+                  </Link>
+                </>
+              )}
+            </ShopAlert>
+          )}
           <ShopPanel>
             <div className={shopHeadingRowClass}>
               <h2 className={shopHeadingClass}>{order.productName}</h2>

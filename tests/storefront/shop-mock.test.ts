@@ -108,7 +108,17 @@ test("dev shop: demo plans expose no private config, checkout leaks no buyer cre
   expect(catalog.products[0].priceCents).toBe(750);
   expect(catalog.products[0].name).toMatch(/演示套餐/);
   expect(catalog.products[0].description).toMatch(/不会扣除真实 Credit/);
-  expect(Object.keys(catalog).sort()).toStrictEqual(["addressCheck", "available", "onboardUrl", "payment", "products"]);
+  expect(Object.keys(catalog).sort()).toStrictEqual([
+    "addressCheck",
+    "available",
+    "coupons",
+    "onboardUrl",
+    "payment",
+    "products",
+    "seatProducts",
+  ]);
+  // Seat plans are listed apart: `products` keeps only the fixed plans, so a page that knows nothing of seats sells none.
+  expect(catalog.products.every((product: { id: string }) => product.id !== catalog.seatProducts[0].id)).toBe(true);
   expect(JSON.stringify(catalog)).not.toMatch(/clientSecret|clientId|buyerHash|buyerToken|ABCD-EFGH-JKLM-NPQR/);
   const { cookie, orderId } = await checkout(store);
   const orderResponse = await getOrder(store, orderId, cookie);

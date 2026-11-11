@@ -7,10 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LANG_PATHS, storePath, type Lang } from "@/storefront/i18n";
 import {
+  catalogPlans,
   createShopOrder,
   formatCredits,
   getShopCatalog,
-  previewCoupon,
+  isSeatProduct,
+  previewCouponPlans,
+  seatCardPrice,
+  seatOrderPrice,
+  seatTotals,
   ShopApiError,
   type CouponQuote,
   type ShopCatalog,
@@ -50,6 +55,7 @@ import {
   shopTextClass,
 } from "./ShopParts";
 import { ShopPrice } from "./ShopPrice";
+import { ShopSeatStepper } from "./ShopSeatStepper";
 import { ShopSession } from "./ShopSession";
 
 /** The page is prerendered without a query string; it is read once the page runs in the browser. */
@@ -75,13 +81,10 @@ function dismissAddress(): void {
 }
 
 /**
- * How many previews one press of "Apply" may make. Each one counts against mail's limit on code guesses (10 per 10 minutes
- * per IP, shared with checkout), so a large catalog is not asked about plan by plan: the plans past this show "checked when
- * you order", and checkout, which prices the order, has the final say for every plan anyway.
+ * The preview of the applied code per plan, way of paying and quantity ("<plan id>:<provider>:<seats>", 0 seats for a fixed plan):
+ * a quote, or null when it cannot be used. A key that is absent was not asked about: a seat plan whose quantity changed after
+ * "Apply" shows "checked when you order" until the code is applied again, since mail quotes a code for one quantity.
  */
-const COUPON_PREVIEWS = 4;
-
-/** The preview of the applied code per plan and way of paying ("<plan id>:<provider>"): a quote, or null when it cannot be used. A key that is absent was not asked about. */
 type CouponQuotes = Record<string, CouponQuote | null>;
 
 export function Shop({ lang }: { lang: Lang }) {
@@ -103,6 +106,8 @@ export function Shop({ lang }: { lang: Lang }) {
   // The backend has no discount codes (the preview answered 404): the field goes away.
   const [couponsMissing, setCouponsMissing] = useState(false);
   const couponRequest = useRef<AbortController | null>(null);
+  // A mail before the several-plans preview refused it once: later presses ask plan by plan at once, sparing a guess.
+  const couponLegacy = useRef(false);
   // ?plan=<id> points out the plan a pricing card linked to; ?address=name@domain is the address picked in the address check.
   // The address is kept for this tab (src/storefront/lib/address.ts) so the forms that create the mailbox start with it.
   const search = useSyncExternalStore(subscribeToHistory, readSearch, () => "");
@@ -110,7 +115,21 @@ export function Shop({ lang }: { lang: Lang }) {
   const linkedAddress = new URLSearchParams(search).get(ADDRESS_PARAM);
   const carried = parseAddress(useSyncExternalStore(subscribeAddress, storedAddress, () => ""));
   const selectedCard = useRef<HTMLElement>(null);
-  const hasSelected = Boolean(selectedPlan && catalog?.products.some((product) => product.id === selectedPlan));
+  // Fixed plans, then the plans sold per mailbox (the catalog's `seatProducts`; none on a backend without them).
+  const plans = catalog ? catalogPlans(catalog) : [];
+  const hasSelected = Boolean(selectedPlan && plans.some((product) => product.id === selectedPlan));
+  // How many mailboxes of each seat plan: the plan's minimum until the buyer changes it.
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const seatsOf = (product: (typeof plans)[number]) =>
+    isSeatProduct(product) ? (quantities[product.id] ?? product.seatMin) : 0;
+
+  /** Which ways of paying a plan can be bought with right now: offered by the shop and, for a seat plan, able to take the quantity. */
+  const waysOf = (product: (typeof plans)[number]) => {
+    const ldc = Boolean(catalog?.payment.ldc);
+    const card = Boolean(catalog?.payment.stripe && product.fiatPriceMinor);
+    const totals = isSeatProduct(product) ? seatTotals(product, seatsOf(product), { ldc, card }) : null;
+    return { ldc: ldc && !totals?.ldcTooMany, card: card && !totals?.cardTooMany, totals };
+  };
 
   useEffect(() => {
     const address = parseAddress(linkedAddress);
@@ -131,7 +150,8 @@ export function Shop({ lang }: { lang: Lang }) {
     return () => controller.abort();
   }, [attempt, lang]);
 
-  // mail sends no flag for discount codes yet: the field is offered unless the catalog says `coupons: false` or the preview is missing.
+  // mail's catalog says whether to offer discount codes: `coupons: false` hides the field without a request. A mail before the
+  // flag sends none: the field is then offered, and goes away when the preview answers 404.
   const couponsOffered = catalog?.coupons !== false && !couponsMissing;
   const typedCoupon = couponsOffered ? normalizeCoupon(coupon) : "";
 
@@ -155,32 +175,43 @@ export function Shop({ lang }: { lang: Lang }) {
     setCouponError("");
     setApplied(null);
     // The plan the visitor arrived for first, then catalog order; each plan once per way of paying it offers.
-    const products = [...catalog.products].sort(
-      (a, b) => Number(b.id === selectedPlan) - Number(a.id === selectedPlan),
+    const products = [...plans].sort((a, b) => Number(b.id === selectedPlan) - Number(a.id === selectedPlan));
+    // A way of paying that cannot take a seat plan's quantity is not on offer and is not asked about: mail refuses the
+    // whole request for such a total (400), which would read as a backend without the several-plans form.
+    const offered = products.flatMap((product) => {
+      const open = waysOf(product);
+      // The quantity as it is now: the answer is for it, whatever the stepper says by the time it arrives.
+      const seats = seatsOf(product);
+      return [
+        ...(open.ldc ? [{ product, provider: "ldc" as const, seats }] : []),
+        ...(open.card ? [{ product, provider: "stripe" as const, seats }] : []),
+      ];
+    });
+    // One request (one guess against mail's limit) for up to eight of them, further requests only for a larger catalog; what
+    // is past the limit of a press shows "checked when you order", and checkout has the final say for every plan anyway.
+    const result = await previewCouponPlans(
+      offered.map(({ product, provider, seats }) => ({ productId: product.id, provider, quantity: seats })),
+      typedCoupon,
+      { signal: controller.signal, lang, legacy: couponLegacy.current },
     );
-    const offered = products.flatMap((product) => [
-      ...(catalog.payment.ldc ? [{ product, provider: "ldc" as const }] : []),
-      ...(catalog.payment.stripe && product.fiatPriceMinor ? [{ product, provider: "stripe" as const }] : []),
-    ]);
-    const asks = offered.slice(0, COUPON_PREVIEWS);
+    if (controller.signal.aborted) return;
+    couponLegacy.current = result.legacy;
     const quotes: CouponQuotes = {};
     let code = typedCoupon.toUpperCase();
-    try {
-      for (const { product, provider } of asks) {
-        const quote = await previewCoupon(product.id, provider, typedCoupon, controller.signal, lang);
-        if (controller.signal.aborted) return;
-        quotes[`${product.id}:${provider}`] = quote;
-        if (quote) code = quote.code;
-      }
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      if (error instanceof ShopApiError && error.status === 404) {
+    result.quotes.forEach((quote, index) => {
+      if (quote === undefined) return;
+      const { product, provider, seats } = offered[index]!;
+      quotes[`${product.id}:${provider}:${seats}`] = quote;
+      if (quote) code = quote.code;
+    });
+    if (result.error !== undefined) {
+      if (result.error instanceof ShopApiError && result.error.status === 404) {
         setCouponsMissing(true);
         setCoupon("");
         setCouponChecking(false);
         return;
       }
-      setCouponError(shopError(error, lang));
+      setCouponError(shopError(result.error, lang));
     }
     // What was answered before a failure still stands: the plans it covers show their price.
     if (Object.keys(quotes).length > 0) setApplied({ code, quotes, offered: offered.length });
@@ -193,12 +224,22 @@ export function Shop({ lang }: { lang: Lang }) {
     setBuying(`${productId}:${provider}`);
     setCheckoutError("");
     try {
-      const id = await createShopOrder(productId, lang, email.trim(), provider, typedCoupon);
+      const product = plans.find((item) => item.id === productId);
+      const seats = product ? seatsOf(product) : 0;
+      const id = await createShopOrder(productId, lang, email.trim(), provider, typedCoupon, seats);
       if (typedCoupon) {
-        // mail took the code (it refuses the checkout otherwise) but does not publish it with the order yet: remember the
-        // price before it, so the order page can show what the code took off (src/storefront/lib/coupon.ts).
-        const product = catalog?.products.find((item) => item.id === productId);
-        const baseCents = provider === "stripe" ? product?.fiatPriceMinor : product?.priceCents;
+        // mail took the code (it refuses the checkout otherwise). It publishes the code and what it took off with the order,
+        // and the order page uses that; the price before the code is still remembered for this tab, only as the fallback for
+        // a mail before those fields (src/storefront/lib/coupon.ts).
+        const baseCents = !product
+          ? undefined
+          : seats > 0
+            ? provider === "stripe"
+              ? seatCardPrice(product, seats)
+              : seatOrderPrice(product, seats)?.priceCents
+            : provider === "stripe"
+              ? product.fiatPriceMinor
+              : product.priceCents;
         if (baseCents) rememberCoupon({ orderId: id, code: applied?.code ?? typedCoupon.toUpperCase(), baseCents });
       }
       router.push(`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(id)}`);
@@ -245,7 +286,7 @@ export function Shop({ lang }: { lang: Lang }) {
         <Card asChild className={shopEmptyClass}>
           <p role="status">{t.loading}</p>
         </Card>
-      ) : !catalog.available || catalog.products.length === 0 ? (
+      ) : !catalog.available || plans.length === 0 ? (
         <Card className={shopEmptyClass}>
           <h2 className="text-xl">{t.closed}</h2>
           <p className={shopTextClass}>{t.closedDescription}</p>
@@ -258,7 +299,7 @@ export function Shop({ lang }: { lang: Lang }) {
             </h2>
             <p className={shopTextClass}>{t.pricing}</p>
           </div>
-          {catalog.products.some((product) => product.periodDays) && (
+          {plans.some((product) => product.periodDays) && (
             <ShopField
               htmlFor="shop-contact-email"
               label={t.emailLabel}
@@ -353,16 +394,26 @@ export function Shop({ lang }: { lang: Lang }) {
           {/* Each card spans four rows of the shared grid (heading, price, details, actions) through subgrid, so
               prices, detail lists and buttons line up across the cards in a row whatever the description length. */}
           <div className="mt-[26px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-5">
-            {catalog.products.map((product) => {
+            {plans.map((product) => {
+              const stripeCurrency = catalog.payment.stripe?.currency;
               const cardPrice =
-                catalog.payment.stripe && product.fiatPriceMinor
-                  ? formatMoney(product.fiatPriceMinor, catalog.payment.stripe.currency, lang)
+                stripeCurrency && product.fiatPriceMinor
+                  ? formatMoney(product.fiatPriceMinor, stripeCurrency, lang)
                   : null;
               const selected = product.id === selectedPlan;
+              // A plan sold per mailbox: every price of the plan is for one, and the order is priced for the quantity.
+              const seatPlan = isSeatProduct(product) ? product : null;
+              const seats = seatsOf(product);
+              const days = product.periodDays ?? 0;
+              // The order's total by mail's rule (the discount on the whole order, rounded once), and by card. Each way of paying
+              // has its own limit on what one order can charge: a quantity too many for one is still sold by the other.
+              const { totals, ...open } = waysOf(product);
+              const seatLdc = totals?.ldc ?? null;
+              const seatCard = totals?.card ?? null;
               // The applied code on this plan, per way of paying the card offers: a quote, null (cannot be used) or undefined (not asked).
-              const ldcQuote = catalog.payment.ldc ? applied?.quotes[`${product.id}:ldc`] : undefined;
-              const cardQuote = cardPrice ? applied?.quotes[`${product.id}:stripe`] : undefined;
-              const ways = Number(catalog.payment.ldc) + Number(Boolean(cardPrice));
+              const ldcQuote = open.ldc ? applied?.quotes[`${product.id}:ldc:${seats}`] : undefined;
+              const cardQuote = open.card ? applied?.quotes[`${product.id}:stripe:${seats}`] : undefined;
+              const ways = Number(open.ldc) + Number(open.card);
               const refused = Number(ldcQuote === null) + Number(cardQuote === null);
               const couponLines = !applied
                 ? []
@@ -379,14 +430,14 @@ export function Shop({ lang }: { lang: Lang }) {
                         ]
                       : []),
                     ...(ldcQuote?.firstPeriodOnly || cardQuote?.firstPeriodOnly ? [t.couponFirstPeriod] : []),
-                    ...(refused === ways
+                    ...(ways > 0 && refused === ways
                       ? [t.couponNotForPlan]
                       : [
                           ...(ldcQuote === null ? [t.couponNotForLdc] : []),
                           ...(cardQuote === null ? [t.couponNotForCard] : []),
                         ]),
-                    // Plans past the preview limit: checkout decides.
-                    ...((catalog.payment.ldc && ldcQuote === undefined) || (cardPrice && cardQuote === undefined)
+                    // Plans that were not asked about (past a press's limit, or after a failure): checkout decides.
+                    ...((open.ldc && ldcQuote === undefined) || (open.card && cardQuote === undefined)
                       ? [t.couponAtCheckout]
                       : []),
                   ];
@@ -416,7 +467,15 @@ export function Shop({ lang }: { lang: Lang }) {
                       )}
                     </div>
                     <div className="flex flex-col py-[26px]">
-                      {catalog.payment.ldc && <ShopPrice item={product} lang={lang} purchase className="my-0" />}
+                      {catalog.payment.ldc && (
+                        <ShopPrice
+                          item={product}
+                          lang={lang}
+                          purchase
+                          unit={seatPlan ? t.seatUnit(days) : undefined}
+                          className="my-0"
+                        />
+                      )}
                       {cardPrice ? (
                         <p
                           className={cn(
@@ -424,9 +483,66 @@ export function Shop({ lang }: { lang: Lang }) {
                             catalog.payment.ldc ? "mt-auto pt-4 text-muted-foreground" : "font-semibold",
                           )}
                         >
-                          {t.cardPrice(cardPrice, product.periodDays ?? 0)}
+                          {seatPlan ? t.seatCardEach(cardPrice, days) : t.cardPrice(cardPrice, days)}
                         </p>
                       ) : null}
+                      {seatPlan && (
+                        <div className="mt-4 border-t border-border pt-4">
+                          <ShopField
+                            htmlFor={`shop-seats-${product.id}`}
+                            label={t.seatQuantity}
+                            hint={t.seatRange(seatPlan.seatMin, seatPlan.seatMax)}
+                            hintId={`shop-seats-${product.id}-hint`}
+                          >
+                            <ShopSeatStepper
+                              id={`shop-seats-${product.id}`}
+                              value={seats}
+                              min={seatPlan.seatMin}
+                              max={seatPlan.seatMax}
+                              disabled={buying !== null}
+                              fewerLabel={t.seatFewer}
+                              moreLabel={t.seatMore}
+                              describedBy={`shop-seats-${product.id}-hint`}
+                              onChange={(value) => setQuantities((current) => ({ ...current, [product.id]: value }))}
+                            />
+                          </ShopField>
+                          {/* Read out when the quantity changes: the total is what the buyer is deciding on. */}
+                          <div className="text-sm/[1.7]" role="status">
+                            <p className="text-xs/body text-muted-foreground">{t.seatTotal}</p>
+                            {totals?.tooMany ? (
+                              <p className="text-destructive">{t.seatTooMany}</p>
+                            ) : (
+                              <>
+                                {seatLdc && (
+                                  <p className="font-semibold">
+                                    {t.seatTotalLdc(formatCredits(seatLdc.priceCents), days)}
+                                    {seatLdc.originalPriceCents > seatLdc.priceCents && (
+                                      <span className="ml-2 font-normal text-muted-foreground">
+                                        <span className="sr-only">{t.seatWas} </span>
+                                        <s>{formatCredits(seatLdc.originalPriceCents)} LDC</s>
+                                      </span>
+                                    )}
+                                  </p>
+                                )}
+                                {seatCard && stripeCurrency && (
+                                  <p className={seatLdc ? "text-muted-foreground" : "font-semibold"}>
+                                    {t.seatTotalCard(formatMoney(seatCard, stripeCurrency, lang), days)}
+                                  </p>
+                                )}
+                                {/* Only the way of paying that cannot take this quantity is closed, and says why. */}
+                                {totals?.ldcTooMany && <p className="text-destructive">{t.seatTooManyLdc}</p>}
+                                {totals?.cardTooMany && <p className="text-destructive">{t.seatTooManyCard}</p>}
+                              </>
+                            )}
+                          </div>
+                          <p className="mt-2 text-xs/[1.6] text-muted-foreground">
+                            {seatLdc &&
+                              product.discountPercent > 0 &&
+                              `${t.seatDiscountNote(product.discountPercent)} `}
+                            {t.seatEstimate}
+                          </p>
+                        </div>
+                      )}
                       {couponLines.length > 0 && (
                         <ul className="mt-4 grid gap-1 border-t border-border pt-4 text-sm/[1.7]">
                           {couponLines.map((line, index) => (
@@ -445,7 +561,11 @@ export function Shop({ lang }: { lang: Lang }) {
                       )}
                     </div>
                     <div>
-                      <ShopDetails item={product} lang={lang} />
+                      <ShopDetails
+                        item={product}
+                        lang={lang}
+                        seatRange={seatPlan ? { min: seatPlan.seatMin, max: seatPlan.seatMax } : undefined}
+                      />
                       {carried && !product.domains.includes(carried.domain) && (
                         <p className="mt-3 text-xs/body text-muted-foreground">{t.planWithoutDomain(carried.domain)}</p>
                       )}
@@ -454,7 +574,7 @@ export function Shop({ lang }: { lang: Lang }) {
                       {catalog.payment.ldc && (
                         <ShopButton
                           type="button"
-                          disabled={buying !== null}
+                          disabled={buying !== null || Boolean(totals?.ldcTooMany)}
                           onClick={() => void checkout(product.id)}
                           aria-label={`${t.buy} · ${product.name}`}
                         >
@@ -466,7 +586,7 @@ export function Shop({ lang }: { lang: Lang }) {
                         <ShopButton
                           variant={catalog.payment.ldc ? "outline" : "default"}
                           type="button"
-                          disabled={buying !== null}
+                          disabled={buying !== null || Boolean(totals?.cardTooMany)}
                           onClick={() => void checkout(product.id, "stripe")}
                           aria-label={`${t.payCard} · ${product.name}`}
                         >

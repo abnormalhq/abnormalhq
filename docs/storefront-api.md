@@ -181,38 +181,48 @@ and the account page is `/shop/account/`; as on the rest of the site these are t
 `https://console.abnormalhq.com/sales`. These endpoints live at the root path `/api/shop/` of the origin and call the backend through the same `MAIL` Service Binding as the redeem API,
 so the browser never makes cross-origin requests to mailhq directly. The Stripe webhook (`/api/shop/stripe/webhook`) is called by Stripe directly on mail's domain and does not go through this site.
 
-| Method | Path                                   | Request                                                                                    | Success response                                                                     |
-| ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, onboardUrl }`                                |
-| POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")              |
-| POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon }`                                                   | `200`, `{ valid: true, … }` or `{ valid: false }` (see "Discount codes")             |
-| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon? }`                                          | `201`, `{ orderId }`, and sets the buyer cookie                                      |
-| GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                       |
-| POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page        |
-| POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`            |
-| POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                           |
-| GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status |
-| POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                   |
-| POST   | `/api/shop/renew`                      | JSON: `{ token, periods, email? }`                                                         | `201`, `{ orderId }`, and sets the buyer cookie                                      |
-| GET    | `/api/shop/account`                    | Account cookie                                                                             | `200`, the account (see below); `401` when not logged in                             |
-| POST   | `/api/shop/account/login`              | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`, sends a login link to that email                          |
-| POST   | `/api/shop/account/peek`               | JSON: `{ token }` (login token)                                                            | `200`, `{ email }`; read-only, does not consume the token or set a cookie            |
-| POST   | `/api/shop/account/verify`             | JSON: `{ token }`                                                                          | `200`, `{ email, claimed }`, and sets the account cookie                             |
-| POST   | `/api/shop/account/logout`             | JSON: `{}`                                                                                 | `200`, `{ "ok": true }`; the Worker always clears the account cookie                 |
-| POST   | `/api/shop/account/portal`             | JSON: `{ subscriptionId }`                                                                 | `200`, `{ url }` (the customer portal at `https://billing.stripe.com/…`)             |
-| POST   | `/api/shop/account/password-login`     | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ email, claimed }`, and sets the account cookie                             |
-| POST   | `/api/shop/account/password`           | JSON: `{ password, currentPassword? }` (account cookie)                                    | `200`, `{ "ok": true }`; sets or changes the login password                          |
-| POST   | `/api/shop/account/register`           | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ "sent": true }`, sends a registration confirmation link to that email      |
-| GET    | `/api/shop/account/mailboxes`          | Account cookie                                                                             | `200`, mailbox management (see below); `401` when not logged in                      |
-| POST   | `/api/shop/account/mailboxes/create`   | JSON: `{ orderId, domain, username, password }`                                            | `201`, `{ email, imap, smtp, webmail }`                                              |
-| POST   | `/api/shop/account/mailboxes/password` | JSON: `{ mailboxId, password }`                                                            | `200`, `{ email }`                                                                   |
-| POST   | `/api/shop/account/mailboxes/status`   | JSON: `{ mailboxId, status }` (`active` / `disabled`)                                      | `200`, `{ status }`                                                                  |
-| POST   | `/api/shop/account/mailboxes/delete`   | JSON: `{ mailboxId, confirm }` (`confirm` repeats the email address)                       | `200`, `{ "ok": true }`                                                              |
-| POST   | `/api/shop/account/forgot`             | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`; sends a password reset email when this account exists     |
-| POST   | `/api/shop/account/reset`              | JSON: `{ token, password }` (reset token)                                                  | `200`, `{ email, claimed }`, and sets the account cookie                             |
-| POST   | `/api/shop/account/google/start`       | JSON: `{ lang?, link? }`                                                                   | `200`, `{ url }` (Google authorization page), and sets the Google state cookie       |
-| POST   | `/api/shop/account/google`             | JSON: `{ code, state }` (as sent back by Google to the account page) + Google state cookie | `200`, `{ email, claimed, created, linked, lang }`, sets the account cookie on login |
-| POST   | `/api/shop/account/google/unlink`      | JSON: `{}` (account cookie)                                                                | `200`, `{ "ok": true }`; `404` when not linked                                       |
+| Method | Path                                   | Request                                                                                    | Success response                                                                       |
+| ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, seatProducts?, onboardUrl, coupons }`          |
+| POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")                |
+| POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon, quantity? }`, or `{ products: [...], coupon }`      | `200`, `{ valid: true, … }` or `{ valid: false }`; `{ quotes }` (see "Discount codes") |
+| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon?, quantity? }`                               | `201`, `{ orderId }`, and sets the buyer cookie                                        |
+| GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                         |
+| POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page          |
+| POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`              |
+| POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                             |
+| GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status   |
+| POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                     |
+| POST   | `/api/shop/renew`                      | JSON: `{ token, periods, email? }`                                                         | `201`, `{ orderId }`, and sets the buyer cookie                                        |
+| GET    | `/api/shop/account`                    | Account cookie                                                                             | `200`, the account (see below); `401` when not logged in                               |
+| POST   | `/api/shop/account/login`              | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`, sends a login link to that email                            |
+| POST   | `/api/shop/account/peek`               | JSON: `{ token }` (login token)                                                            | `200`, `{ email }`; read-only, does not consume the token or set a cookie              |
+| POST   | `/api/shop/account/verify`             | JSON: `{ token }`                                                                          | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/logout`             | JSON: `{}`                                                                                 | `200`, `{ "ok": true }`; the Worker always clears the account cookie                   |
+| POST   | `/api/shop/account/portal`             | JSON: `{ subscriptionId }`                                                                 | `200`, `{ url }` (the customer portal at `https://billing.stripe.com/…`)               |
+| POST   | `/api/shop/account/password-login`     | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/password`           | JSON: `{ password, currentPassword? }` (account cookie)                                    | `200`, `{ "ok": true }`; sets or changes the login password                            |
+| POST   | `/api/shop/account/register`           | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ "sent": true }`, sends a registration confirmation link to that email        |
+| GET    | `/api/shop/account/mailboxes`          | Account cookie                                                                             | `200`, mailbox management (see below); `401` when not logged in                        |
+| POST   | `/api/shop/account/mailboxes/create`   | JSON: `{ orderId, domain, username, password }`                                            | `201`, `{ email, imap, smtp, webmail }`                                                |
+| POST   | `/api/shop/account/mailboxes/password` | JSON: `{ mailboxId, password }`                                                            | `200`, `{ email }`                                                                     |
+| POST   | `/api/shop/account/mailboxes/status`   | JSON: `{ mailboxId, status }` (`active` / `disabled`)                                      | `200`, `{ status }`                                                                    |
+| POST   | `/api/shop/account/mailboxes/delete`   | JSON: `{ mailboxId, confirm }` (`confirm` repeats the email address)                       | `200`, `{ "ok": true }`                                                                |
+| POST   | `/api/shop/account/seats/quote`        | JSON: `{ orderId, add }` (see "Seat plans")                                                | `200`, `{ add, seats, provider, currency, priceCents, exact, periodEnd }`              |
+| POST   | `/api/shop/account/seats/add`          | JSON: `{ orderId, add }`                                                                   | LDC `201`, `{ orderId }` and the buyer cookie; card `200`, `{ status, seats, … }`      |
+| POST   | `/api/shop/account/seats/remove`       | JSON: `{ orderId, remove, mailboxIds }`                                                    | `200`, `{ seats, seatsNext, effective, removing }`                                     |
+| POST   | `/api/shop/account/seats/keep`         | JSON: `{ orderId }`                                                                        | `200`, `{ seats, seatsNext: null, effective, removing: [] }`                           |
+| GET    | `/api/shop/account/domains`            | Account cookie (see "Buyer domains")                                                       | `200`, `{ limit, domains }`; `401` when not logged in                                  |
+| POST   | `/api/shop/account/domains/add`        | JSON: `{ domain }`                                                                         | `201`, `{ domain }` with the ownership TXT record                                      |
+| POST   | `/api/shop/account/domains/verify`     | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                         |
+| POST   | `/api/shop/account/domains/check`      | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                         |
+| POST   | `/api/shop/account/domains/refresh`    | JSON: `{ id }`                                                                             | `200`, `{ domain }` with a new ownership value                                         |
+| POST   | `/api/shop/account/domains/remove`     | JSON: `{ id }`                                                                             | `200`, `{ "ok": true }`                                                                |
+| POST   | `/api/shop/account/forgot`             | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`; sends a password reset email when this account exists       |
+| POST   | `/api/shop/account/reset`              | JSON: `{ token, password }` (reset token)                                                  | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/google/start`       | JSON: `{ lang?, link? }`                                                                   | `200`, `{ url }` (Google authorization page), and sets the Google state cookie         |
+| POST   | `/api/shop/account/google`             | JSON: `{ code, state }` (as sent back by Google to the account page) + Google state cookie | `200`, `{ email, claimed, created, linked, lang }`, sets the account cookie on login   |
+| POST   | `/api/shop/account/google/unlink`      | JSON: `{}` (account cookie)                                                                | `200`, `{ "ok": true }`; `404` when not linked                                         |
 
 Failure statuses: except for `pay` (always `303`, see below), every shop POST may return `403` (`Origin` is not the storefront address in the sales settings; the Worker rejects cross-site origins first),
 `415` (wrong body type), `413` (body over 4 KiB), `400` (invalid body or field), `429` (rate limited, with `Retry-After`) and `503` (backend temporarily unavailable).
@@ -395,8 +405,9 @@ the pages against a backend with the check switched off.
 
 Besides a plan's own discount percentage, mail has discount codes that a buyer types in (mail's `docs/shop.md`, "Discount codes":
 a percentage or a fixed amount per way of paying, optionally limited to plans, an expiry, a total number of uses and uses per
-buyer). mail implements all of the endpoints below. The shop page uses the preview and `coupon` at checkout; what is still open
-between the two repositories is under "Proposed" at the end of this document.
+buyer). mail implements all of the endpoints below, and the route and the order fields are in `docs/onboard-contract.json`
+(mail #221). The shop page uses the preview and `coupon` at checkout; the one thing not built is under "Proposed" at the end of
+this document (a code field on the order page).
 
 - **Preview**: `POST /api/shop/coupon`, JSON `{ productId, provider?, coupon }` with the storefront's `Origin`; `provider` as at
   checkout (`ldc` by default). It answers `200` with
@@ -408,6 +419,15 @@ between the two repositories is under "Proposed" at the end of this document.
   nothing, and checkout has the final say. `400` is a malformed request (no plan id, an unknown provider, no code), `403` a wrong
   origin, `429` with `Retry-After` the rate limit. The client (`previewCoupon` in `src/storefront/lib/shop.ts`) treats an answer
   whose three amounts do not agree, or that is for another way of paying than asked, as a failed request.
+- **Several plans in one request** (mail #221): the same endpoint takes `{ products: [{ productId, provider?, quantity? }], coupon }`
+  with 1 to 8 entries (each entry as the single form's fields; `quantity` for a seat plan) and answers `200` with
+  `{ quotes: [...] }`: one entry per entry asked, in the order asked, either
+  `{ productId, code, provider, currency, basePriceCents, discountCents, priceCents, firstPeriodOnly }` or `null` where the
+  single form would answer `{ valid: false }`. An empty list, more than 8 entries or a malformed entry (a seat plan without a
+  valid quantity, or with a total above what one order can charge, included) is `400` for the whole request, with no partial
+  answer; `products` wins when both forms are sent. The whole request is **one** guess against the rate limit below. The client
+  (`previewCoupons`) checks every entry like the single form's answer, and that it is for the plan asked at its place. A mail
+  before this form reads the body as the single form without a plan and answers `400`.
 - **The Worker** proxies it like `checkout`: same-origin `Origin`, JSON, the client IP kept, and the `mailhq_shop` and
   `mailhq_customer` cookies forwarded, so that a per-buyer limit is known to the preview. Nothing is set in the answer. A mail before
   discount codes answers its own `404` page; the Worker turns that into a JSON `404` (as for the address check), and the shop page
@@ -421,35 +441,278 @@ between the two repositories is under "Proposed" at the end of this document.
   the payment was opened); when the hold lapsed and the code can no longer be taken, `pay/stripe` answers `409` and the pay form
   returns to the order page with `&error=payment`, and the buyer places a new order.
 - **Rate limit**: code guesses are limited to 10 per 10 minutes per source IP across the preview, `checkout` (when it carries a
-  code) and the pay endpoints, on top of each endpoint's own limit. This is why the shop page does not preview as the buyer types.
+  code) and the pay endpoints, on top of each endpoint's own limit. A request counts once, whether it asks about one plan or
+  eight. This is why the shop page does not preview as the buyer types.
 - **`pay` and `pay/stripe`** also take an optional `coupon` (form field or JSON) that adds a code to an unpaid purchase order
   without one, before its first payment page is opened. The storefront does not send it: the order page has no code field.
 
 What the shop page does (`src/storefront/components/Shop.tsx`):
 
 - "I have a discount code" opens a field above the plans. "Apply" (or Enter) previews the code for the plans on the page, once per
-  way of paying a plan offers, the plan the visitor arrived for (`?plan=`) first, and at most 4 requests per press
-  (`COUPON_PREVIEWS`), because every preview is a guess against the limit above. A plan shows "With CODE: price" per way of paying,
-  that the code applies to the first period only for a subscription, or that the code cannot be used for it; plans past the 4
-  requests say the code is checked when ordering. When no plan can use it the field shows one sentence, "This code can't be used."
+  way of paying a plan offers, the plan the visitor arrived for (`?plan=`) first, in **one request** for up to 8 of those
+  combinations (`previewCouponPlans`, `COUPON_PREVIEW_PLANS`). A catalog with more takes further requests of up to 8, and never
+  more than 4 requests per press (`COUPON_PREVIEW_REQUESTS`, so 32 combinations), because every request is a guess against the
+  limit above. A way of paying that cannot take a seat plan's quantity is not asked about. A plan shows "With CODE: price" per way
+  of paying, that the code applies to the first period only for a subscription, or that the code cannot be used for it; what
+  was not asked (past the 4 requests, or after a request failed) says the code is checked when ordering, and the field then says
+  that not all plans were checked rather than that the code cannot be used. When every plan was asked and none can use it the
+  field shows one sentence, "This code can't be used."
+- **A mail before the several-plans form** answers `400` to it. The page then asks plan by plan in the single form, within the
+  same 4 requests of the press (the refused one counted, so 3 plans the first time), and starts with the single form on later
+  presses. A `400` to the single form as well is shown as mail's message.
 - Whatever is in the field goes with `checkout`, for Linux DO Credit and card alike, whether or not it was previewed. So a typed
   code is applied or the checkout is refused with mail's message (the form stays as it is); to buy without it the buyer removes it.
-- There is no catalog flag for discount codes yet, so the field is always offered and goes away when the preview answers `404`.
-  The page already honours an explicit `coupons: false` in the catalog (see "Proposed").
+- The catalog's `coupons` flag decides whether the field is offered. mail always sends it (mail #221): `true` while something
+  is on sale and at least one code can be used right now, `false` otherwise, which hides the field without a request. Only a
+  mail before the flag sends none: the field is then offered and goes away when the preview answers `404`.
 - **The order page** shows the code and what it took off under the price: "Discount code WELCOME, −1.00 LDC" and the price before
-  the code struck through, plus the first-period note for a subscription. mail does not publish the code with the order yet, and
-  publishes an order with a code but no plan discount with `originalPriceCents` equal to `priceCents` (with a plan discount the
-  stored original price and percentage stay, next to the lower price actually paid), so the fields alone show no discount.
-  The shop page therefore remembers, for each order it creates with a code, the code and the price before it (the plan's
+  the code struck through, plus the first-period note for a subscription. mail publishes both with the order (`couponCode`, `couponDiscountCents`)
+  and the page uses them. A mail before those fields published neither, and published an order with a code but no plan discount
+  with `originalPriceCents` equal to `priceCents`, so the fields alone showed no discount. For such a backend the shop page
+  still remembers, for each order it creates with a code, the code and the price before it (the plan's
   `priceCents`, or `fiatPriceMinor` for a card order) in the tab's `sessionStorage` (`abnormal-coupon`, the last 5 orders;
-  `src/storefront/lib/coupon.ts`), since paying leaves the site and comes back. The order page takes the difference between that
-  price and the order's `priceCents` as the discount, and only when the order really is cheaper. Opened in another browser, a
-  new tab or from the account page, the order shows its price without the breakdown. The remembered values are only shown; they
-  are never sent to mail and play no part in billing.
+  `src/storefront/lib/coupon.ts`), since paying leaves the site and comes back. This is kept **only as the fallback for such a
+  backend**: whenever the order carries mail's fields they win and the remembered values are not read. Without the fields the
+  order page takes the difference between the remembered price and the order's `priceCents` as the discount, and only when the
+  order really is cheaper; opened in another browser, a new tab or from the account page, such an order shows its price without
+  the breakdown. The remembered values are only shown; they are never sent to mail and play no part in billing.
+- **The account page** lists each order with its code and what it took off ("Discount code WELCOME · −1.00 LDC"), from the
+  `couponCode` and `couponDiscountCents` mail publishes with the account's orders (`parseAccountOrder`); an order without a code
+  (`""` and `0`), and every order of a mail before the fields, shows no such row. The list never reads the tab's storage.
 
-`pnpm dev` implements the preview and `coupon` at checkout in the mock, with three codes: `WELCOME` (20% off every plan, either
-way of paying), `LDC1` (1.00 LDC off, so not for card orders) and `MONTHLY` (half off the monthly plan's first period only).
-`MOCK_COUPONS=off pnpm dev` behaves like a mail before discount codes: the preview answers `404` and checkout ignores the field.
+`pnpm dev` implements both forms of the preview, `coupon` at checkout, the catalog flag and the order fields in the mock, with
+three codes: `WELCOME` (20% off every plan, either way of paying), `LDC1` (1.00 LDC off, so not for card orders) and `MONTHLY`
+(half off the monthly plan's first period only). `MOCK_COUPONS=legacy pnpm dev` behaves like a mail with discount codes before
+mail #221: no `coupons` flag, `400` to the several-plans form, and orders without `couponCode` and `couponDiscountCents` (the
+order page then shows what the tab remembered). `MOCK_COUPONS=off pnpm dev` behaves like a mail before discount codes: the
+preview answers `404`, checkout ignores the field and the catalog has no flag.
+
+### Seat plans
+
+A plan is sold in one of two ways: **fixed**, a set number of mailboxes at one price, or **per seat**, where the buyer chooses how
+many mailboxes to pay for (mail's `docs/shop.md`, "Seat-based plans"; `packages/core/src/lib/shop/pricing.ts`,
+`apps/console/src/lib/shop/seats.ts` and the routes under `apps/console/src/app/api/shop/`). mail implements everything below and
+the storefront uses it; none of it is in `docs/onboard-contract.json` yet (see "Proposed"). This section is written from mail's
+code; where its `docs/shop.md` says something else, the code is what the storefront follows, and the differences are listed at the
+end of the section.
+
+**Catalog.** `GET /api/shop/catalog` gains `seatProducts`, present only while a seat plan is on sale. `products` keeps listing
+fixed plans only, so a page that knows nothing of seats sells none of them wrongly. A seat product has every field of a product
+plus `kind: "seat"`, `seatMin` and `seatMax` (1 to 1000, `seatMin` ≤ `seatMax`); `originalPriceCents`, `discountPercent`,
+`priceCents`, `renewPriceCents` and `fiatPriceMinor` are **for one seat** (per period for a subscription), and `mailboxCount`
+equals `seatMin`. The parser (`parseSeatProduct` in `src/storefront/lib/catalog.ts`) requires `kind: "seat"` and a usable range;
+a malformed seat plan fails the catalog like a malformed product. `customDomains` (a number, on `products` and `seatProducts`
+alike; absent or `0` when the plan has none) says how many domains of their own the plan's buyer may connect.
+
+**Pricing an order.** mail prices the order; the browser sends only the quantity.
+
+- LDC: `quantity × originalPriceCents`, then the plan's discount on the whole order, rounded half up **once**
+  (`floor((total × (100 − discountPercent) + 50) / 100)`, mail's `seatOrderPrice`). It is not `quantity × priceCents`: 3.33 a seat
+  at 10% off is 20.98 for 7 seats (23.31 × 0.9 = 20.979), not 7 × 3.00.
+- Card: `quantity × fiatPriceMinor`, per period for a subscription.
+- A period renews at `seats × (renewPriceCents || priceCents)` (LDC) or `seats × fiatPriceMinor` (card).
+- There is no quote endpoint for a purchase without a discount code, so the shop page computes the total with exactly this rule
+  (`seatOrderPrice` and `seatCardPrice` in `catalog.ts`) and marks it as an estimate confirmed at checkout. The order page then
+  shows what mail charged. The limit on what one order can charge is applied per way of paying (`seatTotals`): a quantity
+  whose LDC total is above it can still be bought by card and the other way round, so only that way's button is disabled.
+
+**Checkout and the code preview.** `POST /api/shop/checkout` takes `quantity` (a JSON number) for a seat plan: `400` when it is
+missing, `null`, not a whole number or outside `seatMin`…`seatMax`, or when the total is above what one order can charge
+(1,000,000.00). A fixed plan takes none: `0`, `1`, `null` or absent are accepted and anything above 1 is `400`. The storefront
+sends `quantity` for seat plans only. `POST /api/shop/coupon` takes the same `quantity` for a seat plan (`400` without a valid
+one) and its three amounts are then for that many seats; a quantity sent for a fixed plan is ignored. The order of a seat plan
+has the seats in `mailboxCount`.
+
+**The shop page** (`src/storefront/components/Shop.tsx`) lists the seat plans after the fixed ones: the price per mailbox, a
+quantity stepper within `seatMin`…`seatMax` (`ShopSeatStepper`), the total for either way of paying with the price before the
+discount struck through, and the note that the total is an estimate. A discount code is previewed for the quantity on the card;
+when the quantity changes after "Apply", the card says the code is checked when ordering until it is applied again (mail quotes a
+code for one quantity). The pricing page, its Markdown and its structured data list seat plans with per-mailbox wording
+(`src/lib/pricing.ts`); the offer of a seat plan is a `UnitPriceSpecification` per mailbox with the `eligibleQuantity` range.
+
+**The account's seats.** Each group of `GET /api/shop/account/mailboxes` carries `seats`: `null` unless the order is a seat
+**subscription**, otherwise `{ seats, seatsNext, min, max, seatPriceCents, provider, currency, periodEnd, removing }`. `seatsNext`
+is the count from the next renewal on (`null` when no removal is scheduled), `removing` the ids of the mailboxes that go with it,
+`seatPriceCents` one seat per period in hundredths of an LDC or the smallest unit of `currency` (`""` for LDC). `mailboxLimit` and
+`usesLeft` of the group follow the seats; while a removal is scheduled `usesLeft` only offers what the new count has room for. A
+backend before seat plans sends no `seats` key. The page (`ShopSeats.tsx`, inside the group in "My mailboxes") shows seats used
+of total, the price of a seat, the period end and a scheduled removal with its mailboxes.
+
+The four routes take `orderId`, the subscription's **purchase order** (the group's `orderId`), need the account session, and are
+proxied like `account/mailboxes/create` (`SEAT_ROUTES` in `src/storefront/worker/shop.ts`): same-origin `Origin`, JSON, the client
+IP kept, the `mailhq_shop` and `mailhq_customer` cookies forwarded, never cached, nothing logged but the route name.
+
+- **`quote`** `{ orderId, add }` → `{ add, seats, provider, currency, priceCents, exact, periodEnd }`. `priceCents` is what the
+  added seats cost for the rest of the period (`seats × seat price × time left ÷ period length`, rounded **down** to 0.01 and
+  never below it), `seats` the count after adding. `exact` is `true` for LDC (the order's price if placed at once: it falls as
+  the period runs down) and `false` for a card subscription, where it is mail's estimate and Stripe's invoice has the final
+  amount. It reserves nothing. The page asks for it on "See the price" and shows it before the confirm button appears.
+- **`add`** `{ orderId, add }`. LDC: `201 { orderId }`, a new order paid on the order page with the `pay` form like a renewal
+  order; the Worker rebuilds the buyer cookie as for `renew`; the seats and the code's allowance rise when it is paid. Card:
+  `200 { status: "applied", seats, invoiceUrl: null }` when the card was charged (`seats` is the new count), or
+  `{ status: "payment_required", seats, invoiceUrl }` when the bank wants the buyer: **nothing has changed**, `seats` is still the
+  old count, and the seats rise only when Stripe reports the paid invoice to mail. The page keeps a notice with a link to
+  `invoiceUrl` (Stripe's hosted invoice page; accepted only on an `https` `stripe.com` host, otherwise treated as `null` and the
+  notice points at "Manage auto-renewal") and a "Refresh seats" button until the list shows the new count.
+- **`remove`** `{ orderId, remove, mailboxIds }` → `{ seats, seatsNext, effective, removing }`. Takes effect at the next renewal,
+  never before, and nothing is refunded. `mailboxIds` are the mailboxes that go with the seats: at most `remove` of them, and
+  enough for the remaining ones to fit the new count (it may be empty, or absent, when they already fit). Scheduling again
+  replaces the earlier removal. The page shows the mailboxes as checkboxes only when some have to go.
+- **`keep`** `{ orderId }` → `{ seats, seatsNext: null, effective, removing: [] }`: takes a scheduled removal back.
+- Status codes: `401` not signed in; `403` wrong `Origin`; `404` not a seat subscription of this account (the same answer whether
+  or not it exists); `400` a count that is not a whole number from 1 to 1000, mailbox ids that are malformed, repeated or not this
+  subscription's, more mailboxes than seats removed, or too few chosen (the message says how many more); `409` the period has
+  ended or the subscription is not active (add), a removal is scheduled (add), above the plan's most (add), below the plan's
+  fewest (remove), the subscription is suspended (remove), the seats changed meanwhile (remove), no removal is scheduled (keep),
+  or Stripe refused the change (add, remove and keep of a card subscription); `413` / `415` body; `429` with `Retry-After`
+  (`add`, `remove` and `keep` share 10 per 10 minutes per account, `add` also 30 per 10 minutes per source IP, `quote` 60 per 10
+  minutes per account; the page shows the wait from `Retry-After`); `503` the way of paying is not configured. A mail before seat
+  plans answers its own `404` page, which the Worker turns into a JSON `404`.
+
+**Orders that add seats.** mail's order kind is `seats`, but `toPublicOrder` publishes it as `kind: "renewal"` with `periods: 1`
+and the seats added in `mailboxCount` (in `orders` and in the account's order list), because a storefront before seat plans
+rejects an unknown kind. No published field tells such an order from a one-period renewal, so the order page and the account's
+order list show it as mail labels it, a renewal order. Its `pay` form returns to the order page with `&error=payment` when the
+subscription was renewed after the order was priced (mail's `409` inside the redirect): the payment error on a renewal order
+therefore adds that an order that added seats must be placed again from "My account". A card subscription's seats are recorded
+by mail as an already-paid order of the same kind.
+
+**Renewal page.** No change in shape: for a seat subscription `mailboxCount` and `renewPriceCents` of `renewal` are the seats and
+the price of the next period, already lowered when a removal is scheduled; paying that renewal applies the removal.
+
+**Where mail's code differs from its `docs/shop.md`** (the storefront follows the code):
+
+- `seats` of a mailbox group is `null` for a **one-time** order of a seat plan as well (`listCustomerMailboxes` only loads
+  subscriptions of orders with `periodDays > 0`), not only for a fixed plan's order as the document says. Seats of a one-time
+  order cannot be added or removed.
+- `checkout` treats `quantity: null` like an absent one, and accepts `0` and `1` for a fixed plan; the preview ignores a quantity
+  sent for a fixed plan. The document only says a fixed plan takes none.
+- The preview answers `{ valid: false }` (not `400`) when a seat order's total is above the payable limit.
+- `add` is refused with `409` whenever the subscription's phase is not `active` (grace included) and also when the prorated
+  amount falls outside the payable range, with the "at most N seats" message; the document names the period end only.
+- `remove` and `keep` of a card subscription can also answer `409` when Stripe refuses the quantity change; the document lists
+  that for `add` only. `remove` treats an absent `mailboxIds` as empty.
+- A count above 1000 is `400` on every seat route ("a whole number of seats"), before any plan limit is looked at.
+
+`pnpm dev` sells a demo seat plan (`demoproduct0003`: 3.33 LDC a mailbox at 10% off, or 1.99 USD by card, 2 to 50 mailboxes, every
+30 days, two own domains). Paying is simulated, so a seat subscription exists as soon as "Pay" is pressed. Adding seats to an
+LDC subscription creates an order to pay; to a card subscription it applies at once, except that adding exactly 7 answers
+`payment_required` (the seats arrive on the second refresh of the list, as if Stripe had confirmed) and adding exactly 9 answers
+the declined-card `409`. `MOCK_SEATS=off pnpm dev` behaves like a mail before seat plans: no `seatProducts`, the four routes answer
+`404`, and the groups carry no `seats`.
+
+### Buyer domains
+
+"Use my own domain": a buyer whose plan allows it connects a domain they own from the account page, and the mailboxes of their
+orders can then be set up on it (mail's `docs/shop.md`, "Buyer-owned custom domains"; `apps/console/src/lib/shop/buyer-domains.ts`
+and the routes under `apps/console/src/app/api/shop/account/domains/`). mail implements all of it and the storefront uses it; the
+routes are not in `docs/onboard-contract.json` yet (see "Proposed"). Written from mail's code; the differences from its document
+are at the end of the section.
+
+**Who gets it.** A plan carries `customDomains` (a number above 0) in the catalog when its buyer may connect domains; the shop
+and pricing pages show it. The account's allowance is `limit` of `GET account/domains`: the most any of its paid purchase orders
+allows whose plan has not lapsed past its grace period; `0` means no plan of the account includes it. The panel
+(`src/storefront/components/ShopDomains.tsx`) is not rendered when the list answers `404` (a mail before buyer domains) or `401`,
+nor for an account with `limit: 0` and no domain.
+
+**The six routes** need the account session. They are proxied like `account/mailboxes/*` (`DOMAIN_ROUTES` in
+`src/storefront/worker/shop.ts`) with one difference mail's document states: **only the `mailhq_customer` cookie is forwarded**,
+not the purchase session, since a domain belongs to an account. Writes need the storefront's `Origin` and JSON; the `GET` does
+not. The client IP is kept (mail rate-limits by it), answers are never cached (the ownership value is for the reserving account
+only), and the Worker logs the route name alone: a domain travels in the body only and is never logged. Without a forwardable
+account cookie the Worker answers the `GET` with `401` itself.
+
+- **`Domain`**: `{ id, name, status, phase, ownership, verifiedAt, created }`.
+  - `status`: `pending` (publish the ownership TXT, then verify), `provisioning` (ownership verified, the mail service is still
+    setting the domain up), `review` (waiting for the provider's approval), `live`, `suspended` (by the provider).
+  - `phase`: `active`, `grace`, `suspended` or `expired`: where the buyer's plans that allow own domains stand, at the same
+    moments as a subscription's mailboxes (7 days of grace, then 30 days suspended, then awaiting removal). The page shows a
+    renewal prompt for anything but `active`.
+  - `ownership`: `{ type: "TXT", name, value, expiresAt }` while `status` is `pending`, otherwise `null`. `name` is the full
+    record name (`_mailhq-verification.<domain>`); the page also shows the part before the domain, which many DNS panels want.
+    The value expires after 7 days.
+- **`Record`**: `{ type, name, value, priority?, purpose, required, status, observed }`. `type` is `MX`, `TXT`, `CNAME` or `SRV`
+  (an SRV `value` is `priority weight port target`); `purpose` is one of `ownership`, `mx`, `spf`, `dkim`, `dmarc`,
+  `mta-sts-host`, `mta-sts`, `tls-rpt`, `dmarc-report`, `autoconfig-host`, `client-discovery` (the page names a purpose it does
+  not know by the record's type); `required: false` marks the optional ones; `status` is `matched`, `missing`, `conflict`
+  (`observed` lists what public DNS returned), `error` (the lookup failed, which is not "missing") or `pending`.
+- **`add`** `{ domain }` → `201 { domain }`. Nothing is looked up in DNS yet. What is typed is trimmed and stripped of a scheme,
+  path, port or mailbox part before it is sent (`normalizeDomainInput`); mail validates the name.
+- **`verify`** `{ id }` → `{ domain, records, ready, checkedAt }`. mail looks the TXT record up and, when it is there, sets the
+  domain up (once, however often it is pressed). `records` is empty while the mail service is still setting the domain up.
+- **`check`** `{ id }` → the same shape, submitting nothing: what the page polls. It also moves a domain on once the mail service
+  has finished (`provisioning` → `review` or `live`).
+- **`refresh`** `{ id }` → `{ domain }` with a new ownership value for a reservation that was not verified in time.
+- **`remove`** `{ id }` → `{ ok: true }`: gives a reservation up. Only before ownership is verified.
+- `ready` is true when every required record matches. Mailboxes can be set up once `status` is `live`, whether or not `ready`
+  is; a live domain then appears in the `domains` (and `servers`) of the account's mailbox groups whose plan allows own domains,
+  so the create-mailbox form's domain picker offers it without knowing where it came from. The account page reads "My mailboxes"
+  again when a check first reports a domain live.
+- **Status codes**: `401` not signed in; `403` wrong `Origin`, or (`add`) no running plan of the account includes own domains;
+  `404` not this account's domain (the same answer whether or not it exists); `400` (`add`) not a domain name, or a public
+  suffix; `409` (`add`) the provider's own domain, a domain that is already in use (one message for managed, reserved by someone
+  else and being onboarded: the page shows that sentence and nothing more), or the account's limit is reached; `409` (`verify`)
+  the TXT record is not visible, wrong or expired, with the reason in `error`; `409` (`refresh`) ownership is already verified;
+  `409` (`remove`) the domain is already set up on the mail service; `413` / `415` body; `429` with `Retry-After`; `503` the mail
+  server could not be asked or no mail server can take the domain: nothing was changed.
+- **Rate limits** (every `429` carries `Retry-After`, and the page shows the wait from it): `add` 5 an hour per account and 10 an
+  hour per source IP; `verify` 10 per 10 minutes per account, 30 per 10 minutes per IP and 30 a day per domain; `check` 30 per 10
+  minutes per account and 60 per IP; `refresh` and `remove` share 10 per 10 minutes per account and 30 per IP.
+
+**What the page does.** Enter a domain → the ownership TXT record with a copy button for its name, the host part and its value,
+and until when the value works → "Verify" (mail's refusal is shown as it is; an expired value offers "Get a new value") → the
+DNS records to publish, each with its purpose in plain words, required or optional, copy buttons and its live status → the
+state: waiting for ownership, being set up, waiting for the provider's review (said plainly, with no time promised, since mail
+defines none), live, or suspended by the provider. The page never writes DNS and neither does mail.
+
+**Polling** (`domainPollDelay` and `domainSettled` in `src/storefront/lib/domains.ts`): a domain past its reservation is checked
+once as the page opens (the list carries no records), then again after 20, 30, 45, 60, 60 and 60 seconds, and then stops with a
+"Check again" button, which starts the rounds over. No check runs while the tab is hidden (`document.hidden`); coming back
+starts the wait again. A failed or rate-limited check ends the automatic rounds. Polling ends for good when the domain is live
+with every required record in place, and never runs for a reservation or a suspended domain. That schedule is one
+domain's, while mail's limit on `check` is per account: the cards of the page therefore share one budget (`domainCheckBudget`,
+24 checks in any 10 minutes, below mail's 30), so that several waiting domains do not run into the limit together. When it is
+used up a card stops its rounds as it does after the sixth; "Check again" is never held back by the page, but counts.
+
+**Where mail's code differs from its `docs/shop.md`** (the storefront follows the code):
+
+- `refresh` and `remove` are also limited to 30 per 10 minutes per source IP; the document names the per-account limit only.
+- `add` also answers `503` when no mail server can be picked for the new domain; the document's `503` speaks of the mail server
+  not answering.
+- `add` answers `400` for a value that is not a string or longer than 255 characters before any other check, and checks the
+  plan (`403`) after the name's shape and the public suffix list but before the provider's own names: a buyer without the
+  feature learns nothing about which names the provider holds.
+- `verify`'s `409` reasons are the admin console's domain-onboarding sentences (`settings.onboarding.*`), some of which speak of
+  an admin reviewing the server. A failed ownership DNS **lookup** is also a `409` (not a `503`), and so is a reservation whose
+  onboarding state changed meanwhile.
+- `records` is empty in a `check` or `verify` answer whenever the onboarding is still pending, and after that it is the
+  onboarding workflow's whole list, which can include a record with purpose `ownership`.
+- `limit` counts plans in grace as running (mail's `holdsMailboxes` is false for `grace`); the document says "running plans".
+- The per-domain verify limit (30 a day) is keyed by the domain's record id and only applied when the id is well-formed.
+
+`pnpm dev` implements the six routes in the mock (`src/storefront/mock/domains.ts`). The monthly demo plan allows one own domain
+and the seat plan two. Nothing is looked up in DNS: the first label of the name decides what happens, so each state can be seen
+on purpose.
+
+| Name starts with | What happens                                                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| anything else    | "Verify" succeeds, the required records match after two checks, and the approval arrives two checks after that |
+| `pending-`       | The ownership TXT record is never found: "Verify" answers `409` with mail's reason                             |
+| `expired-`       | The ownership value has expired: "Verify" answers `409` until "Get a new value"                                |
+| `busy-`          | "Verify" is rate limited: `429` with `Retry-After: 300`                                                        |
+| `down-`          | The mail server cannot be asked: "Verify" answers `503`                                                        |
+| `slow-`          | Stays `provisioning` for two checks after "Verify"                                                             |
+| `review-`        | Is never approved                                                                                              |
+| `suspended-`     | Is suspended by the provider once verified                                                                     |
+| `conflict-`      | The MX record stays in conflict, with what DNS returned                                                        |
+| `error-`         | The SPF lookup keeps failing                                                                                   |
+| `grace-`         | The plan has lapsed into its grace period                                                                      |
+| `taken…`         | Already in use on the mail service (`409` when adding)                                                         |
+
+Public suffixes (`co.uk`, `github.io`…) and the provider's own names (`abnormalhq.com`, `abnormal.bid` and anything above or
+below them) are refused when adding. `MOCK_DOMAIN_APPROVAL=off pnpm dev` makes a verified domain go live at once, like a shop
+with approval switched off; `MOCK_DOMAINS=off pnpm dev` behaves like a mail before buyer domains: no plan carries
+`customDomains` and the six routes answer `404`.
 
 ### Cookies, origin and caching
 
@@ -458,7 +721,7 @@ way of paying), `LDC1` (1.00 LDC off, so not for card orders) and `MONTHLY` (hal
 - The account session is `mailhq_customer` (43 base64url characters), set when `account/verify` or `account/password-login` succeeds, valid for 30 days, with the same attributes as above; the database likewise stores only a digest.
   On `account/logout` the Worker returns a `Set-Cookie` that clears it regardless of how mail answers (including failures and internal call exceptions), except for cross-site or malformed requests rejected at the Worker;
   the page also treats a `5xx` with a JSON body on logout (the Worker's answer) as logged out; Cloudflare's own error pages (Worker threw or exceeded limits, cookie not cleared) do not count.
-- Shop browser requests use same-origin cookies; the Worker forwards only these two cookies (each when unique and well-formed), and rebuilds only the corresponding one on success of `checkout` / `renew` and `account/verify` / `account/password-login`
+- Shop browser requests use same-origin cookies; the Worker forwards only these two cookies (each when unique and well-formed; the `account/domains` routes get the account cookie alone, the address check none), and rebuilds only the corresponding one on success of `checkout` / `renew` / `account/seats/add` and `account/verify` / `account/password-login`
   (not inheriting upstream Domain, Path and other attributes); it does not forward the backend login cookie, Authorization or other private request headers.
   The redeem API keeps using `credentials: omit` and does not carry cookies because of the shop.
 - For shop POST requests, this site's Worker requires a real `Origin` exactly equal to the current origin, rejecting missing, `null` and cross-origin values; it preserves the original value when forwarding and must not forge it.
@@ -491,21 +754,30 @@ The shop mock API of `pnpm dev` (`src/storefront/mock/shop.ts`) answers by the s
 
 Nothing under this heading is agreed in data form yet: none of it is in `docs/onboard-contract.json`, which must stay byte for byte
 equal to mail's copy, and mail's `docs/shop.md` lists the same points under "Proposed: storefront contract". The endpoints
-themselves exist in mail and the storefront already uses them (see "Discount codes" above); `tests/storefront/coupon.test.ts`
-fails once the contract file takes the route, as a reminder to delete this section.
+themselves exist in mail and the storefront already uses them; `tests/storefront/seats.test.ts` and `domains.test.ts` fail once
+the contract file takes their routes, as a reminder to move those points out.
 
-- **Route**: add `"coupon": "POST"` to `shop.routes` in both copies of the contract file. The Worker already proxies it (`COUPON_ROUTE`
-  in `src/storefront/worker/shop.ts`); the contract tests on both sides would then cover it like every other route.
-- **Order fields**: add `couponCode` (string, `""` without a code) and `couponDiscountCents` (number, 0 without one, in the unit of
-  `priceCents`) to `publicOrderFields`, and publish the stored `originalPriceCents` for every order. The storefront's parser
-  already accepts both fields when present, and its price check already allows `originalPriceCents === priceCents +
-couponDiscountCents` for an order without a plan discount, so mail can start publishing them without waiting for a storefront
-  release; the order page then uses them instead of what the browser remembered, and the breakdown also shows in other browsers
-  and after sign-in. Until then mail keeps publishing `originalPriceCents` equal to `priceCents` for such orders.
-- **Catalog flag**: `coupons` in `GET /api/shop/catalog`. mail's proposal is `coupons: true` while at least one code is usable,
-  absent otherwise. A flag that is always present would be cleaner for the storefront: `coupons: true | false` on every backend
-  with discount codes, where `false` hides the field without a request, `true` shows it, and only an absent flag (an old backend)
-  falls back to today's "offer the field, hide it on `404`". The storefront reads the flag that way already.
+- **Discount codes** are no longer proposed: mail's copy of the contract file took the `coupon` route and the order fields
+  `couponCode` and `couponDiscountCents` (mail #221), and this repository's copy follows byte for byte. mail now publishes the
+  stored `originalPriceCents` for every order (so `originalPriceCents === priceCents + couponDiscountCents` for an order with a
+  code and no plan discount, which the storefront's `validPrice` allows), and the catalog always carries `coupons: true | false`,
+  which the shop page reads as: `false` hides the field without a request, `true` shows it, absent (a mail before the flag)
+  shows it and hides it when the preview answers `404`. The order page uses mail's fields when they are there; what the shop page
+  remembers in `sessionStorage` is only the fallback for a mail before them. The storefront also uses the preview's several-plans
+  form (`{ products: [...], coupon }`, one guess for up to 8 plans) for "Apply", with the single form as the fallback for a mail
+  that answers `400` to it, and shows the code fields in the account's order list. See "Discount codes" above.
+- **Seat plans**: add `"account/seats/quote"`, `"account/seats/add"`, `"account/seats/remove"` and `"account/seats/keep"`
+  (all `POST`) to `shop.routes` in both copies of the contract file; the Worker already proxies them (`SEAT_ROUTES`) and
+  `tests/storefront/seats.test.ts` fails once the file takes them, as the reminder to move this point out. Also proposed by mail:
+  `quantity` and `seatPriceCents` in `publicOrderFields` (0 for a fixed plan's order) and a third order `kind`, `"seats"`. The
+  storefront's order parser does not accept `"seats"` yet; when mail is ready to publish it, the parser, the order page ("Seats
+  added" instead of "Renewal order", "add seats again" instead of "pay" after a stale price) and the account's order list change
+  first, then mail stops rewriting the kind. See "Seat plans" above for what the storefront does until then.
+- **Buyer domains**: add `"account/domains": "GET"` and `"account/domains/add"`, `"account/domains/verify"`,
+  `"account/domains/check"`, `"account/domains/refresh"` and `"account/domains/remove"` (`POST`) to `shop.routes` in both copies
+  of the contract file; the Worker already proxies them (`DOMAIN_ROUTES`) and `tests/storefront/domains.test.ts` fails once the
+  file takes them. The domain statuses and record statuses could join the file too (`shop.domainStatuses`,
+  `shop.dnsRecordStatuses`), as `subscriptionStates` does: the storefront's parser rejects a status it does not know.
 - **A code on the order page**: a field on an unpaid purchase order without a code, sent as `coupon` with the pay form or
   `pay/stripe` (it only works before the first press on "Pay"). Not built: the Worker's pay form handling and the order page would
   both need it, and the shop page covers the common case.

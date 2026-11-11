@@ -8,6 +8,7 @@ export function ShopDetails({
   item,
   lang,
   stripeCurrency,
+  seatRange,
 }: {
   item: Pick<
     ShopProduct,
@@ -19,10 +20,13 @@ export function ShopDetails({
     | "periodDays"
     | "renewPriceCents"
     | "priceCents"
+    | "customDomains"
   >;
   lang: Lang;
   /** Stripe order: the renewal price is a fiat amount in this currency, not LDC. Empty when the backend did not say which: no renewal price is shown then. */
   stripeCurrency?: string;
+  /** A seat plan on the shop page: the buyer chooses how many mailboxes, and every price is for one of them. */
+  seatRange?: { min: number; max: number };
 }) {
   const t = shopCopy[lang];
   const noQuotaDomains = item.domains.filter((domain) => item.quotaSupportedByDomain?.[domain] === false);
@@ -39,7 +43,9 @@ export function ShopDetails({
   const renewCents = item.renewPriceCents || item.priceCents;
   return (
     <dl className="border-t border-border pt-5 text-sm/body">
-      <Row label={t.count}>{t.quantity(item.mailboxCount)}</Row>
+      <Row label={t.count}>
+        {seatRange ? t.seatCountValue(seatRange.min, seatRange.max) : t.quantity(item.mailboxCount)}
+      </Row>
       <Row label={t.quota}>{quota}</Row>
       {item.periodDays !== undefined && (
         <Row label={t.period}>
@@ -58,7 +64,7 @@ export function ShopDetails({
                   // The price above already reads "per period"; only spell out a renewal price that differs from it.
                   <>
                     <br />
-                    {t.renewAt(formatCredits(renewCents))}
+                    {seatRange ? t.seatRenewAt(formatCredits(renewCents)) : t.renewAt(formatCredits(renewCents))}
                   </>
                 ) : null}
               </>
@@ -69,6 +75,7 @@ export function ShopDetails({
         </Row>
       )}
       <Row label={t.expiry}>{item.codeExpiresDays ? t.days(item.codeExpiresDays) : t.unlimited}</Row>
+      {item.customDomains ? <Row label={t.ownDomains}>{t.ownDomainsValue(item.customDomains)}</Row> : null}
       <div>
         <dt className="text-muted-foreground">{t.domains}</dt>
         <dd className="mt-2.5 flex flex-wrap gap-2 wrap-anywhere">

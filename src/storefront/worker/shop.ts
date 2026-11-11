@@ -11,8 +11,8 @@ import {
 } from "./proxy";
 
 const SHOP_PATH =
-  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?))?)\/?$/;
-const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes"];
+  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?|seats\/(?:quote|add|remove|keep)|domains(?:\/(?:add|verify|check|refresh|remove))?))?)\/?$/;
+const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes", "account/domains"];
 /**
  * The address check before buying (POST address: is this username free on this domain?), in docs/storefront-api.md and
  * docs/onboard-contract.json. It needs no session, so no cookie is forwarded to it. mail answers 404 while the check is switched
@@ -21,14 +21,44 @@ const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes
  */
 export const ADDRESS_ROUTE = "address";
 /**
- * The preview of a discount code (POST coupon: what would this plan cost with this code?). mail implements it, but the
- * storefront side of discount codes is still "Proposed" in docs/storefront-api.md and mail's docs/shop.md, so the route is not
- * in docs/onboard-contract.json yet (both copies must stay equal, and mail's has not taken it). It is proxied like checkout:
- * same-origin Origin, the client IP kept, and the purchase and account cookies forwarded, so that a per-buyer limit is known
- * to the preview. A mail before discount codes answers its own 404 page, which is passed on as a JSON 404: the shop page
- * takes that as "no discount codes" and hides the field.
+ * The preview of a discount code (POST coupon: what would this plan, or each of up to eight plans, cost with this code?),
+ * in docs/onboard-contract.json since mail #221. The body is passed on as it is, so both forms of the preview go through.
+ * It is proxied like checkout: same-origin Origin, the client IP kept, and the purchase and account cookies forwarded, so
+ * that a per-buyer limit is known to the preview. A mail before discount codes answers its own 404 page, which is passed on
+ * as a JSON 404: the shop page takes that as "no discount codes" and hides the field.
  */
 export const COUPON_ROUTE = "coupon";
+/**
+ * Seats of a seat subscription on the account page (POST account/seats/quote, add, remove, keep; "Seat plans" in
+ * docs/storefront-api.md). mail implements them, but they are "Proposed" in mail's docs/shop.md and not in
+ * docs/onboard-contract.json yet. They are proxied like account/mailboxes/create: same-origin Origin, the client IP kept, the
+ * purchase and account cookies forwarded; `add` may start a purchase session like `renew` (an LDC order to pay). A mail before
+ * seat plans answers its own 404 page, passed on as a JSON 404 rather than as an outage.
+ */
+export const SEAT_ROUTES = ["account/seats/quote", "account/seats/add", "account/seats/remove", "account/seats/keep"];
+/**
+ * "Use my own domain" on the account page (GET account/domains, POST account/domains/add, verify, check, refresh, remove;
+ * "Buyer domains" in docs/storefront-api.md). Also implemented by mail and still "Proposed" in its docs/shop.md, so not in
+ * docs/onboard-contract.json yet. They are proxied like account/mailboxes/*, with one difference mail's document states: only
+ * the account session cookie is forwarded, since a domain belongs to an account and never to a purchase session. A domain name
+ * travels in the body only and is never logged; a mail before buyer domains answers its own 404 page, passed on as a JSON 404,
+ * which the account page takes as "not offered" and shows nothing.
+ */
+export const DOMAINS_ROUTE = "account/domains";
+export const DOMAIN_ROUTES = [
+  DOMAINS_ROUTE,
+  "account/domains/add",
+  "account/domains/verify",
+  "account/domains/check",
+  "account/domains/refresh",
+  "account/domains/remove",
+];
+/** Routes of features an older mail does not have: its 404 page becomes a JSON 404, which the pages take as "not offered". */
+function optionalRoute(route: string): boolean {
+  return (
+    route === ADDRESS_ROUTE || route === COUPON_ROUTE || SEAT_ROUTES.includes(route) || DOMAIN_ROUTES.includes(route)
+  );
+}
 // The cookie names, shapes and lifetimes are mail's (src/lib/shop/session.ts, customers.ts); tests/worker.test.ts checks
 // them against docs/onboard-contract.json.
 export const BUYER_COOKIE = "mailhq_shop";
@@ -86,7 +116,8 @@ function requestCookie(request: Request, name: string, pattern: RegExp): string 
 function shopCookies(request: Request, route: string): string | null {
   if (route === ADDRESS_ROUTE) return null;
   const cookies = [
-    requestCookie(request, BUYER_COOKIE, BUYER_TOKEN),
+    // A buyer's own domains hang off the account alone: the purchase session is not sent to those routes.
+    DOMAIN_ROUTES.includes(route) ? null : requestCookie(request, BUYER_COOKIE, BUYER_TOKEN),
     requestCookie(request, CUSTOMER_COOKIE, CUSTOMER_TOKEN),
     route === "account/google" ? requestCookie(request, GOOGLE_COOKIE, GOOGLE_TOKEN) : null,
   ].filter(Boolean);
@@ -186,7 +217,7 @@ export async function proxyShop(request: Request, env: StorefrontEnv): Promise<R
   // Without a session cookie that the Worker would forward, all mail can answer is "not signed in": answer that here, so
   // that the signed-in bar on every shop page costs signed-out buyers (most visitors) no call to mail.
   if (
-    (route === "account" || route === "account/mailboxes") &&
+    (route === "account" || route === "account/mailboxes" || route === DOMAINS_ROUTE) &&
     !requestCookie(request, CUSTOMER_COOKIE, CUSTOMER_TOKEN)
   ) {
     return failure(401, localize("请先登录。", "Please sign in first."));
@@ -289,6 +320,11 @@ async function forward(
       await upstream.body?.cancel();
       return failure(404, localizer(request)("接口不存在。", "Endpoint not found."));
     }
+    if (optionalRoute(route) && upstream.status === 404 && mediaType(upstream.headers) !== "application/json") {
+      // A mail before the feature answers its own 404 page. mail's JSON 404 ("not a seat subscription of this account") is an answer and passes below.
+      await upstream.body?.cancel();
+      return failure(404, localizer(request)("接口不存在。", "Endpoint not found."));
+    }
     if (mediaType(upstream.headers) !== (notify ? "text/plain" : "application/json")) {
       await upstream.body?.cancel();
       console.error({ event: "mail_shop_invalid_response", route, status: upstream.status });
@@ -297,7 +333,8 @@ async function forward(
     const out = responseHeaders(upstream, SHOP_HEADERS);
     const secure = url.protocol === "https:";
     // Renewal orders hang off this browser's purchase session, like purchase orders.
-    if ((route === "checkout" || route === "renew") && upstream.ok) {
+    // So does an LDC order that adds seats (account/seats/add).
+    if ((route === "checkout" || route === "renew" || route === "account/seats/add") && upstream.ok) {
       const cookie = checkoutCookie(upstream.headers, secure);
       if (cookie) out.set("Set-Cookie", cookie);
     }

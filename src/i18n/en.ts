@@ -8,7 +8,7 @@ export const en: Copy = {
   meta: {
     title: "Abnormal — Email service",
     description:
-      "Abnormal email service: buy an @abnormalhq.com mailbox online, set it up yourself with a redeem code, and read and send from webmail or any mail app. Domain mailboxes, team mailboxes and setup help are available on request.",
+      "Abnormal email service: buy an @abnormalhq.com mailbox online, set it up yourself with a redeem code, and read and send from webmail or any mail app. Plans for a team are sold per mailbox, plans that include it let you connect your own domain yourself, and setup help is available on request.",
     socialTitle: "Abnormal — Good email, simple conversations.",
     socialDescription:
       "Buy and set up an @abnormalhq.com mailbox yourself, then read and send from webmail or your mail app.",
@@ -285,6 +285,22 @@ export const en: Copy = {
       codeNoExpiry: "Set up whenever you like",
       choose: "Choose this plan",
       chooseAria: "Choose this plan: {name}",
+      seatUnitOnce: "LDC / mailbox",
+      seatUnitPeriod: "LDC / mailbox / {period}",
+      cardSeatUnitOnce: "by card / mailbox",
+      cardSeatUnitPeriod: "by card / mailbox / {period}",
+      seatCardOnce: "or {price} per mailbox by card",
+      seatCardPeriod: "or {price} per mailbox every {period} by card, renewing automatically",
+      seatCardRowOnce: "{price} per mailbox",
+      seatCardRowPeriod: "{price} per mailbox every {period}, renewing automatically",
+      seatRenewAt: "{price} LDC per mailbox every {period}",
+      seatMailboxes: "{min} to {max}, you choose",
+      seatNote: "Priced per mailbox: you choose how many in the shop, and the order total is confirmed at checkout.",
+      seatDiscountNote: "The {percent}% discount is taken off the order total and rounded once.",
+      seatUnitName: "mailbox",
+      ownDomains: "Up to {count} of your own domains",
+      ownDomainOne: "1 domain of your own",
+      ownDomainsNone: "Not included",
     },
     compare: {
       title: "Compare plans",
@@ -298,6 +314,7 @@ export const en: Copy = {
         mailboxes: "Mailboxes",
         storage: "Storage",
         domains: "Domains",
+        ownDomains: "Your own domain",
         code: "Redeem code",
       },
       none: "Not offered",
@@ -366,7 +383,10 @@ export const en: Copy = {
   services: {
     eyebrow: "Find your email",
     titleLines: ["A mailbox", "for every day"],
-    intro: ["Personal mailboxes are bought and set up online.", "For domains, teams or setup help, let's talk first."],
+    intro: [
+      "Mailboxes are bought and set up online, for one person, a team or your own domain.",
+      "For setup help, let's talk first.",
+    ],
     products: [
       {
         icon: "mail",
@@ -385,19 +405,25 @@ export const en: Copy = {
         icon: "domain",
         name: "Domain mailbox",
         category: "Your address",
-        description: "Addresses planned around your own domain, so every message carries your name.",
-        tags: ["Domain advice", "Address planning"],
-        price: "",
-        priceNote: "Quoted by domain and setup",
+        description:
+          "Addresses on a domain you own, so every message carries your name. On plans that include it, you connect the domain yourself in My account.",
+        tags: ["Connect it yourself", "You publish the DNS records"],
+        price: "Buy online",
+        priceNote: "On plans that include your own domain",
+        link: "pricing",
+        actionLabel: "See which plans include it",
       },
       {
         icon: "team",
         name: "Team mailbox",
         category: "Work",
-        description: "Mailboxes planned around your team's size and the way you work together.",
-        tags: ["For teams", "Set up to fit"],
-        price: "",
-        priceNote: "Quoted by mailboxes and term",
+        description:
+          "Mailboxes for everyone on the team: on plans sold per mailbox you choose how many, add more any time and remove some at renewal.",
+        tags: ["Priced per mailbox", "Add or remove seats"],
+        price: "Buy online",
+        priceNote: "On plans sold per mailbox",
+        link: "pricing",
+        actionLabel: "See team plans",
       },
       {
         icon: "setup",
@@ -412,10 +438,10 @@ export const en: Copy = {
     priceFallback: "On request",
     consult: "Ask about this",
     consultAria: (name) => `Ask about: ${name}`,
-    noteQuestion: "Need something else, or a team setup?",
+    noteQuestion: "Need a hand setting things up, or something else?",
     noteAction: "Talk to us",
     noteFine:
-      "Personal mailbox plans, prices and limits are listed under Plans and prices. Other services are quoted once we've talked.",
+      "Plans, prices and limits, including plans sold per mailbox and plans that include your own domain, are listed under Plans and prices as the shop offers them. Setup help is quoted once we've talked.",
   },
   process: {
     eyebrow: "A simple way to get started",
@@ -466,7 +492,7 @@ export const en: Copy = {
       {
         question: "What does Abnormal offer?",
         answer:
-          "We offer @abnormalhq.com mailboxes: create an account, buy in the shop, set mailboxes up and manage them from your account, and read and send from webmail or the mail app you already use. For your own domain, a batch of team mailboxes or setup help, ask us first.",
+          "We offer @abnormalhq.com mailboxes: create an account, buy in the shop, set mailboxes up and manage them from your account, and read and send from webmail or the mail app you already use. Plans sold per mailbox cover a whole team, and plans that include it let you use your own domain; for setup help, ask us.",
       },
       {
         question: "How do I buy and set up a mailbox?",
@@ -486,7 +512,7 @@ export const en: Copy = {
       {
         question: "Can I use my own domain or set up mailboxes for a team?",
         answer:
-          "Tell us your domain, how many mailboxes you need and for how long. We'll confirm the plan, the setup involved and the cost; you need to have admin access to the domain. Never send passwords, verification codes, recovery codes or payment details in your message.",
+          "Yes, in the shop, when a plan on sale offers it. A plan sold per mailbox lets you choose how many mailboxes to buy, add seats later and remove them at renewal. A plan that includes your own domain lets you connect it under My account: you prove the domain is yours with a DNS record, publish the mail records we list, and new domains are normally reviewed by us before they go live. The pricing page shows which plans include what, and the help center explains both step by step. If you would like a hand with the setup, ask us; never send passwords, verification codes, recovery codes or payment details in your message.",
       },
       {
         question: "What if something goes wrong?",
@@ -540,9 +566,9 @@ export const en: Copy = {
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["Your next email", "starts here"],
-    body: "Create an account, pick a plan, set mailboxes up in your account once paid and start sending right away. Need a domain or a team? Let's talk.",
+    body: "Create an account, pick a plan, set mailboxes up in your account once paid and start sending right away. Buying for a team or using your own domain works the same way on plans that include it. Want help setting up? Let's talk.",
     buy: "Buy a mailbox",
-    custom: "Talk about custom needs",
+    custom: "Ask for setup help",
   },
   footer: {
     tagline: "Abnormally good.",

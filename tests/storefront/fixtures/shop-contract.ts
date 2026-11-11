@@ -33,6 +33,8 @@ export const catalogResponse = {
     },
   ],
   onboardUrl: "https://onboard.abnormalhq.com/",
+  // Always present since mail #221: whether a discount code can be used right now, i.e. whether to offer the field.
+  coupons: true,
 };
 
 /**
@@ -57,6 +59,9 @@ export const orderResponse = {
     periods: 1,
     provider: "stripe",
     currency: "usd",
+    // An order without a discount code: mail publishes "" and 0.
+    couponCode: "",
+    couponDiscountCents: 0,
     status: "paid",
     created: "2026-09-22T00:00:00.000Z",
     paidAt: "2026-09-22T00:01:00.000Z",
@@ -127,6 +132,9 @@ export const accountResponse = {
       paidAt: "2026-09-22T00:01:00.000Z",
       code: "ABCD-EFGH-JKLM-NPQR",
       codeStatus: "available",
+      // An order without a discount code: "" and 0, as on the order itself.
+      couponCode: "",
+      couponDiscountCents: 0,
     },
     {
       id: "renewal00000001",
@@ -142,6 +150,8 @@ export const accountResponse = {
       paidAt: null,
       code: null,
       codeStatus: null,
+      couponCode: "",
+      couponDiscountCents: 0,
     },
   ],
 };

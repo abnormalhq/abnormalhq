@@ -8,7 +8,7 @@ export const zh: Copy = {
   meta: {
     title: "Abnormal — 邮箱服务",
     description:
-      "Abnormal 邮箱服务：在线选购 @abnormalhq.com 邮箱，用兑换码自助开通，网页邮箱与邮件客户端都能收发；域名邮箱、团队邮箱与配置协助可咨询。",
+      "Abnormal 邮箱服务：在线选购 @abnormalhq.com 邮箱，用兑换码自助开通，网页邮箱与邮件客户端都能收发；团队可以按邮箱数量购买，包含自有域名的套餐可以自助接入自己的域名，配置协助可咨询。",
     socialTitle: "Abnormal — 好用的邮箱，沟通更简单。",
     socialDescription: "在线选购、自助开通 @abnormalhq.com 邮箱，开通后即可在网页或邮件客户端收发。",
     socialImageAlt: "Abnormal 邮箱服务：好用的邮箱，沟通更简单。@abnormalhq.com 邮箱，在线选购、自助开通。",
@@ -268,6 +268,22 @@ export const zh: Copy = {
       codeNoExpiry: "随时开通，不限期",
       choose: "选这个套餐",
       chooseAria: "选这个套餐：{name}",
+      seatUnitOnce: "LDC / 邮箱",
+      seatUnitPeriod: "LDC / 邮箱 / {period}",
+      cardSeatUnitOnce: "银行卡 / 邮箱",
+      cardSeatUnitPeriod: "银行卡 / 邮箱 / {period}",
+      seatCardOnce: "或银行卡每个邮箱 {price}",
+      seatCardPeriod: "或银行卡每个邮箱 {price} / {period}，自动续费",
+      seatCardRowOnce: "每个邮箱 {price}",
+      seatCardRowPeriod: "每个邮箱 {price} / {period}，自动续费",
+      seatRenewAt: "每个邮箱 {price} LDC / {period}",
+      seatMailboxes: "{min} ～ {max} 个，数量自选",
+      seatNote: "按邮箱数量计价：在商店里选择数量，订单总价以结算时确认的为准。",
+      seatDiscountNote: "{percent}% 的优惠按整笔订单计算，只取整一次。",
+      seatUnitName: "邮箱",
+      ownDomains: "可接入 {count} 个自有域名",
+      ownDomainOne: "可接入 1 个自有域名",
+      ownDomainsNone: "不包含",
     },
     compare: {
       title: "套餐对比",
@@ -281,6 +297,7 @@ export const zh: Copy = {
         mailboxes: "邮箱数量",
         storage: "容量",
         domains: "可选域名",
+        ownDomains: "自有域名",
         code: "兑换码",
       },
       none: "不提供",
@@ -344,7 +361,7 @@ export const zh: Copy = {
   services: {
     eyebrow: "Find your email",
     titleLines: ["总有一个邮箱，", "适合你的日常"],
-    intro: ["个人邮箱在线购买、自助开通；", "域名、团队与配置需求，先聊聊再定方案。"],
+    intro: ["个人、团队和自有域名的邮箱都在线购买、自助开通；", "需要配置协助，可以先聊聊。"],
     products: [
       {
         icon: "mail",
@@ -362,19 +379,24 @@ export const zh: Copy = {
         icon: "domain",
         name: "域名邮箱",
         category: "专属地址",
-        description: "围绕你的域名规划邮箱地址，让每一次联系都带上自己的名字。",
-        tags: ["域名咨询", "地址规划"],
-        price: "",
-        priceNote: "按域名与配置需求确认",
+        description:
+          "用自己的域名作邮箱地址，让每一次联系都带上自己的名字。套餐包含自有域名时，在「我的账户」里自助接入。",
+        tags: ["自助接入", "DNS 记录由你设置"],
+        price: "在线选购",
+        priceNote: "适用于包含自有域名的套餐",
+        link: "pricing",
+        actionLabel: "查看哪些套餐包含",
       },
       {
         icon: "team",
         name: "团队邮箱",
         category: "工作往来",
-        description: "按成员数量与工作用途规划邮箱，方便团队开展日常沟通。",
-        tags: ["团队使用", "按需配置"],
-        price: "",
-        priceNote: "按邮箱数量与时长确认",
+        description: "给团队里的每个人都配一个邮箱：按邮箱数量计价的套餐可以自选数量，随时加席位，续费时再减。",
+        tags: ["按邮箱计价", "席位可增可减"],
+        price: "在线选购",
+        priceNote: "适用于按邮箱数量计价的套餐",
+        link: "pricing",
+        actionLabel: "查看团队套餐",
       },
       {
         icon: "setup",
@@ -389,9 +411,10 @@ export const zh: Copy = {
     priceFallback: "咨询报价",
     consult: "咨询这项服务",
     consultAria: (name) => `咨询这项服务：${name}`,
-    noteQuestion: "有其他邮箱或团队配置需求？",
+    noteQuestion: "需要配置协助，或有其他需求？",
     noteAction: "和我们聊聊",
-    noteFine: "个人邮箱的套餐、价格与限制见「套餐与价格」；其他服务的方案及费用，以咨询确认为准。",
+    noteFine:
+      "套餐、价格与限制（包括按邮箱数量计价的套餐和包含自有域名的套餐）以「套餐与价格」里商店在售的为准；配置协助的方案及费用，以咨询确认为准。",
   },
   process: {
     eyebrow: "A simple way to get started",
@@ -438,7 +461,7 @@ export const zh: Copy = {
       {
         question: "Abnormal 提供什么服务？",
         answer:
-          "我们提供 @abnormalhq.com 邮箱：注册账户后在商店在线选购，在账户里自助开通和管理，开通后可以在网页邮箱或常用邮件客户端里收发。需要自己的域名、团队批量开通或配置协助，可以先咨询。",
+          "我们提供 @abnormalhq.com 邮箱：注册账户后在商店在线选购，在账户里自助开通和管理，开通后可以在网页邮箱或常用邮件客户端里收发。按邮箱数量计价的套餐可以给整个团队开通，包含自有域名的套餐可以用自己的域名；需要配置协助可以咨询。",
       },
       {
         question: "怎么购买并开通邮箱？",
@@ -458,7 +481,7 @@ export const zh: Copy = {
       {
         question: "可以使用自己的域名或为团队开通吗？",
         answer:
-          "可以先告诉我们你的域名、邮箱数量和使用时长。我们会确认适用的方案、所需配置和费用；域名接入需由你确认拥有相应管理权限。请勿在咨询中发送密码、验证码、恢复码或支付信息。",
+          "可以，只要商店在售的套餐提供，就在商店里直接购买。按邮箱数量计价的套餐可以自选邮箱数量，之后随时加席位，续费时再减。包含自有域名的套餐可以在「我的账户」里接入域名：先用一条 DNS 记录证明域名归你所有，再按我们列出的记录设置 DNS，新接入的域名通常经我们审核后开通。哪些套餐包含什么见价格页，具体步骤见帮助中心。需要配置协助可以咨询；请勿在咨询中发送密码、验证码、恢复码或支付信息。",
       },
       {
         question: "遇到问题怎么办？",
@@ -511,9 +534,9 @@ export const zh: Copy = {
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["下一封邮件，", "从这里开始"],
-    body: "注册账户、选个套餐，付款后在账户里开通，马上开始收发；有域名或团队需求，也可以先聊聊。",
+    body: "注册账户、选个套餐，付款后在账户里开通，马上开始收发；给团队购买、使用自己的域名，在包含这些内容的套餐上也是同样的流程；需要配置协助，可以先聊聊。",
     buy: "购买邮箱",
-    custom: "聊聊定制需求",
+    custom: "咨询配置协助",
   },
   footer: {
     tagline: "Abnormally good.",

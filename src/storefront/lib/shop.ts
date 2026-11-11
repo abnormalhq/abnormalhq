@@ -23,14 +23,21 @@ import {
 } from "./catalog.ts";
 
 export {
+  catalogPlans,
   checkAddress,
+  clampSeats,
   formatCredits,
   formatMoney,
   getShopCatalog,
+  isSeatProduct,
   parseShopCatalog,
+  seatCardPrice,
+  seatOrderPrice,
+  seatTotals,
   ShopApiError,
   shopApiRoot,
   type AddressAvailability,
+  type SeatProduct,
   type ShopCatalog,
   type ShopPaymentProvider,
   type ShopProduct,
@@ -53,9 +60,9 @@ export interface PublicShopOrder {
     /** Currency of a Stripe order; the amount priceCents is in its smallest unit. */
     currency?: string;
     /**
-     * The discount code of the order and what it took off, in the unit of priceCents ("Proposed" in docs/storefront-api.md).
-     * mail does not publish them yet: until it does, the order page works the discount out from what the shop page
-     * remembered at checkout (coupon.ts).
+     * The discount code of the order ("" without one) and what it took off, in the unit of priceCents (0 without one). mail
+     * publishes both (mail #221, `publicOrderFields` in docs/onboard-contract.json). Absent on a mail before them: only then
+     * does the order page work the discount out from what the shop page remembered at checkout (coupon.ts).
      */
     couponCode?: string;
     couponDiscountCents?: number;
@@ -173,6 +180,8 @@ export async function createShopOrder(
   provider: ShopPaymentProvider = "ldc",
   /** Discount code; the field is not sent when empty. mail prices the order with it, or refuses the checkout (400) and creates no order. */
   coupon = "",
+  /** Seats of a seat plan (required for one: mail refuses the checkout without a whole number in the plan's range); not sent for a fixed plan. */
+  quantity = 0,
 ): Promise<string> {
   const body = await request(
     "checkout",
@@ -181,6 +190,7 @@ export async function createShopOrder(
       ...(email ? { email } : {}),
       ...(provider === "stripe" ? { provider } : {}),
       ...(coupon ? { coupon } : {}),
+      ...(quantity > 0 ? { quantity } : {}),
     },
     undefined,
     lang,
@@ -206,7 +216,8 @@ export interface CouponQuote {
 }
 
 /**
- * Previews a discount code for one plan and way of paying (POST /api/shop/coupon). null means the code cannot be used for
+ * Previews a discount code for one plan and way of paying (POST /api/shop/coupon, the single form; the shop page uses
+ * previewCouponPlans below and falls back to this for a mail before the several-plans form). null means the code cannot be used for
  * this purchase; mail gives one answer for every reason, so there is none to show. It reserves nothing: checkout prices the
  * order again. A backend without the endpoint answers 404 (ShopApiError), and every call counts against mail's limit on
  * code guesses (10 per 10 minutes per IP, shared with checkout), so callers ask on an explicit action, not as the buyer types.
@@ -217,15 +228,21 @@ export async function previewCoupon(
   coupon: string,
   signal?: AbortSignal,
   lang?: Lang,
+  /** Seats of a seat plan: the amounts in the answer are then for that many seats (mail answers 400 without it). Not sent for a fixed plan. */
+  quantity = 0,
 ): Promise<CouponQuote | null> {
   const body = await request(
     "coupon",
-    { productId, ...(provider === "stripe" ? { provider } : {}), coupon },
+    { productId, ...(provider === "stripe" ? { provider } : {}), coupon, ...(quantity > 0 ? { quantity } : {}) },
     signal,
     lang,
   );
   if (!record(body) || !isBoolean(body.valid)) throw new ShopApiError("");
-  if (!body.valid) return null;
+  return body.valid ? parseCouponQuote(body, provider) : null;
+}
+
+/** A quote as either form of the preview carries it. Half-right amounts, or an answer for another way of paying than asked, fail the request. */
+function parseCouponQuote(body: Record<string, unknown>, provider: ShopPaymentProvider): CouponQuote {
   const { basePriceCents, discountCents, priceCents } = body;
   if (
     !isString(body.code) ||
@@ -251,6 +268,101 @@ export async function previewCoupon(
     priceCents,
     firstPeriodOnly: body.firstPeriodOnly,
   };
+}
+
+/** One plan and way of paying a code is previewed for; `quantity` is the seats of a seat plan, 0 for a fixed plan. */
+export interface CouponAsk {
+  productId: string;
+  provider: ShopPaymentProvider;
+  quantity?: number;
+}
+
+/** The most entries mail takes in one preview for several plans (PREVIEW_MAX_PRODUCTS in its coupon route). */
+export const COUPON_PREVIEW_PLANS = 8;
+/**
+ * The most preview requests one press of "Apply" makes. Each request is one guess against mail's limit (10 per 10 minutes per
+ * IP, shared with checkout), whether it asks about one plan or eight.
+ */
+export const COUPON_PREVIEW_REQUESTS = 4;
+
+/**
+ * Previews a discount code for several plans in ONE request, which mail counts as one guess (mail #221): POST
+ * `{ products: [{ productId, provider?, quantity? }], coupon }` with 1 to COUPON_PREVIEW_PLANS entries answers
+ * `{ quotes: [...] }`, one per entry asked and in that order, a quote or null where the code cannot be used. A mail before
+ * this form reads the body as the single form without a plan and answers 400 (ShopApiError), one before discount codes 404.
+ */
+export async function previewCoupons(
+  asks: readonly CouponAsk[],
+  coupon: string,
+  signal?: AbortSignal,
+  lang?: Lang,
+): Promise<(CouponQuote | null)[]> {
+  const body = await request(
+    "coupon",
+    {
+      products: asks.map(({ productId, provider, quantity = 0 }) => ({
+        productId,
+        ...(provider === "stripe" ? { provider } : {}),
+        ...(quantity > 0 ? { quantity } : {}),
+      })),
+      coupon,
+    },
+    signal,
+    lang,
+  );
+  if (!record(body) || !Array.isArray(body.quotes) || body.quotes.length !== asks.length) throw new ShopApiError("");
+  return body.quotes.map((quote: unknown, index) => {
+    if (quote === null) return null;
+    // An entry for another plan than the one asked at its place is not an answer to the question.
+    if (!record(quote) || quote.productId !== asks[index]!.productId) throw new ShopApiError("");
+    return parseCouponQuote(quote, asks[index]!.provider);
+  });
+}
+
+/**
+ * What "Apply" asks: the code for every plan and way of paying on the page, in as few guesses as the backend allows.
+ * COUPON_PREVIEW_PLANS entries go in one request; a larger catalog takes further requests, up to COUPON_PREVIEW_REQUESTS a
+ * press, and what is past that stays unasked ("checked when you order"). A mail before the several-plans form answers 400
+ * to it: the code is then asked plan by plan in the single form, within the same number of requests (the refused one
+ * counted), and `legacy` comes back true so that the next press starts with the single form.
+ *
+ * `quotes` has one entry per ask: a quote, null (the code cannot be used) or undefined (not asked). A failure part-way
+ * keeps what was answered before it and comes back as `error` instead of being thrown.
+ */
+export async function previewCouponPlans(
+  asks: readonly CouponAsk[],
+  coupon: string,
+  options: { signal?: AbortSignal; lang?: Lang; legacy?: boolean } = {},
+): Promise<{ quotes: (CouponQuote | null | undefined)[]; legacy: boolean; error?: unknown }> {
+  const { signal, lang } = options;
+  const quotes: (CouponQuote | null | undefined)[] = asks.map(() => undefined);
+  let legacy = options.legacy ?? false;
+  let requests = 0;
+  try {
+    for (let start = 0; !legacy && start < asks.length && requests < COUPON_PREVIEW_REQUESTS;) {
+      const batch = asks.slice(start, start + COUPON_PREVIEW_PLANS);
+      requests += 1;
+      try {
+        const answers = await previewCoupons(batch, coupon, signal, lang);
+        answers.forEach((quote, index) => (quotes[start + index] = quote));
+        start += batch.length;
+      } catch (error) {
+        // Only the first request decides: a backend that answered the form once has it.
+        if (start === 0 && error instanceof ShopApiError && error.status === 400) legacy = true;
+        else throw error;
+      }
+    }
+    if (legacy) {
+      for (let index = 0; index < asks.length && requests < COUPON_PREVIEW_REQUESTS; index += 1) {
+        const { productId, provider, quantity = 0 } = asks[index]!;
+        requests += 1;
+        quotes[index] = await previewCoupon(productId, provider, coupon, signal, lang, quantity);
+      }
+    }
+  } catch (error) {
+    return { quotes, legacy, error };
+  }
+  return { quotes, legacy };
 }
 
 export async function getShopOrder(orderId: string, signal?: AbortSignal, lang?: Lang): Promise<PublicShopOrder> {
@@ -352,6 +464,9 @@ export interface CustomerAccount {
     paidAt: string | null;
     code: string | null;
     codeStatus: CodeStatus | null;
+    /** The order's discount code ("" without one) and what it took off priceCents (0 without one); absent on a mail before #221. */
+    couponCode?: string;
+    couponDiscountCents?: number;
   }[];
 }
 
@@ -408,7 +523,9 @@ function parseAccountOrder(item: unknown): AccountOrder | null {
     !isString(item.created) ||
     !isNullableString(item.paidAt) ||
     !isNullableString(item.code) ||
-    !isNullableCodeStatus(item.codeStatus)
+    !isNullableCodeStatus(item.codeStatus) ||
+    !optional(item.couponCode, isString) ||
+    !optional(item.couponDiscountCents, isCount)
   )
     return null;
   return compact({
@@ -425,6 +542,8 @@ function parseAccountOrder(item: unknown): AccountOrder | null {
     paidAt: item.paidAt,
     code: item.code,
     codeStatus: item.codeStatus,
+    couponCode: item.couponCode,
+    couponDiscountCents: item.couponDiscountCents,
   });
 }
 
@@ -774,7 +893,68 @@ export interface AccountMailboxGroup {
   domains: string[];
   /** The subscription is suspended or pending reclamation: read-only until renewed. */
   locked: boolean;
+  /**
+   * The seats of a seat subscription; null (or absent, on a backend before seat plans) for every other order. mail also
+   * answers null for a one-time order of a seat plan: its seats cannot be changed afterwards.
+   */
+  seats?: AccountSeats | null;
   mailboxes: AccountMailbox[];
+}
+
+/** A seat subscription as the account page shows it (mail's CustomerSeats, src/lib/shop/seats.ts). */
+export interface AccountSeats {
+  /** Seats paid for in the current period. */
+  seats: number;
+  /** The count from the next renewal on while a removal is scheduled; otherwise null. */
+  seatsNext: number | null;
+  /** The plan's range: seats can be added up to max and removed down to min. */
+  min: number;
+  max: number;
+  /** One seat for one period: hundredths of an LDC, or the smallest unit of `currency` for a card subscription. */
+  seatPriceCents: number;
+  provider: ShopPaymentProvider;
+  /** Currency of a card subscription; the empty string for LDC. */
+  currency: string;
+  periodEnd: string;
+  /** Ids of the mailboxes that go with the scheduled removal. */
+  removing: string[];
+}
+
+const SEAT_LIMIT = 1000;
+
+function isSeatCount(value: unknown): value is number {
+  return isCount(value) && value >= 1 && value <= SEAT_LIMIT;
+}
+
+function parseAccountSeats(value: unknown): AccountSeats | null | undefined {
+  if (value === undefined || value === null) return null;
+  if (
+    !record(value) ||
+    !isSeatCount(value.seats) ||
+    !(value.seatsNext === null || isSeatCount(value.seatsNext)) ||
+    !isSeatCount(value.min) ||
+    !isSeatCount(value.max) ||
+    value.max < value.min ||
+    !isCount(value.seatPriceCents) ||
+    !isProvider(value.provider) ||
+    !isCurrency(value.currency) ||
+    // A card amount without its currency cannot be shown.
+    (value.provider === "stripe") !== Boolean(value.currency) ||
+    !isString(value.periodEnd) ||
+    !isStrings(value.removing)
+  )
+    return undefined;
+  return {
+    seats: value.seats,
+    seatsNext: value.seatsNext,
+    min: value.min,
+    max: value.max,
+    seatPriceCents: value.seatPriceCents,
+    provider: value.provider,
+    currency: value.currency,
+    periodEnd: value.periodEnd,
+    removing: [...value.removing],
+  };
 }
 
 export interface AccountMailboxes {
@@ -830,7 +1010,8 @@ function parseMailboxGroup(value: unknown): AccountMailboxGroup | null {
   )
     return null;
   const mailboxes = value.mailboxes.map(parseAccountMailbox);
-  if (!mailboxes.every((item) => item !== null)) return null;
+  const seats = parseAccountSeats(value.seats);
+  if (!mailboxes.every((item) => item !== null) || seats === undefined) return null;
   return {
     orderId: value.orderId,
     productName: value.productName,
@@ -841,6 +1022,8 @@ function parseMailboxGroup(value: unknown): AccountMailboxGroup | null {
     codeExpires: value.codeExpires,
     domains: [...value.domains],
     locked: value.locked,
+    // Absent on a backend before seat plans, and then absent here too.
+    ...(value.seats === undefined ? {} : { seats }),
     mailboxes: mailboxes as AccountMailbox[],
   };
 }
@@ -903,4 +1086,130 @@ export async function setAccountMailboxStatus(
 /** Deletes one of the buyer's mailboxes with all its mail (irreversible); confirm must repeat the address; the quota goes back to the redeem code. */
 export async function deleteAccountMailbox(mailboxId: string, confirm: string, lang?: Lang): Promise<void> {
   await request("account/mailboxes/delete", { mailboxId, confirm }, undefined, lang);
+}
+
+/* ---------------------------------------------------------------------------
+ * Seats of a seat subscription (mail's src/lib/shop/seats.ts; "Seat plans" in docs/storefront-api.md). `orderId` is always the
+ * subscription's purchase order, the one its group in "My mailboxes" is listed under.
+ * ------------------------------------------------------------------------- */
+
+/** What adding seats would cost for the rest of the current period, as mail quotes it. Reserves nothing. */
+export interface SeatQuote {
+  add: number;
+  /** The seat count after adding. */
+  seats: number;
+  provider: ShopPaymentProvider;
+  currency: string;
+  priceCents: number;
+  /**
+   * true for LDC: the price of the order if it is placed at once (it falls as the period runs down). false for a card
+   * subscription: mail's estimate by the same rule, while Stripe works out the final amount itself when the change is made.
+   */
+  exact: boolean;
+  periodEnd: string;
+}
+
+export async function quoteSeats(orderId: string, add: number, signal?: AbortSignal, lang?: Lang): Promise<SeatQuote> {
+  const body = await request("account/seats/quote", { orderId, add }, signal, lang);
+  if (
+    !record(body) ||
+    body.add !== add ||
+    !isSeatCount(body.seats) ||
+    !isProvider(body.provider) ||
+    !isCurrency(body.currency) ||
+    (body.provider === "stripe") !== Boolean(body.currency) ||
+    !isCount(body.priceCents) ||
+    body.priceCents < 1 ||
+    !isBoolean(body.exact) ||
+    !isString(body.periodEnd)
+  )
+    throw new ShopApiError("");
+  return {
+    add,
+    seats: body.seats,
+    provider: body.provider,
+    currency: body.currency,
+    priceCents: body.priceCents,
+    exact: body.exact,
+    periodEnd: body.periodEnd,
+  };
+}
+
+/**
+ * The outcome of adding seats:
+ * - order: an LDC subscription got an order for the prorated amount, paid on the order page like a renewal order; the seats
+ *   rise when it is paid;
+ * - applied: a card subscription's card was charged and `seats` is the new count;
+ * - payment_required: the bank wants the buyer (authentication, or a declined card). Nothing changed: `seats` is still the
+ *   old count, and the seats rise only once Stripe confirms the payment made on `invoiceUrl` (Stripe's hosted invoice page;
+ *   null when Stripe gave none).
+ */
+export type SeatAddition =
+  | { kind: "order"; orderId: string }
+  | { kind: "applied"; seats: number }
+  | { kind: "payment_required"; seats: number; invoiceUrl: string | null };
+
+/** Stripe's hosted invoice page. Any other address counts as none, so the buyer is never sent elsewhere to pay. */
+function invoicePage(value: unknown): string | null {
+  if (!isString(value)) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && /(^|\.)stripe\.com$/.test(url.hostname) && !url.username && !url.password
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function addSeats(orderId: string, add: number, lang?: Lang): Promise<SeatAddition> {
+  const body = await request("account/seats/add", { orderId, add }, undefined, lang);
+  if (!record(body)) throw new ShopApiError("");
+  if (typeof body.orderId === "string" && /^[a-z0-9]{15}$/.test(body.orderId))
+    return { kind: "order", orderId: body.orderId };
+  if (body.status === "applied" && isSeatCount(body.seats)) return { kind: "applied", seats: body.seats };
+  if (body.status === "payment_required" && isSeatCount(body.seats))
+    return { kind: "payment_required", seats: body.seats, invoiceUrl: invoicePage(body.invoiceUrl) };
+  throw new ShopApiError("");
+}
+
+/** A removal scheduled for the next renewal, or what is left after taking one back. */
+export interface SeatRemoval {
+  seats: number;
+  seatsNext: number | null;
+  /** When the removal takes effect: the end of the current period. */
+  effective: string;
+  removing: string[];
+}
+
+function parseSeatRemoval(body: unknown): SeatRemoval {
+  if (
+    !record(body) ||
+    !isSeatCount(body.seats) ||
+    !(body.seatsNext === null || isSeatCount(body.seatsNext)) ||
+    !isString(body.effective) ||
+    !isStrings(body.removing)
+  )
+    throw new ShopApiError("");
+  return { seats: body.seats, seatsNext: body.seatsNext, effective: body.effective, removing: [...body.removing] };
+}
+
+/**
+ * Removes `remove` seats at the next renewal, never before; `mailboxIds` are the mailboxes that go with them (enough for the
+ * rest to fit the new count; they keep working until then). Scheduling again replaces an earlier removal.
+ */
+export async function removeSeats(
+  orderId: string,
+  remove: number,
+  mailboxIds: readonly string[],
+  lang?: Lang,
+): Promise<SeatRemoval> {
+  return parseSeatRemoval(
+    await request("account/seats/remove", { orderId, remove, mailboxIds: [...mailboxIds] }, undefined, lang),
+  );
+}
+
+/** Takes a scheduled removal back: the subscription keeps all its seats. */
+export async function keepSeats(orderId: string, lang?: Lang): Promise<SeatRemoval> {
+  return parseSeatRemoval(await request("account/seats/keep", { orderId }, undefined, lang));
 }

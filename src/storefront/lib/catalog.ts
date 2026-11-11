@@ -26,7 +26,27 @@ export interface ShopProduct {
   renewPriceCents?: number;
   /** Card (Stripe) price in the smallest unit of the shop currency; 0 or absent means it cannot be bought by card. */
   fiatPriceMinor?: number;
+  /**
+   * "Use my own domain": how many domains of their own a buyer of this plan may connect from the account page. Absent (old
+   * backends, and plans without it) or 0 means none.
+   */
+  customDomains?: number;
 }
+
+/**
+ * A plan sold per mailbox (mail's `seatProducts`, docs/storefront-api.md "Seat plans"): the buyer chooses how many, from seatMin to
+ * seatMax. Every price field is for ONE seat (per period for a subscription) and `mailboxCount` equals seatMin; an order is
+ * priced by mail for the quantity sent with checkout (seatOrderPrice below is the same rule, for the estimate the page shows).
+ */
+export interface SeatProduct extends ShopProduct {
+  seatMin: number;
+  seatMax: number;
+}
+
+/** The most seats one order or subscription can hold: a redeem code's largest allowance (mail's SEAT_MAX, `redeem.code.maxUses`). */
+export const SEAT_MAX = 1000;
+/** The most one order can charge, in hundredths (mail's SHOP_PRICE_MAX_CENTS). */
+export const SHOP_PRICE_MAX_CENTS = 100_000_000;
 
 /** ldc = Linux DO Credit; stripe = card (Stripe Checkout). */
 export type ShopPaymentProvider = "ldc" | "stripe";
@@ -38,6 +58,11 @@ export interface ShopCatalog {
   /** Whether each of the two payment methods is available; old backends that omit it count as LDC only. */
   payment: { ldc: boolean; stripe: { currency: string } | null };
   products: ShopProduct[];
+  /**
+   * Plans sold per mailbox, present only while one is on sale. mail lists them apart from `products` because their prices are
+   * per seat and their checkout needs a quantity; absent on every backend before seat plans, and the pages then show none.
+   */
+  seatProducts?: SeatProduct[];
   onboardUrl: string;
   /** Site key when the login form must pass Cloudflare Turnstile; absent means no verification. */
   turnstileSiteKey?: string;
@@ -48,9 +73,9 @@ export interface ShopCatalog {
    */
   addressCheck?: true;
   /**
-   * Whether the shop takes discount codes (POST /api/shop/coupon, "Proposed" in docs/storefront-api.md). mail does not send the
-   * flag yet: absent means unknown, and the shop then offers the field and hides it if the endpoint answers 404. An explicit
-   * `false` hides the field without asking.
+   * Whether the shop offers discount codes (POST /api/shop/coupon). mail always sends it (mail #221): `true` while something
+   * is on sale and at least one code can be used right now, `false` otherwise, which hides the field without a request.
+   * Absent only on a mail before the flag: unknown, so the shop offers the field and hides it if the preview answers 404.
    */
   coupons?: boolean;
 }
@@ -64,12 +89,15 @@ export class ShopApiError extends Error {
    * meaning the request did not get through the Worker's code.
    */
   readonly answered: boolean;
+  /** Seconds until the request may be tried again, from the answer's Retry-After (every 429 of mail's shop API carries it); null when absent. */
+  readonly retryAfter: number | null;
 
-  constructor(message: string, status = 0, answered = false) {
+  constructor(message: string, status = 0, answered = false, retryAfter: number | null = null) {
     super(message);
     this.name = "ShopApiError";
     this.status = status;
     this.answered = answered;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -158,6 +186,7 @@ export function parseEntitlements(value: Fields, couponDiscountCents = 0): Entit
     !optional(value.periodDays, isCount) ||
     !optional(value.renewPriceCents, isCount) ||
     !optional(value.fiatPriceMinor, isCount) ||
+    !optional(value.customDomains, isCount) ||
     !(
       quotaSupportedByDomain === undefined ||
       (record(quotaSupportedByDomain) && Object.values(quotaSupportedByDomain).every(isBoolean))
@@ -176,6 +205,8 @@ export function parseEntitlements(value: Fields, couponDiscountCents = 0): Entit
     periodDays: value.periodDays,
     renewPriceCents: value.renewPriceCents,
     fiatPriceMinor: value.fiatPriceMinor,
+    // 0 says the same as absent: the pages only ever ask "does this plan include own domains".
+    customDomains: value.customDomains || undefined,
   };
 }
 
@@ -183,6 +214,75 @@ export function parseProduct(value: unknown): ShopProduct | null {
   if (!record(value) || !isString(value.id) || !isString(value.name) || !isString(value.description)) return null;
   const entitlements = parseEntitlements(value);
   return entitlements && compact({ id: value.id, name: value.name, description: value.description, ...entitlements });
+}
+
+/** A seat plan: a product with `kind: "seat"` and a seat range mail itself would accept (1 to SEAT_MAX, min not above max). */
+export function parseSeatProduct(value: unknown): SeatProduct | null {
+  const product = parseProduct(value);
+  if (!product || !record(value) || value.kind !== "seat") return null;
+  const { seatMin, seatMax } = value;
+  if (!isCount(seatMin) || !isCount(seatMax) || seatMin < 1 || seatMax < seatMin || seatMax > SEAT_MAX) return null;
+  return { ...product, seatMin, seatMax };
+}
+
+/**
+ * What `quantity` seats of a seat plan cost in LDC at purchase, by mail's rule (seatOrderPrice in its pricing.ts): quantity ×
+ * the seat's ORIGINAL price, then the plan's discount on the whole order, rounded half up once. Not quantity × the seat's
+ * discounted price: 3.33 a seat at 10% off is 20.98 for 7 seats (23.31 × 0.9 = 20.979), not 7 × 3.00.
+ * mail prices the order at checkout; this is only the figure the page shows before that, marked as an estimate.
+ * null when the total is above what one order can charge (mail refuses that checkout).
+ */
+export function seatOrderPrice(
+  product: Pick<ShopProduct, "originalPriceCents" | "discountPercent">,
+  quantity: number,
+): { originalPriceCents: number; priceCents: number } | null {
+  if (!Number.isSafeInteger(quantity) || quantity < 1) return null;
+  const originalPriceCents = product.originalPriceCents * quantity;
+  if (!Number.isSafeInteger(originalPriceCents) || originalPriceCents > SHOP_PRICE_MAX_CENTS) return null;
+  const priceCents = Math.floor((originalPriceCents * (100 - product.discountPercent) + 50) / 100);
+  return priceCents < 1 ? null : { originalPriceCents, priceCents };
+}
+
+/** What `quantity` seats cost by card: quantity × the seat's card price, per period for a subscription. null above the payable limit or without a card price. */
+export function seatCardPrice(product: Pick<ShopProduct, "fiatPriceMinor">, quantity: number): number | null {
+  const total = (product.fiatPriceMinor ?? 0) * quantity;
+  return Number.isSafeInteger(quantity) && quantity >= 1 && total >= 1 && total <= SHOP_PRICE_MAX_CENTS ? total : null;
+}
+
+/**
+ * What `quantity` seats cost by each way of paying the shop offers, each judged on its own: mail refuses an order above what one
+ * order can charge per way of paying (the LDC total and the card total are different amounts in different units), so a quantity
+ * that is too many for one can still be bought with the other. `ldcTooMany` / `cardTooMany` are true only for a way that is
+ * offered and cannot take the quantity; `tooMany` when no offered way can.
+ */
+export function seatTotals(
+  product: Pick<ShopProduct, "originalPriceCents" | "discountPercent" | "fiatPriceMinor">,
+  quantity: number,
+  offered: { ldc: boolean; card: boolean },
+): {
+  ldc: { originalPriceCents: number; priceCents: number } | null;
+  card: number | null;
+  ldcTooMany: boolean;
+  cardTooMany: boolean;
+  tooMany: boolean;
+} {
+  const ldc = offered.ldc ? seatOrderPrice(product, quantity) : null;
+  const card = offered.card ? seatCardPrice(product, quantity) : null;
+  const ldcTooMany = offered.ldc && !ldc;
+  const cardTooMany = offered.card && !card;
+  return { ldc, card, ldcTooMany, cardTooMany, tooMany: !ldc && !card };
+}
+
+/** A quantity typed or stepped to, kept inside the plan's range; anything that is no whole number becomes the minimum. */
+export function clampSeats(value: number, plan: Pick<SeatProduct, "seatMin" | "seatMax">): number {
+  if (!Number.isFinite(value)) return plan.seatMin;
+  return Math.min(plan.seatMax, Math.max(plan.seatMin, Math.trunc(value)));
+}
+
+/** Retry-After as whole seconds (mail sends the seconds left in the counter's window); null when absent or not a number. */
+function retryAfterSeconds(response: Response): number | null {
+  const value = Number(response.headers.get("retry-after"));
+  return Number.isFinite(value) && value > 0 ? Math.ceil(value) : null;
 }
 
 export async function request(
@@ -211,6 +311,7 @@ export async function request(
       record(body) && typeof body.error === "string" ? body.error : "",
       response.status,
       record(body),
+      retryAfterSeconds(response),
     );
   }
   return body;
@@ -224,6 +325,11 @@ export function parseShopCatalog(body: unknown): ShopCatalog {
   if (!record(body) || !isBoolean(body.available) || !Array.isArray(body.products)) throw new ShopApiError("");
   const products = body.products.map(parseProduct);
   if (!products.every((product): product is ShopProduct => product !== null)) throw new ShopApiError("");
+  // Seat plans: absent on a backend without them. Present, they are checked like the fixed plans.
+  const seatProducts = body.seatProducts === undefined ? [] : body.seatProducts;
+  if (!Array.isArray(seatProducts)) throw new ShopApiError("");
+  const seats = seatProducts.map(parseSeatProduct);
+  if (!seats.every((product): product is SeatProduct => product !== null)) throw new ShopApiError("");
   const payment = record(body.payment) ? body.payment : null;
   // Card payment with a bad currency cannot show a price, so it counts as off.
   const stripe =
@@ -237,6 +343,7 @@ export function parseShopCatalog(body: unknown): ShopCatalog {
       stripe,
     },
     products,
+    ...(seats.length > 0 ? { seatProducts: seats } : {}),
     onboardUrl: isString(body.onboardUrl) ? body.onboardUrl : "",
     ...(isString(body.turnstileSiteKey) && body.turnstileSiteKey.trim()
       ? { turnstileSiteKey: body.turnstileSiteKey.trim() }
@@ -251,8 +358,17 @@ export async function getShopCatalog(signal?: AbortSignal, lang?: Lang): Promise
 }
 
 /** The domains the plans on sale offer, each once, in catalog order: the choices of the address check. */
-export function catalogDomains(catalog: Pick<ShopCatalog, "products">): string[] {
-  return [...new Set(catalog.products.flatMap((product) => product.domains))];
+export function catalogDomains(catalog: Pick<ShopCatalog, "products" | "seatProducts">): string[] {
+  return [...new Set(catalogPlans(catalog).flatMap((product) => product.domains))];
+}
+
+/** Every plan on sale, fixed plans first and seat plans after them, in catalog order. */
+export function catalogPlans(catalog: Pick<ShopCatalog, "products" | "seatProducts">): (ShopProduct | SeatProduct)[] {
+  return [...catalog.products, ...(catalog.seatProducts ?? [])];
+}
+
+export function isSeatProduct(product: ShopProduct | SeatProduct): product is SeatProduct {
+  return "seatMax" in product;
 }
 
 export interface AddressAvailability {
