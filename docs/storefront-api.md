@@ -212,6 +212,12 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | POST   | `/api/shop/account/seats/add`          | JSON: `{ orderId, add }`                                                                   | LDC `201`, `{ orderId }` and the buyer cookie; card `200`, `{ status, seats, … }`    |
 | POST   | `/api/shop/account/seats/remove`       | JSON: `{ orderId, remove, mailboxIds }`                                                    | `200`, `{ seats, seatsNext, effective, removing }`                                   |
 | POST   | `/api/shop/account/seats/keep`         | JSON: `{ orderId }`                                                                        | `200`, `{ seats, seatsNext: null, effective, removing: [] }`                         |
+| GET    | `/api/shop/account/domains`            | Account cookie (see "Buyer domains")                                                       | `200`, `{ limit, domains }`; `401` when not logged in                                |
+| POST   | `/api/shop/account/domains/add`        | JSON: `{ domain }`                                                                         | `201`, `{ domain }` with the ownership TXT record                                    |
+| POST   | `/api/shop/account/domains/verify`     | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                       |
+| POST   | `/api/shop/account/domains/check`      | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                       |
+| POST   | `/api/shop/account/domains/refresh`    | JSON: `{ id }`                                                                             | `200`, `{ domain }` with a new ownership value                                       |
+| POST   | `/api/shop/account/domains/remove`     | JSON: `{ id }`                                                                             | `200`, `{ "ok": true }`                                                              |
 | POST   | `/api/shop/account/forgot`             | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`; sends a password reset email when this account exists     |
 | POST   | `/api/shop/account/reset`              | JSON: `{ token, password }` (reset token)                                                  | `200`, `{ email, claimed }`, and sets the account cookie                             |
 | POST   | `/api/shop/account/google/start`       | JSON: `{ lang?, link? }`                                                                   | `200`, `{ url }` (Google authorization page), and sets the Google state cookie       |
@@ -568,6 +574,116 @@ LDC subscription creates an order to pay; to a card subscription it applies at o
 the declined-card `409`. `MOCK_SEATS=off pnpm dev` behaves like a mail before seat plans: no `seatProducts`, the four routes answer
 `404`, and the groups carry no `seats`.
 
+### Buyer domains
+
+"Use my own domain": a buyer whose plan allows it connects a domain they own from the account page, and the mailboxes of their
+orders can then be set up on it (mail's `docs/shop.md`, "Buyer-owned custom domains"; `apps/console/src/lib/shop/buyer-domains.ts`
+and the routes under `apps/console/src/app/api/shop/account/domains/`). mail implements all of it and the storefront uses it; the
+routes are not in `docs/onboard-contract.json` yet (see "Proposed"). Written from mail's code; the differences from its document
+are at the end of the section.
+
+**Who gets it.** A plan carries `customDomains` (a number above 0) in the catalog when its buyer may connect domains; the shop
+and pricing pages show it. The account's allowance is `limit` of `GET account/domains`: the most any of its paid purchase orders
+allows whose plan has not lapsed past its grace period; `0` means no plan of the account includes it. The panel
+(`src/storefront/components/ShopDomains.tsx`) is not rendered when the list answers `404` (a mail before buyer domains) or `401`,
+nor for an account with `limit: 0` and no domain.
+
+**The six routes** need the account session. They are proxied like `account/mailboxes/*` (`DOMAIN_ROUTES` in
+`src/storefront/worker/shop.ts`) with one difference mail's document states: **only the `mailhq_customer` cookie is forwarded**,
+not the purchase session, since a domain belongs to an account. Writes need the storefront's `Origin` and JSON; the `GET` does
+not. The client IP is kept (mail rate-limits by it), answers are never cached (the ownership value is for the reserving account
+only), and the Worker logs the route name alone: a domain travels in the body only and is never logged. Without a forwardable
+account cookie the Worker answers the `GET` with `401` itself.
+
+- **`Domain`**: `{ id, name, status, phase, ownership, verifiedAt, created }`.
+  - `status`: `pending` (publish the ownership TXT, then verify), `provisioning` (ownership verified, the mail service is still
+    setting the domain up), `review` (waiting for the provider's approval), `live`, `suspended` (by the provider).
+  - `phase`: `active`, `grace`, `suspended` or `expired`: where the buyer's plans that allow own domains stand, at the same
+    moments as a subscription's mailboxes (7 days of grace, then 30 days suspended, then awaiting removal). The page shows a
+    renewal prompt for anything but `active`.
+  - `ownership`: `{ type: "TXT", name, value, expiresAt }` while `status` is `pending`, otherwise `null`. `name` is the full
+    record name (`_mailhq-verification.<domain>`); the page also shows the part before the domain, which many DNS panels want.
+    The value expires after 7 days.
+- **`Record`**: `{ type, name, value, priority?, purpose, required, status, observed }`. `type` is `MX`, `TXT`, `CNAME` or `SRV`
+  (an SRV `value` is `priority weight port target`); `purpose` is one of `ownership`, `mx`, `spf`, `dkim`, `dmarc`,
+  `mta-sts-host`, `mta-sts`, `tls-rpt`, `dmarc-report`, `autoconfig-host`, `client-discovery` (the page names a purpose it does
+  not know by the record's type); `required: false` marks the optional ones; `status` is `matched`, `missing`, `conflict`
+  (`observed` lists what public DNS returned), `error` (the lookup failed, which is not "missing") or `pending`.
+- **`add`** `{ domain }` → `201 { domain }`. Nothing is looked up in DNS yet. What is typed is trimmed and stripped of a scheme,
+  path, port or mailbox part before it is sent (`normalizeDomainInput`); mail validates the name.
+- **`verify`** `{ id }` → `{ domain, records, ready, checkedAt }`. mail looks the TXT record up and, when it is there, sets the
+  domain up (once, however often it is pressed). `records` is empty while the mail service is still setting the domain up.
+- **`check`** `{ id }` → the same shape, submitting nothing: what the page polls. It also moves a domain on once the mail service
+  has finished (`provisioning` → `review` or `live`).
+- **`refresh`** `{ id }` → `{ domain }` with a new ownership value for a reservation that was not verified in time.
+- **`remove`** `{ id }` → `{ ok: true }`: gives a reservation up. Only before ownership is verified.
+- `ready` is true when every required record matches. Mailboxes can be set up once `status` is `live`, whether or not `ready`
+  is; a live domain then appears in the `domains` (and `servers`) of the account's mailbox groups whose plan allows own domains,
+  so the create-mailbox form's domain picker offers it without knowing where it came from. The account page reads "My mailboxes"
+  again when a check first reports a domain live.
+- **Status codes**: `401` not signed in; `403` wrong `Origin`, or (`add`) no running plan of the account includes own domains;
+  `404` not this account's domain (the same answer whether or not it exists); `400` (`add`) not a domain name, or a public
+  suffix; `409` (`add`) the provider's own domain, a domain that is already in use (one message for managed, reserved by someone
+  else and being onboarded: the page shows that sentence and nothing more), or the account's limit is reached; `409` (`verify`)
+  the TXT record is not visible, wrong or expired, with the reason in `error`; `409` (`refresh`) ownership is already verified;
+  `409` (`remove`) the domain is already set up on the mail service; `413` / `415` body; `429` with `Retry-After`; `503` the mail
+  server could not be asked or no mail server can take the domain: nothing was changed.
+- **Rate limits** (every `429` carries `Retry-After`, and the page shows the wait from it): `add` 5 an hour per account and 10 an
+  hour per source IP; `verify` 10 per 10 minutes per account, 30 per 10 minutes per IP and 30 a day per domain; `check` 30 per 10
+  minutes per account and 60 per IP; `refresh` and `remove` share 10 per 10 minutes per account and 30 per IP.
+
+**What the page does.** Enter a domain → the ownership TXT record with a copy button for its name, the host part and its value,
+and until when the value works → "Verify" (mail's refusal is shown as it is; an expired value offers "Get a new value") → the
+DNS records to publish, each with its purpose in plain words, required or optional, copy buttons and its live status → the
+state: waiting for ownership, being set up, waiting for the provider's review (said plainly, with no time promised, since mail
+defines none), live, or suspended by the provider. The page never writes DNS and neither does mail.
+
+**Polling** (`domainPollDelay` and `domainSettled` in `src/storefront/lib/domains.ts`): a domain past its reservation is checked
+once as the page opens (the list carries no records), then again after 20, 30, 45, 60, 60 and 60 seconds, and then stops with a
+"Check again" button, which starts the rounds over. No check runs while the tab is hidden (`document.hidden`); coming back
+starts the wait again. A failed or rate-limited check ends the automatic rounds. Polling ends for good when the domain is live
+with every required record in place, and never runs for a reservation or a suspended domain.
+
+**Where mail's code differs from its `docs/shop.md`** (the storefront follows the code):
+
+- `refresh` and `remove` are also limited to 30 per 10 minutes per source IP; the document names the per-account limit only.
+- `add` also answers `503` when no mail server can be picked for the new domain; the document's `503` speaks of the mail server
+  not answering.
+- `add` answers `400` for a value that is not a string or longer than 255 characters before any other check, and checks the
+  plan (`403`) after the name's shape and the public suffix list but before the provider's own names: a buyer without the
+  feature learns nothing about which names the provider holds.
+- `verify`'s `409` reasons are the admin console's domain-onboarding sentences (`settings.onboarding.*`), some of which speak of
+  an admin reviewing the server. A failed ownership DNS **lookup** is also a `409` (not a `503`), and so is a reservation whose
+  onboarding state changed meanwhile.
+- `records` is empty in a `check` or `verify` answer whenever the onboarding is still pending, and after that it is the
+  onboarding workflow's whole list, which can include a record with purpose `ownership`.
+- `limit` counts plans in grace as running (mail's `holdsMailboxes` is false for `grace`); the document says "running plans".
+- The per-domain verify limit (30 a day) is keyed by the domain's record id and only applied when the id is well-formed.
+
+`pnpm dev` implements the six routes in the mock (`src/storefront/mock/domains.ts`). The monthly demo plan allows one own domain
+and the seat plan two. Nothing is looked up in DNS: the first label of the name decides what happens, so each state can be seen
+on purpose.
+
+| Name starts with | What happens                                                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| anything else    | "Verify" succeeds, the required records match after two checks, and the approval arrives two checks after that |
+| `pending-`       | The ownership TXT record is never found: "Verify" answers `409` with mail's reason                             |
+| `expired-`       | The ownership value has expired: "Verify" answers `409` until "Get a new value"                                |
+| `busy-`          | "Verify" is rate limited: `429` with `Retry-After: 300`                                                        |
+| `down-`          | The mail server cannot be asked: "Verify" answers `503`                                                        |
+| `slow-`          | Stays `provisioning` for two checks after "Verify"                                                             |
+| `review-`        | Is never approved                                                                                              |
+| `suspended-`     | Is suspended by the provider once verified                                                                     |
+| `conflict-`      | The MX record stays in conflict, with what DNS returned                                                        |
+| `error-`         | The SPF lookup keeps failing                                                                                   |
+| `grace-`         | The plan has lapsed into its grace period                                                                      |
+| `taken…`         | Already in use on the mail service (`409` when adding)                                                         |
+
+Public suffixes (`co.uk`, `github.io`…) and the provider's own names (`abnormalhq.com`, `abnormal.bid` and anything above or
+below them) are refused when adding. `MOCK_DOMAIN_APPROVAL=off pnpm dev` makes a verified domain go live at once, like a shop
+with approval switched off; `MOCK_DOMAINS=off pnpm dev` behaves like a mail before buyer domains: no plan carries
+`customDomains` and the six routes answer `404`.
+
 ### Cookies, origin and caching
 
 - The purchase credential is `mailhq_shop` (64 lowercase hex characters), set only by the server via an HttpOnly, SameSite=Lax cookie; over HTTPS it is also Secure, the path is `/`,
@@ -575,7 +691,7 @@ the declined-card `409`. `MOCK_SEATS=off pnpm dev` behaves like a mail before se
 - The account session is `mailhq_customer` (43 base64url characters), set when `account/verify` or `account/password-login` succeeds, valid for 30 days, with the same attributes as above; the database likewise stores only a digest.
   On `account/logout` the Worker returns a `Set-Cookie` that clears it regardless of how mail answers (including failures and internal call exceptions), except for cross-site or malformed requests rejected at the Worker;
   the page also treats a `5xx` with a JSON body on logout (the Worker's answer) as logged out; Cloudflare's own error pages (Worker threw or exceeded limits, cookie not cleared) do not count.
-- Shop browser requests use same-origin cookies; the Worker forwards only these two cookies (each when unique and well-formed), and rebuilds only the corresponding one on success of `checkout` / `renew` / `account/seats/add` and `account/verify` / `account/password-login`
+- Shop browser requests use same-origin cookies; the Worker forwards only these two cookies (each when unique and well-formed; the `account/domains` routes get the account cookie alone, the address check none), and rebuilds only the corresponding one on success of `checkout` / `renew` / `account/seats/add` and `account/verify` / `account/password-login`
   (not inheriting upstream Domain, Path and other attributes); it does not forward the backend login cookie, Authorization or other private request headers.
   The redeem API keeps using `credentials: omit` and does not carry cookies because of the shop.
 - For shop POST requests, this site's Worker requires a real `Origin` exactly equal to the current origin, rejecting missing, `null` and cross-origin values; it preserves the original value when forwarding and must not forge it.
@@ -630,6 +746,11 @@ couponDiscountCents` for an order without a plan discount, so mail can start pub
   storefront's order parser does not accept `"seats"` yet; when mail is ready to publish it, the parser, the order page ("Seats
   added" instead of "Renewal order", "add seats again" instead of "pay" after a stale price) and the account's order list change
   first, then mail stops rewriting the kind. See "Seat plans" above for what the storefront does until then.
+- **Buyer domains**: add `"account/domains": "GET"` and `"account/domains/add"`, `"account/domains/verify"`,
+  `"account/domains/check"`, `"account/domains/refresh"` and `"account/domains/remove"` (`POST`) to `shop.routes` in both copies
+  of the contract file; the Worker already proxies them (`DOMAIN_ROUTES`) and `tests/storefront/domains.test.ts` fails once the
+  file takes them. The domain statuses and record statuses could join the file too (`shop.domainStatuses`,
+  `shop.dnsRecordStatuses`), as `subscriptionStates` does: the storefront's parser rejects a status it does not know.
 - **A code on the order page**: a field on an unpaid purchase order without a code, sent as `coupon` with the pay form or
   `pay/stripe` (it only works before the first press on "Pay"). Not built: the Worker's pay form handling and the order page would
   both need it, and the shop page covers the common case.

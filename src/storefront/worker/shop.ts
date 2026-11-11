@@ -11,8 +11,8 @@ import {
 } from "./proxy";
 
 const SHOP_PATH =
-  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?|seats\/(?:quote|add|remove|keep)))?)\/?$/;
-const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes"];
+  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?|seats\/(?:quote|add|remove|keep)|domains(?:\/(?:add|verify|check|refresh|remove))?))?)\/?$/;
+const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes", "account/domains"];
 /**
  * The address check before buying (POST address: is this username free on this domain?), in docs/storefront-api.md and
  * docs/onboard-contract.json. It needs no session, so no cookie is forwarded to it. mail answers 404 while the check is switched
@@ -37,9 +37,28 @@ export const COUPON_ROUTE = "coupon";
  * seat plans answers its own 404 page, passed on as a JSON 404 rather than as an outage.
  */
 export const SEAT_ROUTES = ["account/seats/quote", "account/seats/add", "account/seats/remove", "account/seats/keep"];
+/**
+ * "Use my own domain" on the account page (GET account/domains, POST account/domains/add, verify, check, refresh, remove;
+ * "Buyer domains" in docs/storefront-api.md). Also implemented by mail and still "Proposed" in its docs/shop.md, so not in
+ * docs/onboard-contract.json yet. They are proxied like account/mailboxes/*, with one difference mail's document states: only
+ * the account session cookie is forwarded, since a domain belongs to an account and never to a purchase session. A domain name
+ * travels in the body only and is never logged; a mail before buyer domains answers its own 404 page, passed on as a JSON 404,
+ * which the account page takes as "not offered" and shows nothing.
+ */
+export const DOMAINS_ROUTE = "account/domains";
+export const DOMAIN_ROUTES = [
+  DOMAINS_ROUTE,
+  "account/domains/add",
+  "account/domains/verify",
+  "account/domains/check",
+  "account/domains/refresh",
+  "account/domains/remove",
+];
 /** Routes of features an older mail does not have: its 404 page becomes a JSON 404, which the pages take as "not offered". */
 function optionalRoute(route: string): boolean {
-  return route === ADDRESS_ROUTE || route === COUPON_ROUTE || SEAT_ROUTES.includes(route);
+  return (
+    route === ADDRESS_ROUTE || route === COUPON_ROUTE || SEAT_ROUTES.includes(route) || DOMAIN_ROUTES.includes(route)
+  );
 }
 // The cookie names, shapes and lifetimes are mail's (src/lib/shop/session.ts, customers.ts); tests/worker.test.ts checks
 // them against docs/onboard-contract.json.
@@ -98,7 +117,8 @@ function requestCookie(request: Request, name: string, pattern: RegExp): string 
 function shopCookies(request: Request, route: string): string | null {
   if (route === ADDRESS_ROUTE) return null;
   const cookies = [
-    requestCookie(request, BUYER_COOKIE, BUYER_TOKEN),
+    // A buyer's own domains hang off the account alone: the purchase session is not sent to those routes.
+    DOMAIN_ROUTES.includes(route) ? null : requestCookie(request, BUYER_COOKIE, BUYER_TOKEN),
     requestCookie(request, CUSTOMER_COOKIE, CUSTOMER_TOKEN),
     route === "account/google" ? requestCookie(request, GOOGLE_COOKIE, GOOGLE_TOKEN) : null,
   ].filter(Boolean);
@@ -198,7 +218,7 @@ export async function proxyShop(request: Request, env: StorefrontEnv): Promise<R
   // Without a session cookie that the Worker would forward, all mail can answer is "not signed in": answer that here, so
   // that the signed-in bar on every shop page costs signed-out buyers (most visitors) no call to mail.
   if (
-    (route === "account" || route === "account/mailboxes") &&
+    (route === "account" || route === "account/mailboxes" || route === DOMAINS_ROUTE) &&
     !requestCookie(request, CUSTOMER_COOKIE, CUSTOMER_TOKEN)
   ) {
     return failure(401, localize("请先登录。", "Please sign in first."));

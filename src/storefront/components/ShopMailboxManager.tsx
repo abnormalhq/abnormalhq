@@ -56,7 +56,14 @@ interface Created {
  * The rules all live in mail (src/lib/shop/customer-mailboxes.ts): this only shows its answers and re-reads the list after every change.
  * When the subscription is suspended the whole group is read-only; deleting requires typing the full mailbox address.
  */
-export function ShopMailboxManager({ lang }: { lang: Lang }) {
+export function ShopMailboxManager({
+  lang,
+  refresh = 0,
+}: {
+  lang: Lang;
+  /** Changes when something outside the manager changed what it lists (one of the buyer's own domains went live): the list is read again. */
+  refresh?: number;
+}) {
   const t = shopCopy[lang];
   // undefined: still loading; null: unavailable (logged out or old backend), this block is hidden.
   const [data, setData] = useState<AccountMailboxes | null | undefined>(undefined);
@@ -91,7 +98,7 @@ export function ShopMailboxManager({ lang }: { lang: Lang }) {
         else setLoadError(shopError(cause, lang));
       });
     return () => controller.abort();
-  }, [lang, reload]);
+  }, [lang, reload, refresh]);
 
   /** Run one change: on success close the form, show the result and re-read the list; on failure keep the form and show the reason. */
   async function act(work: () => Promise<string | void>): Promise<boolean> {

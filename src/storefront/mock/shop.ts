@@ -22,6 +22,7 @@ import type {
   ShopProduct,
 } from "@/storefront/lib/shop";
 import { seatCardPrice, seatOrderPrice } from "@/storefront/lib/catalog";
+import { MockDomains } from "./domains";
 
 const COOKIE = "mailhq_shop";
 const TOKEN = /^[a-f0-9]{64}$/;
@@ -67,8 +68,7 @@ const SUBSCRIPTION_PRODUCT: ShopProduct = {
 const PRODUCTS = [PRODUCT, SUBSCRIPTION_PRODUCT];
 /**
  * A plan sold per mailbox, listed under `seatProducts`. Every price is for one seat: 3.33 LDC at 10% off (the example of mail's
- * docs/shop.md: 7 seats are 20.98, not 7 × 3.00), renewing at the discounted seat price, or 1.99 USD a seat by card. It also
- * allows two domains of the buyer's own.
+ * docs/shop.md: 7 seats are 20.98, not 7 × 3.00), renewing at the discounted seat price, or 1.99 USD a seat by card.
  */
 export const SEAT_PRODUCT: SeatProduct = {
   id: "demoproduct0003",
@@ -85,9 +85,16 @@ export const SEAT_PRODUCT: SeatProduct = {
   periodDays: 30,
   renewPriceCents: 0,
   fiatPriceMinor: 199,
-  customDomains: 2,
   seatMin: 2,
   seatMax: 50,
+};
+/**
+ * "Use my own domain": how many domains of their own a buyer of each demo plan may connect (mail's `customDomains`, recorded on
+ * the order). The monthly plan allows one and the seat plan two; the one-time plan none.
+ */
+export const MOCK_CUSTOM_DOMAINS: Readonly<Record<string, number>> = {
+  [SUBSCRIPTION_PRODUCT.id]: 1,
+  [SEAT_PRODUCT.id]: 2,
 };
 /** Adding exactly this many seats to a demo card subscription needs the buyer at the bank: nothing changes until the invoice is paid. */
 export const MOCK_SEATS_PAYMENT_REQUIRED = 7;
@@ -208,6 +215,8 @@ interface StoredOrder {
    * subscription's period end, the order can no longer be paid.
    */
   addsSeats?: { pricedTo: number };
+  /** How many own domains the plan allowed its buyer when the order was placed (mail's shop_orders.custom_domains); not published with the order. */
+  customDomains?: number;
 }
 
 interface StoredLogin {
@@ -335,17 +344,45 @@ export class MockShopStore {
    * groups carry no `seats`, like a mail before them: the pages then show nothing about seats.
    */
   private readonly seats: boolean;
+  /**
+   * Whether the demo backend has buyer-owned domains. Off, no plan carries `customDomains` and the account/domains routes
+   * answer 404, like a mail before them: the account page then shows nothing about own domains.
+   */
+  private readonly buyerDomains: MockDomains | null;
 
   constructor(
     now: () => number = Date.now,
     addressCheck = process.env.MOCK_ADDRESS_CHECK !== "off",
     coupons = process.env.MOCK_COUPONS !== "off",
     seats = process.env.MOCK_SEATS !== "off",
+    domains = process.env.MOCK_DOMAINS !== "off",
+    domainApproval = process.env.MOCK_DOMAIN_APPROVAL !== "off",
   ) {
     this.now = now;
     this.addressCheck = addressCheck;
     this.coupons = coupons;
     this.seats = seats;
+    this.buyerDomains = domains ? new MockDomains(now, domainApproval) : null;
+  }
+
+  /** `customDomains` of a plan as the catalog publishes it: absent while the plan allows none or the backend has no buyer domains. */
+  private customDomains(productId: string): { customDomains?: number } {
+    const allowed = this.buyerDomains ? (MOCK_CUSTOM_DOMAINS[productId] ?? 0) : 0;
+    return allowed > 0 ? { customDomains: allowed } : {};
+  }
+
+  /**
+   * How many domains the account may have right now: the most any of its paid purchase orders allows. (mail also drops plans
+   * that lapsed past their grace period; the demo's subscriptions never get that far.)
+   */
+  private domainLimit(email: string): number {
+    return Math.max(
+      0,
+      ...[...(this.owned.get(email) ?? [])]
+        .map((id) => this.orders.get(id))
+        .filter((stored) => stored?.order.status === "paid" && (stored.order.kind ?? "purchase") === "purchase")
+        .map((stored) => stored?.customDomains ?? 0),
+    );
   }
 
   /** The plans checkout and the code preview know: the seat plan only while the demo backend has seat plans. */
@@ -400,11 +437,23 @@ export class MockShopStore {
         ...(this.seats
           ? ["account/seats/quote", "account/seats/add", "account/seats/remove", "account/seats/keep"]
           : []),
+        ...(this.buyerDomains
+          ? [
+              "account/domains",
+              "account/domains/add",
+              "account/domains/verify",
+              "account/domains/check",
+              "account/domains/refresh",
+              "account/domains/remove",
+            ]
+          : []),
       ].includes(route)
     ) {
       return failure(404, say("接口不存在。", "Endpoint not found."));
     }
-    const method = ["catalog", "orders", "account", "account/mailboxes"].includes(route) ? "GET" : "POST";
+    const method = ["catalog", "orders", "account", "account/mailboxes", "account/domains"].includes(route)
+      ? "GET"
+      : "POST";
     if (request.method !== method) {
       return json({ error: say(`只接受 ${method}。`, `Only ${method} is accepted.`) }, 405, { Allow: method });
     }
@@ -418,6 +467,7 @@ export class MockShopStore {
     if (route === "catalog") {
       const seatEntry = {
         ...structuredClone(SEAT_PRODUCT),
+        ...this.customDomains(SEAT_PRODUCT.id),
         kind: "seat",
         ...(english ? PRODUCT_TEXT_EN[SEAT_PRODUCT.id] : {}),
       };
@@ -426,6 +476,7 @@ export class MockShopStore {
         payment: { ldc: true, stripe: { currency: "usd" } },
         products: PRODUCTS.map((product) => ({
           ...structuredClone(product),
+          ...this.customDomains(product.id),
           ...(english ? PRODUCT_TEXT_EN[product.id] : {}),
         })),
         // Like mail: seat plans are listed apart, with `kind: "seat"`, and the key is absent while none is on sale.
@@ -449,6 +500,10 @@ export class MockShopStore {
     if (route === "account") {
       if (!customer) return failure(401, notSignedIn);
       return json(this.account(customer));
+    }
+    if (route === "account/domains") {
+      if (!customer) return failure(401, notSignedIn);
+      return json(this.buyerDomains!.list(customer, this.domainLimit(customer)));
     }
     if (route === "orders") {
       if (url.searchParams.getAll("id").length !== 1) {
@@ -690,6 +745,17 @@ export class MockShopStore {
       if (!customer) return failure(401, notSignedIn);
       return this.mailboxWrite(route.slice("account/mailboxes/".length), customer, body, say);
     }
+    if (route.startsWith("account/domains/")) {
+      if (!customer) return failure(401, notSignedIn);
+      const answer = this.buyerDomains!.write(
+        route.slice("account/domains/".length),
+        customer,
+        body,
+        say,
+        this.domainLimit(customer),
+      );
+      return json(answer.body, answer.status, answer.headers);
+    }
     if (route.startsWith("account/seats/")) {
       if (!customer) return failure(401, notSignedIn);
       return this.seatWrite(route.slice("account/seats/".length), customer, token, body, say, english, secure);
@@ -830,6 +896,7 @@ export class MockShopStore {
       const contactEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       this.orders.set(id, {
         ...(quote ? { coupon: { code: quote.code, discountCents: quote.discountCents } } : {}),
+        ...(product && route === "checkout" ? this.customDomains(product.id) : {}),
         buyerHash: hash(buyer),
         // mail's order creation records the account email when no contact email was given; renewal orders record only one that was given.
         contactEmail: contactEmail || (route === "checkout" ? (customer ?? "") : ""),
@@ -956,8 +1023,11 @@ export class MockShopStore {
   }
 
   private mailboxList(email: string): AccountMailboxes {
+    // Like mail: the buyer's live domains are offered, on top of the plan's own, to the orders whose plan allows own domains.
+    const ownDomains = this.buyerDomains?.usable(email) ?? [];
     const groups = this.paidPurchases(email).map((order) => {
       const mailboxes = this.mailboxes.get(order.id) ?? [];
+      const available = [...order.domains, ...((this.orders.get(order.id)?.customDomains ?? 0) > 0 ? ownDomains : [])];
       const seats = this.seats ? this.settleSeats(order.id) : undefined;
       // A seat subscription's code allows as many mailboxes as it has seats; a seat on its way out is not filled again.
       const limit = seats ? seats.seats : order.mailboxCount;
@@ -975,7 +1045,7 @@ export class MockShopStore {
         usesLeft,
         mailboxLimit: limit,
         codeExpires: null,
-        domains: usesLeft === 0 ? [] : [...order.domains],
+        domains: usesLeft === 0 ? [] : available,
         locked: false,
         // Like mail: `seats` is there on a backend with seat plans, and null for anything but a seat subscription.
         ...(this.seats
@@ -1032,7 +1102,7 @@ export class MockShopStore {
       const group = this.mailboxList(email).groups.find((item) => item.orderId === order.id);
       if (!group || group.usesLeft < 1)
         return failure(409, say("这个兑换码已经用完了。", "This code has been used up."));
-      if (typeof body.domain !== "string" || !order.domains.includes(body.domain))
+      if (typeof body.domain !== "string" || !group.domains.includes(body.domain))
         return failure(400, say("请选择可用的域名。", "Choose an available domain."));
       const username = typeof body.username === "string" ? body.username : "";
       if (usernameProblem(username)) return failure(400, say("用户名格式不对。", "The username is not valid."));

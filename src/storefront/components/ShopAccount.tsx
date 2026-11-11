@@ -55,6 +55,7 @@ import {
   shopOrderPageClass,
   shopTextClass,
 } from "./ShopParts";
+import { ShopDomains } from "./ShopDomains";
 import { ShopMailboxManager } from "./ShopMailboxManager";
 import { useTurnstile } from "./Turnstile";
 
@@ -93,6 +94,8 @@ export function ShopAccount({ lang }: { lang: Lang }) {
   const googleReturn = Boolean(googleState && (googleCode || googleError));
   // undefined: still loading; null: logged out.
   const [account, setAccount] = useState<CustomerAccount | null | undefined>(undefined);
+  // Bumped when one of the buyer's own domains goes live: "My mailboxes" then reads its list again and offers the domain.
+  const [mailboxRefresh, setMailboxRefresh] = useState(0);
   const [reload, setReload] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -498,7 +501,9 @@ export function ShopAccount({ lang }: { lang: Lang }) {
               </ShopButton>
             </div>
           </ShopPanel>
-          <ShopMailboxManager lang={lang} />
+          <ShopMailboxManager lang={lang} refresh={mailboxRefresh} />
+          {/* "Use my own domain": hidden by itself while the backend or the account's plans do not offer it. */}
+          <ShopDomains lang={lang} onLive={() => setMailboxRefresh((value) => value + 1)} />
           {/* Old backends without password login do not return hasPassword; this block is hidden then. */}
           {account.hasPassword !== undefined && (
             <ShopPasswordPanel
