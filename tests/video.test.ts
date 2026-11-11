@@ -72,6 +72,15 @@ test("the player never autoplays, loads only metadata, and is a native <video co
   assert.match(source, /useSyncExternalStore\(subscribe, enhancedOnClient, notEnhancedOnServer\)/);
 });
 
+test("a video that has only just mounted is not taken for a failed one", () => {
+  // After a client-side navigation the element is new, and the browser reports NETWORK_NO_SOURCE until it has picked a
+  // <source>: marking that as failed showed "can't play this video" on every return to the home page.
+  const source = readFileSync("src/components/VideoPlayer.tsx", "utf8");
+  assert.doesNotMatch(source, /NETWORK_NO_SOURCE[^\n]*\n\s*setFailed\(true\)/);
+  assert.match(source, /NETWORK_NO_SOURCE && video\.readyState === video\.HAVE_NOTHING\) \{\n\s*video\.load\(\);/);
+  assert.match(source, /const onLoaded = \(\) => setFailed\(false\);/);
+});
+
 test("the player shows times as m:ss, or h:mm:ss past an hour", () => {
   assert.equal(formatTime(0), "0:00");
   assert.equal(formatTime(7.9), "0:07");

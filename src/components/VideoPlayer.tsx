@@ -133,6 +133,8 @@ export function VideoPlayer({
     const onWaiting = () => setWaiting(true);
     const onReady = () => setWaiting(false);
     const onError = () => setFailed(true);
+    // Whatever was reported before, a video whose metadata has loaded can play.
+    const onLoaded = () => setFailed(false);
     const events: [string, () => void][] = [
       ["play", onPlay],
       ["pause", sync],
@@ -140,6 +142,7 @@ export function VideoPlayer({
       ["timeupdate", sync],
       ["durationchange", sync],
       ["loadedmetadata", sync],
+      ["loadedmetadata", onLoaded],
       ["progress", sync],
       ["volumechange", sync],
       ["seeked", sync],
@@ -158,9 +161,14 @@ export function VideoPlayer({
     // The native player may have been used before hydration: keep its playback in the bar, not under the big button.
     if (!video.paused || video.currentTime > 0) setStarted(true);
     // A source that failed before hydration fired its error unheard and leaves video.error null; the element is then
-    // left with no usable source and nothing loaded.
-    if (video.error || (video.networkState === video.NETWORK_NO_SOURCE && video.readyState === video.HAVE_NOTHING)) {
+    // left with no usable source and nothing loaded. An element that has only just been created looks exactly the same,
+    // though (the browser reports NETWORK_NO_SOURCE until it has picked a <source>), which is the state of every mount
+    // after a client-side navigation, such as coming back to the home page. So that state is not a verdict: the load
+    // starts over, and a source that really is broken reports its error again, this time heard.
+    if (video.error) {
       setFailed(true);
+    } else if (video.networkState === video.NETWORK_NO_SOURCE && video.readyState === video.HAVE_NOTHING) {
+      video.load();
     }
     setCanFullscreen(Boolean(document.fullscreenEnabled || video.webkitEnterFullscreen));
     return () => {
