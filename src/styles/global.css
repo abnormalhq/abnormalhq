@@ -22,6 +22,34 @@
   --breakpoint-tablet: 50.0625rem; /* <= 800px */
   --breakpoint-guide-lg: 56.3125rem; /* <= 900px: the guide page's table of contents narrows */
   --breakpoint-desk: 62.5625rem; /* <= 1000px */
+
+  /*
+   * The site's own motion, beside the theme's short enter and exit animations (abnormal.css):
+   * rise is how content arrives (the hero on load, sections as they are scrolled to), drift is the hero showcase's idle float.
+   * Both use transform, like the theme's, so they do not fight the translate and rotate utilities on the same element.
+   * The theme's reduced-motion rule turns both off.
+   */
+  --animate-rise: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-drift: drift 7s ease-in-out infinite alternate;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes drift {
+    from {
+      transform: translateY(3px);
+    }
+    to {
+      transform: translateY(-5px);
+    }
+  }
 }
 
 /*
@@ -88,5 +116,23 @@
   }
   [hidden] {
     display: none !important;
+  }
+}
+
+/*
+ * Scroll reveal (reveal() in src/lib/reveal.ts, driven by ScrollReveal). Only the script sets "pending", and only on
+ * what is still below the viewport, so without JavaScript nothing is ever hidden. --reveal-delay staggers siblings.
+ */
+[data-reveal="pending"] {
+  opacity: 0;
+}
+[data-reveal="shown"] {
+  animation: var(--animate-rise);
+  animation-delay: var(--reveal-delay, 0ms);
+}
+@media print {
+  [data-reveal] {
+    opacity: 1 !important;
+    animation: none !important;
   }
 }

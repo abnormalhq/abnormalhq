@@ -6,6 +6,7 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import { site, type Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 
@@ -17,7 +18,10 @@ export function Start({ lang }: { lang: Lang }) {
   return (
     <section className="border-t border-border" id="start" aria-labelledby="start-title">
       <Container className={sectionSpaceClassName}>
-        <div className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start">
+        <div
+          className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
+          {...reveal()}
+        >
           <div>
             <Eyebrow lang="en">
               <span className="mr-1">02 /</span> {s.eyebrow}
@@ -41,6 +45,7 @@ export function Start({ lang }: { lang: Lang }) {
               variant={entry.primary ? "featured" : "interactive"}
               className="group/card px-[1.4rem] pt-6 pb-[1.4rem] max-sm:p-6"
               key={entry.title}
+              {...reveal(index)}
             >
               <a href={links[entry.link]}>
                 <span className="flex items-center justify-between gap-[0.7rem]">

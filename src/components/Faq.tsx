@@ -4,6 +4,7 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
@@ -17,7 +18,7 @@ export function Faq({ lang }: { lang: Lang }) {
         id="faq"
         aria-labelledby="faq-title"
       >
-        <div className="lg:pt-3">
+        <div className="lg:pt-3" {...reveal()}>
           <Eyebrow lang="en">
             <span className="mr-1">06 /</span>
             {t.faq.eyebrow}
@@ -40,7 +41,7 @@ export function Faq({ lang }: { lang: Lang }) {
             </TextLink>
           </p>
         </div>
-        <DisclosureList>
+        <DisclosureList {...reveal(1)}>
           {t.faq.items.map(({ question, answer }, index) => (
             <Disclosure key={question}>
               <DisclosureTrigger>

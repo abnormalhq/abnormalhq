@@ -3,6 +3,7 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import { HomePricing } from "./HomePricing";
 import { Icon } from "./Icon";
 import { Included } from "./Included";
@@ -17,7 +18,10 @@ export function PricingSection({ lang }: { lang: Lang }) {
   return (
     <section className="border-t border-border" id="pricing" aria-labelledby="pricing-title">
       <Container className={sectionSpaceClassName}>
-        <div className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start">
+        <div
+          className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
+          {...reveal()}
+        >
           <div>
             <Eyebrow lang="en">
               <span className="mr-1">03 /</span> {p.eyebrow}
@@ -63,7 +67,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
             </a>
           </p>
         </noscript>
-        <div className="mt-14 max-md:mt-11">
+        <div className="mt-14 max-md:mt-11" {...reveal()}>
           <Included lang={lang} id="pricing-included-title" />
         </div>
       </Container>
