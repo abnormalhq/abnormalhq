@@ -558,11 +558,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                   </div>
                   <ShopMeta>
                     <ShopMetaRow label={t.subscriptionEnds}>{date(subscription.currentPeriodEnd)}</ShopMetaRow>
-                    <ShopMetaRow
-                      label={
-                        subscription.trial ? (lang === "zh" ? "升级后服务期" : "Paid period after upgrade") : t.period
-                      }
-                    >
+                    <ShopMetaRow label={subscription.trial ? trialCopy[lang].paidPeriod : t.period}>
                       {t.periodValue(subscription.periodDays)}
                       {subscription.provider !== "stripe" ? (
                         <>
@@ -608,7 +604,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     <ShopActions>
                       <ShopButton asChild variant="outline">
                         <Link href={`/${LANG_PATHS[lang]}shop/renew/?t=${encodeURIComponent(subscription.renewToken)}`}>
-                          {subscription.trial ? trialCopy[lang].upgrade : t.renewLink}
+                          {subscription.trial ? trialCopy[lang].teamUpgrade : t.renewLink}
                           <span aria-hidden="true">↗</span>
                         </Link>
                       </ShopButton>
@@ -628,7 +624,8 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                   <div className={shopHeadingRowClass}>
                     <h3 className="text-md/[1.2]">
                       {order.productName}
-                      {order.kind === "renewal" && ` · ${t.renewalLabel}`}
+                      {order.kind === "renewal" &&
+                        ` · ${order.trialUpgrade ? trialCopy[lang].upgradeOrder : t.renewalLabel}`}
                     </h3>
                     <ShopStatus active={order.status === "paid"}>
                       {order.trial ? trialCopy[lang].title : order.status === "paid" ? t.paid : t.pending}

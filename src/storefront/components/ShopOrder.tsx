@@ -171,32 +171,40 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
         }}
       />
       <ShopHero
-        eyebrow={renewal ? t.renewalLabel : t.orderLabel}
+        eyebrow={order?.trialUpgrade ? trialCopy[lang].upgradeOrder : renewal ? t.renewalLabel : t.orderLabel}
         title={
-          order?.trial
-            ? trialCopy[lang].title
-            : renewal
-              ? paid
-                ? t.renewalPaidTitle
-                : t.renewalOrderTitle
-              : paid
-                ? t.paidTitle
-                : t.orderTitle
+          order?.trialUpgrade
+            ? paid
+              ? trialCopy[lang].upgradePaid
+              : trialCopy[lang].upgradeConfirm
+            : order?.trial
+              ? trialCopy[lang].title
+              : renewal
+                ? paid
+                  ? t.renewalPaidTitle
+                  : t.renewalOrderTitle
+                : paid
+                  ? t.paidTitle
+                  : t.orderTitle
         }
       >
-        {order?.trial
-          ? trialCopy[lang].expiry
-          : renewal
-            ? paid
-              ? t.renewalPaidDescription
-              : t.renewalOrderDescription
-            : paid
-              ? t.paidDescription
-              : order?.provider === "stripe"
-                ? hostedCard
-                  ? t.orderDescriptionStripeHosted
-                  : t.orderDescriptionStripe
-                : t.orderDescription}
+        {order?.trialUpgrade
+          ? paid
+            ? trialCopy[lang].upgradePaidDescription
+            : trialCopy[lang].upgradeCheck
+          : order?.trial
+            ? trialCopy[lang].expiry
+            : renewal
+              ? paid
+                ? t.renewalPaidDescription
+                : t.renewalOrderDescription
+              : paid
+                ? t.paidDescription
+                : order?.provider === "stripe"
+                  ? hostedCard
+                    ? t.orderDescriptionStripeHosted
+                    : t.orderDescriptionStripe
+                  : t.orderDescription}
       </ShopHero>
       {!validId ? (
         <ShopPanel>

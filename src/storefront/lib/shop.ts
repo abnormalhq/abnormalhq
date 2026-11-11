@@ -47,6 +47,7 @@ export {
 export interface PublicShopOrder {
   order: Omit<ShopProduct, "name" | "description"> & {
     trial?: boolean;
+    trialUpgrade?: boolean;
     productName: string;
     status: "pending" | "paid";
     created: string;
@@ -85,7 +86,25 @@ export interface PublicShopOrder {
 }
 
 /** Subscription info read by the renewal page. */
+export interface TrialUpgradePlan {
+  id: string;
+  name: string;
+  description: string;
+  seatMin: number;
+  seatMax: number;
+  quotaMb: number;
+  customDomains: number;
+  periodDays: number;
+  priceCents: number;
+  originalPriceCents: number;
+  discountPercent: number;
+  renewPriceCents: number;
+  fiatPriceMinor: number;
+}
+
 export interface RenewalSummary {
+  upgradePlans?: TrialUpgradePlan[];
+  upgradePayment?: { ldc: boolean; stripe: { currency: string } | null };
   trial?: boolean;
   fiatRenewMinor?: number;
   currency?: string;
@@ -124,6 +143,7 @@ function parseOrder(value: unknown, orderId: string): PublicShopOrder["order"] |
     !record(value) ||
     value.id !== orderId ||
     !optional(value.trial, isBoolean) ||
+    !optional(value.trialUpgrade, isBoolean) ||
     !isString(value.productName) ||
     !isOrderStatus(value.status) ||
     !isString(value.created) ||
@@ -144,6 +164,7 @@ function parseOrder(value: unknown, orderId: string): PublicShopOrder["order"] |
   return compact({
     id: orderId,
     trial: value.trial,
+    trialUpgrade: value.trialUpgrade,
     productName: value.productName,
     ...entitlements,
     status: value.status,
@@ -389,6 +410,41 @@ export async function getShopOrder(orderId: string, signal?: AbortSignal, lang?:
   return { order, code: body.code, codeStatus: body.codeStatus, onboardUrl: body.onboardUrl, subscription };
 }
 
+function parseUpgradePlans(value: unknown): TrialUpgradePlan[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new ShopApiError("");
+  return value.map((plan) => {
+    if (
+      !record(plan) ||
+      !isString(plan.id) ||
+      !/^[a-z0-9]{15}$/.test(plan.id) ||
+      !isString(plan.name) ||
+      !isString(plan.description) ||
+      ![
+        plan.seatMin,
+        plan.seatMax,
+        plan.quotaMb,
+        plan.customDomains,
+        plan.periodDays,
+        plan.priceCents,
+        plan.originalPriceCents,
+        plan.discountPercent,
+        plan.renewPriceCents,
+        plan.fiatPriceMinor,
+      ].every(isCount) ||
+      (plan.seatMin as number) < 1 ||
+      (plan.seatMax as number) < (plan.seatMin as number) ||
+      (plan.seatMax as number) > 1000 ||
+      (plan.periodDays as number) < 1 ||
+      (plan.priceCents as number) < 1 ||
+      (plan.renewPriceCents as number) < 1 ||
+      (plan.discountPercent as number) > 99
+    )
+      throw new ShopApiError("");
+    return plan as unknown as TrialUpgradePlan;
+  });
+}
+
 /** Reads a subscription's renewal info with the token from the renewal link. */
 export async function getRenewal(token: string, signal?: AbortSignal, lang?: Lang): Promise<RenewalSummary> {
   const body = await request("renewal", { token }, signal, lang);
@@ -411,7 +467,19 @@ export async function getRenewal(token: string, signal?: AbortSignal, lang?: Lan
     !optional(body.autoRenew, isBoolean)
   )
     throw new ShopApiError("");
+  const upgradePlans = parseUpgradePlans(body.upgradePlans);
+  const payment = body.upgradePayment;
+  if (
+    payment !== undefined &&
+    (!record(payment) ||
+      !isBoolean(payment.ldc) ||
+      (payment.stripe !== null &&
+        (!record(payment.stripe) || !isCurrency(payment.stripe.currency) || !payment.stripe.currency)))
+  )
+    throw new ShopApiError("");
   return compact({
+    upgradePlans,
+    upgradePayment: payment as RenewalSummary["upgradePayment"],
     trial: body.trial,
     fiatRenewMinor: body.fiatRenewMinor,
     currency: body.currency,
@@ -438,6 +506,7 @@ export async function createRenewalOrder(
   email = "",
   provider: ShopPaymentProvider = "ldc",
   coupon = "",
+  upgrade?: { productId: string; quantity: number },
 ): Promise<string> {
   const body = await request(
     "renew",
@@ -447,6 +516,7 @@ export async function createRenewalOrder(
       ...(email ? { email } : {}),
       ...(provider === "stripe" ? { provider } : {}),
       ...(coupon ? { coupon } : {}),
+      ...upgrade,
     },
     undefined,
     lang,
@@ -484,6 +554,7 @@ export interface CustomerAccount {
     fiatRenewMinor?: number;
   }[];
   orders: {
+    trialUpgrade?: boolean;
     trial?: boolean;
     id: string;
     kind: "purchase" | "renewal";
@@ -548,6 +619,7 @@ function parseAccountOrder(item: unknown): AccountOrder | null {
   if (
     !record(item) ||
     !optional(item.trial, isBoolean) ||
+    !optional(item.trialUpgrade, isBoolean) ||
     !isString(item.id) ||
     !isKind(item.kind) ||
     !isString(item.productName) ||
@@ -567,6 +639,7 @@ function parseAccountOrder(item: unknown): AccountOrder | null {
     return null;
   return compact({
     trial: item.trial,
+    trialUpgrade: item.trialUpgrade,
     id: item.id,
     kind: item.kind,
     productName: item.productName,

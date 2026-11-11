@@ -87,6 +87,7 @@
     "renewMaxPeriods": 12,
     "publicOrderFields": [
       "trial",
+      "trialUpgrade",
       "id",
       "productName",
       "originalPriceCents",

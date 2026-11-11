@@ -120,7 +120,7 @@ export const shopCopy = {
     renewNote: "可以收藏续费页面；到期前的提醒邮件里也会附上续费链接，无需登录。",
     renewalLabel: "续费订单",
     renewalOrderTitle: "确认续费订单。",
-    renewalOrderDescription: "核对续费周期后，前往 Linux DO Credit 支付。",
+    renewalOrderDescription: "核对套餐、周期和金额后，使用所选方式付款。",
     renewalPaidTitle: "续费成功，邮箱照常使用。",
     renewalPaidDescription: "新的到期时间如下；停用中的邮箱会在几分钟内恢复登录。",
     renewalPeriods: (periods: number, days: number) => `续 ${periods} 个周期，共 ${periods * days} 天`,
@@ -598,7 +598,7 @@ export const shopCopy = {
       "You can bookmark the renewal page. Reminder emails before expiry include the renewal link too; no sign-in needed.",
     renewalLabel: "Renewal order",
     renewalOrderTitle: "Review your renewal.",
-    renewalOrderDescription: "Check the renewal period, then pay with Linux DO Credit.",
+    renewalOrderDescription: "Check the plan, periods and amount, then pay with your selected payment method.",
     renewalPaidTitle: "Renewed. Your mailboxes keep working.",
     renewalPaidDescription: "Your new expiry is below. Suspended mailboxes can sign in again within a few minutes.",
     renewalPeriods: (periods: number, days: number) =>

@@ -9,6 +9,8 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import {
   createRenewalOrder,
+  seatOrderPrice,
+  clampSeats,
   formatCredits,
   formatMoney,
   type ShopPaymentProvider,
@@ -64,6 +66,21 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
   const [periods, setPeriods] = useState(1);
   const [email, setEmail] = useState("");
   const [coupon, setCoupon] = useState("");
+  const [productId, setProductId] = useState("");
+  const [quantity, setQuantity] = useState(2);
+  const trial = trialCopy[lang];
+  const selected = summary?.trial ? summary.upgradePlans?.find((plan) => plan.id === productId) : undefined;
+  const periodDays = selected?.periodDays ?? summary?.periodDays ?? 30;
+  const baseLdc = selected ? (seatOrderPrice(selected, quantity)?.priceCents ?? 0) : (summary?.renewPriceCents ?? 0);
+  const ldcRenewal = selected ? selected.renewPriceCents * quantity : (summary?.renewPriceCents ?? 0);
+  const cardPeriod = selected ? selected.fiatPriceMinor * quantity : (summary?.fiatRenewMinor ?? 0);
+  const currency = selected ? summary?.upgradePayment?.stripe?.currency : summary?.currency;
+  const ldcTotal = baseLdc + ldcRenewal * (periods - 1);
+  const cardTotal = cardPeriod * periods;
+  const maxPeriods = selected
+    ? Math.max(0, Math.min(12, Math.floor(100_000_000 / Math.max(baseLdc, ldcRenewal, cardPeriod))))
+    : (summary?.maxPeriods ?? 0);
+  const expired = Boolean(summary?.trial && summary.state === "expired");
   const [creating, setCreating] = useState(false);
   const lock = useRef(false);
 
@@ -91,6 +108,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
         email.trim(),
         provider,
         summary?.trial ? normalizeCoupon(coupon) : "",
+        selected ? { productId: selected.id, quantity } : undefined,
       );
       router.push(`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(id)}`);
     } catch (cause) {
@@ -106,7 +124,10 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
     <div className={shopOrderPageClass}>
       <ShopTextLink href={`/${LANG_PATHS[lang]}shop/`}>← {t.backToShop}</ShopTextLink>
       <ShopSession lang={lang} />
-      <ShopHero eyebrow={t.renewEyebrow} title={t.renewTitle}>
+      <ShopHero
+        eyebrow={summary?.trial ? trial.upgradeOrder : t.renewEyebrow}
+        title={summary?.trial ? trial.upgradeTitle : t.renewTitle}
+      >
         {summary?.trial ? trialCopy[lang].expiry : t.renewDescription}
       </ShopHero>
       {loadError ? (
@@ -131,7 +152,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
             {summary.trial && <p className={shopTextClass}>{trialCopy[lang].manual}</p>}
             <ShopMeta>
               <ShopMetaRow label={t.subscriptionEnds}>{date(summary.currentPeriodEnd)}</ShopMetaRow>
-              <ShopMetaRow label={t.period}>
+              <ShopMetaRow label={summary.trial ? trial.paidPeriod : t.period}>
                 {t.periodValue(summary.periodDays)}
                 <br />
                 {t.renewAt(formatCredits(summary.renewPriceCents))}
@@ -141,7 +162,9 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
               </ShopMetaRow>
             </ShopMeta>
           </ShopPanel>
-          {summary.provider === "stripe" ? (
+          {expired ? (
+            <ShopAlert>{trial.unavailable}</ShopAlert>
+          ) : summary.provider === "stripe" ? (
             <ShopPanel>
               <p className={shopTextClass}>{t.renewalStripeNote}</p>
               <ShopActions>
@@ -162,7 +185,57 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                   void submit(button instanceof HTMLButtonElement && button.value === "stripe" ? "stripe" : "ldc");
                 }}
               >
-                <ShopField htmlFor="shop-renew-periods" label={t.periodsLabel}>
+                {summary.trial && (summary.upgradePlans?.length ?? 0) > 0 && (
+                  <>
+                    <ShopField
+                      htmlFor="shop-upgrade-plan"
+                      label={trial.choosePlan}
+                      hint={trial.chooseTeam}
+                      hintId="shop-upgrade-plan-hint"
+                    >
+                      <NativeSelect
+                        id="shop-upgrade-plan"
+                        className={cn(shopInputClass, "max-w-[640px]")}
+                        value={productId}
+                        disabled={creating}
+                        onChange={(event) => {
+                          const id = event.target.value;
+                          setProductId(id);
+                          setQuantity(summary.upgradePlans?.find((plan) => plan.id === id)?.seatMin ?? 2);
+                          setPeriods(1);
+                        }}
+                      >
+                        <option value="">
+                          {trial.keepPlan} · {summary.productName}
+                        </option>
+                        {summary.upgradePlans?.map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            {plan.name}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    </ShopField>
+                    {selected && (
+                      <>
+                        <p className={shopTextClass}>{trial.planSummary(selected.quotaMb, selected.customDomains)}</p>
+                        <ShopField htmlFor="shop-upgrade-seats" label={trial.seats}>
+                          <Input
+                            id="shop-upgrade-seats"
+                            type="number"
+                            min={selected.seatMin}
+                            max={selected.seatMax}
+                            step={1}
+                            className={cn(shopInputClass, "max-w-[200px]")}
+                            value={quantity}
+                            onChange={(event) => setQuantity(clampSeats(Number(event.target.value), selected))}
+                            disabled={creating}
+                          />
+                        </ShopField>
+                      </>
+                    )}
+                  </>
+                )}
+                <ShopField htmlFor="shop-renew-periods" label={summary.trial ? trial.paidPeriod : t.periodsLabel}>
                   <NativeSelect
                     className={cn(
                       shopInputClass,
@@ -173,9 +246,9 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                     onChange={(event) => setPeriods(Number(event.target.value))}
                     disabled={creating}
                   >
-                    {Array.from({ length: Math.max(1, summary.maxPeriods) }, (_, index) => index + 1).map((count) => (
+                    {Array.from({ length: Math.max(1, maxPeriods) }, (_, index) => index + 1).map((count) => (
                       <option key={count} value={count}>
-                        {t.periodsOption(count, summary.periodDays)}
+                        {t.periodsOption(count, periodDays)}
                       </option>
                     ))}
                   </NativeSelect>
@@ -221,28 +294,47 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                   </ShopField>
                 )}
                 <p className={shopPriceLineClass}>
-                  <span className={shopPriceUnitClass}>{t.total}</span>
-                  <strong className={shopPriceAmountClass}>{formatCredits(summary.renewPriceCents * periods)}</strong>
+                  <span className={shopPriceUnitClass}>{summary.trial ? trial.estimate : t.total}</span>
+                  <strong className={shopPriceAmountClass}>{formatCredits(ldcTotal)}</strong>
                   <span className={shopPriceUnitClass}>LDC</span>
                 </p>
-                {Boolean(summary.fiatRenewMinor && summary.currency) && (
+                {Boolean(cardPeriod && currency) && (
                   <p className={shopTextClass}>
-                    {trialCopy[lang].card}:{" "}
-                    {formatMoney((summary.fiatRenewMinor ?? 0) * periods, summary.currency ?? "usd", lang)}
+                    {trialCopy[lang].card}: {formatMoney(cardTotal, currency ?? "usd", lang)}
+                  </p>
+                )}
+                {selected && (
+                  <p className={shopTextClass}>
+                    {trial.regularRenewal} {t.renewAt(formatCredits(ldcRenewal))}
+                    {currency && cardPeriod ? ` / ${formatMoney(cardPeriod, currency, lang)}` : ""}
                   </p>
                 )}
                 {error && <ShopAlert>{error}</ShopAlert>}
                 <ShopActions>
-                  <ShopButton type="submit" name="provider" value="ldc" disabled={creating || summary.maxPeriods < 1}>
-                    {creating ? t.renewing : summary.fiatRenewMinor ? trialCopy[lang].credits : t.renewButton}
+                  <ShopButton
+                    type="submit"
+                    name="provider"
+                    value="ldc"
+                    disabled={
+                      creating ||
+                      maxPeriods < 1 ||
+                      (Boolean(selected) && !summary.upgradePayment?.ldc) ||
+                      ldcTotal > 100_000_000
+                    }
+                  >
+                    {creating
+                      ? t.renewing
+                      : summary.trial || summary.fiatRenewMinor
+                        ? trialCopy[lang].credits
+                        : t.renewButton}
                     <span aria-hidden="true">↗</span>
                   </ShopButton>
-                  {Boolean(summary.fiatRenewMinor && summary.currency) && (
+                  {Boolean(cardPeriod && currency) && (
                     <ShopButton
                       type="submit"
                       name="provider"
                       value="stripe"
-                      disabled={creating || summary.maxPeriods < 1}
+                      disabled={creating || maxPeriods < 1 || cardTotal > 100_000_000}
                     >
                       {creating ? t.renewing : trialCopy[lang].card}
                     </ShopButton>
