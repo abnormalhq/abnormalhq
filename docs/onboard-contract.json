@@ -86,6 +86,7 @@
     "subscriptionStates": ["active", "grace", "suspended", "expired"],
     "renewMaxPeriods": 12,
     "publicOrderFields": [
+      "trial",
       "id",
       "productName",
       "originalPriceCents",

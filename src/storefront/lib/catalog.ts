@@ -54,6 +54,7 @@ export type ShopPaymentProvider = "ldc" | "stripe";
 export type SubscriptionState = "active" | "grace" | "suspended" | "expired";
 
 export interface ShopCatalog {
+  trial?: { days: number; quotaMb: number };
   available: boolean;
   /** Whether each of the two payment methods is available; old backends that omit it count as LDC only. */
   payment: { ldc: boolean; stripe: { currency: string } | null };
@@ -175,10 +176,17 @@ export function validPrice(value: Fields, couponDiscountCents = 0): boolean {
 export type Entitlements = Omit<ShopProduct, "id" | "name" | "description">;
 
 /** Price and entitlement fields shared by plans and orders. */
-export function parseEntitlements(value: Fields, couponDiscountCents = 0): Entitlements | null {
+export function parseEntitlements(value: Fields, couponDiscountCents = 0, freeTrial = false): Entitlements | null {
   const { quotaSupportedByDomain } = value;
   if (
-    !validPrice(value, couponDiscountCents) ||
+    !(
+      validPrice(value, couponDiscountCents) ||
+      (freeTrial &&
+        value.priceCents === 0 &&
+        value.originalPriceCents === 0 &&
+        value.discountPercent === 0 &&
+        couponDiscountCents === 0)
+    ) ||
     !isCount(value.mailboxCount) ||
     !isCount(value.quotaMb) ||
     !isCount(value.codeExpiresDays) ||
@@ -350,6 +358,13 @@ export function parseShopCatalog(body: unknown): ShopCatalog {
       : {}),
     ...(body.addressCheck === true ? { addressCheck: true } : {}),
     ...(isBoolean(body.coupons) ? { coupons: body.coupons } : {}),
+    ...(record(body.trial) &&
+    isCount(body.trial.days) &&
+    body.trial.days >= 1 &&
+    body.trial.days <= 30 &&
+    isCount(body.trial.quotaMb)
+      ? { trial: { days: body.trial.days, quotaMb: body.trial.quotaMb } }
+      : {}),
   };
 }
 

@@ -11,7 +11,7 @@ import {
 } from "./proxy";
 
 const SHOP_PATH =
-  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?|seats\/(?:quote|add|remove|keep)|domains(?:\/(?:add|verify|check|refresh|remove))?))?)\/?$/;
+  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|trial|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?|seats\/(?:quote|add|remove|keep)|domains(?:\/(?:add|verify|check|refresh|remove))?))?)\/?$/;
 const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes", "account/domains"];
 /**
  * The address check before buying (POST address: is this username free on this domain?), in docs/storefront-api.md and
@@ -209,7 +209,7 @@ export async function proxyShop(request: Request, env: StorefrontEnv): Promise<R
   const route = SHOP_PATH.exec(url.pathname)?.[1];
   if (!route) return failure(404, localize("接口不存在。", "Endpoint not found."));
   const notify = route === "notify";
-  const method = GET_ROUTES.includes(route) ? "GET" : "POST";
+  const method = GET_ROUTES.includes(route) || (route === "account/trial" && request.method === "GET") ? "GET" : "POST";
   if (request.method !== method) {
     return failure(405, localize(`只接受 ${method}。`, `Only ${method} is accepted.`), notify, { Allow: method });
   }

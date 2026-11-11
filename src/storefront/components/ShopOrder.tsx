@@ -46,6 +46,7 @@ import {
 } from "./ShopParts";
 import { ShopPrice } from "./ShopPrice";
 import { ShopSession } from "./ShopSession";
+import { trialCopy } from "@/storefront/lib/trial";
 import { ShopStripeCheckout } from "./ShopStripeCheckout";
 
 export function ShopOrder({ lang }: { lang: Lang }) {
@@ -171,19 +172,31 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
       />
       <ShopHero
         eyebrow={renewal ? t.renewalLabel : t.orderLabel}
-        title={renewal ? (paid ? t.renewalPaidTitle : t.renewalOrderTitle) : paid ? t.paidTitle : t.orderTitle}
+        title={
+          order?.trial
+            ? trialCopy[lang].title
+            : renewal
+              ? paid
+                ? t.renewalPaidTitle
+                : t.renewalOrderTitle
+              : paid
+                ? t.paidTitle
+                : t.orderTitle
+        }
       >
-        {renewal
-          ? paid
-            ? t.renewalPaidDescription
-            : t.renewalOrderDescription
-          : paid
-            ? t.paidDescription
-            : order?.provider === "stripe"
-              ? hostedCard
-                ? t.orderDescriptionStripeHosted
-                : t.orderDescriptionStripe
-              : t.orderDescription}
+        {order?.trial
+          ? trialCopy[lang].expiry
+          : renewal
+            ? paid
+              ? t.renewalPaidDescription
+              : t.renewalOrderDescription
+            : paid
+              ? t.paidDescription
+              : order?.provider === "stripe"
+                ? hostedCard
+                  ? t.orderDescriptionStripeHosted
+                  : t.orderDescriptionStripe
+                : t.orderDescription}
       </ShopHero>
       {!validId ? (
         <ShopPanel>
@@ -255,9 +268,11 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           <ShopPanel>
             <div className={shopHeadingRowClass}>
               <h2 className={shopHeadingClass}>{order.productName}</h2>
-              <ShopStatus active={paid}>{paid ? t.paid : t.pending}</ShopStatus>
+              <ShopStatus active={paid}>{order.trial ? trialCopy[lang].title : paid ? t.paid : t.pending}</ShopStatus>
             </div>
-            {order.provider === "stripe" ? (
+            {order.trial ? (
+              <p className={shopTextClass}>{trialCopy[lang].title}</p>
+            ) : order.provider === "stripe" ? (
               // Without the currency the amount cannot be read: show none rather than a guessed one.
               order.currency && (
                 <p className={cn(shopPriceLineClass, "mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}>
@@ -344,6 +359,13 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   <p className={shopTextClass} role="status">
                     {copyNotice}
                   </p>
+                </>
+              ) : order.trial ? (
+                <>
+                  <p className={shopTextClass}>{trialCopy[lang].claimed}</p>
+                  <ShopButton asChild>
+                    <Link href={`/${LANG_PATHS[lang]}shop/account/`}>{t.setUpInAccount}</Link>
+                  </ShopButton>
                 </>
               ) : (
                 <p className={shopTextClass} role="alert">

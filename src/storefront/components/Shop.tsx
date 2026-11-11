@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { trialCopy } from "@/storefront/lib/trial";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -263,6 +265,15 @@ export function Shop({ lang }: { lang: Lang }) {
       <ShopHero eyebrow={t.eyebrow} title={t.title}>
         {t.description}
       </ShopHero>
+      {catalog?.trial && (
+        <Card className="p-6">
+          <h2 className={shopHeadingClass}>{trialCopy[lang].title}</h2>
+          <p className={shopTextClass}>{trialCopy[lang].description(catalog.trial.days, catalog.trial.quotaMb)}</p>
+          <ShopButton asChild>
+            <Link href={`/${LANG_PATHS[lang]}shop/account/`}>{trialCopy[lang].signin}</Link>
+          </ShopButton>
+        </Card>
+      )}
 
       {loadError ? (
         <Card asChild className={shopEmptyClass}>
