@@ -54,6 +54,9 @@ export const trialCopy = {
     card: "Pay by card",
     credits: "Pay with Linux DO Credit",
     signin: "Sign in to start your free trial",
+    couponLabel: "Discount code (optional)",
+    couponHint:
+      "Applies to the first paid period of your trial upgrade only. Other periods and later renewals keep the regular price. The discount is shown on the order confirmation page before payment.",
   },
   zh: {
     title: "免费试用",
@@ -68,5 +71,7 @@ export const trialCopy = {
     card: "银行卡付款",
     credits: "Linux DO Credit 付款",
     signin: "登录并开始免费试用",
+    couponLabel: "优惠码（选填）",
+    couponHint: "仅抵扣试用升级的首个付费周期，其余周期和后续续费恢复原价。优惠金额会在付款前的订单确认页显示。",
   },
 };

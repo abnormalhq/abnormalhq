@@ -193,7 +193,7 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                             |
 | GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status   |
 | POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                     |
-| POST   | `/api/shop/renew`                      | JSON: `{ token, periods, email? }`                                                         | `201`, `{ orderId }`, and sets the buyer cookie                                        |
+| POST   | `/api/shop/renew`                      | JSON: `{ token, periods, email?, provider?, coupon? }`                                     | `201`, `{ orderId }`, and sets the buyer cookie                                        |
 | GET    | `/api/shop/account`                    | Account cookie                                                                             | `200`, the account (see below); `401` when not logged in                               |
 | POST   | `/api/shop/account/login`              | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`, sends a login link to that email                            |
 | POST   | `/api/shop/account/peek`               | JSON: `{ token }` (login token)                                                            | `200`, `{ email }`; read-only, does not consume the token or set a cookie              |
@@ -434,14 +434,14 @@ this document (a code field on the order page).
   then hides the field.
 - **Pricing**: the code is applied after the plan's discount, to the plan's discounted LDC price or to its card price; a percentage
   is rounded half up, and a code never makes an order free. For a subscription it lowers the first period only: the order's
-  `renewPriceCents` is the price before the code, and LDC renewal orders and Stripe's automatic renewals are at the full price.
+  `renewPriceCents` is the price before the code. Trial upgrades may also discount one paid period; subsequent LDC and Stripe renewals are at the full price.
 - **Checkout**: optional `coupon` (a string; absent, `null` or blank means none). mail prices the order; a code that cannot be used
   fails the checkout with `400` and one message for every reason, and no order is created, so a buyer is never silently charged
   the full price. The redemption is taken when the order is created and only _held_ while it is unpaid (30 minutes, 25 hours once
   the payment was opened); when the hold lapsed and the code can no longer be taken, `pay/stripe` answers `409` and the pay form
   returns to the order page with `&error=payment`, and the buyer places a new order.
 - **Rate limit**: code guesses are limited to 10 per 10 minutes per source IP across the preview, `checkout` (when it carries a
-  code) and the pay endpoints, on top of each endpoint's own limit. A request counts once, whether it asks about one plan or
+  code), trial upgrades through `renew`, and the pay endpoints, on top of each endpoint's own limit. A request counts once, whether it asks about one plan or
   eight. This is why the shop page does not preview as the buyer types.
 - **`pay` and `pay/stripe`** also take an optional `coupon` (form field or JSON) that adds a code to an unpaid purchase order
   without one, before its first payment page is opened. The storefront does not send it: the order page has no code field.
@@ -817,3 +817,9 @@ Users can view client settings and change their password with the current passwo
 Trial orders have `trial: true`, `status: "paid"` (the entitlement is available), and zero price; no payment was collected. Only this explicit grant shape permits a zero-price order. Trial subscriptions publish `trial: true` and skip the usual grace period. The existing account mailbox manager sets up the one mailbox and rejects changes at expiry.
 
 The renewal response may include `trial`, `fiatRenewMinor` and `currency`. A request to `POST /api/shop/renew` can select `provider: "stripe"` for a manual card payment when that amount is offered. Otherwise it uses LDC as before. This buys only the selected periods and never starts auto-renewal. The first paid upgrade keeps the trial's mailbox and starts its paid term at payment time. The account's single trial remains used after upgrading or expiry.
+
+### Discount codes on trial upgrades
+
+The signed-in trial owner can enter a code such as `WELCOME10` on the upgrade form. `renew` takes optional `coupon` with either `ldc` or `stripe`. The backend checks the live trial state and owner, applies the discount to only one paid period, and keeps the subscription's regular renewal prices. A three-period upgrade therefore discounts one period and charges the other two in full. After upgrading, later renewals reject discount codes. The existing expiry, total-use and per-buyer limits apply across purchases and trial upgrades together.
+
+The upgrade form shows regular prices and explains that the order confirmation shows the final discount before payment. Renewal order pages display the server's `couponCode` and `couponDiscountCents`; they never infer a renewal discount from browser storage. Stripe upgrades remain one-time payments of the discounted total, without enabling automatic billing.

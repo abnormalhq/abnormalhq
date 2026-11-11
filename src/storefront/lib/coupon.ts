@@ -108,8 +108,6 @@ export function orderCoupon(
   },
   hint: CouponHint | null,
 ): OrderCoupon | null {
-  // A code never applies to a renewal order.
-  if (order.kind === "renewal") return null;
   if (order.couponDiscountCents && order.couponDiscountCents > 0) {
     return {
       code: order.couponCode ?? "",
@@ -117,6 +115,8 @@ export function orderCoupon(
       baseCents: order.priceCents + order.couponDiscountCents,
     };
   }
+  // Trial upgrades may carry a server-confirmed discount; never infer renewal discounts from legacy hints.
+  if (order.kind === "renewal") return null;
   if (!hint || hint.orderId !== order.id || hint.baseCents <= order.priceCents) return null;
   // An LDC order with a plan discount still carries its original price: the price before the code cannot be above it.
   // It can equal it: a small plan discount rounds away (1% off 0.50 is still 0.50).
