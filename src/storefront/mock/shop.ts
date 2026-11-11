@@ -335,10 +335,13 @@ export class MockShopStore {
    */
   private readonly addressCheck: boolean;
   /**
-   * Whether the demo backend has discount codes (POST coupon, and `coupon` at checkout). Off, the preview answers 404 and
-   * checkout ignores the field, like a mail before them, to see the shop page hide the field.
+   * Whether the demo backend has discount codes (POST coupon, and `coupon` at checkout). Off, the preview answers 404,
+   * checkout ignores the field and the catalog carries no `coupons` flag, like a mail before them, to see the shop page hide
+   * the field. "legacy" is a mail with discount codes but before mail #221: no `coupons` flag in the catalog, a preview that
+   * only knows the single form (400 to the several-plans form), and orders published without `couponCode` and
+   * `couponDiscountCents`, to see the shop page fall back to plan-by-plan previews and the order page to what the tab remembers.
    */
-  private readonly coupons: boolean;
+  private readonly coupons: boolean | "legacy";
   /**
    * Whether the demo backend has seat plans. Off, the catalog has no `seatProducts`, the seat routes answer 404 and the mailbox
    * groups carry no `seats`, like a mail before them: the pages then show nothing about seats.
@@ -353,7 +356,7 @@ export class MockShopStore {
   constructor(
     now: () => number = Date.now,
     addressCheck = process.env.MOCK_ADDRESS_CHECK !== "off",
-    coupons = process.env.MOCK_COUPONS !== "off",
+    coupons: boolean | "legacy" = process.env.MOCK_COUPONS === "legacy" ? "legacy" : process.env.MOCK_COUPONS !== "off",
     seats = process.env.MOCK_SEATS !== "off",
     domains = process.env.MOCK_DOMAINS !== "off",
     domainApproval = process.env.MOCK_DOMAIN_APPROVAL !== "off",
@@ -487,6 +490,8 @@ export class MockShopStore {
           : {}),
         onboardUrl,
         ...(this.addressCheck ? { addressCheck: true as const } : {}),
+        // Like mail since #221: always present, true while a code can be used (the demo codes always can). A mail before the flag sends none.
+        ...(this.coupons === true ? { coupons: true } : {}),
       };
       return json(catalog);
     }
@@ -557,30 +562,59 @@ export class MockShopStore {
     }
     if (route === "coupon") {
       // The preview of a discount code: one answer for every reason it cannot be used, and nothing is reserved.
-      if (typeof body.productId !== "string" || !ORDER_ID.test(body.productId))
+      // Like mail since #221, `products` (1 to 8 entries of the single form's fields) asks about several plans in one request
+      // and wins over the single form; a mail before it ("legacy") never reads the key.
+      const many = this.coupons === true && body.products !== undefined;
+      if (many && (!Array.isArray(body.products) || body.products.length < 1 || body.products.length > 8))
         return failure(400, say("请选择套餐。", "Choose a plan."));
-      if (body.provider !== undefined && body.provider !== "ldc" && body.provider !== "stripe")
-        return failure(400, say("请选择支付方式。", "Choose a way of paying."));
+      const entries: unknown[] = many ? (body.products as unknown[]) : [body];
+      const items: { productId: string; provider: "ldc" | "stripe"; quantity: unknown }[] = [];
+      // A malformed entry fails the whole request, with no partial answer.
+      for (const entry of entries) {
+        const item: Record<string, unknown> =
+          typeof entry === "object" && entry !== null && !Array.isArray(entry)
+            ? (entry as Record<string, unknown>)
+            : {};
+        if (typeof item.productId !== "string" || !ORDER_ID.test(item.productId))
+          return failure(400, say("请选择套餐。", "Choose a plan."));
+        if (item.provider !== undefined && item.provider !== "ldc" && item.provider !== "stripe")
+          return failure(400, say("请选择支付方式。", "Choose a way of paying."));
+        items.push({
+          productId: item.productId,
+          provider: item.provider === "stripe" ? "stripe" : "ldc",
+          quantity: item.quantity,
+        });
+      }
       const typed = couponFrom(body);
       if (!typed) return failure(400, say("请输入优惠码。", "Enter a discount code."));
-      const provider = body.provider === "stripe" ? "stripe" : "ldc";
-      const product = this.plans().find((item) => item.id === body.productId);
-      // Like mail: a seat plan's preview needs the quantity, and its amounts are for that many seats.
-      const seatPlan = product && "seatMax" in product ? product : null;
-      if (seatPlan && !seatQuantity(body.quantity, seatPlan)) return failure(400, seatRangeMessage(seatPlan, say));
-      const quote = product ? couponPrice(product, provider, typed, seatPlan ? (body.quantity as number) : 0) : null;
-      if (!product || !quote) return json({ valid: false });
-      return json({
-        valid: true,
-        code: quote.code,
-        provider,
-        currency: provider === "stripe" ? "usd" : "",
-        basePriceCents: quote.baseCents,
-        discountCents: quote.discountCents,
-        priceCents: quote.priceCents,
-        // A subscription renews at the price before the code.
-        firstPeriodOnly: Boolean(product.periodDays),
-      });
+      const quotes = [];
+      for (const { productId, provider, quantity } of items) {
+        const product = this.plans().find((item) => item.id === productId);
+        // Like mail: a seat plan's preview needs the quantity, and its amounts are for that many seats.
+        const seatPlan = product && "seatMax" in product ? product : null;
+        if (seatPlan && !seatQuantity(quantity, seatPlan)) return failure(400, seatRangeMessage(seatPlan, say));
+        const quote = product ? couponPrice(product, provider, typed, seatPlan ? (quantity as number) : 0) : null;
+        quotes.push(
+          product && quote
+            ? {
+                code: quote.code,
+                provider,
+                currency: provider === "stripe" ? "usd" : "",
+                basePriceCents: quote.baseCents,
+                discountCents: quote.discountCents,
+                priceCents: quote.priceCents,
+                // A subscription renews at the price before the code.
+                firstPeriodOnly: Boolean(product.periodDays),
+              }
+            : null,
+        );
+      }
+      if (many)
+        return json({
+          quotes: quotes.map((quote, index) => (quote ? { productId: items[index]!.productId, ...quote } : null)),
+        });
+      const [quote] = quotes;
+      return json(quote ? { valid: true, ...quote } : { valid: false });
     }
     if (route === "account/login") {
       if (typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()))
@@ -1215,6 +1249,7 @@ export class MockShopStore {
           };
         }),
       orders: orders.map((order) => ({
+        ...this.orderCoupon(order),
         id: order.id,
         kind: order.kind ?? "purchase",
         productName: order.productName,
@@ -1526,6 +1561,24 @@ export class MockShopStore {
     };
   }
 
+  /** `couponCode` and `couponDiscountCents` as the order and the account's order list carry them; neither on a mail before #221. */
+  private orderCoupon(order: PublicShopOrder["order"]): { couponCode?: string; couponDiscountCents?: number } {
+    return this.coupons === true
+      ? { couponCode: order.couponCode ?? "", couponDiscountCents: order.couponDiscountCents ?? 0 }
+      : {};
+  }
+
+  /**
+   * An order as mail publishes it. A mail before #221 ("legacy") published neither code field, and an order with a code and
+   * no plan discount with its original price equal to the price paid.
+   */
+  private published(stored: PublicShopOrder["order"]): PublicShopOrder["order"] {
+    const { couponCode: _code, couponDiscountCents: taken = 0, ...order } = structuredClone(stored);
+    void _code;
+    if (this.coupons === true) return { ...order, ...this.orderCoupon(stored) };
+    return taken > 0 && order.discountPercent === 0 ? { ...order, originalPriceCents: order.priceCents } : order;
+  }
+
   private publicOrder(stored: StoredOrder, onboardUrl: string): PublicShopOrder {
     const paid = stored.order.status === "paid";
     const renewal = stored.order.kind === "renewal";
@@ -1533,7 +1586,7 @@ export class MockShopStore {
     const subscriptionId = renewal ? order.subscriptionId : order.id;
     const subscription = paid && subscriptionId ? this.subscriptions.get(subscriptionId) : null;
     return {
-      order: structuredClone(stored.order),
+      order: this.published(stored.order),
       code: paid && !renewal ? DEMO_CODE : null,
       codeStatus: paid && !renewal ? "available" : null,
       onboardUrl,

@@ -105,6 +105,16 @@ test("shop client: optional fields an old backend omits may be absent and do not
   expect((await getAccount())!.google).toBeNull();
   respond(patched(accountResponse, "subscriptions.0.fiatRenewMinor", undefined));
   expect((await getAccount())!.subscriptions[0]).not.toHaveProperty("fiatRenewMinor");
+  // A mail before #221 lists orders without their discount code.
+  respond(
+    patched(patched(accountResponse, "orders.0.couponCode", undefined), "orders.0.couponDiscountCents", undefined),
+  );
+  const [listed] = (await getAccount())!.orders;
+  expect(listed).not.toHaveProperty("couponCode");
+  expect(listed).not.toHaveProperty("couponDiscountCents");
+  // An order with a code, as mail lists it: the code as stored and what it took off priceCents.
+  respond(patched(patched(accountResponse, "orders.0.couponCode", "WELCOME"), "orders.0.couponDiscountCents", 100));
+  expect((await getAccount())!.orders[0]).toMatchObject({ couponCode: "WELCOME", couponDiscountCents: 100 });
   respond({ ...catalogResponse, payment: undefined });
   expect((await getShopCatalog()).payment).toStrictEqual({ ldc: true, stripe: null });
 });
@@ -135,6 +145,9 @@ test("shop client: any malformed field the account page renders counts as a fail
     ["orders.0.currency", "USD"],
     ["orders.0.kind", "gift"],
     ["orders.0.status", "refunded"],
+    ["orders.0.couponCode", 7],
+    ["orders.0.couponDiscountCents", "100"],
+    ["orders.0.couponDiscountCents", -1],
     ["orders", {}],
   ] as const) {
     respond(patched(accountResponse, path, value));

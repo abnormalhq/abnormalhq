@@ -73,9 +73,9 @@ export interface ShopCatalog {
    */
   addressCheck?: true;
   /**
-   * Whether the shop takes discount codes (POST /api/shop/coupon, "Proposed" in docs/storefront-api.md). mail does not send the
-   * flag yet: absent means unknown, and the shop then offers the field and hides it if the endpoint answers 404. An explicit
-   * `false` hides the field without asking.
+   * Whether the shop offers discount codes (POST /api/shop/coupon). mail always sends it (mail #221): `true` while something
+   * is on sale and at least one code can be used right now, `false` otherwise, which hides the field without a request.
+   * Absent only on a mail before the flag: unknown, so the shop offers the field and hides it if the preview answers 404.
    */
   coupons?: boolean;
 }

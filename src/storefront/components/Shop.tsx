@@ -12,7 +12,7 @@ import {
   formatCredits,
   getShopCatalog,
   isSeatProduct,
-  previewCoupon,
+  previewCouponPlans,
   seatCardPrice,
   seatOrderPrice,
   seatTotals,
@@ -81,13 +81,6 @@ function dismissAddress(): void {
 }
 
 /**
- * How many previews one press of "Apply" may make. Each one counts against mail's limit on code guesses (10 per 10 minutes
- * per IP, shared with checkout), so a large catalog is not asked about plan by plan: the plans past this show "checked when
- * you order", and checkout, which prices the order, has the final say for every plan anyway.
- */
-const COUPON_PREVIEWS = 4;
-
-/**
  * The preview of the applied code per plan, way of paying and quantity ("<plan id>:<provider>:<seats>", 0 seats for a fixed plan):
  * a quote, or null when it cannot be used. A key that is absent was not asked about: a seat plan whose quantity changed after
  * "Apply" shows "checked when you order" until the code is applied again, since mail quotes a code for one quantity.
@@ -113,6 +106,8 @@ export function Shop({ lang }: { lang: Lang }) {
   // The backend has no discount codes (the preview answered 404): the field goes away.
   const [couponsMissing, setCouponsMissing] = useState(false);
   const couponRequest = useRef<AbortController | null>(null);
+  // A mail before the several-plans preview refused it once: later presses ask plan by plan at once, sparing a guess.
+  const couponLegacy = useRef(false);
   // ?plan=<id> points out the plan a pricing card linked to; ?address=name@domain is the address picked in the address check.
   // The address is kept for this tab (src/storefront/lib/address.ts) so the forms that create the mailbox start with it.
   const search = useSyncExternalStore(subscribeToHistory, readSearch, () => "");
@@ -127,6 +122,14 @@ export function Shop({ lang }: { lang: Lang }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const seatsOf = (product: (typeof plans)[number]) =>
     isSeatProduct(product) ? (quantities[product.id] ?? product.seatMin) : 0;
+
+  /** Which ways of paying a plan can be bought with right now: offered by the shop and, for a seat plan, able to take the quantity. */
+  const waysOf = (product: (typeof plans)[number]) => {
+    const ldc = Boolean(catalog?.payment.ldc);
+    const card = Boolean(catalog?.payment.stripe && product.fiatPriceMinor);
+    const totals = isSeatProduct(product) ? seatTotals(product, seatsOf(product), { ldc, card }) : null;
+    return { ldc: ldc && !totals?.ldcTooMany, card: card && !totals?.cardTooMany, totals };
+  };
 
   useEffect(() => {
     const address = parseAddress(linkedAddress);
@@ -147,7 +150,8 @@ export function Shop({ lang }: { lang: Lang }) {
     return () => controller.abort();
   }, [attempt, lang]);
 
-  // mail sends no flag for discount codes yet: the field is offered unless the catalog says `coupons: false` or the preview is missing.
+  // mail's catalog says whether to offer discount codes: `coupons: false` hides the field without a request. A mail before the
+  // flag sends none: the field is then offered, and goes away when the preview answers 404.
   const couponsOffered = catalog?.coupons !== false && !couponsMissing;
   const typedCoupon = couponsOffered ? normalizeCoupon(coupon) : "";
 
@@ -172,30 +176,42 @@ export function Shop({ lang }: { lang: Lang }) {
     setApplied(null);
     // The plan the visitor arrived for first, then catalog order; each plan once per way of paying it offers.
     const products = [...plans].sort((a, b) => Number(b.id === selectedPlan) - Number(a.id === selectedPlan));
-    const offered = products.flatMap((product) => [
-      ...(catalog.payment.ldc ? [{ product, provider: "ldc" as const }] : []),
-      ...(catalog.payment.stripe && product.fiatPriceMinor ? [{ product, provider: "stripe" as const }] : []),
-    ]);
-    const asks = offered.slice(0, COUPON_PREVIEWS);
+    // A way of paying that cannot take a seat plan's quantity is not on offer and is not asked about: mail refuses the
+    // whole request for such a total (400), which would read as a backend without the several-plans form.
+    const offered = products.flatMap((product) => {
+      const open = waysOf(product);
+      // The quantity as it is now: the answer is for it, whatever the stepper says by the time it arrives.
+      const seats = seatsOf(product);
+      return [
+        ...(open.ldc ? [{ product, provider: "ldc" as const, seats }] : []),
+        ...(open.card ? [{ product, provider: "stripe" as const, seats }] : []),
+      ];
+    });
+    // One request (one guess against mail's limit) for up to eight of them, further requests only for a larger catalog; what
+    // is past the limit of a press shows "checked when you order", and checkout has the final say for every plan anyway.
+    const result = await previewCouponPlans(
+      offered.map(({ product, provider, seats }) => ({ productId: product.id, provider, quantity: seats })),
+      typedCoupon,
+      { signal: controller.signal, lang, legacy: couponLegacy.current },
+    );
+    if (controller.signal.aborted) return;
+    couponLegacy.current = result.legacy;
     const quotes: CouponQuotes = {};
     let code = typedCoupon.toUpperCase();
-    try {
-      for (const { product, provider } of asks) {
-        const seats = seatsOf(product);
-        const quote = await previewCoupon(product.id, provider, typedCoupon, controller.signal, lang, seats);
-        if (controller.signal.aborted) return;
-        quotes[`${product.id}:${provider}:${seats}`] = quote;
-        if (quote) code = quote.code;
-      }
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      if (error instanceof ShopApiError && error.status === 404) {
+    result.quotes.forEach((quote, index) => {
+      if (quote === undefined) return;
+      const { product, provider, seats } = offered[index]!;
+      quotes[`${product.id}:${provider}:${seats}`] = quote;
+      if (quote) code = quote.code;
+    });
+    if (result.error !== undefined) {
+      if (result.error instanceof ShopApiError && result.error.status === 404) {
         setCouponsMissing(true);
         setCoupon("");
         setCouponChecking(false);
         return;
       }
-      setCouponError(shopError(error, lang));
+      setCouponError(shopError(result.error, lang));
     }
     // What was answered before a failure still stands: the plans it covers show their price.
     if (Object.keys(quotes).length > 0) setApplied({ code, quotes, offered: offered.length });
@@ -212,8 +228,9 @@ export function Shop({ lang }: { lang: Lang }) {
       const seats = product ? seatsOf(product) : 0;
       const id = await createShopOrder(productId, lang, email.trim(), provider, typedCoupon, seats);
       if (typedCoupon) {
-        // mail took the code (it refuses the checkout otherwise) but does not publish it with the order yet: remember the
-        // price before it, so the order page can show what the code took off (src/storefront/lib/coupon.ts).
+        // mail took the code (it refuses the checkout otherwise). It publishes the code and what it took off with the order,
+        // and the order page uses that; the price before the code is still remembered for this tab, only as the fallback for
+        // a mail before those fields (src/storefront/lib/coupon.ts).
         const baseCents = !product
           ? undefined
           : seats > 0
@@ -390,15 +407,13 @@ export function Shop({ lang }: { lang: Lang }) {
               const days = product.periodDays ?? 0;
               // The order's total by mail's rule (the discount on the whole order, rounded once), and by card. Each way of paying
               // has its own limit on what one order can charge: a quantity too many for one is still sold by the other.
-              const totals = seatPlan
-                ? seatTotals(product, seats, { ldc: catalog.payment.ldc, card: Boolean(cardPrice) })
-                : null;
+              const { totals, ...open } = waysOf(product);
               const seatLdc = totals?.ldc ?? null;
               const seatCard = totals?.card ?? null;
               // The applied code on this plan, per way of paying the card offers: a quote, null (cannot be used) or undefined (not asked).
-              const ldcQuote = catalog.payment.ldc ? applied?.quotes[`${product.id}:ldc:${seats}`] : undefined;
-              const cardQuote = cardPrice ? applied?.quotes[`${product.id}:stripe:${seats}`] : undefined;
-              const ways = Number(catalog.payment.ldc) + Number(Boolean(cardPrice));
+              const ldcQuote = open.ldc ? applied?.quotes[`${product.id}:ldc:${seats}`] : undefined;
+              const cardQuote = open.card ? applied?.quotes[`${product.id}:stripe:${seats}`] : undefined;
+              const ways = Number(open.ldc) + Number(open.card);
               const refused = Number(ldcQuote === null) + Number(cardQuote === null);
               const couponLines = !applied
                 ? []
@@ -415,14 +430,14 @@ export function Shop({ lang }: { lang: Lang }) {
                         ]
                       : []),
                     ...(ldcQuote?.firstPeriodOnly || cardQuote?.firstPeriodOnly ? [t.couponFirstPeriod] : []),
-                    ...(refused === ways
+                    ...(ways > 0 && refused === ways
                       ? [t.couponNotForPlan]
                       : [
                           ...(ldcQuote === null ? [t.couponNotForLdc] : []),
                           ...(cardQuote === null ? [t.couponNotForCard] : []),
                         ]),
-                    // Plans past the preview limit: checkout decides.
-                    ...((catalog.payment.ldc && ldcQuote === undefined) || (cardPrice && cardQuote === undefined)
+                    // Plans that were not asked about (past a press's limit, or after a failure): checkout decides.
+                    ...((open.ldc && ldcQuote === undefined) || (open.card && cardQuote === undefined)
                       ? [t.couponAtCheckout]
                       : []),
                   ];

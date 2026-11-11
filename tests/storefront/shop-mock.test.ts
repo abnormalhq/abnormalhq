@@ -111,6 +111,7 @@ test("dev shop: demo plans expose no private config, checkout leaks no buyer cre
   expect(Object.keys(catalog).sort()).toStrictEqual([
     "addressCheck",
     "available",
+    "coupons",
     "onboardUrl",
     "payment",
     "products",

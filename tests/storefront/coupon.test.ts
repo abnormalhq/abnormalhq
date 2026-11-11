@@ -10,7 +10,20 @@ import {
   recallCoupon,
   rememberCoupon,
 } from "@/storefront/lib/coupon";
-import { createShopOrder, getShopOrder, previewCoupon } from "@/storefront/lib/shop";
+import {
+  catalogPlans,
+  COUPON_PREVIEW_PLANS,
+  COUPON_PREVIEW_REQUESTS,
+  createShopOrder,
+  getAccount,
+  getShopCatalog,
+  getShopOrder,
+  isSeatProduct,
+  previewCoupon,
+  previewCouponPlans,
+  previewCoupons,
+  type CouponAsk,
+} from "@/storefront/lib/shop";
 import { shopCopy } from "@/storefront/lib/shop-copy";
 import { MockShopStore, MOCK_COUPONS } from "@/storefront/mock/shop";
 import { storefrontApi as worker, type StorefrontEnv } from "@/storefront/worker/index";
@@ -99,6 +112,183 @@ test("coupon client: half-right answers never reach the page, and a backend with
   }
 });
 
+/* ---- Several plans in one request (mail #221) ---- */
+
+const SEAT_ID = "seatplanabcdefg";
+/** One entry of `quotes`: the single form's quote with the plan it is for, without `valid`. */
+const entry = (productId: string, patch: Record<string, unknown> = {}) => {
+  const { valid: _valid, ...rest } = quote;
+  void _valid;
+  return { productId, ...rest, ...patch };
+};
+const cardEntry = (productId: string) =>
+  entry(productId, { provider: "stripe", currency: "usd", basePriceCents: 499, discountCents: 100, priceCents: 399 });
+
+test("coupon client: several plans go in one request and come back in the order asked", async () => {
+  const asks: CouponAsk[] = [
+    { productId: PRODUCT_ID, provider: "ldc" },
+    { productId: PRODUCT_ID, provider: "stripe" },
+    { productId: SEAT_ID, provider: "ldc", quantity: 7 },
+  ];
+  const calls = respond({ quotes: [entry(PRODUCT_ID), null, entry(SEAT_ID, { firstPeriodOnly: false })] });
+  const quotes = await previewCoupons(asks, "welcome", undefined, "en");
+  expect(quotes.map((item) => item?.priceCents)).toStrictEqual([600, undefined, 600]);
+  expect(quotes[1]).toBeNull();
+  // The plan id is the page's own key: the quote carries what the single form's does.
+  expect(quotes[0]).toStrictEqual({
+    code: "WELCOME",
+    provider: "ldc",
+    currency: "",
+    basePriceCents: 750,
+    discountCents: 150,
+    priceCents: 600,
+    firstPeriodOnly: true,
+  });
+  // ONE request: LDC is the default and is not sent, and a quantity goes with a seat plan only.
+  expect(calls).toHaveLength(1);
+  expect(calls[0]!.url).toMatch(/\/api\/shop\/coupon$/);
+  expect(calls[0]!.body).toStrictEqual({
+    products: [
+      { productId: PRODUCT_ID },
+      { productId: PRODUCT_ID, provider: "stripe" },
+      { productId: SEAT_ID, quantity: 7 },
+    ],
+    coupon: "welcome",
+  });
+  expect(calls[0]!.init).toMatchObject({ method: "POST", credentials: "same-origin" });
+
+  // An answer that is not one entry per entry asked, for another plan or way of paying, or half right, never reaches the page.
+  for (const body of [
+    null,
+    {},
+    { quotes: {} },
+    { quotes: [entry(PRODUCT_ID), null] },
+    { quotes: [entry(PRODUCT_ID), null, entry(PRODUCT_ID)] },
+    { quotes: [entry(PRODUCT_ID), cardEntry(PRODUCT_ID), entry(SEAT_ID, { provider: "stripe", currency: "usd" })] },
+    { quotes: [entry(PRODUCT_ID, { priceCents: 700 }), null, null] },
+    { quotes: [{ valid: false }, null, null] },
+    // The single form's answer is not an answer to the several-plans form.
+    quote,
+  ]) {
+    respond(body);
+    await expect(previewCoupons(asks, "WELCOME"), JSON.stringify(body)).rejects.toBeInstanceOf(ShopApiError);
+  }
+});
+
+/** Answers each request by its form, like a mail with the several-plans form (or, with `legacy`, one before it), and records them. */
+function couponBackend(options: { legacy?: boolean; failAt?: number; status?: number } = {}) {
+  const calls: Record<string, unknown>[] = [];
+  vi.stubGlobal("fetch", async (_url: string, init: RequestInit = {}) => {
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    calls.push(body);
+    if (calls.length === options.failAt) return Response.json({ error: "later" }, { status: options.status ?? 429 });
+    if (Array.isArray(body.products)) {
+      if (options.legacy) return Response.json({ error: "Choose a plan." }, { status: 400 });
+      return Response.json({
+        quotes: (body.products as { productId: string; provider?: string }[]).map((item) =>
+          item.provider === "stripe" ? null : entry(item.productId),
+        ),
+      });
+    }
+    return Response.json(body.provider === "stripe" ? { valid: false } : quote);
+  });
+  return calls;
+}
+
+/** `count` plans, each by LDC and by card: 2 × count things to ask about. */
+const catalogAsks = (count: number): CouponAsk[] =>
+  Array.from({ length: count }, (_, index) => `plan${String(index).padStart(11, "0")}`).flatMap((productId) => [
+    { productId, provider: "ldc" as const },
+    { productId, provider: "stripe" as const },
+  ]);
+
+test("apply: the plans of the page are asked about in one request, and a larger catalog in as few as it takes", async () => {
+  expect([COUPON_PREVIEW_PLANS, COUPON_PREVIEW_REQUESTS]).toStrictEqual([8, 4]);
+  // Up to eight combinations: one request, one guess against mail's limit.
+  for (const plans of [1, 3, 4]) {
+    const calls = couponBackend();
+    const result = await previewCouponPlans(catalogAsks(plans), "WELCOME");
+    expect(calls, String(plans)).toHaveLength(1);
+    expect(calls[0]!.products).toHaveLength(plans * 2);
+    expect(result).toStrictEqual({
+      quotes: catalogAsks(plans).map(({ provider }) => (provider === "stripe" ? null : expect.any(Object))),
+      legacy: false,
+    });
+  }
+  // Nine or more: further requests of up to eight, in the order of the page, and no more than there are plans to ask about.
+  const five = couponBackend();
+  const fiveResult = await previewCouponPlans(catalogAsks(5), "WELCOME");
+  expect(five.map((body) => (body.products as unknown[]).length)).toStrictEqual([8, 2]);
+  expect(fiveResult.quotes.filter((item) => item === undefined)).toHaveLength(0);
+  expect((five[1]!.products as CouponAsk[])[0]!.productId).toBe(catalogAsks(5)[8]!.productId);
+  // A press stops at four requests: what is past them was not asked ("checked when you order"), never called unusable.
+  const twenty = couponBackend();
+  const twentyResult = await previewCouponPlans(catalogAsks(20), "WELCOME");
+  expect(twenty).toHaveLength(COUPON_PREVIEW_REQUESTS);
+  expect(twentyResult.quotes.slice(0, 32).every((item) => item !== undefined)).toBe(true);
+  expect(twentyResult.quotes.slice(32)).toStrictEqual(Array.from({ length: 8 }, () => undefined));
+  const keyed = Object.fromEntries(
+    twentyResult.quotes.flatMap((item, index) => (item === undefined ? [] : [[String(index), null] as const])),
+  );
+  expect(couponVerdict(keyed, 40)).toBe("unchecked");
+
+  // A failure part-way keeps what was answered and reports the error instead of throwing.
+  couponBackend({ failAt: 2 });
+  const partial = await previewCouponPlans(catalogAsks(5), "WELCOME");
+  expect(partial.error).toMatchObject({ status: 429 });
+  expect(partial.quotes.map((item) => item === undefined)).toStrictEqual([
+    ...Array.from({ length: 8 }, () => false),
+    true,
+    true,
+  ]);
+  // A backend without discount codes: the 404 reaches the page, which hides the field.
+  couponBackend({ failAt: 1, status: 404 });
+  const missing = await previewCouponPlans(catalogAsks(2), "WELCOME");
+  expect(missing).toMatchObject({ legacy: false, error: { status: 404 } });
+  expect(missing.quotes).toStrictEqual([undefined, undefined, undefined, undefined]);
+});
+
+test("apply: a mail before the several-plans form answers 400 to it, and is then asked plan by plan in the single form", async () => {
+  const calls = couponBackend({ legacy: true });
+  const asks: CouponAsk[] = [
+    { productId: PRODUCT_ID, provider: "ldc" },
+    { productId: PRODUCT_ID, provider: "stripe" },
+    { productId: SEAT_ID, provider: "ldc", quantity: 7 },
+    { productId: SEAT_ID, provider: "stripe", quantity: 7 },
+    { productId: "anotherplan0001", provider: "ldc" },
+  ];
+  const first = await previewCouponPlans(asks, "WELCOME", { lang: "en" });
+  // The refused request counts as a guess too: three single previews follow, four requests in all.
+  expect(calls).toHaveLength(COUPON_PREVIEW_REQUESTS);
+  expect(calls[0]).toHaveProperty("products");
+  expect(calls.slice(1)).toStrictEqual([
+    { productId: PRODUCT_ID, coupon: "WELCOME" },
+    { productId: PRODUCT_ID, provider: "stripe", coupon: "WELCOME" },
+    { productId: SEAT_ID, coupon: "WELCOME", quantity: 7 },
+  ]);
+  expect(first.legacy).toBe(true);
+  expect(first.error).toBeUndefined();
+  expect(first.quotes.map((item) => (item === undefined ? "unasked" : item ? item.priceCents : null))).toStrictEqual([
+    600,
+    null,
+    600,
+    "unasked",
+    "unasked",
+  ]);
+
+  // The page remembers: the next press starts with the single form and spends no guess on the form the backend lacks.
+  const again = couponBackend({ legacy: true });
+  const second = await previewCouponPlans(asks, "WELCOME", { legacy: true });
+  expect(again).toHaveLength(COUPON_PREVIEW_REQUESTS);
+  expect(again.every((body) => !("products" in body))).toBe(true);
+  expect(second.quotes.filter((item) => item !== undefined)).toHaveLength(4);
+
+  // A 400 to the single form too is a refusal to show, not a reason to ask again.
+  vi.stubGlobal("fetch", async () => Response.json({ error: "Enter a discount code." }, { status: 400 }));
+  const refused = await previewCouponPlans(asks, "WELCOME");
+  expect(refused).toMatchObject({ legacy: true, error: { status: 400, message: "Enter a discount code." } });
+});
+
 test("checkout client: the code is sent only when there is one, next to the other optional fields", async () => {
   const calls = respond({ orderId: "abcdefghijklmno" }, 201);
   await createShopOrder(PRODUCT_ID, "en");
@@ -112,8 +302,11 @@ test("checkout client: the code is sent only when there is one, next to the othe
 });
 
 test("catalog client: the discount code flag is three-state, since a mail before it does not send it", () => {
-  expect(parseShopCatalog(catalogResponse)).not.toHaveProperty("coupons");
-  expect(parseShopCatalog({ ...catalogResponse, coupons: true }).coupons).toBe(true);
+  // mail always sends it (the fixture is shaped after mail's catalog); only a mail before the flag leaves it out.
+  expect(parseShopCatalog(catalogResponse).coupons).toBe(true);
+  const { coupons: _flag, ...before } = catalogResponse;
+  void _flag;
+  expect(parseShopCatalog(before)).not.toHaveProperty("coupons");
   expect(parseShopCatalog({ ...catalogResponse, coupons: false }).coupons).toBe(false);
   expect(parseShopCatalog({ ...catalogResponse, coupons: "yes" })).not.toHaveProperty("coupons");
 });
@@ -304,9 +497,13 @@ test("shop page: a typed code always goes with checkout, and the page never prev
   const source = readFileSync("src/storefront/components/Shop.tsx", "utf8");
   // Whatever is in the field is sent: a code that was typed but not previewed is refused or applied by mail, never dropped.
   expect(source).toMatch(/createShopOrder\(productId, lang, email\.trim\(\), provider, typedCoupon, seats\)/);
-  // Each preview is a code guess against mail's limit of 10 per 10 minutes: only "Apply" asks, and for a bounded number of plans.
-  expect(source.match(/previewCoupon\(/g)).toHaveLength(1);
-  expect(source).toMatch(/offered\.slice\(0, COUPON_PREVIEWS\)/);
+  // Each request is a code guess against mail's limit of 10 per 10 minutes: only "Apply" asks, through the one client that
+  // puts the plans of the page into as few requests as the backend allows; the page itself never asks plan by plan.
+  expect(source.match(/previewCouponPlans\(/g)).toHaveLength(1);
+  expect(source).not.toMatch(/previewCoupons?\(/);
+  // A backend that refused the several-plans form is asked plan by plan from the next press on.
+  expect(source).toMatch(/legacy: couponLegacy\.current/);
+  expect(source).toMatch(/couponLegacy\.current = result\.legacy;/);
   expect(source).not.toMatch(/onChange=\{[^}]*applyCoupon/);
   // A backend without discount codes, or a catalog that says so, hides the field.
   expect(source).toMatch(/catalog\?\.coupons !== false && !couponsMissing/);
@@ -324,8 +521,8 @@ test("shop page: a code is only called unusable once every plan and way of payin
   // A preview that failed part-way leaves plans unasked too.
   expect(couponVerdict({ "a:ldc": null }, 2)).toBe("unchecked");
   const source = readFileSync("src/storefront/components/Shop.tsx", "utf8");
-  // What is on offer is counted before the preview limit cuts the list.
-  expect(source).toMatch(/const asks = offered\.slice\(0, COUPON_PREVIEWS\);/);
+  // What is on offer is counted whatever was asked; a plan that was not asked about gets no entry.
+  expect(source).toMatch(/if \(quote === undefined\) return;/);
   expect(source).toMatch(/setApplied\(\{ code, quotes, offered: offered\.length \}\)/);
   expect(source).toMatch(/\[couponVerdict\(applied\.quotes, applied\.offered\)\]/);
 });
@@ -487,6 +684,183 @@ test("dev shop: checkout prices the order with the code or creates none, and pub
   }
 });
 
+/** The clients of the page against the demo backend. */
+function throughMock(store: MockShopStore) {
+  vi.stubGlobal("fetch", (url: string, init: RequestInit = {}) => {
+    const route = new URL(url, "http://localhost:4320").pathname.replace(/^\/api\/shop\//, "");
+    return store.fetch(
+      route.split("?")[0]!,
+      new Request(new URL(url, "http://localhost:4320"), {
+        ...init,
+        headers: { ...Object.fromEntries(new Headers(init.headers)), Origin: "http://localhost:4320" },
+      }),
+    );
+  });
+}
+
+test("dev shop: several plans are previewed in one request, like mail, and the catalog says codes are offered", async () => {
+  const store = new MockShopStore(() => NOW);
+  const ask = async (body: unknown) => {
+    const response = await store.fetch("coupon", mockPost("coupon", body));
+    return [response.status, await response.json()] as const;
+  };
+  // One entry per entry asked, in that order: a quote with its plan, or null where the single form says `valid: false`.
+  expect(
+    await ask({
+      products: [
+        { productId: ONE_TIME },
+        { productId: ONE_TIME, provider: "stripe" },
+        { productId: MONTHLY, provider: "stripe" },
+        { productId: "unknownproduct1" },
+      ],
+      coupon: "welcome",
+    }),
+  ).toStrictEqual([
+    200,
+    {
+      quotes: [
+        {
+          productId: ONE_TIME,
+          code: "WELCOME",
+          provider: "ldc",
+          currency: "",
+          basePriceCents: 750,
+          discountCents: 150,
+          priceCents: 600,
+          firstPeriodOnly: false,
+        },
+        null,
+        {
+          productId: MONTHLY,
+          code: "WELCOME",
+          provider: "stripe",
+          currency: "usd",
+          basePriceCents: 299,
+          discountCents: 60,
+          priceCents: 239,
+          firstPeriodOnly: true,
+        },
+        null,
+      ],
+    },
+  ]);
+  // `products` wins when both forms are sent; a seat plan's entry needs its quantity.
+  const both = await ask({ productId: MONTHLY, products: [{ productId: ONE_TIME }], coupon: "WELCOME" });
+  expect(both[1]).toMatchObject({ quotes: [{ productId: ONE_TIME }] });
+  // An empty list, more than eight entries or one malformed entry is a 400 for the whole request, with no partial answer.
+  const nine = Array.from({ length: 9 }, () => ({ productId: ONE_TIME }));
+  for (const products of [
+    [],
+    nine,
+    {},
+    [{ productId: ONE_TIME }, {}],
+    [{ productId: ONE_TIME, provider: "paypal" }],
+    [7],
+  ])
+    expect((await ask({ products, coupon: "WELCOME" }))[0], JSON.stringify(products)).toBe(400);
+  expect((await ask({ products: [{ productId: ONE_TIME }], coupon: " " }))[0]).toBe(400);
+  expect((await ask({ products: nine.slice(0, 8), coupon: "WELCOME" }))[0]).toBe(200);
+
+  // Through the page's clients: the catalog offers the field, and one request answers for every plan and way of paying.
+  throughMock(store);
+  const catalog = await getShopCatalog();
+  expect(catalog.coupons).toBe(true);
+  const asks = catalogPlans(catalog).flatMap((product) => {
+    const quantity = isSeatProduct(product) ? product.seatMin : 0;
+    return [
+      { productId: product.id, provider: "ldc" as const, quantity },
+      ...(product.fiatPriceMinor ? [{ productId: product.id, provider: "stripe" as const, quantity }] : []),
+    ];
+  });
+  const fetched = vi.spyOn(store, "fetch");
+  const result = await previewCouponPlans(asks, "WELCOME");
+  expect(fetched).toHaveBeenCalledTimes(1);
+  expect(result.legacy).toBe(false);
+  expect(result.error).toBeUndefined();
+  expect(result.quotes.every(Boolean)).toBe(true);
+  expect(result.quotes.map((item) => item?.provider)).toStrictEqual(asks.map((item) => item.provider));
+});
+
+test("dev shop: MOCK_COUPONS=legacy behaves like a mail with discount codes before the flag, the several-plans form and the order fields", async () => {
+  const store = new MockShopStore(() => NOW, true, "legacy");
+  throughMock(store);
+  // No flag: the page offers the field and would hide it on a 404.
+  const catalog = await getShopCatalog();
+  expect(catalog).not.toHaveProperty("coupons");
+  // The several-plans form is read as the single form without a plan: 400, and the page asks plan by plan.
+  const refused = await store.fetch(
+    "coupon",
+    mockPost("coupon", { products: [{ productId: ONE_TIME }], coupon: "WELCOME" }),
+  );
+  expect(refused.status).toBe(400);
+  const fetched = vi.spyOn(store, "fetch");
+  const result = await previewCouponPlans(
+    [
+      { productId: ONE_TIME, provider: "ldc" },
+      { productId: MONTHLY, provider: "ldc" },
+      { productId: MONTHLY, provider: "stripe" },
+    ],
+    "WELCOME",
+  );
+  expect(fetched).toHaveBeenCalledTimes(4);
+  expect(result.legacy).toBe(true);
+  expect(result.quotes.map((item) => item?.priceCents)).toStrictEqual([600, 400, 239]);
+
+  // An order with a code is published without the two fields, and without a plan discount at the price paid: the order page
+  // then has only what the tab remembered. The account's order list carries no code either.
+  const response = await store.fetch("checkout", mockPost("checkout", { productId: MONTHLY, coupon: "MONTHLY" }));
+  const { orderId } = (await response.json()) as { orderId: string };
+  const cookie = response.headers.get("Set-Cookie")!.split(";")[0]!;
+  vi.stubGlobal("fetch", (url: string, init: RequestInit = {}) =>
+    store.fetch(
+      "orders",
+      new Request(new URL(url, "http://localhost:4320"), { ...init, headers: { ...init.headers, Cookie: cookie } }),
+    ),
+  );
+  const { order } = await getShopOrder(orderId);
+  expect(order).toMatchObject({ originalPriceCents: 250, discountPercent: 0, priceCents: 250 });
+  expect(order).not.toHaveProperty("couponCode");
+  expect(order).not.toHaveProperty("couponDiscountCents");
+  expect(orderCoupon(order, { orderId, code: "MONTHLY", baseCents: 500 })).toStrictEqual({
+    code: "MONTHLY",
+    discountCents: 250,
+    baseCents: 500,
+  });
+});
+
+test("dev shop: the account's order list carries each order's code and what it took off, like mail", async () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => {});
+  const listed = async (store: MockShopStore) => {
+    const email = "buyer@example.test";
+    await store.fetch("checkout", mockPost("checkout", { productId: MONTHLY, coupon: "monthly", email }));
+    await store.fetch("checkout", mockPost("checkout", { productId: ONE_TIME, email }));
+    await store.fetch("account/login", mockPost("account/login", { email }));
+    const token = /login=([A-Za-z0-9_-]{43})/.exec(String(info.mock.calls.at(-1)?.[0]))![1];
+    const verified = await store.fetch("account/verify", mockPost("account/verify", { token }));
+    const session = verified.headers.get("Set-Cookie")!.split(";")[0]!;
+    vi.stubGlobal("fetch", (url: string) =>
+      store.fetch("account", new Request(new URL(url, "http://localhost:4320"), { headers: { Cookie: session } })),
+    );
+    // Through the client the account page uses.
+    return (await getAccount())!.orders.toSorted((a, b) => a.priceCents - b.priceCents);
+  };
+  const [withCode, plain] = await listed(new MockShopStore(() => NOW));
+  expect(withCode).toMatchObject({ priceCents: 250, couponCode: "MONTHLY", couponDiscountCents: 250 });
+  expect(plain).toMatchObject({ priceCents: 750, couponCode: "", couponDiscountCents: 0 });
+  // A mail before the fields lists the same orders without them, and the page shows no code.
+  for (const order of await listed(new MockShopStore(() => NOW, true, "legacy"))) {
+    expect(order).not.toHaveProperty("couponCode");
+    expect(order).not.toHaveProperty("couponDiscountCents");
+  }
+  info.mockRestore();
+  // The list shows the code and the amount off only for an order that has one, labelled in both languages.
+  const page = readFileSync("src/storefront/components/ShopAccount.tsx", "utf8");
+  expect(page).toMatch(/Boolean\(order\.couponDiscountCents\) &&/);
+  expect(page).toMatch(/<ShopMetaRow label=\{t\.orderCoupon\(""\)\}>/);
+  expect(page).not.toMatch(/recallCoupon|sessionStorage/);
+  for (const lang of ["en", "zh"] as const) expect(shopCopy[lang].orderCoupon("")).not.toBe("");
+});
+
 test("dev shop: with discount codes off it behaves like a mail before them: a 404 preview, and checkout ignores the field", async () => {
   const store = new MockShopStore(() => NOW, true, false);
   const preview = await store.fetch("coupon", mockPost("coupon", { productId: ONE_TIME, coupon: "WELCOME" }));
@@ -595,6 +969,11 @@ test("contract: the code preview and the order's code fields are in the contract
   // contract test (tests/storefront/worker.test.ts) now covers the route like every other, and the order fixture carries the fields.
   expect(contract.shop.routes.coupon).toBe("POST");
   expect(contract.shop.publicOrderFields).toEqual(expect.arrayContaining(["couponCode", "couponDiscountCents"]));
-  // What is still open between the two repositories (seat plans, buyer domains, a code on the order page) stays under "Proposed".
-  expect(readFileSync("docs/storefront-api.md", "utf8").includes("\n## Proposed\n")).toBe(true);
+  // The prose follows: nothing about discount codes is described as missing from mail or unused by the storefront any more.
+  // (What is still open between the two repositories, seat plans and buyer domains, has its own tests.)
+  const docs = readFileSync("docs/storefront-api.md", "utf8");
+  expect(docs).not.toMatch(/Not used by the storefront yet/);
+  expect(docs).toMatch(/\{ products: \[\{ productId, provider\?, quantity\? \}\], coupon \}/);
+  for (const source of ["src/storefront/lib/catalog.ts", "src/storefront/lib/coupon.ts", "src/storefront/lib/shop.ts"])
+    expect(readFileSync(source, "utf8"), source).not.toMatch(/does not (send|publish)[^.]*yet/);
 });

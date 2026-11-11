@@ -60,9 +60,9 @@ export interface PublicShopOrder {
     /** Currency of a Stripe order; the amount priceCents is in its smallest unit. */
     currency?: string;
     /**
-     * The discount code of the order and what it took off, in the unit of priceCents ("Proposed" in docs/storefront-api.md).
-     * mail does not publish them yet: until it does, the order page works the discount out from what the shop page
-     * remembered at checkout (coupon.ts).
+     * The discount code of the order ("" without one) and what it took off, in the unit of priceCents (0 without one). mail
+     * publishes both (mail #221, `publicOrderFields` in docs/onboard-contract.json). Absent on a mail before them: only then
+     * does the order page work the discount out from what the shop page remembered at checkout (coupon.ts).
      */
     couponCode?: string;
     couponDiscountCents?: number;
@@ -216,7 +216,8 @@ export interface CouponQuote {
 }
 
 /**
- * Previews a discount code for one plan and way of paying (POST /api/shop/coupon). null means the code cannot be used for
+ * Previews a discount code for one plan and way of paying (POST /api/shop/coupon, the single form; the shop page uses
+ * previewCouponPlans below and falls back to this for a mail before the several-plans form). null means the code cannot be used for
  * this purchase; mail gives one answer for every reason, so there is none to show. It reserves nothing: checkout prices the
  * order again. A backend without the endpoint answers 404 (ShopApiError), and every call counts against mail's limit on
  * code guesses (10 per 10 minutes per IP, shared with checkout), so callers ask on an explicit action, not as the buyer types.
@@ -237,7 +238,11 @@ export async function previewCoupon(
     lang,
   );
   if (!record(body) || !isBoolean(body.valid)) throw new ShopApiError("");
-  if (!body.valid) return null;
+  return body.valid ? parseCouponQuote(body, provider) : null;
+}
+
+/** A quote as either form of the preview carries it. Half-right amounts, or an answer for another way of paying than asked, fail the request. */
+function parseCouponQuote(body: Record<string, unknown>, provider: ShopPaymentProvider): CouponQuote {
   const { basePriceCents, discountCents, priceCents } = body;
   if (
     !isString(body.code) ||
@@ -263,6 +268,101 @@ export async function previewCoupon(
     priceCents,
     firstPeriodOnly: body.firstPeriodOnly,
   };
+}
+
+/** One plan and way of paying a code is previewed for; `quantity` is the seats of a seat plan, 0 for a fixed plan. */
+export interface CouponAsk {
+  productId: string;
+  provider: ShopPaymentProvider;
+  quantity?: number;
+}
+
+/** The most entries mail takes in one preview for several plans (PREVIEW_MAX_PRODUCTS in its coupon route). */
+export const COUPON_PREVIEW_PLANS = 8;
+/**
+ * The most preview requests one press of "Apply" makes. Each request is one guess against mail's limit (10 per 10 minutes per
+ * IP, shared with checkout), whether it asks about one plan or eight.
+ */
+export const COUPON_PREVIEW_REQUESTS = 4;
+
+/**
+ * Previews a discount code for several plans in ONE request, which mail counts as one guess (mail #221): POST
+ * `{ products: [{ productId, provider?, quantity? }], coupon }` with 1 to COUPON_PREVIEW_PLANS entries answers
+ * `{ quotes: [...] }`, one per entry asked and in that order, a quote or null where the code cannot be used. A mail before
+ * this form reads the body as the single form without a plan and answers 400 (ShopApiError), one before discount codes 404.
+ */
+export async function previewCoupons(
+  asks: readonly CouponAsk[],
+  coupon: string,
+  signal?: AbortSignal,
+  lang?: Lang,
+): Promise<(CouponQuote | null)[]> {
+  const body = await request(
+    "coupon",
+    {
+      products: asks.map(({ productId, provider, quantity = 0 }) => ({
+        productId,
+        ...(provider === "stripe" ? { provider } : {}),
+        ...(quantity > 0 ? { quantity } : {}),
+      })),
+      coupon,
+    },
+    signal,
+    lang,
+  );
+  if (!record(body) || !Array.isArray(body.quotes) || body.quotes.length !== asks.length) throw new ShopApiError("");
+  return body.quotes.map((quote: unknown, index) => {
+    if (quote === null) return null;
+    // An entry for another plan than the one asked at its place is not an answer to the question.
+    if (!record(quote) || quote.productId !== asks[index]!.productId) throw new ShopApiError("");
+    return parseCouponQuote(quote, asks[index]!.provider);
+  });
+}
+
+/**
+ * What "Apply" asks: the code for every plan and way of paying on the page, in as few guesses as the backend allows.
+ * COUPON_PREVIEW_PLANS entries go in one request; a larger catalog takes further requests, up to COUPON_PREVIEW_REQUESTS a
+ * press, and what is past that stays unasked ("checked when you order"). A mail before the several-plans form answers 400
+ * to it: the code is then asked plan by plan in the single form, within the same number of requests (the refused one
+ * counted), and `legacy` comes back true so that the next press starts with the single form.
+ *
+ * `quotes` has one entry per ask: a quote, null (the code cannot be used) or undefined (not asked). A failure part-way
+ * keeps what was answered before it and comes back as `error` instead of being thrown.
+ */
+export async function previewCouponPlans(
+  asks: readonly CouponAsk[],
+  coupon: string,
+  options: { signal?: AbortSignal; lang?: Lang; legacy?: boolean } = {},
+): Promise<{ quotes: (CouponQuote | null | undefined)[]; legacy: boolean; error?: unknown }> {
+  const { signal, lang } = options;
+  const quotes: (CouponQuote | null | undefined)[] = asks.map(() => undefined);
+  let legacy = options.legacy ?? false;
+  let requests = 0;
+  try {
+    for (let start = 0; !legacy && start < asks.length && requests < COUPON_PREVIEW_REQUESTS;) {
+      const batch = asks.slice(start, start + COUPON_PREVIEW_PLANS);
+      requests += 1;
+      try {
+        const answers = await previewCoupons(batch, coupon, signal, lang);
+        answers.forEach((quote, index) => (quotes[start + index] = quote));
+        start += batch.length;
+      } catch (error) {
+        // Only the first request decides: a backend that answered the form once has it.
+        if (start === 0 && error instanceof ShopApiError && error.status === 400) legacy = true;
+        else throw error;
+      }
+    }
+    if (legacy) {
+      for (let index = 0; index < asks.length && requests < COUPON_PREVIEW_REQUESTS; index += 1) {
+        const { productId, provider, quantity = 0 } = asks[index]!;
+        requests += 1;
+        quotes[index] = await previewCoupon(productId, provider, coupon, signal, lang, quantity);
+      }
+    }
+  } catch (error) {
+    return { quotes, legacy, error };
+  }
+  return { quotes, legacy };
 }
 
 export async function getShopOrder(orderId: string, signal?: AbortSignal, lang?: Lang): Promise<PublicShopOrder> {
@@ -364,6 +464,9 @@ export interface CustomerAccount {
     paidAt: string | null;
     code: string | null;
     codeStatus: CodeStatus | null;
+    /** The order's discount code ("" without one) and what it took off priceCents (0 without one); absent on a mail before #221. */
+    couponCode?: string;
+    couponDiscountCents?: number;
   }[];
 }
 
@@ -420,7 +523,9 @@ function parseAccountOrder(item: unknown): AccountOrder | null {
     !isString(item.created) ||
     !isNullableString(item.paidAt) ||
     !isNullableString(item.code) ||
-    !isNullableCodeStatus(item.codeStatus)
+    !isNullableCodeStatus(item.codeStatus) ||
+    !optional(item.couponCode, isString) ||
+    !optional(item.couponDiscountCents, isCount)
   )
     return null;
   return compact({
@@ -437,6 +542,8 @@ function parseAccountOrder(item: unknown): AccountOrder | null {
     paidAt: item.paidAt,
     code: item.code,
     codeStatus: item.codeStatus,
+    couponCode: item.couponCode,
+    couponDiscountCents: item.couponDiscountCents,
   });
 }
 

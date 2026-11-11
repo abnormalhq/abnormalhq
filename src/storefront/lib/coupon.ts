@@ -2,13 +2,14 @@
  * Discount codes on the shop pages, apart from the API clients (shop.ts): what was typed as mail will read it, and what an
  * order page can say about the code of an order.
  *
- * mail prices an order with its code but does not publish the code or what it took off with the order yet (see "Proposed"
- * in docs/storefront-api.md): an order with a code and no plan discount even comes back with its original price equal to the
- * price paid. So that the order page can still show the discount, the shop page remembers, per order it creates with a code,
- * the code and the price before it, in this tab's sessionStorage: paying leaves the site and comes back (Credit or Stripe),
- * which page state does not survive. The order page compares that price with what the order actually costs; the difference
- * is what the code took off. It is only ever shown, never sent anywhere, and ends with the tab. Once mail publishes
- * `couponCode` and `couponDiscountCents`, those win and nothing needs to be remembered.
+ * mail publishes an order's code and what it took off (`couponCode`, `couponDiscountCents`, mail #221), and the order page
+ * and the account's order list show those. What is remembered here is ONLY the fallback for a mail before those fields,
+ * which published neither, and an order with a code and no plan discount with its original price equal to the price paid:
+ * the shop page remembers, per order it creates with a code, the code and the price before it, in this tab's
+ * sessionStorage, since paying leaves the site and comes back (Credit or Stripe), which page state does not survive. For
+ * such a backend the order page compares that price with what the order actually costs; the difference is what the code
+ * took off. It is only ever shown, never sent anywhere, and ends with the tab. Whenever mail's fields are there they win
+ * and the remembered values are not read (orderCoupon below).
  * This file must not use TypeScript syntax Node cannot run directly; tests run it as is.
  */
 

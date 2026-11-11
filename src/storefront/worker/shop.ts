@@ -21,17 +21,16 @@ const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes
  */
 export const ADDRESS_ROUTE = "address";
 /**
- * The preview of a discount code (POST coupon: what would this plan cost with this code?). mail implements it, but the
- * storefront side of discount codes is still "Proposed" in docs/storefront-api.md and mail's docs/shop.md, so the route is not
- * in docs/onboard-contract.json yet (both copies must stay equal, and mail's has not taken it). It is proxied like checkout:
- * same-origin Origin, the client IP kept, and the purchase and account cookies forwarded, so that a per-buyer limit is known
- * to the preview. A mail before discount codes answers its own 404 page, which is passed on as a JSON 404: the shop page
- * takes that as "no discount codes" and hides the field.
+ * The preview of a discount code (POST coupon: what would this plan, or each of up to eight plans, cost with this code?),
+ * in docs/onboard-contract.json since mail #221. The body is passed on as it is, so both forms of the preview go through.
+ * It is proxied like checkout: same-origin Origin, the client IP kept, and the purchase and account cookies forwarded, so
+ * that a per-buyer limit is known to the preview. A mail before discount codes answers its own 404 page, which is passed on
+ * as a JSON 404: the shop page takes that as "no discount codes" and hides the field.
  */
 export const COUPON_ROUTE = "coupon";
 /**
  * Seats of a seat subscription on the account page (POST account/seats/quote, add, remove, keep; "Seat plans" in
- * docs/storefront-api.md). mail implements them, but like the code preview they are "Proposed" in mail's docs/shop.md and not in
+ * docs/storefront-api.md). mail implements them, but they are "Proposed" in mail's docs/shop.md and not in
  * docs/onboard-contract.json yet. They are proxied like account/mailboxes/create: same-origin Origin, the client IP kept, the
  * purchase and account cookies forwarded; `add` may start a purchase session like `renew` (an LDC order to pay). A mail before
  * seat plans answers its own 404 page, passed on as a JSON 404 rather than as an outage.

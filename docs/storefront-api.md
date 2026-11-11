@@ -181,48 +181,48 @@ and the account page is `/shop/account/`; as on the rest of the site these are t
 `https://console.abnormalhq.com/sales`. These endpoints live at the root path `/api/shop/` of the origin and call the backend through the same `MAIL` Service Binding as the redeem API,
 so the browser never makes cross-origin requests to mailhq directly. The Stripe webhook (`/api/shop/stripe/webhook`) is called by Stripe directly on mail's domain and does not go through this site.
 
-| Method | Path                                   | Request                                                                                    | Success response                                                                     |
-| ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, seatProducts?, onboardUrl }`                 |
-| POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")              |
-| POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon, quantity? }`                                        | `200`, `{ valid: true, … }` or `{ valid: false }` (see "Discount codes")             |
-| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon?, quantity? }`                               | `201`, `{ orderId }`, and sets the buyer cookie                                      |
-| GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                       |
-| POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page        |
-| POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`            |
-| POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                           |
-| GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status |
-| POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                   |
-| POST   | `/api/shop/renew`                      | JSON: `{ token, periods, email? }`                                                         | `201`, `{ orderId }`, and sets the buyer cookie                                      |
-| GET    | `/api/shop/account`                    | Account cookie                                                                             | `200`, the account (see below); `401` when not logged in                             |
-| POST   | `/api/shop/account/login`              | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`, sends a login link to that email                          |
-| POST   | `/api/shop/account/peek`               | JSON: `{ token }` (login token)                                                            | `200`, `{ email }`; read-only, does not consume the token or set a cookie            |
-| POST   | `/api/shop/account/verify`             | JSON: `{ token }`                                                                          | `200`, `{ email, claimed }`, and sets the account cookie                             |
-| POST   | `/api/shop/account/logout`             | JSON: `{}`                                                                                 | `200`, `{ "ok": true }`; the Worker always clears the account cookie                 |
-| POST   | `/api/shop/account/portal`             | JSON: `{ subscriptionId }`                                                                 | `200`, `{ url }` (the customer portal at `https://billing.stripe.com/…`)             |
-| POST   | `/api/shop/account/password-login`     | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ email, claimed }`, and sets the account cookie                             |
-| POST   | `/api/shop/account/password`           | JSON: `{ password, currentPassword? }` (account cookie)                                    | `200`, `{ "ok": true }`; sets or changes the login password                          |
-| POST   | `/api/shop/account/register`           | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ "sent": true }`, sends a registration confirmation link to that email      |
-| GET    | `/api/shop/account/mailboxes`          | Account cookie                                                                             | `200`, mailbox management (see below); `401` when not logged in                      |
-| POST   | `/api/shop/account/mailboxes/create`   | JSON: `{ orderId, domain, username, password }`                                            | `201`, `{ email, imap, smtp, webmail }`                                              |
-| POST   | `/api/shop/account/mailboxes/password` | JSON: `{ mailboxId, password }`                                                            | `200`, `{ email }`                                                                   |
-| POST   | `/api/shop/account/mailboxes/status`   | JSON: `{ mailboxId, status }` (`active` / `disabled`)                                      | `200`, `{ status }`                                                                  |
-| POST   | `/api/shop/account/mailboxes/delete`   | JSON: `{ mailboxId, confirm }` (`confirm` repeats the email address)                       | `200`, `{ "ok": true }`                                                              |
-| POST   | `/api/shop/account/seats/quote`        | JSON: `{ orderId, add }` (see "Seat plans")                                                | `200`, `{ add, seats, provider, currency, priceCents, exact, periodEnd }`            |
-| POST   | `/api/shop/account/seats/add`          | JSON: `{ orderId, add }`                                                                   | LDC `201`, `{ orderId }` and the buyer cookie; card `200`, `{ status, seats, … }`    |
-| POST   | `/api/shop/account/seats/remove`       | JSON: `{ orderId, remove, mailboxIds }`                                                    | `200`, `{ seats, seatsNext, effective, removing }`                                   |
-| POST   | `/api/shop/account/seats/keep`         | JSON: `{ orderId }`                                                                        | `200`, `{ seats, seatsNext: null, effective, removing: [] }`                         |
-| GET    | `/api/shop/account/domains`            | Account cookie (see "Buyer domains")                                                       | `200`, `{ limit, domains }`; `401` when not logged in                                |
-| POST   | `/api/shop/account/domains/add`        | JSON: `{ domain }`                                                                         | `201`, `{ domain }` with the ownership TXT record                                    |
-| POST   | `/api/shop/account/domains/verify`     | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                       |
-| POST   | `/api/shop/account/domains/check`      | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                       |
-| POST   | `/api/shop/account/domains/refresh`    | JSON: `{ id }`                                                                             | `200`, `{ domain }` with a new ownership value                                       |
-| POST   | `/api/shop/account/domains/remove`     | JSON: `{ id }`                                                                             | `200`, `{ "ok": true }`                                                              |
-| POST   | `/api/shop/account/forgot`             | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`; sends a password reset email when this account exists     |
-| POST   | `/api/shop/account/reset`              | JSON: `{ token, password }` (reset token)                                                  | `200`, `{ email, claimed }`, and sets the account cookie                             |
-| POST   | `/api/shop/account/google/start`       | JSON: `{ lang?, link? }`                                                                   | `200`, `{ url }` (Google authorization page), and sets the Google state cookie       |
-| POST   | `/api/shop/account/google`             | JSON: `{ code, state }` (as sent back by Google to the account page) + Google state cookie | `200`, `{ email, claimed, created, linked, lang }`, sets the account cookie on login |
-| POST   | `/api/shop/account/google/unlink`      | JSON: `{}` (account cookie)                                                                | `200`, `{ "ok": true }`; `404` when not linked                                       |
+| Method | Path                                   | Request                                                                                    | Success response                                                                       |
+| ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, seatProducts?, onboardUrl, coupons }`          |
+| POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")                |
+| POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon, quantity? }`, or `{ products: [...], coupon }`      | `200`, `{ valid: true, … }` or `{ valid: false }`; `{ quotes }` (see "Discount codes") |
+| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon?, quantity? }`                               | `201`, `{ orderId }`, and sets the buyer cookie                                        |
+| GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                         |
+| POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page          |
+| POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`              |
+| POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                             |
+| GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status   |
+| POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                     |
+| POST   | `/api/shop/renew`                      | JSON: `{ token, periods, email? }`                                                         | `201`, `{ orderId }`, and sets the buyer cookie                                        |
+| GET    | `/api/shop/account`                    | Account cookie                                                                             | `200`, the account (see below); `401` when not logged in                               |
+| POST   | `/api/shop/account/login`              | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`, sends a login link to that email                            |
+| POST   | `/api/shop/account/peek`               | JSON: `{ token }` (login token)                                                            | `200`, `{ email }`; read-only, does not consume the token or set a cookie              |
+| POST   | `/api/shop/account/verify`             | JSON: `{ token }`                                                                          | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/logout`             | JSON: `{}`                                                                                 | `200`, `{ "ok": true }`; the Worker always clears the account cookie                   |
+| POST   | `/api/shop/account/portal`             | JSON: `{ subscriptionId }`                                                                 | `200`, `{ url }` (the customer portal at `https://billing.stripe.com/…`)               |
+| POST   | `/api/shop/account/password-login`     | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/password`           | JSON: `{ password, currentPassword? }` (account cookie)                                    | `200`, `{ "ok": true }`; sets or changes the login password                            |
+| POST   | `/api/shop/account/register`           | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ "sent": true }`, sends a registration confirmation link to that email        |
+| GET    | `/api/shop/account/mailboxes`          | Account cookie                                                                             | `200`, mailbox management (see below); `401` when not logged in                        |
+| POST   | `/api/shop/account/mailboxes/create`   | JSON: `{ orderId, domain, username, password }`                                            | `201`, `{ email, imap, smtp, webmail }`                                                |
+| POST   | `/api/shop/account/mailboxes/password` | JSON: `{ mailboxId, password }`                                                            | `200`, `{ email }`                                                                     |
+| POST   | `/api/shop/account/mailboxes/status`   | JSON: `{ mailboxId, status }` (`active` / `disabled`)                                      | `200`, `{ status }`                                                                    |
+| POST   | `/api/shop/account/mailboxes/delete`   | JSON: `{ mailboxId, confirm }` (`confirm` repeats the email address)                       | `200`, `{ "ok": true }`                                                                |
+| POST   | `/api/shop/account/seats/quote`        | JSON: `{ orderId, add }` (see "Seat plans")                                                | `200`, `{ add, seats, provider, currency, priceCents, exact, periodEnd }`              |
+| POST   | `/api/shop/account/seats/add`          | JSON: `{ orderId, add }`                                                                   | LDC `201`, `{ orderId }` and the buyer cookie; card `200`, `{ status, seats, … }`      |
+| POST   | `/api/shop/account/seats/remove`       | JSON: `{ orderId, remove, mailboxIds }`                                                    | `200`, `{ seats, seatsNext, effective, removing }`                                     |
+| POST   | `/api/shop/account/seats/keep`         | JSON: `{ orderId }`                                                                        | `200`, `{ seats, seatsNext: null, effective, removing: [] }`                           |
+| GET    | `/api/shop/account/domains`            | Account cookie (see "Buyer domains")                                                       | `200`, `{ limit, domains }`; `401` when not logged in                                  |
+| POST   | `/api/shop/account/domains/add`        | JSON: `{ domain }`                                                                         | `201`, `{ domain }` with the ownership TXT record                                      |
+| POST   | `/api/shop/account/domains/verify`     | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                         |
+| POST   | `/api/shop/account/domains/check`      | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                         |
+| POST   | `/api/shop/account/domains/refresh`    | JSON: `{ id }`                                                                             | `200`, `{ domain }` with a new ownership value                                         |
+| POST   | `/api/shop/account/domains/remove`     | JSON: `{ id }`                                                                             | `200`, `{ "ok": true }`                                                                |
+| POST   | `/api/shop/account/forgot`             | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`; sends a password reset email when this account exists       |
+| POST   | `/api/shop/account/reset`              | JSON: `{ token, password }` (reset token)                                                  | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/google/start`       | JSON: `{ lang?, link? }`                                                                   | `200`, `{ url }` (Google authorization page), and sets the Google state cookie         |
+| POST   | `/api/shop/account/google`             | JSON: `{ code, state }` (as sent back by Google to the account page) + Google state cookie | `200`, `{ email, claimed, created, linked, lang }`, sets the account cookie on login   |
+| POST   | `/api/shop/account/google/unlink`      | JSON: `{}` (account cookie)                                                                | `200`, `{ "ok": true }`; `404` when not linked                                         |
 
 Failure statuses: except for `pay` (always `303`, see below), every shop POST may return `403` (`Origin` is not the storefront address in the sales settings; the Worker rejects cross-site origins first),
 `415` (wrong body type), `413` (body over 4 KiB), `400` (invalid body or field), `429` (rate limited, with `Retry-After`) and `503` (backend temporarily unavailable).
@@ -405,8 +405,9 @@ the pages against a backend with the check switched off.
 
 Besides a plan's own discount percentage, mail has discount codes that a buyer types in (mail's `docs/shop.md`, "Discount codes":
 a percentage or a fixed amount per way of paying, optionally limited to plans, an expiry, a total number of uses and uses per
-buyer). mail implements all of the endpoints below. The shop page uses the preview and `coupon` at checkout; what is still open
-between the two repositories is under "Proposed" at the end of this document.
+buyer). mail implements all of the endpoints below, and the route and the order fields are in `docs/onboard-contract.json`
+(mail #221). The shop page uses the preview and `coupon` at checkout; the one thing not built is under "Proposed" at the end of
+this document (a code field on the order page).
 
 - **Preview**: `POST /api/shop/coupon`, JSON `{ productId, provider?, coupon }` with the storefront's `Origin`; `provider` as at
   checkout (`ldc` by default). It answers `200` with
@@ -418,6 +419,15 @@ between the two repositories is under "Proposed" at the end of this document.
   nothing, and checkout has the final say. `400` is a malformed request (no plan id, an unknown provider, no code), `403` a wrong
   origin, `429` with `Retry-After` the rate limit. The client (`previewCoupon` in `src/storefront/lib/shop.ts`) treats an answer
   whose three amounts do not agree, or that is for another way of paying than asked, as a failed request.
+- **Several plans in one request** (mail #221): the same endpoint takes `{ products: [{ productId, provider?, quantity? }], coupon }`
+  with 1 to 8 entries (each entry as the single form's fields; `quantity` for a seat plan) and answers `200` with
+  `{ quotes: [...] }`: one entry per entry asked, in the order asked, either
+  `{ productId, code, provider, currency, basePriceCents, discountCents, priceCents, firstPeriodOnly }` or `null` where the
+  single form would answer `{ valid: false }`. An empty list, more than 8 entries or a malformed entry (a seat plan without a
+  valid quantity, or with a total above what one order can charge, included) is `400` for the whole request, with no partial
+  answer; `products` wins when both forms are sent. The whole request is **one** guess against the rate limit below. The client
+  (`previewCoupons`) checks every entry like the single form's answer, and that it is for the plan asked at its place. A mail
+  before this form reads the body as the single form without a plan and answers `400`.
 - **The Worker** proxies it like `checkout`: same-origin `Origin`, JSON, the client IP kept, and the `mailhq_shop` and
   `mailhq_customer` cookies forwarded, so that a per-buyer limit is known to the preview. Nothing is set in the answer. A mail before
   discount codes answers its own `404` page; the Worker turns that into a JSON `404` (as for the address check), and the shop page
@@ -431,35 +441,51 @@ between the two repositories is under "Proposed" at the end of this document.
   the payment was opened); when the hold lapsed and the code can no longer be taken, `pay/stripe` answers `409` and the pay form
   returns to the order page with `&error=payment`, and the buyer places a new order.
 - **Rate limit**: code guesses are limited to 10 per 10 minutes per source IP across the preview, `checkout` (when it carries a
-  code) and the pay endpoints, on top of each endpoint's own limit. This is why the shop page does not preview as the buyer types.
+  code) and the pay endpoints, on top of each endpoint's own limit. A request counts once, whether it asks about one plan or
+  eight. This is why the shop page does not preview as the buyer types.
 - **`pay` and `pay/stripe`** also take an optional `coupon` (form field or JSON) that adds a code to an unpaid purchase order
   without one, before its first payment page is opened. The storefront does not send it: the order page has no code field.
 
 What the shop page does (`src/storefront/components/Shop.tsx`):
 
 - "I have a discount code" opens a field above the plans. "Apply" (or Enter) previews the code for the plans on the page, once per
-  way of paying a plan offers, the plan the visitor arrived for (`?plan=`) first, and at most 4 requests per press
-  (`COUPON_PREVIEWS`), because every preview is a guess against the limit above. A plan shows "With CODE: price" per way of paying,
-  that the code applies to the first period only for a subscription, or that the code cannot be used for it; plans past the 4
-  requests say the code is checked when ordering. When no plan can use it the field shows one sentence, "This code can't be used."
+  way of paying a plan offers, the plan the visitor arrived for (`?plan=`) first, in **one request** for up to 8 of those
+  combinations (`previewCouponPlans`, `COUPON_PREVIEW_PLANS`). A catalog with more takes further requests of up to 8, and never
+  more than 4 requests per press (`COUPON_PREVIEW_REQUESTS`, so 32 combinations), because every request is a guess against the
+  limit above. A way of paying that cannot take a seat plan's quantity is not asked about. A plan shows "With CODE: price" per way
+  of paying, that the code applies to the first period only for a subscription, or that the code cannot be used for it; what
+  was not asked (past the 4 requests, or after a request failed) says the code is checked when ordering, and the field then says
+  that not all plans were checked rather than that the code cannot be used. When every plan was asked and none can use it the
+  field shows one sentence, "This code can't be used."
+- **A mail before the several-plans form** answers `400` to it. The page then asks plan by plan in the single form, within the
+  same 4 requests of the press (the refused one counted, so 3 plans the first time), and starts with the single form on later
+  presses. A `400` to the single form as well is shown as mail's message.
 - Whatever is in the field goes with `checkout`, for Linux DO Credit and card alike, whether or not it was previewed. So a typed
   code is applied or the checkout is refused with mail's message (the form stays as it is); to buy without it the buyer removes it.
-- The catalog's `coupons` flag decides whether the field is offered: `false` hides it without a request, `true` shows it, and
-  without the flag (a mail before it) the field is offered and goes away when the preview answers `404`.
+- The catalog's `coupons` flag decides whether the field is offered. mail always sends it (mail #221): `true` while something
+  is on sale and at least one code can be used right now, `false` otherwise, which hides the field without a request. Only a
+  mail before the flag sends none: the field is then offered and goes away when the preview answers `404`.
 - **The order page** shows the code and what it took off under the price: "Discount code WELCOME, −1.00 LDC" and the price before
   the code struck through, plus the first-period note for a subscription. mail publishes both with the order (`couponCode`, `couponDiscountCents`)
   and the page uses them. A mail before those fields published neither, and published an order with a code but no plan discount
   with `originalPriceCents` equal to `priceCents`, so the fields alone showed no discount. For such a backend the shop page
   still remembers, for each order it creates with a code, the code and the price before it (the plan's
   `priceCents`, or `fiatPriceMinor` for a card order) in the tab's `sessionStorage` (`abnormal-coupon`, the last 5 orders;
-  `src/storefront/lib/coupon.ts`), since paying leaves the site and comes back. The order page takes the difference between that
-  price and the order's `priceCents` as the discount, and only when the order really is cheaper. Opened in another browser, a
-  new tab or from the account page, the order shows its price without the breakdown. The remembered values are only shown; they
-  are never sent to mail and play no part in billing.
+  `src/storefront/lib/coupon.ts`), since paying leaves the site and comes back. This is kept **only as the fallback for such a
+  backend**: whenever the order carries mail's fields they win and the remembered values are not read. Without the fields the
+  order page takes the difference between the remembered price and the order's `priceCents` as the discount, and only when the
+  order really is cheaper; opened in another browser, a new tab or from the account page, such an order shows its price without
+  the breakdown. The remembered values are only shown; they are never sent to mail and play no part in billing.
+- **The account page** lists each order with its code and what it took off ("Discount code WELCOME · −1.00 LDC"), from the
+  `couponCode` and `couponDiscountCents` mail publishes with the account's orders (`parseAccountOrder`); an order without a code
+  (`""` and `0`), and every order of a mail before the fields, shows no such row. The list never reads the tab's storage.
 
-`pnpm dev` implements the preview and `coupon` at checkout in the mock, with three codes: `WELCOME` (20% off every plan, either
-way of paying), `LDC1` (1.00 LDC off, so not for card orders) and `MONTHLY` (half off the monthly plan's first period only).
-`MOCK_COUPONS=off pnpm dev` behaves like a mail before discount codes: the preview answers `404` and checkout ignores the field.
+`pnpm dev` implements both forms of the preview, `coupon` at checkout, the catalog flag and the order fields in the mock, with
+three codes: `WELCOME` (20% off every plan, either way of paying), `LDC1` (1.00 LDC off, so not for card orders) and `MONTHLY`
+(half off the monthly plan's first period only). `MOCK_COUPONS=legacy pnpm dev` behaves like a mail with discount codes before
+mail #221: no `coupons` flag, `400` to the several-plans form, and orders without `couponCode` and `couponDiscountCents` (the
+order page then shows what the tab remembered). `MOCK_COUPONS=off pnpm dev` behaves like a mail before discount codes: the
+preview answers `404`, checkout ignores the field and the catalog has no flag.
 
 ### Seat plans
 
@@ -737,9 +763,9 @@ the contract file takes their routes, as a reminder to move those points out.
   code and no plan discount, which the storefront's `validPrice` allows), and the catalog always carries `coupons: true | false`,
   which the shop page reads as: `false` hides the field without a request, `true` shows it, absent (a mail before the flag)
   shows it and hides it when the preview answers `404`. The order page uses mail's fields when they are there; what the shop page
-  remembers in `sessionStorage` is only the fallback for a mail before them. Not used by the storefront yet: the preview's
-  several-plans form (`{ products: [...], coupon }`, one guess for up to 8 plans), which would replace the up-to-4 single
-  previews of one "Apply", and the code fields in the account's order list.
+  remembers in `sessionStorage` is only the fallback for a mail before them. The storefront also uses the preview's several-plans
+  form (`{ products: [...], coupon }`, one guess for up to 8 plans) for "Apply", with the single form as the fallback for a mail
+  that answers `400` to it, and shows the code fields in the account's order list. See "Discount codes" above.
 - **Seat plans**: add `"account/seats/quote"`, `"account/seats/add"`, `"account/seats/remove"` and `"account/seats/keep"`
   (all `POST`) to `shop.routes` in both copies of the contract file; the Worker already proxies them (`SEAT_ROUTES`) and
   `tests/storefront/seats.test.ts` fails once the file takes them, as the reminder to move this point out. Also proposed by mail:
