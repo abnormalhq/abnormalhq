@@ -834,16 +834,16 @@ test("shop proxy: a mail before seat plans answers a JSON 404; mail's own refusa
 test("contract: the account's seat routes and fields are the contract file's; the order fields mail still proposes stay out", async () => {
   const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
     shop: {
-      routes: Record<string, string>;
+      routes: Record<string, string[]>;
       publicOrderFields: string[];
-      seats: { routes: Record<string, string>; accountFields: string[]; maxQuantity: number };
+      seats: { routes: Record<string, string[]>; accountFields: string[]; maxQuantity: number };
     };
   };
-  // Contract version 3 lists the seat routes apart from `shop.routes`, together with the order quote
-  // (tests/storefront/quote.test.ts); this Worker proxies every one of them.
-  expect(Object.keys(contract.shop.seats.routes).filter((route) => route !== "quote")).toStrictEqual(SEAT_ROUTES);
+  // Contract version 3 lists the seat routes apart from `shop.routes` (the order quote has its own place, `shop.quote`;
+  // tests/storefront/quote.test.ts); this Worker proxies every one of them.
+  expect(Object.keys(contract.shop.seats.routes)).toStrictEqual(SEAT_ROUTES);
   for (const route of SEAT_ROUTES) {
-    expect(contract.shop.seats.routes[route], route).toBe("POST");
+    expect(contract.shop.seats.routes[route], route).toStrictEqual(["POST"]);
     expect(contract.shop.routes, route).not.toHaveProperty(route);
   }
   // The seats of a mailbox group, read field by field as mail lists them (`periodDays` since version 3).

@@ -755,10 +755,10 @@ test("shop proxy: a mail before buyer domains answers a JSON 404; mail's own ans
 test("contract: the domain routes, fields, enums and refusal codes are the contract file's, as in mail's copy", async () => {
   const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
     shop: {
-      routes: Record<string, string>;
+      routes: Record<string, string[]>;
       subscriptionStates: string[];
       buyerDomains: {
-        routes: Record<string, string>;
+        routes: Record<string, string[]>;
         statuses: string[];
         phases: string[];
         domainFields: string[];

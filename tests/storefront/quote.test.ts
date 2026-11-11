@@ -22,6 +22,8 @@ import {
   seatRefusal,
   upgradePeriodPrices,
   viewOf,
+  type PlanQuote,
+  type PlanQuoteView,
   type PurchaseQuote,
   type QuoteAsk,
   type QuoteView,
@@ -59,19 +61,29 @@ const PLAN = "productabcdefgh";
 const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
   version: number;
   shop: {
+    providers: string[];
     planKinds: string[];
+    planKindField: string;
     seats: {
-      routes: Record<string, string>;
+      routes: Record<string, string[]>;
       catalogField: string;
       planFields: string[];
-      quoteFields: string[];
-      quoteCouponFields: string[];
       maxQuantity: number;
       maxTotalCents: number;
+      maxTotalCentsUnit: Record<string, string>;
+    };
+    quote: {
+      routes: Record<string, string[]>;
+      requestFields: string[];
+      fields: string[];
+      priceFields: string[];
+      couponFields: string[];
+      unavailableFields: string[];
+      unavailableCodes: string[];
     };
     refusalFields: string[];
     refusalLanguages: string[];
-    refusalCodes: Record<string, { status: number; details: string[] }>;
+    refusalCodes: Record<string, { status: number; details: string[]; batchDetails?: string[] }>;
   };
 };
 
@@ -81,10 +93,14 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** The example of mail's docs/shop.md: 7 seats of 3.33 LDC at 10% off. */
+/**
+ * The example of mail's docs/shop.md: 7 seats of 3.33 LDC at 10% off. This and the samples after it are one way of paying
+ * laid flat (what a page draws one total from, PurchaseQuote); `wire` is mail's answer for them and `planOf` what the client
+ * makes of it.
+ */
 const quote = {
   productId: PLAN,
-  kind: "seats",
+  planKind: "seats",
   provider: "ldc",
   currency: "",
   quantity: 7,
@@ -101,7 +117,9 @@ const quote = {
   periodDays: 30,
   renewPriceCents: 2100,
 };
-const ask: QuoteAsk = { productId: PLAN, provider: "ldc", quantity: 7 };
+const ask: QuoteAsk = { productId: PLAN, providers: ["ldc"], quantity: 7 };
+const cardAsk: QuoteAsk = { ...ask, providers: ["stripe"] };
+const bothAsk: QuoteAsk = { ...ask, providers: ["ldc", "stripe"] };
 /** The same seats by card: the plan's Stripe price, no plan discount. */
 const cardQuote = {
   ...quote,
@@ -119,7 +137,7 @@ const cardQuote = {
 /** A fixed plan, which is sold whole. */
 const fixedQuote = {
   ...quote,
-  kind: "fixed",
+  planKind: "fixed",
   quantity: 1,
   minQuantity: 1,
   maxQuantity: 1,
@@ -181,6 +199,56 @@ const totalRefusal = {
   maxTotalCents: 100_000_000,
 };
 
+const unavailableRefusal = {
+  error: "This plan is not available for purchase.",
+  code: "product_unavailable",
+  messages: { zh: "该套餐暂不可购买。", en: "This plan is not available for purchase." },
+};
+
+type Flat = Record<string, unknown>;
+/** A way of paying that cannot take the order, among the samples given to `wire`: mail answers it in its entry. */
+const unavailable = (provider: string, refusal: object = unavailableRefusal) => ({ provider, refusal });
+
+/** mail's answer (POST /api/shop/quote) for the flat samples given, one per way of paying asked and in that order. */
+function wire(...entries: Flat[]) {
+  const { productId, planKind, quantity, minQuantity, maxQuantity, periodDays } = entries.find(
+    (entry) => !("refusal" in entry),
+  )!;
+  return {
+    productId,
+    planKind,
+    quantity,
+    minQuantity,
+    maxQuantity,
+    periodDays,
+    prices: entries.map((entry) => {
+      if ("refusal" in entry) return { provider: entry.provider, available: false, refusal: entry.refusal };
+      const { provider, currency, ...rest } = entry;
+      for (const key of ["productId", "planKind", "quantity", "minQuantity", "maxQuantity", "periodDays"])
+        delete rest[key];
+      return { provider, available: true, currency, ...rest };
+    }),
+  };
+}
+
+/** What the client makes of `wire(...entries)`: each priced way of paying carries the whole flat sample. */
+function planOf(...entries: Flat[]): PlanQuote {
+  const { prices: _prices, ...shared } = wire(...entries);
+  void _prices;
+  return {
+    ...shared,
+    prices: entries.map((entry) => ({ available: true, ...entry })),
+  } as unknown as PlanQuote;
+}
+
+/** The one price of a quote asked for a single way of paying. */
+function only(quoted: PlanQuote): PurchaseQuote {
+  expect(quoted.prices).toHaveLength(1);
+  const [price] = quoted.prices;
+  if (!price?.available) throw new Error("not priced");
+  return price;
+}
+
 function respond(body: unknown, status = 200, headers: HeadersInit = {}) {
   const calls: { url: string; body: unknown; lang: string | null; credentials?: string }[] = [];
   vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
@@ -202,7 +270,15 @@ test("contract: version 3's plan kinds, seat limits, refusal codes and languages
   expect([...PLAN_KINDS]).toStrictEqual(contract.shop.planKinds);
   expect(SEAT_MAX).toBe(contract.shop.seats.maxQuantity);
   expect(SHOP_PRICE_MAX_CENTS).toBe(contract.shop.seats.maxTotalCents);
-  expect(contract.shop.seats.routes[QUOTE_ROUTE]).toBe("POST");
+  // The quote prices fixed plans too: it has its own place, apart from the seat routes.
+  expect(contract.shop.quote.routes).toStrictEqual({ [QUOTE_ROUTE]: ["POST"] });
+  expect(contract.shop.seats.routes).not.toHaveProperty(QUOTE_ROUTE);
+  // One number for every way of paying, in the unit each charges in.
+  expect(Object.keys(contract.shop.seats.maxTotalCentsUnit)).toStrictEqual(contract.shop.providers);
+  // One word for how a plan is sold, in the catalog and on a quote.
+  expect(contract.shop.planKindField).toBe("planKind");
+  expect(contract.shop.seats.planFields).toContain(contract.shop.planKindField);
+  expect(contract.shop.quote.fields).toContain(contract.shop.planKindField);
   expect(contract.shop.seats.catalogField).toBe("seatProducts");
   // Every code with its status; the details a code carries are the ones the client reads by name.
   expect(REFUSAL_CODES).toStrictEqual(
@@ -219,19 +295,37 @@ test("contract: version 3's plan kinds, seat limits, refusal codes and languages
     };
     expect(Object.keys(parseRefusal(body).details), code).toStrictEqual(details);
   }
+  // The refusal of one entry of a list names it: `index`, on the three seat refusals, read like any other number.
+  expect(
+    Object.entries(contract.shop.refusalCodes).flatMap(([code, { batchDetails }]) => (batchDetails ? [code] : [])),
+  ).toStrictEqual(["seat_quantity_invalid", "seat_quantity_out_of_range", "seat_total_too_large"]);
+  for (const { batchDetails } of Object.values(contract.shop.refusalCodes))
+    expect(batchDetails ?? ["index"]).toStrictEqual(["index"]);
+  expect(parseRefusal({ ...rangeRefusal, index: 1 }).details).toStrictEqual({ min: 2, max: 5, index: 1 });
   // The fields of a refusal, and its texts in exactly the page languages.
   expect(contract.shop.refusalFields).toStrictEqual(["error", "code", "messages"]);
   expect(contract.shop.refusalLanguages.toSorted()).toStrictEqual([...LANGS].toSorted());
 });
 
 test("contract: the quote's fields and a seat plan's explicit fields are read one by one, as the contract lists them", async () => {
-  expect(Object.keys(quote)).toStrictEqual(contract.shop.seats.quoteFields);
-  respond(quote);
-  expect(Object.keys(await quotePurchase(ask)).toSorted()).toStrictEqual(contract.shop.seats.quoteFields.toSorted());
+  const answer = wire(quote, unavailable("stripe"));
+  expect(Object.keys(answer)).toStrictEqual(contract.shop.quote.fields);
+  expect(Object.keys(answer.prices[0]!)).toStrictEqual(contract.shop.quote.priceFields);
+  expect(Object.keys(answer.prices[1]!)).toStrictEqual(contract.shop.quote.unavailableFields);
+  expect(contract.shop.quote.unavailableCodes).toContain(unavailableRefusal.code);
+  for (const code of contract.shop.quote.unavailableCodes) expect(REFUSAL_CODES).toHaveProperty(code);
+  const calls = respond(answer);
+  const read = await quotePurchase(bothAsk);
+  expect(Object.keys(read).toSorted()).toStrictEqual(contract.shop.quote.fields.toSorted());
+  // What the client sends is among the request fields the contract lists.
+  for (const field of Object.keys(calls[0]!.body as object)) expect(contract.shop.quote.requestFields).toContain(field);
+  // A priced way of paying is read with every field of the contract (and what the quote says for every way, laid next to it).
+  const priced = read.prices[0]!;
+  for (const field of contract.shop.quote.priceFields) expect(priced, field).toHaveProperty(field);
   const coded = { valid: true, code: "WELCOME", discountCents: 420, firstPeriodOnly: true };
-  expect(Object.keys(coded)).toStrictEqual(contract.shop.seats.quoteCouponFields);
-  respond({ ...quote, coupon: coded, totalCents: 1678 });
-  expect((await quotePurchase({ ...ask, coupon: "welcome" })).coupon).toStrictEqual(coded);
+  expect(Object.keys(coded)).toStrictEqual(contract.shop.quote.couponFields);
+  respond(wire({ ...quote, coupon: coded, totalCents: 1678 }));
+  expect(only(await quotePurchase({ ...ask, coupon: "welcome" })).coupon).toStrictEqual(coded);
 
   // The catalog: every explicit field is on the parsed plan, apart from `planKind`, which is what makes it a seat plan.
   const [plan] = parseShopCatalog({ ...catalogResponse, seatProducts: [seatProduct] }).seatProducts!;
@@ -324,34 +418,75 @@ test("catalog: a seat plan's range and per-seat prices come from the explicit fi
   }
   // `planKind: "seats"` is enough without the stored word.
   expect(parse({ ...seatProduct, kind: undefined }).minQuantity).toBe(2);
+
+  // A fixed plan says how it is sold in the same word since version 3: read with it and without it (a mail before the
+  // field) into the same plan, and an entry of `products` that says anything else is not one this list can show.
+  const [fixedPlan] = catalogResponse.products;
+  const fixedWith = (planKind: unknown) =>
+    parseShopCatalog({ ...catalogResponse, products: [{ ...fixedPlan, planKind }] }).products[0];
+  expect(fixedWith("fixed")).toStrictEqual(fixedWith(undefined));
+  expect(fixedWith("fixed")).not.toHaveProperty("planKind");
+  for (const planKind of ["seats", "seat", null, 1]) expect(() => fixedWith(planKind)).toThrow(ShopApiError);
 });
 
 /* ---- The quote client ---- */
 
-test("quote client: one POST with the plan, the way of paying and the quantity, with the buyer's cookies and the page language", async () => {
-  const calls = respond(quote);
-  expect(await quotePurchase(ask, undefined, "en")).toStrictEqual(quote);
+test("quote client: one POST with the plan, the ways of paying and the quantity, with the buyer's cookies and the page language", async () => {
+  const calls = respond(wire(quote));
+  expect(await quotePurchase(ask, undefined, "en")).toStrictEqual(planOf(quote));
   expect(calls).toHaveLength(1);
   expect(calls[0]!.url).toMatch(/\/api\/shop\/quote$/);
-  // The default way of paying is not sent, like at checkout; a discount code only when the caller has one.
-  expect(calls[0]!.body).toStrictEqual({ productId: PLAN, quantity: 7 });
+  // The ways of paying are always named; a discount code goes along only when the caller has one.
+  expect(calls[0]!.body).toStrictEqual({ productId: PLAN, providers: ["ldc"], quantity: 7 });
   expect([calls[0]!.lang, calls[0]!.credentials]).toStrictEqual(["en", "same-origin"]);
 
-  const card = respond(cardQuote);
-  expect((await quotePurchase({ ...ask, provider: "stripe" })).currency).toBe("usd");
-  expect(card[0]!.body).toStrictEqual({ productId: PLAN, provider: "stripe", quantity: 7 });
+  const card = respond(wire(cardQuote));
+  expect(only(await quotePurchase(cardAsk)).currency).toBe("usd");
+  expect(card[0]!.body).toStrictEqual({ productId: PLAN, providers: ["stripe"], quantity: 7 });
+
+  // Both ways of paying of a plan are ONE request (mail counts it once against its limit), answered in the order asked.
+  const both = respond(wire(quote, cardQuote));
+  expect(await quotePurchase(bothAsk)).toStrictEqual(planOf(quote, cardQuote));
+  expect(both).toHaveLength(1);
+  expect(both[0]!.body).toStrictEqual({ productId: PLAN, providers: ["ldc", "stripe"], quantity: 7 });
+
+  // A way of paying that cannot take the order is said in its entry, in the page language; the other is priced.
+  for (const lang of LANGS) {
+    respond(wire(quote, unavailable("stripe")));
+    const mixed = await quotePurchase(bothAsk, undefined, lang);
+    expect(mixed.prices[0]).toMatchObject({ available: true, provider: "ldc", totalCents: 2098 });
+    expect(mixed.prices[1]).toStrictEqual({
+      available: false,
+      provider: "stripe",
+      code: "product_unavailable",
+      message: unavailableRefusal.messages[lang],
+      details: {},
+    });
+  }
+  respond(wire(quote, unavailable("stripe", totalRefusal)));
+  expect((await quotePurchase(bothAsk)).prices[1]).toMatchObject({
+    code: "seat_total_too_large",
+    // No page language given: `error`, as mail wrote it for the request.
+    message: totalRefusal.error,
+    details: { maxTotalCents: 100_000_000 },
+  });
 
   // A fixed plan takes no quantity and answers for the plan as a whole.
-  const fixed = respond(fixedQuote);
-  const whole = await quotePurchase({ productId: PLAN, provider: "ldc", quantity: 0 });
-  expect([whole.kind, whole.quantity, whole.totalCents, whole.renewPriceCents]).toStrictEqual(["fixed", 1, 750, 600]);
-  expect(fixed[0]!.body).toStrictEqual({ productId: PLAN });
+  const fixed = respond(wire(fixedQuote));
+  const whole = only(await quotePurchase({ productId: PLAN, providers: ["ldc"], quantity: 0 }));
+  expect([whole.planKind, whole.quantity, whole.totalCents, whole.renewPriceCents]).toStrictEqual([
+    "fixed",
+    1,
+    750,
+    600,
+  ]);
+  expect(fixed[0]!.body).toStrictEqual({ productId: PLAN, providers: ["ldc"] });
 
   // A code that cannot be used does not fail the quote: the total is the price without it.
-  const coded = respond({ ...quote, coupon: { valid: false } });
-  const refused = await quotePurchase({ ...ask, coupon: "NOPE" });
+  const coded = respond(wire({ ...quote, coupon: { valid: false } }));
+  const refused = only(await quotePurchase({ ...ask, coupon: "NOPE" }));
   expect([refused.coupon, refused.totalCents]).toStrictEqual([{ valid: false }, 2098]);
-  expect(coded[0]!.body).toStrictEqual({ productId: PLAN, quantity: 7, coupon: "NOPE" });
+  expect(coded[0]!.body).toStrictEqual({ productId: PLAN, providers: ["ldc"], quantity: 7, coupon: "NOPE" });
 });
 
 test("quote client: half-right quotes never reach the page", async () => {
@@ -364,15 +499,9 @@ test("quote client: half-right quotes never reach the page", async () => {
     [{ ...quote, quantity: 8 }],
     [quote, { ...ask, quantity: 8 }],
     // A card amount without its currency, an LDC amount with one, a currency Intl cannot format.
-    [
-      { ...cardQuote, currency: "" },
-      { ...ask, provider: "stripe" },
-    ],
+    [{ ...cardQuote, currency: "" }, cardAsk],
     [{ ...quote, currency: "usd" }],
-    [
-      { ...cardQuote, currency: "US$" },
-      { ...ask, provider: "stripe" },
-    ],
+    [{ ...cardQuote, currency: "US$" }, cardAsk],
     // Amounts that do not add up the way mail says they do.
     [{ ...quote, planDiscountCents: 200 }],
     [{ ...quote, totalCents: 2000 }],
@@ -386,7 +515,8 @@ test("quote client: half-right quotes never reach the page", async () => {
     [{ ...quote, minQuantity: 0 }],
     [{ ...quote, minQuantity: 8 }],
     [{ ...quote, maxQuantity: 1001 }],
-    [{ ...quote, kind: "seat" }],
+    [{ ...quote, planKind: "seat" }],
+    [{ ...quote, planKind: undefined, kind: "seats" }],
     // A fixed plan is sold whole, and is what answers a question without a quantity.
     [
       { ...fixedQuote, maxQuantity: 2 },
@@ -416,8 +546,32 @@ test("quote client: half-right quotes never reach the page", async () => {
     [{ ...quote, coupon: undefined }],
   ];
   for (const [body, asked = ask] of bad) {
-    expect(() => parsePurchaseQuote(body, asked), JSON.stringify(body)).toThrow(ShopApiError);
+    const answer = body === null ? null : wire(body as Flat);
+    expect(() => parsePurchaseQuote(answer, asked), JSON.stringify(body)).toThrow(ShopApiError);
   }
+  // The answer has exactly one entry per way of paying asked, in the order asked, each priced or refused with a code.
+  const good = wire(quote, cardQuote);
+  expect(parsePurchaseQuote(good, bothAsk)).toStrictEqual(planOf(quote, cardQuote));
+  const [ldcPrice, cardPrice] = good.prices;
+  for (const prices of [
+    undefined,
+    {},
+    [],
+    [ldcPrice],
+    [cardPrice, ldcPrice],
+    [ldcPrice, cardPrice, cardPrice],
+    [ldcPrice, ldcPrice],
+    [ldcPrice, { ...cardPrice, available: undefined }],
+    [ldcPrice, { ...cardPrice, available: "true" }],
+    [ldcPrice, { provider: "stripe", available: false }],
+    [ldcPrice, { provider: "stripe", available: false, refusal: { error: "No." } }],
+    [ldcPrice, { provider: "stripe", available: false, refusal: "product_unavailable" }],
+    [ldcPrice, { ...cardPrice, provider: "cash" }],
+  ])
+    expect(() => parsePurchaseQuote({ ...good, prices }, bothAsk), JSON.stringify(prices)).toThrow(ShopApiError);
+  // The flat answer of a mail before `prices` is not a quote either: the page keeps its estimate.
+  expect(() => parsePurchaseQuote({ ...quote, kind: "seats" }, ask)).toThrow(ShopApiError);
+  expect(() => parsePurchaseQuote(wire(quote), { ...ask, providers: [] })).toThrow(ShopApiError);
   respond("<html>", 200);
   await expect(quotePurchase(ask)).rejects.toBeInstanceOf(ShopApiError);
 });
@@ -587,8 +741,44 @@ test("coupon preview: a seat quantity mail does not sell is its own refusal, nev
   const source = readFileSync("src/storefront/components/Shop.tsx", "utf8");
   expect(source).toMatch(/const refusal = seatRefusal\(result\.error\);/);
   expect(source).toMatch(/t\.couponSeatRange\(refusal\.min, refusal\.max\)/);
-  expect(source).toMatch(/t\.couponSeatTotal\(formatCredits\(refusal\.maxTotalCents\)\)/);
-  expect(source).toMatch(/board\.learn\(result\.error,/);
+  expect(source).toMatch(/t\.couponSeatTotal\(/);
+  // The entry mail refused (`index`) names the plan the range is for, and the unit the cap is counted in.
+  expect(source).toMatch(/const about = result\.errorAt === undefined \? undefined : offered\[result\.errorAt\];/);
+  expect(source).toMatch(/board\.learn\(result\.error, about \? about\.product\.id :/);
+  expect(source).toMatch(/formatMoney\(refusal\.maxTotalCents, cardCurrency, lang\)/);
+
+  // Which entry: mail's `index` is the position in the request's `products`, so in a later request of a large catalog
+  // it counts from that request's first entry; the single form asks about one entry at a time.
+  respond({ ...rangeRefusal, index: 1 }, 400);
+  expect((await previewCouponPlans(asks, "WELCOME")).errorAt).toBe(1);
+  const many = Array.from({ length: 10 }, (_, index) => ({
+    productId: `plan${String(index).padStart(11, "0")}`,
+    provider: "ldc" as const,
+    quantity: 7,
+  }));
+  let requests = 0;
+  vi.stubGlobal("fetch", async () => {
+    requests += 1;
+    return requests === 1
+      ? Response.json({ quotes: many.slice(0, 8).map(() => null) })
+      : Response.json({ ...rangeRefusal, index: 1 }, { status: 400 });
+  });
+  const later = await previewCouponPlans(many, "WELCOME");
+  expect([requests, later.errorAt]).toStrictEqual([2, 9]);
+  // A mail before `index`, or an index that names no entry of the request, says nothing about which.
+  for (const body of [rangeRefusal, { ...rangeRefusal, index: 2 }, { ...rangeRefusal, index: -1 }]) {
+    respond(body, 400);
+    expect((await previewCouponPlans(asks, "WELCOME")).errorAt, JSON.stringify(body)).toBeUndefined();
+  }
+  // The single form (a mail before the several-plans form): the entry being asked about.
+  let singles = 0;
+  vi.stubGlobal("fetch", async () => {
+    singles += 1;
+    return singles === 1
+      ? Response.json({ valid: false })
+      : Response.json({ error: "Choose between 2 and 5 seats." }, { status: 400 });
+  });
+  expect((await previewCouponPlans(asks, "WELCOME", { legacy: true })).errorAt).toBe(1);
 });
 
 /* ---- The board ---- */
@@ -596,7 +786,7 @@ test("coupon preview: a seat quantity mail does not sell is its own refusal, nev
 interface Pending {
   ask: QuoteAsk;
   signal: AbortSignal;
-  resolve: (quote: PurchaseQuote) => void;
+  resolve: (quote: PlanQuote) => void;
   reject: (error: unknown) => void;
 }
 
@@ -606,15 +796,28 @@ function board(options: { lang?: "zh" | "en" } = {}) {
   const quotes = new QuoteBoard({
     ...options,
     fetchQuote: (asked, signal) =>
-      new Promise<PurchaseQuote>((resolve, reject) => {
+      new Promise<PlanQuote>((resolve, reject) => {
         sent.push({ ask: asked, signal, resolve, reject });
       }),
   });
   const view = (slot: string) => quotes.snapshot().views[slot];
   const settle = () => vi.advanceTimersByTimeAsync(0);
   const answer = (index: number, quantity = sent[index]!.ask.quantity) =>
-    sent[index]!.resolve({ ...quote, quantity, provider: sent[index]!.ask.provider } as PurchaseQuote);
-  return { quotes, sent, view, settle, answer };
+    sent[index]!.resolve(
+      planOf(
+        ...sent[index]!.ask.providers.map((provider) => ({
+          ...(provider === "stripe" ? cardQuote : quote),
+          quantity,
+          productId: sent[index]!.ask.productId,
+        })),
+      ),
+    );
+  /** What the page reads for one way of paying of a slot, for the plan and quantity the slot is about. */
+  const shown = (slot: string, provider: "ldc" | "stripe" = "ldc") => {
+    const asked = quotes.snapshot().asks[slot];
+    return asked && viewOf(quotes.snapshot(), slot, asked.productId, asked.quantity, provider);
+  };
+  return { quotes, sent, view, settle, answer, shown };
 }
 
 const refusalError = (
@@ -676,10 +879,12 @@ test("board: a request in flight is cancelled when the quantity changes, and a l
   expect(view("plan:ldc")).toMatchObject({ state: "quoted", quote: { quantity: 8 } });
 
   // For one drawing the page can hold the answer for the quantity before: it is not shown as the new quantity's.
-  expect(viewOf(quotes.snapshot(), "plan:ldc", PLAN, 8)).toMatchObject({ state: "quoted" });
-  expect(viewOf(quotes.snapshot(), "plan:ldc", PLAN, 9)).toBeUndefined();
-  expect(viewOf(quotes.snapshot(), "plan:ldc", "otherproduct001", 8)).toBeUndefined();
-  expect(viewOf(quotes.snapshot(), "plan:stripe", PLAN, 8)).toBeUndefined();
+  expect(viewOf(quotes.snapshot(), "plan:ldc", PLAN, 8, "ldc")).toMatchObject({ state: "quoted" });
+  expect(viewOf(quotes.snapshot(), "plan:ldc", PLAN, 9, "ldc")).toBeUndefined();
+  expect(viewOf(quotes.snapshot(), "plan:ldc", "otherproduct001", 8, "ldc")).toBeUndefined();
+  expect(viewOf(quotes.snapshot(), "plan:stripe", PLAN, 8, "stripe")).toBeUndefined();
+  // Nor is it an answer about a way of paying the slot did not ask about.
+  expect(viewOf(quotes.snapshot(), "plan:ldc", PLAN, 8, "stripe")).toBeUndefined();
 });
 
 test("board: answers are remembered, so going back to a quantity asks nothing", async () => {
@@ -696,16 +901,16 @@ test("board: answers are remembered, so going back to a quantity asks nothing", 
   expect(view("plan:ldc")).toMatchObject({ state: "quoted", quote: { quantity: 7 } });
   await vi.advanceTimersByTimeAsync(QUOTE_DEBOUNCE_MS * 2);
   expect(sent).toHaveLength(2);
-  // Each way of paying is a slot of its own, with its own answers.
-  quotes.want("plan:stripe", { ...ask, provider: "stripe" });
+  // Another set of ways of paying is another question, with its own answers.
+  quotes.want("plan:stripe", cardAsk);
   expect(sent).toHaveLength(3);
   expect(view("plan:ldc")).toMatchObject({ state: "quoted" });
 });
 
 test("board: a backend without the quote endpoint (404) is never asked again, and every figure falls back", async () => {
-  const { quotes, sent, view, settle } = board();
+  const { quotes, sent, view, settle, shown } = board();
   quotes.want("plan:ldc", ask);
-  quotes.want("plan:stripe", { ...ask, provider: "stripe" });
+  quotes.want("plan:stripe", cardAsk);
   expect(sent).toHaveLength(2);
   // The Worker's JSON 404 for mail's own 404 page: no code.
   sent[0]!.reject(new ShopApiError("Endpoint not found.", 404, true));
@@ -721,7 +926,7 @@ test("board: a backend without the quote endpoint (404) is never asked again, an
   expect([view("plan:ldc"), view("other:ldc")]).toStrictEqual([{ state: "unsupported" }, { state: "unsupported" }]);
   // The page then shows what it always showed: its own estimate, marked as one.
   expect(
-    seatFigure(view("plan:ldc"), seatOrderPrice({ originalPriceCents: 333, discountPercent: 10 }, 9)),
+    seatFigure(shown("plan:ldc"), seatOrderPrice({ originalPriceCents: 333, discountPercent: 10 }, 9)),
   ).toStrictEqual({
     kind: "estimate",
     totalCents: 2697,
@@ -730,9 +935,9 @@ test("board: a backend without the quote endpoint (404) is never asked again, an
 });
 
 test("board: the rate limit stops every request until Retry-After has passed, then asks once more", async () => {
-  const { quotes, sent, view, settle, answer } = board();
+  const { quotes, sent, view, settle, answer, shown } = board();
   quotes.want("plan:ldc", ask);
-  quotes.want("plan:stripe", { ...ask, provider: "stripe" });
+  quotes.want("plan:stripe", cardAsk);
   sent[0]!.reject(new ShopApiError("slow down", 429, true, 120));
   await settle();
   // Both figures wait (the other request is cancelled rather than left to run into the same limit).
@@ -744,10 +949,10 @@ test("board: the rate limit stops every request until Retry-After has passed, th
   await vi.advanceTimersByTimeAsync(60_000);
   expect(sent).toHaveLength(2);
   expect(view("plan:ldc")).toMatchObject({ state: "limited" });
-  expect(seatFigure(view("plan:ldc"), { originalPriceCents: 2997, priceCents: 2697 }).kind).toBe("estimate");
+  expect(seatFigure(shown("plan:ldc"), { originalPriceCents: 2997, priceCents: 2697 }).kind).toBe("estimate");
   // Once it has passed, each waiting figure is asked about once, for what it is about now.
   await vi.advanceTimersByTimeAsync(60_000);
-  expect(sent.slice(2).map((item) => [item.ask.provider, item.ask.quantity])).toStrictEqual([
+  expect(sent.slice(2).map((item) => [item.ask.providers[0], item.ask.quantity])).toStrictEqual([
     ["ldc", 9],
     ["stripe", 7],
   ]);
@@ -755,7 +960,7 @@ test("board: the rate limit stops every request until Retry-After has passed, th
   answer(3);
   await settle();
   expect(view("plan:ldc")).toMatchObject({ state: "quoted", quote: { quantity: 9 } });
-  expect(view("plan:stripe")).toMatchObject({ state: "quoted", quote: { provider: "stripe" } });
+  expect(view("plan:stripe")).toMatchObject({ state: "quoted", quote: { prices: [{ provider: "stripe" }] } });
 
   // A 429 that names no wait: a minute.
   quotes.want("plan:ldc", { ...ask, quantity: 11 });
@@ -822,18 +1027,18 @@ test("board: the plan's range is taken from mail's answers, and a refusal elsewh
   quotes.want("plan:ldc", { ...ask, quantity: 5 });
   expect(quotes.snapshot().ranges[PLAN]).toStrictEqual({ min: 2, max: 5 });
   await vi.advanceTimersByTimeAsync(QUOTE_DEBOUNCE_MS);
-  sent[1]!.resolve({ ...quote, quantity: 5, maxQuantity: 5 } as PurchaseQuote);
+  sent[1]!.resolve(planOf({ ...quote, quantity: 5, maxQuantity: 5 }));
   await settle();
   expect(quotedRange(view("plan:ldc"))).toStrictEqual({ min: 2, max: 5 });
 
   // A quote's own range is taken the same way.
   quotes.want("wide:ldc", { ...ask, productId: "wideproduct0001" });
-  sent[2]!.resolve({ ...quote, productId: "wideproduct0001", minQuantity: 1, maxQuantity: 100 } as PurchaseQuote);
+  sent[2]!.resolve(planOf({ ...quote, productId: "wideproduct0001", minQuantity: 1, maxQuantity: 100 }));
   await settle();
   expect(quotes.snapshot().ranges.wideproduct0001).toStrictEqual({ min: 1, max: 100 });
   // Views that say nothing about the range.
   for (const state of [undefined, { state: "loading" }, { state: "unsupported" }, { state: "unavailable" }] as const)
-    expect(quotedRange(state as QuoteView | undefined)).toBeNull();
+    expect(quotedRange(state as PlanQuoteView | undefined)).toBeNull();
   expect(quotedRange({ state: "refused", code: "seat_total_too_large", message: "", details: {} })).toBeNull();
   expect(
     quotedRange({ state: "refused", code: "seat_quantity_out_of_range", message: "", details: { min: 4 } }),
@@ -855,6 +1060,64 @@ test("board: the plan's range is taken from mail's answers, and a refusal elsewh
   expect(sent).toHaveLength(quiet);
   answer(sent.length - 1);
   await settle();
+});
+
+test("board: one slot prices every way of paying of a plan with ONE request per settled change, each way read by itself", async () => {
+  const { quotes, sent, settle, answer, shown } = board({ lang: "en" });
+  quotes.want(PLAN, bothAsk);
+  expect(sent).toHaveLength(1);
+  expect(sent[0]!.ask.providers).toStrictEqual(["ldc", "stripe"]);
+  expect([shown(PLAN, "ldc"), shown(PLAN, "stripe")]).toStrictEqual([{ state: "loading" }, { state: "loading" }]);
+  answer(0);
+  await settle();
+  expect(shown(PLAN, "ldc")).toMatchObject({ state: "quoted", quote: { provider: "ldc", totalCents: 2098 } });
+  expect(shown(PLAN, "stripe")).toMatchObject({
+    state: "quoted",
+    quote: { provider: "stripe", currency: "usd", totalCents: 1393 },
+  });
+  // Stepping the quantity: still one request for both ways, for the quantity settled on.
+  for (const quantity of [8, 9, 10]) quotes.want(PLAN, { ...bothAsk, quantity });
+  await vi.advanceTimersByTimeAsync(QUOTE_DEBOUNCE_MS);
+  expect(sent.map((item) => [item.ask.quantity, item.ask.providers.length])).toStrictEqual([
+    [7, 2],
+    [10, 2],
+  ]);
+  // mail prices LDC and says the card cannot take this many seats: the card's figure is that refusal, with the cap
+  // kept for the page's own estimates; LDC is priced as usual.
+  sent[1]!.resolve({
+    ...planOf({ ...quote, quantity: 10 }),
+    prices: [
+      ...planOf({ ...quote, quantity: 10 }).prices,
+      {
+        available: false,
+        provider: "stripe",
+        code: "seat_total_too_large",
+        message: "That many seats cost more than one order can charge. Choose fewer.",
+        details: { maxTotalCents: 50_000_000 },
+      },
+    ],
+  });
+  await settle();
+  expect(shown(PLAN, "ldc")).toMatchObject({ state: "quoted", quote: { quantity: 10 } });
+  expect(shown(PLAN, "stripe")).toStrictEqual({
+    state: "refused",
+    code: "seat_total_too_large",
+    message: "That many seats cost more than one order can charge. Choose fewer.",
+    details: { maxTotalCents: 50_000_000 },
+  });
+  expect(seatFigure(shown(PLAN, "stripe"), { originalPriceCents: 1990, priceCents: 1990 })).toStrictEqual({
+    kind: "tooMany",
+  });
+  expect(quotes.snapshot().maxTotalCents).toBe(50_000_000);
+  expect(quotes.snapshot().ranges[PLAN]).toStrictEqual({ min: 2, max: 50 });
+  // A refusal of the whole request (the quantity; or no way asked about can take the order) is every way's.
+  quotes.want(PLAN, { ...bothAsk, quantity: 60 });
+  await vi.advanceTimersByTimeAsync(QUOTE_DEBOUNCE_MS);
+  sent[2]!.reject(refusalError(rangeRefusal));
+  await settle();
+  for (const provider of ["ldc", "stripe"] as const)
+    expect(shown(PLAN, provider)).toMatchObject({ state: "refused", code: "seat_quantity_out_of_range" });
+  expect(sent).toHaveLength(3);
 });
 
 test("board: clearing cancels what is in flight and what is waiting, and the board can be used again", async () => {
@@ -949,9 +1212,9 @@ test("figure: mail's quote is shown as it is; without one the page's estimate st
   expect(shopCopy.zh.seatRenewsAt("21.00 LDC", 30)).toBe("之后每 30 天续费 21.00 LDC");
   const source = readFileSync("src/storefront/components/Shop.tsx", "utf8");
   // The page asks for quotes without a discount code (each one with a code is a guess against mail's limit).
-  expect(source).toMatch(
-    /board\.want\(`\$\{productId\}:\$\{provider\}`, \{ productId, provider, quantity: Number\(quantity\) \}\)/,
-  );
+  // One slot, and so one request per settled change, per plan: every way of paying on offer goes in the same ask.
+  expect(source).toMatch(/board\.want\(productId, \{\s*productId,\s*providers: providers\.split\("\+"\)/);
+  expect(source.match(/board\.want\(/g)).toHaveLength(1);
   expect(source).not.toMatch(/board\.want\([^)]*coupon/);
   expect(source).toMatch(/figures\.some\(\(figure\) => figure\.kind === "estimate"\)\s*\? t\.seatEstimate/);
 });
@@ -1038,10 +1301,17 @@ test("dev shop: the quote prices an order like checkout does, for a seat plan an
   for (const field of [...contract.shop.seats.planFields, "kind", "seatMin", "seatMax"])
     expect(raw.seatProducts[0], field).toHaveProperty(field);
   expect(raw.seatProducts[0]).toMatchObject({ kind: "seat", planKind: "seats", seatMin: 2, minQuantity: 2 });
+  // A fixed plan says how it is sold in the same word, and has no `kind`.
+  const fixedEntries = (raw as unknown as { products: Record<string, unknown>[] }).products;
+  expect(fixedEntries.length).toBeGreaterThan(0);
+  for (const entry of fixedEntries) {
+    expect(entry).toMatchObject({ planKind: "fixed" });
+    expect(entry).not.toHaveProperty("kind");
+  }
 
   // 7 seats of 3.33 at 10% off: mail's example. Every field of the contract, and the numbers checkout then charges.
-  const ldc = await quotePurchase({ productId: plan.id, provider: "ldc", quantity: 7 }, undefined, "en");
-  expect(ldc).toStrictEqual({ ...quote, productId: plan.id });
+  const ldc = only(await quotePurchase({ productId: plan.id, providers: ["ldc"], quantity: 7 }, undefined, "en"));
+  expect(ldc).toStrictEqual({ available: true, ...quote, productId: plan.id });
   const order = (await getShopOrder(await createShopOrder(plan.id, "en", "", "ldc", "", 7))).order;
   expect([order.priceCents, order.originalPriceCents, order.renewPriceCents, order.mailboxCount]).toStrictEqual([
     ldc.totalCents,
@@ -1049,13 +1319,33 @@ test("dev shop: the quote prices an order like checkout does, for a seat plan an
     ldc.renewPriceCents,
     ldc.quantity,
   ]);
-  const card = await quotePurchase({ productId: plan.id, provider: "stripe", quantity: 7 });
-  expect(card).toStrictEqual({ ...cardQuote, productId: plan.id });
+  const card = only(await quotePurchase({ productId: plan.id, providers: ["stripe"], quantity: 7 }));
+  expect(card).toStrictEqual({ available: true, ...cardQuote, productId: plan.id });
+  // Both in one request, in the order asked; on the wire, every field of the contract.
+  expect(await quotePurchase({ productId: plan.id, providers: ["stripe", "ldc"], quantity: 7 })).toStrictEqual(
+    planOf({ ...cardQuote, productId: plan.id }, { ...quote, productId: plan.id }),
+  );
+  const both = (await (
+    await client.send("quote", { body: { productId: plan.id, providers: ["ldc", "stripe"], quantity: 7 } })
+  ).json()) as { prices: object[] };
+  expect(both).toStrictEqual(wire({ ...quote, productId: plan.id }, { ...cardQuote, productId: plan.id }));
+  expect(Object.keys(both)).toStrictEqual(contract.shop.quote.fields);
+  for (const price of both.prices) expect(Object.keys(price)).toStrictEqual(contract.shop.quote.priceFields);
+  // The single `provider` is a list of one, LDC when neither is sent, and `providers` wins.
+  const sent = async (body: object) =>
+    (
+      (await (await client.send("quote", { body: { productId: plan.id, quantity: 7, ...body } })).json()) as {
+        prices: { provider: string }[];
+      }
+    ).prices.map((price) => price.provider);
+  expect(await sent({})).toStrictEqual(["ldc"]);
+  expect(await sent({ provider: "stripe" })).toStrictEqual(["stripe"]);
+  expect(await sent({ provider: "stripe", providers: ["ldc"] })).toStrictEqual(["ldc"]);
   const cardOrder = (await getShopOrder(await createShopOrder(plan.id, "en", "", "stripe", "", 7))).order;
   expect([cardOrder.priceCents, cardOrder.renewPriceCents, cardOrder.currency]).toStrictEqual([1393, 1393, "usd"]);
 
   // With a code: what it takes off, and the total checkout charges; a code that cannot be used still answers 200.
-  const coded = await quotePurchase({ productId: plan.id, provider: "ldc", quantity: 7, coupon: "welcome" });
+  const coded = only(await quotePurchase({ productId: plan.id, providers: ["ldc"], quantity: 7, coupon: "welcome" }));
   expect([coded.coupon, coded.basePriceCents, coded.totalCents, coded.renewPriceCents]).toStrictEqual([
     { valid: true, code: "WELCOME", discountCents: 420, firstPeriodOnly: true },
     2098,
@@ -1064,13 +1354,15 @@ test("dev shop: the quote prices an order like checkout does, for a seat plan an
   ]);
   const codedOrder = (await getShopOrder(await createShopOrder(plan.id, "en", "", "ldc", "WELCOME", 7))).order;
   expect([codedOrder.priceCents, codedOrder.couponDiscountCents]).toStrictEqual([1678, 420]);
-  const unusable = await quotePurchase({ productId: plan.id, provider: "stripe", quantity: 7, coupon: "LDC1" });
+  const unusable = only(
+    await quotePurchase({ productId: plan.id, providers: ["stripe"], quantity: 7, coupon: "LDC1" }),
+  );
   expect([unusable.coupon, unusable.totalCents]).toStrictEqual([{ valid: false }, 1393]);
 
   // Fixed plans: the catalog's price is already the whole order's, and the quote says the same.
   for (const product of catalog.products) {
-    const fixed = await quotePurchase({ productId: product.id, provider: "ldc", quantity: 0 });
-    expect([fixed.kind, fixed.quantity, fixed.minQuantity, fixed.maxQuantity]).toStrictEqual(["fixed", 1, 1, 1]);
+    const fixed = only(await quotePurchase({ productId: product.id, providers: ["ldc"], quantity: 0 }));
+    expect([fixed.planKind, fixed.quantity, fixed.minQuantity, fixed.maxQuantity]).toStrictEqual(["fixed", 1, 1, 1]);
     expect([fixed.totalCents, fixed.subtotalCents, fixed.discountPercent]).toStrictEqual([
       product.priceCents,
       product.originalPriceCents,
@@ -1078,7 +1370,7 @@ test("dev shop: the quote prices an order like checkout does, for a seat plan an
     ]);
     expect(fixed.renewPriceCents).toBe(product.periodDays ? product.renewPriceCents || product.priceCents : 0);
     if (product.fiatPriceMinor) {
-      const byCard = await quotePurchase({ productId: product.id, provider: "stripe", quantity: 0 });
+      const byCard = only(await quotePurchase({ productId: product.id, providers: ["stripe"], quantity: 0 }));
       expect([byCard.totalCents, byCard.currency, byCard.discountPercent]).toStrictEqual([
         product.fiatPriceMinor,
         "usd",
@@ -1131,7 +1423,17 @@ test("dev shop: refusals of the quote, checkout and the preview carry mail's cod
   }
   expect(
     await answers("coupon", { products: [{ productId: fixed }, { productId: seat, quantity: 99 }], coupon: "WELCOME" }),
-  ).toStrictEqual([400, range]);
+  ).toStrictEqual([400, { ...range, index: 1 }]);
+  // The single form names no entry; the several-plans form names the first one it cannot price.
+  expect(
+    await answers("coupon", {
+      products: [
+        { productId: seat, quantity: 2.5 },
+        { productId: seat, quantity: 99 },
+      ],
+      coupon: "WELCOME",
+    }),
+  ).toStrictEqual([400, { ...invalid, index: 0 }]);
   // `error` follows the request's language; `messages` always carries both.
   expect(await answers("quote", { productId: seat, quantity: 51 }, "zh")).toStrictEqual([
     400,
@@ -1149,6 +1451,22 @@ test("dev shop: refusals of the quote, checkout and the preview carry mail's cod
     200,
     { valid: false },
   ]);
+  // Asked together with a way that can take the order, the one that cannot says so in its entry, with the same refusal.
+  const [status, mixed] = (await answers("quote", { productId: fixed, providers: ["ldc", "stripe"] })) as [
+    number,
+    { prices: object[] },
+  ];
+  expect(status).toBe(200);
+  expect(mixed.prices).toStrictEqual([
+    expect.objectContaining({ provider: "ldc", available: true }),
+    { provider: "stripe", available: false, refusal: unavailable },
+  ]);
+  expect(Object.keys(mixed.prices[1]!)).toStrictEqual(contract.shop.quote.unavailableFields);
+  for (const providers of [[], ["ldc", "ldc"], ["ldc", "stripe", "ldc"], ["paypal"], "ldc"])
+    expect(
+      await answers("quote", { productId: seat, providers, quantity: 2 }),
+      JSON.stringify(providers),
+    ).toStrictEqual([400, { error: "Choose a valid payment method." }]);
   // A malformed request has no code.
   expect(await answers("quote", {})).toStrictEqual([400, { error: "Please choose a valid plan." }]);
   expect(await answers("quote", { productId: seat, provider: "paypal", quantity: 2 })).toStrictEqual([
@@ -1157,7 +1475,7 @@ test("dev shop: refusals of the quote, checkout and the preview carry mail's cod
   ]);
   // Through the page's client and copy: both languages, whatever language the request was in.
   const thrown: unknown = await quotePurchase(
-    { productId: seat, provider: "ldc", quantity: 51 },
+    { productId: seat, providers: ["ldc"], quantity: 51 },
     undefined,
     "zh",
   ).catch((cause: unknown) => cause);
@@ -1244,6 +1562,7 @@ test("older backend: against a mail before version 3 the pages behave as they di
   // The catalog: a seat plan with only the old fields is read into the same plan.
   const raw = (await (await client.send("catalog")).json()) as { seatProducts: Record<string, unknown>[] };
   for (const field of contract.shop.seats.planFields) expect(raw.seatProducts[0], field).not.toHaveProperty(field);
+  for (const entry of (raw as unknown as { products: object[] }).products) expect(entry).not.toHaveProperty("planKind");
   expect(raw.seatProducts[0]).toMatchObject({ kind: "seat", seatMin: 2, seatMax: 50 });
   const catalog = await getShopCatalog(undefined, "en");
   const plan = catalog.seatProducts![0]!;
@@ -1256,7 +1575,7 @@ test("older backend: against a mail before version 3 the pages behave as they di
   ]);
 
   // The quote route does not exist: 404 through the client, exactly what the Worker makes of an old mail's 404 page.
-  const missing: unknown = await quotePurchase({ productId: plan.id, provider: "ldc", quantity: 7 }).catch(
+  const missing: unknown = await quotePurchase({ productId: plan.id, providers: ["ldc", "stripe"], quantity: 7 }).catch(
     (cause: unknown) => cause,
   );
   expect(missing).toMatchObject({ status: 404, code: null });
@@ -1266,22 +1585,20 @@ test("older backend: against a mail before version 3 the pages behave as they di
   vi.useFakeTimers({ now: NOW });
   const fetched = vi.spyOn(store, "fetch");
   const quotes = new QuoteBoard({ lang: "en" });
-  quotes.want(`${plan.id}:ldc`, { productId: plan.id, provider: "ldc", quantity: 7 });
-  quotes.want(`${plan.id}:stripe`, { productId: plan.id, provider: "stripe", quantity: 7 });
+  const wanted = (quantity: number): QuoteAsk => ({ productId: plan.id, providers: ["ldc", "stripe"], quantity });
+  quotes.want(plan.id, wanted(7));
   await vi.advanceTimersByTimeAsync(10);
   expect(quotes.supported).toBe(false);
-  expect(quotes.snapshot().views).toStrictEqual({
-    [`${plan.id}:ldc`]: { state: "unsupported" },
-    [`${plan.id}:stripe`]: { state: "unsupported" },
-  });
+  expect(quotes.snapshot().views).toStrictEqual({ [plan.id]: { state: "unsupported" } });
   const asked = fetched.mock.calls.filter(([route]) => route === "quote").length;
-  expect(asked).toBeGreaterThan(0);
-  for (const quantity of [8, 9, 10]) quotes.want(`${plan.id}:ldc`, { productId: plan.id, provider: "ldc", quantity });
+  expect(asked).toBe(1);
+  for (const quantity of [8, 9, 10]) quotes.want(plan.id, wanted(quantity));
   await vi.advanceTimersByTimeAsync(QUOTE_DEBOUNCE_MS * 3);
   expect(fetched.mock.calls.filter(([route]) => route === "quote")).toHaveLength(asked);
   vi.useRealTimers();
   const totals = seatTotals(plan, 7, { ldc: true, card: true });
-  const ldc = seatFigure(viewOf(quotes.snapshot(), `${plan.id}:ldc`, plan.id, 10), totals.ldc);
+  const ldc = seatFigure(viewOf(quotes.snapshot(), plan.id, plan.id, 10, "ldc"), totals.ldc);
+  expect(viewOf(quotes.snapshot(), plan.id, plan.id, 10, "stripe")).toStrictEqual({ state: "unsupported" });
   expect(ldc).toStrictEqual({ kind: "estimate", totalCents: 2098, subtotalCents: 2331 });
   const order = (await getShopOrder(await createShopOrder(plan.id, "en", "", "ldc", "", 7))).order;
   expect([order.priceCents, order.originalPriceCents]).toStrictEqual([2098, 2331]);
@@ -1348,7 +1665,7 @@ test("shop proxy: the quote is proxied like the code preview: the buyer's two co
     expect(request.headers.get("cf-connecting-ip")).toBe("203.0.113.9");
     expect(request.headers.get("accept-language")).toBe("en");
     expect(await request.text()).toBe('{"productId":"productabcdefgh","quantity":7}');
-    return Response.json(quote, {
+    return Response.json(wire(quote, cardQuote), {
       headers: { "Set-Cookie": "session=admin; Path=/", "Cache-Control": "public, max-age=3600" },
     });
   });
@@ -1362,7 +1679,7 @@ test("shop proxy: the quote is proxied like the code preview: the buyer's two co
     bindings(mail),
   );
   expect(mail).toHaveBeenCalledOnce();
-  expect([response.status, await response.json()]).toStrictEqual([200, quote]);
+  expect([response.status, await response.json()]).toStrictEqual([200, wire(quote, cardQuote)]);
   expect(response.headers.getSetCookie()).toStrictEqual([]);
   expect(response.headers.get("Cache-Control")).toBe("private, no-store, max-age=0");
   expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");

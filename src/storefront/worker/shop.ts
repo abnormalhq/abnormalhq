@@ -15,9 +15,10 @@ type ShopMethod = "GET" | "POST";
 /**
  * Every route of mail's shop API this Worker proxies, with the methods each answers. Anything else under /api/shop/ is a
  * JSON 404 and never reaches mail (Stripe's webhook, for one, is called on mail's own host). The table is what
- * docs/onboard-contract.json lists, in four places: `shop.routes`, and the routes mail added later under `shop.seats.routes`,
- * `shop.buyerDomains.routes` and `shop.trials.routes`; tests/storefront/worker.test.ts checks that the table and the four
- * lists name the same routes and methods, as mail's contract test does for its own routes.
+ * docs/onboard-contract.json lists, in five places: `shop.routes`, and the routes mail added later under `shop.seats.routes`,
+ * `shop.quote.routes`, `shop.buyerDomains.routes` and `shop.trials.routes`, each route with the list of its methods as
+ * here; tests/storefront/worker.test.ts checks that the table and the lists name the same routes and methods, as mail's
+ * contract test does for its own routes.
  */
 export const SHOP_ROUTES: Readonly<Record<string, readonly ShopMethod[]>> = {
   catalog: ["GET"],
@@ -82,8 +83,8 @@ export const ADDRESS_ROUTE = "address";
  */
 export const COUPON_ROUTE = "coupon";
 /**
- * What an order would cost before it exists (POST quote: the total of a plan, a way of paying and a quantity, with its
- * breakdown; `shop.seats.routes` in docs/onboard-contract.json, "Seat plans" in docs/storefront-api.md). It is proxied like
+ * What an order would cost before it exists (POST quote: a plan and a quantity priced for every way of paying asked about,
+ * with the breakdown of each; `shop.quote` in docs/onboard-contract.json, "Seat plans" in docs/storefront-api.md). It is proxied like
  * the code preview: same-origin Origin, the client IP kept (mail limits quotes per source IP) and the purchase and account
  * cookies forwarded, since a quote may carry a discount code with a per-buyer limit. A mail before the quote answers its own
  * 404 page, passed on as a JSON 404: the pages then show the totals they work out themselves, as they did before it.
@@ -91,7 +92,7 @@ export const COUPON_ROUTE = "coupon";
 export const QUOTE_ROUTE = "quote";
 /**
  * Seats of a seat subscription on the account page (POST account/seats/quote, add, remove, keep; "Seat plans" in
- * docs/storefront-api.md, `shop.seats.routes` in docs/onboard-contract.json together with the order quote above). They are
+ * docs/storefront-api.md, `shop.seats.routes` in docs/onboard-contract.json). They are
  * proxied like account/mailboxes/create: same-origin Origin, the client IP kept, the purchase and account cookies forwarded;
  * `add` may start a purchase session like `renew` (an LDC order to pay). A mail before seat plans answers its own 404 page,
  * passed on as a JSON 404 rather than as an outage.

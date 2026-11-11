@@ -27,11 +27,12 @@ const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) 
     originForbiddenStatus: number;
   };
   shop: {
-    routes: Record<string, "GET" | "POST">;
-    // Version 3: the routes mail added after the first list, each in a list of its own. A route that answers two methods
-    // lists both (shop.trials.routes).
-    seats: { routes: Record<string, "GET" | "POST"> };
-    buyerDomains: { routes: Record<string, "GET" | "POST"> };
+    routes: Record<string, ("GET" | "POST")[]>;
+    // Version 3: the routes mail added after the first list, each in a list of its own. Every list gives a route the
+    // list of its methods (shop.trials.routes has one that answers two).
+    seats: { routes: Record<string, ("GET" | "POST")[]> };
+    quote: { routes: Record<string, ("GET" | "POST")[]> };
+    buyerDomains: { routes: Record<string, ("GET" | "POST")[]> };
     trials: { routes: Record<string, ("GET" | "POST")[]> };
     cookies: Record<"buyer" | "customer", { name: string; pattern: string; maxAgeSeconds: number }> & {
       google: { name: string; pattern: string; maxAgeSeconds: number; path: string };
@@ -1159,7 +1160,7 @@ test("shop proxy: logout clears the session cookie whatever mail answers; cross-
   }
 });
 
-test("contract: the redeem and shop routes and methods the Worker forwards match mail's four route lists, every other path is 404", async () => {
+test("contract: the redeem and shop routes and methods the Worker forwards match mail's route lists, every other path is 404", async () => {
   for (const route of contract.redeem.routes) {
     const mail = vi.fn(async () => Response.json({}));
     expect((await worker.fetch(post(`/api/onboard/${route}`), bindings(mail))).status, route).toBe(200);
@@ -1167,19 +1168,25 @@ test("contract: the redeem and shop routes and methods the Worker forwards match
   }
   expect((await worker.fetch(post("/api/onboard/lookup"), bindings())).status).toBe(404);
 
-  // The four route lists of the contract (shop.routes, and the seat, buyer-domain and trial routes mail lists apart): the
-  // Worker proxies every one of them, and nothing else under /api/shop/.
+  // The route lists of the contract (shop.routes, and the seat, quote, buyer-domain and trial routes mail lists apart):
+  // the Worker proxies every one of them, and nothing else under /api/shop/. Every list has the same form, a route with
+  // the list of its methods, which is also the form of the Worker's table.
   const lists: Record<string, ("GET" | "POST")[]>[] = [
-    Object.fromEntries(Object.entries(contract.shop.routes).map(([route, method]) => [route, [method]])),
-    Object.fromEntries(Object.entries(contract.shop.seats.routes).map(([route, method]) => [route, [method]])),
-    Object.fromEntries(Object.entries(contract.shop.buyerDomains.routes).map(([route, method]) => [route, [method]])),
+    contract.shop.routes,
+    contract.shop.seats.routes,
+    contract.shop.quote.routes,
+    contract.shop.buyerDomains.routes,
     contract.shop.trials.routes,
   ];
+  for (const methods of lists.flatMap((list) => Object.values(list))) {
+    expect(Array.isArray(methods)).toBe(true);
+    expect(methods.length).toBeGreaterThan(0);
+  }
   // No route is in two lists, as mail's own contract test requires.
   const listed = lists.flatMap((list) => Object.keys(list));
   expect(new Set(listed).size).toBe(listed.length);
   const routes: Record<string, ("GET" | "POST")[]> = Object.assign({}, ...lists);
-  expect(Object.keys(contract.shop.seats.routes)).toContain("quote");
+  expect(Object.keys(contract.shop.quote.routes)).toStrictEqual(["quote"]);
   // The Worker's own table names exactly these routes and methods: a route added to either side alone fails here.
   expect(
     Object.fromEntries(

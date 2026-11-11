@@ -62,7 +62,10 @@ export type PlanKind = (typeof PLAN_KINDS)[number];
 
 /** The most seats one order or subscription can hold: a redeem code's largest allowance (mail's SEAT_MAX, `shop.seats.maxQuantity`). */
 export const SEAT_MAX = 1000;
-/** The most one order can charge, in hundredths (mail's SHOP_PRICE_MAX_CENTS, `shop.seats.maxTotalCents`). */
+/**
+ * The most one order can charge (mail's SHOP_PRICE_MAX_CENTS, `shop.seats.maxTotalCents`): one number for every way of
+ * paying, counted in the unit that way charges in (hundredths of an LDC, or the smallest unit of the card currency).
+ */
 export const SHOP_PRICE_MAX_CENTS = 100_000_000;
 
 /** ldc = Linux DO Credit; stripe = card (Stripe Checkout). */
@@ -104,7 +107,7 @@ export const shopApiRoot = `${apiBase}/api/shop`;
  * The refusals of mail's shop API that carry a stable code, with the status of each (`shop.refusalCodes` in
  * docs/onboard-contract.json, mail's SHOP_REFUSAL_CODES). Such a refusal answers `{ error, code, messages: { zh, en },
  * ...details }`: `code` is what the pages branch on, `messages` the buyer-facing text in both languages, and the details are
- * numbers only (`min` and `max` of a plan's range, `maxTotalCents`). Every other refusal answers `{ error }` only, as all of
+ * numbers only (`min` and `max` of a plan's range, `maxTotalCents`, and `index` where the request listed several plans). Every other refusal answers `{ error }` only, as all of
  * them did before contract version 3.
  */
 export const REFUSAL_CODES = {
@@ -494,7 +497,11 @@ export async function request(
  */
 export function parseShopCatalog(body: unknown): ShopCatalog {
   if (!record(body) || !isBoolean(body.available) || !Array.isArray(body.products)) throw new ShopApiError("");
-  const products = body.products.map(parseProduct);
+  // A fixed plan says how it is sold since contract version 3 (`planKind: "fixed"`; a mail before it sends none). An entry
+  // that says anything else is not one this list can show: its prices would be read as a whole plan's.
+  const products = body.products.map((product: unknown) =>
+    record(product) && product.planKind !== undefined && product.planKind !== "fixed" ? null : parseProduct(product),
+  );
   if (!products.every((product): product is ShopProduct => product !== null)) throw new ShopApiError("");
   // Seat plans: absent on a backend without them. Present, they are checked like the fixed plans.
   const seatProducts = body.seatProducts === undefined ? [] : body.seatProducts;

@@ -186,7 +186,7 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, seatProducts?, onboardUrl, coupons }`          |
 | POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")                |
 | POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon, quantity? }`, or `{ products: [...], coupon }`      | `200`, `{ valid: true, … }` or `{ valid: false }`; `{ quotes }` (see "Discount codes") |
-| POST   | `/api/shop/quote`                      | JSON: `{ productId, provider?, quantity?, coupon? }` (see "Seat plans")                    | `200`, what the order would cost and what that is made of                              |
+| POST   | `/api/shop/quote`                      | JSON: `{ productId, providers?, provider?, quantity?, coupon? }` (see "Seat plans")        | `200`, what the order would cost, one price per way of paying asked                    |
 | POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon?, quantity? }`                               | `201`, `{ orderId }`, and sets the buyer cookie                                        |
 | GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                         |
 | POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page          |
@@ -245,7 +245,9 @@ do not apply the redeem API's `kind` enum. Pages show this description first, an
 **Coded refusals** (contract version 3, `shop.refusalFields`, `refusalLanguages` and `refusalCodes` in `docs/onboard-contract.json`). The refusals about a
 seat quantity, a discount code, a plan and a buyer's domain answer `{ error, code, messages: { zh, en }, ...details }` with the status the contract gives
 the code: `code` is stable and is what the pages branch on, `messages` is the buyer-facing text in both languages, and the details are numbers only (`min`
-and `max` of a plan's range, `maxTotalCents`). The client (`parseRefusal` and `ShopApiError` in `src/storefront/lib/catalog.ts`) keeps all three, and
+and `max` of a plan's range, `maxTotalCents`, and `index` where the refused request listed several plans: the position, from 0, of the entry of the
+preview's `products` it is about). `maxTotalCents` is one number for every way of paying (`shop.seats.maxTotalCents`), counted in the unit that way
+charges in (`shop.seats.maxTotalCentsUnit`: hundredths of an LDC, or the smallest unit of the card currency). The client (`parseRefusal` and `ShopApiError` in `src/storefront/lib/catalog.ts`) keeps all three, and
 `shopError` shows `messages[<page language>]` when a `code` is there, falling back to `error` (a mail before coded refusals, a refusal without a code, a
 language mail did not send). A code this storefront does not know yet is kept and its text shown. The codes: `seat_quantity_invalid`,
 `seat_quantity_out_of_range` (`min`, `max`), `seat_total_too_large` (`maxTotalCents`), `coupon_invalid` (checkout and `pay/stripe`),
@@ -505,8 +507,8 @@ A plan is sold in one of two ways: **fixed**, a set number of mailboxes at one p
 many mailboxes to pay for (mail's `docs/shop.md`, "Seat-based plans"; `packages/core/src/lib/shop/pricing.ts`,
 `apps/console/src/lib/shop/seats.ts`, `quote.ts` and the routes under `apps/console/src/app/api/shop/`). mail implements everything
 below and the storefront uses it; the routes, the fields of a seat plan, a quote and an account's seats, the limits and the
-refusal codes are in `docs/onboard-contract.json` under `shop.planKinds`, `shop.seats` and `shop.refusalCodes` (contract version
-3), which the contract tests check against the Worker and the parsers. This section is written from mail's code; where its
+refusal codes are in `docs/onboard-contract.json` under `shop.planKinds`, `shop.seats`, `shop.quote` and `shop.refusalCodes`
+(contract version 3), which the contract tests check against the Worker and the parsers. This section is written from mail's code; where its
 `docs/shop.md` says something else, the code is what the storefront follows, and the differences are listed at the end of the
 section.
 
@@ -515,7 +517,8 @@ fixed plans only, so a page that knows nothing of seats sells none of them wrong
 plus `kind: "seat"`, `seatMin` and `seatMax` (1 to 1000, `seatMin` ≤ `seatMax`); `originalPriceCents`, `discountPercent`,
 `priceCents`, `renewPriceCents` and `fiatPriceMinor` are **for one seat** (per period for a subscription), and `mailboxCount`
 equals `seatMin`. Since contract version 3 an entry also says what a buyer page needs outright (`shop.seats.planFields`):
-`planKind: "seats"` (one of `shop.planKinds`), `minQuantity` and `maxQuantity` (the range of the quantity field),
+`planKind: "seats"` (one of `shop.planKinds`; the same word, `shop.planKindField`, is on every entry of `products` as
+`planKind: "fixed"` and on a quote, while the older `kind: "seat"` is mail's stored word and nothing new reads it), `minQuantity` and `maxQuantity` (the range of the quantity field),
 `unitOriginalPriceCents` and `unitPriceCents` (one seat before and after the plan's discount), `unitRenewPriceCents` (one seat
 per later period: the plan's renewal price, or its discounted price when it has none; `0` for a one-time plan) and
 `unitFiatPriceMinor` (one seat by card; `0` when the plan cannot be bought by card). The parser (`parseSeatProduct` in
@@ -524,33 +527,47 @@ sends (`seatMin`, `seatMax`, the plan's own price fields, and `renewPriceCents |
 `planKind: "seats"` or, without a `planKind`, `kind: "seat"` marks a seat plan; where both forms of a number are sent the
 explicit one wins, and the plan's own price fields of the parsed plan carry the same per-seat numbers, so everything that shows
 a seat plan reads one set. A field that is present must be usable (a range mail itself would accept, prices that agree like any
-plan's); a malformed seat plan fails the catalog like a malformed product. `customDomains` (a number, on `products` and
+plan's); a malformed seat plan fails the catalog like a malformed product. An entry of `products` that says a `planKind` other than
+`"fixed"` fails it too (its prices would be read as a whole plan's); one that says none is a mail before the field. `customDomains` (a number, on `products` and
 `seatProducts` alike; absent or `0` when the plan has none) says how many domains of their own the plan's buyer may connect.
 
 **Pricing an order.** mail prices the order; the browser sends only the quantity, and asks mail's quote for the total it shows.
 
-- **`POST /api/shop/quote`** `{ productId, provider?, quantity?, coupon? }` (`provider` as at checkout, `ldc` by default;
-  `quantity` for a seat plan only) → `200` with `{ productId, kind: "seats" | "fixed", provider, currency, quantity, minQuantity,
-maxQuantity, unitOriginalPriceCents, unitPriceCents, subtotalCents, discountPercent, planDiscountCents, basePriceCents,
-coupon, totalCents, periodDays, renewPriceCents }` (`shop.seats.quoteFields`). `totalCents` is what the buyer pays now,
+- **`POST /api/shop/quote`** `{ productId, providers?, provider?, quantity?, coupon? }` (`shop.quote`). `providers` lists the
+  ways of paying to price, 1 to as many as the shop has, each once; the single `provider` (as at checkout) is a list of one,
+  `ldc` is priced when neither is sent, and `providers` wins when both are. `quantity` is for a seat plan only. It answers
+  `200` with what is the same whichever way the order is paid, `{ productId, planKind: "seats" | "fixed", quantity,
+minQuantity, maxQuantity, periodDays, prices }` (`shop.quote.fields`), and in `prices` one entry per way asked, in the
+  order asked: `{ provider, available: true, currency, unitOriginalPriceCents, unitPriceCents, subtotalCents,
+discountPercent, planDiscountCents, basePriceCents, coupon, totalCents, renewPriceCents }` (`shop.quote.priceFields`).
+  `totalCents` is what the buyer pays now,
   `subtotalCents` the order before the plan's discount, `planDiscountCents` what that discount takes off, `basePriceCents` the
   price before a discount code and `renewPriceCents` each later period for this quantity (`0` for a one-time purchase). `coupon`
   is `null` when none was sent, `{ valid: true, code, discountCents, firstPeriodOnly }` when it applies (`totalCents =
 basePriceCents − discountCents`) and `{ valid: false }` when it cannot be used, for every reason alike; the quote still answers
-  `200` with the total without the code. A fixed plan can be quoted too (`kind: "fixed"`, the three quantities all 1). It
+  `200` with the total without the code. A fixed plan can be quoted too (`planKind: "fixed"`, the three quantities all 1). It
   reserves nothing: checkout prices the order again by the same rules and has the final say.
-- Refusals with a code: `400 seat_quantity_invalid`, `400 seat_quantity_out_of_range` (`min`, `max`), `400
-seat_total_too_large` (`maxTotalCents`), `409 product_unavailable`. Without one: `400` a malformed `productId` or `provider`,
-  `403` wrong `Origin`, `413` / `415` body, `429` with `Retry-After` (60 quotes per 10 minutes per source IP; a quote that
-  carries a code is also one guess against the limit on code guesses, 10 per 10 minutes per IP). A mail before the endpoint
+- **A way of paying that cannot take the order** is `{ provider, available: false, refusal }` in its entry
+  (`shop.quote.unavailableFields`), `refusal` being the coded refusal a quote for that way alone would get
+  (`shop.quote.unavailableCodes`: `product_unavailable`, or `seat_total_too_large` with `maxTotalCents`); the other entries
+  are priced. When no way asked about can take the order the request itself is refused, with the first one's refusal.
+- Refusals of the whole request with a code: `400 seat_quantity_invalid`, `400 seat_quantity_out_of_range` (`min`, `max`),
+  `409 product_unavailable` (the plan is not on sale) and, when it is so for every way asked about, `400
+seat_total_too_large` (`maxTotalCents`) or `409 product_unavailable`. Without one: `400` a malformed `productId`, `provider`
+  or `providers`, `403` wrong `Origin`, `413` / `415` body, `429` with `Retry-After` (60 quotes per 10 minutes per source IP,
+  a request counting **once** however many ways of paying it prices; a quote that carries a code is also one guess against
+  the limit on code guesses, 10 per 10 minutes per IP, likewise once per request). A mail before the endpoint
   answers its own `404` page, which the Worker turns into a JSON `404`.
 - The Worker proxies it like the code preview (`QUOTE_ROUTE` in `src/storefront/worker/shop.ts`): same-origin `Origin`, JSON,
   the client IP kept, the `mailhq_shop` and `mailhq_customer` cookies forwarded (a code's per-buyer limit), never cached.
-- The client (`quotePurchase` and `parsePurchaseQuote` in `src/storefront/lib/quote.ts`) accepts a quote only for the plan, way
-  of paying and quantity it asked about, with a currency exactly when it is a card price, and with amounts that add up the way
+- The client (`quotePurchase` and `parsePurchaseQuote` in `src/storefront/lib/quote.ts`) always sends `providers`, and accepts
+  a quote only for the plan and quantity it asked about, with exactly one entry per way of paying asked and in that order,
+  each priced or refused with a code, with a currency exactly when it is a card price, and with amounts that add up the way
   the list above says (`planDiscountCents = subtotalCents − basePriceCents`, `totalCents = basePriceCents −` the code's
   `discountCents`); what mail multiplies and rounds is not redone. Anything else is a failed request.
-- **The board** (`QuoteBoard` in the same file) holds the quotes of a page, one slot per figure shown. The first ask of a slot
+- **The board** (`QuoteBoard` in the same file) holds the quotes of a page, one slot per plan: its ask names every way of
+  paying on offer for the plan, so a settled change of quantity is **one** request per plan, and `viewOf` reads each way's
+  figure off the one answer (its price, its own refusal, or the request's refusal). The first ask of a slot
   goes out at once; a change of quantity waits 350 ms (`QUOTE_DEBOUNCE_MS`) and a further change within that time replaces it,
   so stepping from 2 to 12 is one request; the request in flight for a slot is cancelled when its ask changes, so a late
   answer is never shown for another quantity. Quotes and coded refusals are remembered per ask (going back to a quantity asks
@@ -576,8 +593,8 @@ above 1 is `400 seat_quantity_invalid`. The storefront sends `quantity` for seat
 same `quantity` for a seat plan and its three amounts are then for that many seats; a quantity sent for a fixed plan is
 ignored. A quantity the plan does not sell is never answered as `{ valid: false }` (which would read as "this code does not
 work"): it is `400` with one of the same three codes, in the single form and in the `products` form alike, where it fails the
-whole request. The shop page shows such a refusal for what it is, with the numbers mail sent ("This plan sells 2 to 5
-mailboxes…", "…more than one order can charge (1000000.00 at most)…"), takes the range or the limit over for its own cards
+whole request and also carries `index`, the position (from 0) in the request's `products` of the entry it is about. The shop page shows such a refusal for what it is, with the numbers mail sent ("This plan sells 2 to 5
+mailboxes…", "…more than one order can charge (1000000.00 at most)…"), takes the range (for the plan `index` names: `errorAt` of `previewCouponPlans`) or the limit over for its own cards
 and asks for its quotes again; it never takes a coded `400` as the sign of a mail before the `products` form (which answers an
 uncoded `400`, and is then asked plan by plan). The order of a seat plan has the seats in `mailboxCount`.
 
@@ -661,8 +678,9 @@ periods itself and `renew` has the final say.
   the payable limit; the page never asks the preview about such a total, in either case.
 - The quote's `unitPriceCents` and the catalog's are one seat's discounted price (rounded per seat), while an order's discount
   is rounded once on the whole order: `quantity × unitPriceCents` is not the total, which is why the page shows `totalCents`.
-- In the `products` form of the preview a seat refusal does not say which entry it is about: with one seat plan on the page
-  the range is taken for that plan, otherwise the page only shows the numbers and lets the quotes say which plan they are for.
+- A mail before `index` does not say which entry of the preview's `products` a seat refusal is about: with one seat plan on
+  the page the range is taken for that plan, otherwise the page only shows the numbers and lets the quotes say which plan
+  they are for.
 - `add` is refused with `409` whenever the subscription's phase is not `active` (grace included) and also when the prorated
   amount falls outside the payable range, with the "at most N seats" message; the document names the period end only.
 - `remove` and `keep` of a card subscription can also answer `409` when Stripe refuses the quantity change; the document lists
@@ -861,10 +879,10 @@ equal to mail's copy, and mail's `docs/shop.md` lists the same points as propose
 
 - **Discount codes**, **seat plans** and **buyer domains** are no longer proposed. mail's copy of the contract file took the
   `coupon` route and the order fields `couponCode` and `couponDiscountCents` (mail #221), and with version 3 the order quote
-  and the seat routes (`shop.seats`), the buyer-domain routes and enums (`shop.buyerDomains`), the trial route
+  (`shop.quote`), the seat routes (`shop.seats`), the buyer-domain routes and enums (`shop.buyerDomains`), the trial route
   (`shop.trials.routes`, which lists both of its methods), `shop.planKinds` and the coded refusals (`shop.refusalCodes`); this
-  repository's copy follows byte for byte, and the Worker's route table (`SHOP_ROUTES`) is checked against all four route
-  lists. See "Discount codes", "Seat plans" and "Buyer domains" above.
+  repository's copy follows byte for byte, and the Worker's route table (`SHOP_ROUTES`) is checked against all the route
+  lists, each of which gives a route the list of its methods. See "Discount codes", "Seat plans" and "Buyer domains" above.
 - **Seat orders**: mail proposes `quantity` and `seatPriceCents` in `publicOrderFields` (0 for a fixed plan's order) and a third
   order `kind`, `"seats"`. The storefront's order parser does not accept `"seats"` yet; when mail is ready to publish it, the
   parser, the order page ("Seats added" instead of "Renewal order", "add seats again" instead of "pay" after a stale price) and

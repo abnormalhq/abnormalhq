@@ -362,21 +362,26 @@ export async function previewCoupons(
  * counted), and `legacy` comes back true so that the next press starts with the single form.
  *
  * `quotes` has one entry per ask: a quote, null (the code cannot be used) or undefined (not asked). A failure part-way
- * keeps what was answered before it and comes back as `error` instead of being thrown.
+ * keeps what was answered before it and comes back as `error` instead of being thrown. `errorAt` is the position in
+ * `asks` of the entry a failure is about, when that is known: mail names it in the refusal of a seat quantity it does not
+ * sell (`index`, the entry's position in the request's `products`), and the single form asks about one entry at a time.
  */
 export async function previewCouponPlans(
   asks: readonly CouponAsk[],
   coupon: string,
   options: { signal?: AbortSignal; lang?: Lang; legacy?: boolean } = {},
-): Promise<{ quotes: (CouponQuote | null | undefined)[]; legacy: boolean; error?: unknown }> {
+): Promise<{ quotes: (CouponQuote | null | undefined)[]; legacy: boolean; error?: unknown; errorAt?: number }> {
   const { signal, lang } = options;
   const quotes: (CouponQuote | null | undefined)[] = asks.map(() => undefined);
   let legacy = options.legacy ?? false;
   let requests = 0;
+  /** Where in `asks` the request in flight starts, and how many entries it carries. */
+  let sent = { start: 0, length: 0, single: false };
   try {
     for (let start = 0; !legacy && start < asks.length && requests < COUPON_PREVIEW_REQUESTS;) {
       const batch = asks.slice(start, start + COUPON_PREVIEW_PLANS);
       requests += 1;
+      sent = { start, length: batch.length, single: false };
       try {
         const answers = await previewCoupons(batch, coupon, signal, lang);
         answers.forEach((quote, index) => (quotes[start + index] = quote));
@@ -393,11 +398,14 @@ export async function previewCouponPlans(
       for (let index = 0; index < asks.length && requests < COUPON_PREVIEW_REQUESTS; index += 1) {
         const { productId, provider, quantity = 0 } = asks[index]!;
         requests += 1;
+        sent = { start: index, length: 1, single: true };
         quotes[index] = await previewCoupon(productId, provider, coupon, signal, lang, quantity);
       }
     }
   } catch (error) {
-    return { quotes, legacy, error };
+    const index = sent.single ? 0 : error instanceof ShopApiError && error.code ? error.details.index : undefined;
+    const known = isCount(index) && index < sent.length;
+    return { quotes, legacy, error, ...(known ? { errorAt: sent.start + index } : {}) };
   }
   return { quotes, legacy };
 }

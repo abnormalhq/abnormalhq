@@ -1,7 +1,6 @@
 /**
- * What an order would cost before it exists: the browser client of mail's POST /api/shop/quote (`shop.seats.routes` and
- * `shop.seats.quoteFields` in docs/onboard-contract.json; "Seat plans" in docs/storefront-api.md), and the board the pages
- * keep their quotes on.
+ * What an order would cost before it exists: the browser client of mail's POST /api/shop/quote (`shop.quote` in
+ * docs/onboard-contract.json; "Seat plans" in docs/storefront-api.md), and the board the pages keep their quotes on.
  *
  * mail prices an order: a seat plan's discount is taken off the whole order and rounded once, each way of paying has its own
  * price, and the most one order can charge is mail's to say. With a quote the pages show mail's numbers and work out no money
@@ -16,6 +15,7 @@ import {
   isCurrency,
   isString,
   oneOf,
+  parseRefusal,
   PLAN_KINDS,
   record,
   request,
@@ -26,10 +26,14 @@ import {
   type ShopPaymentProvider,
 } from "./catalog.ts";
 
-/** What is asked: a plan, a way of paying and, for a seat plan, how many seats (0 for a fixed plan, which is sold whole). */
+/**
+ * What is asked: a plan, the ways of paying to price it for and, for a seat plan, how many seats (0 for a fixed plan, which
+ * is sold whole). One ask is one request, however many ways of paying it names: mail prices them all in one answer.
+ */
 export interface QuoteAsk {
   productId: string;
-  provider: ShopPaymentProvider;
+  /** The ways of paying on offer for the plan, each once and at least one; the answer has one price per entry. */
+  providers: readonly ShopPaymentProvider[];
   quantity: number;
   /**
    * A discount code to price the order with. Every quote that carries one is a guess against mail's limit on code guesses
@@ -43,12 +47,12 @@ export type QuoteCoupon =
   null | { valid: false } | { valid: true; code: string; discountCents: number; firstPeriodOnly: boolean };
 
 /**
- * mail's PurchaseQuote (apps/console/src/lib/shop/quote.ts). Amounts are hundredths of an LDC, or the smallest unit of
- * `currency` for a card.
+ * One way of paying of mail's quote, with what the quote says for every way laid next to it: the figures one total on a
+ * page is drawn from. Amounts are hundredths of an LDC, or the smallest unit of `currency` for a card.
  */
 export interface PurchaseQuote {
   productId: string;
-  kind: PlanKind;
+  planKind: PlanKind;
   provider: ShopPaymentProvider;
   /** "" for LDC. */
   currency: string;
@@ -76,6 +80,33 @@ export interface PurchaseQuote {
   renewPriceCents: number;
 }
 
+/**
+ * A way of paying that was asked about and cannot take the order (`available: false` in mail's answer): the coded refusal
+ * a quote for that way alone would have got (`product_unavailable`, or `seat_total_too_large` with `maxTotalCents`).
+ */
+export interface QuoteRefusal {
+  provider: ShopPaymentProvider;
+  code: string;
+  /** mail's text, in the page language where mail sent it. */
+  message: string;
+  details: Readonly<Record<string, number>>;
+}
+
+/**
+ * mail's answer to one ask (PurchaseQuote in its apps/console/src/lib/shop/quote.ts): what is the same whichever way the
+ * order is paid, and for each way asked about its price or why it cannot take the order.
+ */
+export interface PlanQuote {
+  productId: string;
+  planKind: PlanKind;
+  quantity: number;
+  minQuantity: number;
+  maxQuantity: number;
+  periodDays: number;
+  /** One entry per way of paying asked about, in the order asked. */
+  prices: readonly (({ available: true } & PurchaseQuote) | ({ available: false } & QuoteRefusal))[];
+}
+
 const isProvider = oneOf(["ldc", "stripe"] as const);
 const isPlanKind = oneOf(PLAN_KINDS);
 
@@ -99,21 +130,21 @@ function parseQuoteCoupon(value: unknown): QuoteCoupon | undefined {
   };
 }
 
-/**
- * Checks a quote and builds the typed one; throws ShopApiError on anything else. Like every answer the pages render, a
- * half-right quote never reaches them: it must be for the plan, way of paying and quantity asked, its amounts must add up
- * the way mail's document says they do (`planDiscountCents = subtotalCents − basePriceCents`, `totalCents = basePriceCents −
- * the code's discountCents`), and a card amount must come with its currency. What mail multiplies and rounds is not redone.
- */
-export function parsePurchaseQuote(body: unknown, ask: QuoteAsk): PurchaseQuote {
-  if (!record(body)) throw new ShopApiError("");
+/** What a quote says for every way of paying, checked. */
+type QuoteShared = Pick<
+  PurchaseQuote,
+  "productId" | "planKind" | "quantity" | "minQuantity" | "maxQuantity" | "periodDays"
+>;
+
+/** One priced entry of `prices`, for the way of paying asked at its place. */
+function parseQuotePrice(
+  entry: Record<string, unknown>,
+  shared: QuoteShared,
+  provider: ShopPaymentProvider,
+  ask: QuoteAsk,
+): PurchaseQuote {
   const {
-    kind,
-    provider,
     currency,
-    quantity,
-    minQuantity,
-    maxQuantity,
     unitOriginalPriceCents,
     unitPriceCents,
     subtotalCents,
@@ -121,21 +152,13 @@ export function parsePurchaseQuote(body: unknown, ask: QuoteAsk): PurchaseQuote 
     planDiscountCents,
     basePriceCents,
     totalCents,
-    periodDays,
     renewPriceCents,
-  } = body;
-  const coupon = parseQuoteCoupon(body.coupon);
+  } = entry;
+  const coupon = parseQuoteCoupon(entry.coupon);
   if (
-    body.productId !== ask.productId ||
-    !isPlanKind(kind) ||
-    !isProvider(provider) ||
-    provider !== ask.provider ||
     !isCurrency(currency) ||
     (provider === "stripe") !== Boolean(currency) ||
     ![
-      quantity,
-      minQuantity,
-      maxQuantity,
       unitOriginalPriceCents,
       unitPriceCents,
       subtotalCents,
@@ -143,13 +166,11 @@ export function parsePurchaseQuote(body: unknown, ask: QuoteAsk): PurchaseQuote 
       planDiscountCents,
       basePriceCents,
       totalCents,
-      periodDays,
       renewPriceCents,
     ].every(isCount) ||
     coupon === undefined
   )
     throw new ShopApiError("");
-  const [count, min, max] = [quantity, minQuantity, maxQuantity] as number[];
   const [subtotal, planDiscount, base, total] = [
     subtotalCents,
     planDiscountCents,
@@ -158,14 +179,6 @@ export function parsePurchaseQuote(body: unknown, ask: QuoteAsk): PurchaseQuote 
   ] as number[];
   const discount = coupon?.valid ? coupon.discountCents : 0;
   if (
-    min! < 1 ||
-    max! < min! ||
-    max! > SEAT_MAX ||
-    count! < min! ||
-    count! > max! ||
-    // A fixed plan is sold whole; a seat plan's quote is for the seats asked.
-    (kind === "fixed" ? max !== 1 : count !== ask.quantity) ||
-    (kind === "fixed") !== ask.quantity < 1 ||
     (unitPriceCents as number) < 1 ||
     (unitOriginalPriceCents as number) < (unitPriceCents as number) ||
     (discountPercent as number) > 99 ||
@@ -179,13 +192,9 @@ export function parsePurchaseQuote(body: unknown, ask: QuoteAsk): PurchaseQuote 
   )
     throw new ShopApiError("");
   return {
-    productId: ask.productId,
-    kind,
+    ...shared,
     provider,
     currency,
-    quantity: count!,
-    minQuantity: min!,
-    maxQuantity: max!,
     unitOriginalPriceCents: unitOriginalPriceCents as number,
     unitPriceCents: unitPriceCents as number,
     subtotalCents: subtotal!,
@@ -194,35 +203,98 @@ export function parsePurchaseQuote(body: unknown, ask: QuoteAsk): PurchaseQuote 
     basePriceCents: base!,
     coupon,
     totalCents: total!,
-    periodDays: periodDays as number,
     renewPriceCents: renewPriceCents as number,
   };
 }
 
 /**
- * Asks mail what an order would cost (POST /api/shop/quote). It reserves nothing, and checkout prices the order again by
- * the same rules. Failures are ShopApiError: 404 from a mail before the endpoint, 429 with `retryAfter` (60 quotes per 10
- * minutes per source IP), and mail's coded refusals (`seat_quantity_invalid`, `seat_quantity_out_of_range` with `min` and
- * `max`, `seat_total_too_large` with `maxTotalCents`, `product_unavailable`).
+ * Checks a quote and builds the typed one; throws ShopApiError on anything else. Like every answer the pages render, a
+ * half-right quote never reaches them: it must be for the plan and quantity asked, `prices` must have exactly one entry
+ * per way of paying asked and in that order, each price's amounts must add up the way mail's document says they do
+ * (`planDiscountCents = subtotalCents − basePriceCents`, `totalCents = basePriceCents − the code's discountCents`), a card
+ * amount must come with its currency, and a way that cannot take the order must say why with a code. What mail multiplies
+ * and rounds is not redone. A refusal's text is taken in the page language `lang` where mail sent it.
  */
-export async function quotePurchase(ask: QuoteAsk, signal?: AbortSignal, lang?: Lang): Promise<PurchaseQuote> {
+export function parsePurchaseQuote(body: unknown, ask: QuoteAsk, lang?: Lang): PlanQuote {
+  if (!record(body)) throw new ShopApiError("");
+  const { planKind, quantity, minQuantity, maxQuantity, periodDays, prices } = body;
+  if (
+    body.productId !== ask.productId ||
+    !isPlanKind(planKind) ||
+    ![quantity, minQuantity, maxQuantity, periodDays].every(isCount) ||
+    !Array.isArray(prices) ||
+    ask.providers.length < 1 ||
+    prices.length !== ask.providers.length
+  )
+    throw new ShopApiError("");
+  const [count, min, max] = [quantity, minQuantity, maxQuantity] as number[];
+  if (
+    min! < 1 ||
+    max! < min! ||
+    max! > SEAT_MAX ||
+    count! < min! ||
+    count! > max! ||
+    // A fixed plan is sold whole; a seat plan's quote is for the seats asked.
+    (planKind === "fixed" ? max !== 1 : count !== ask.quantity) ||
+    (planKind === "fixed") !== ask.quantity < 1
+  )
+    throw new ShopApiError("");
+  const shared: QuoteShared = {
+    productId: ask.productId,
+    planKind,
+    quantity: count!,
+    minQuantity: min!,
+    maxQuantity: max!,
+    periodDays: periodDays as number,
+  };
+  return {
+    ...shared,
+    prices: prices.map((entry: unknown, index) => {
+      const provider = ask.providers[index]!;
+      // An entry for another way of paying than the one asked at its place is not an answer to the question.
+      if (!record(entry) || !isProvider(entry.provider) || entry.provider !== provider || !isBoolean(entry.available))
+        throw new ShopApiError("");
+      if (entry.available) return { available: true as const, ...parseQuotePrice(entry, shared, provider, ask) };
+      const refusal = parseRefusal(entry.refusal);
+      if (!refusal.code || !record(entry.refusal)) throw new ShopApiError("");
+      const text = (lang && refusal.messages[lang]) || entry.refusal.error;
+      return {
+        available: false as const,
+        provider,
+        code: refusal.code,
+        message: isString(text) ? text : "",
+        details: refusal.details,
+      };
+    }),
+  };
+}
+
+/**
+ * Asks mail what an order would cost (POST /api/shop/quote), for every way of paying of the ask in ONE request: mail
+ * counts a request once against its limit however many ways it prices. It reserves nothing, and checkout prices the
+ * order again by the same rules. Failures are ShopApiError: 404 from a mail before the endpoint, 429 with `retryAfter`
+ * (60 quotes per 10 minutes per source IP), and mail's coded refusals of the whole request (`seat_quantity_invalid`,
+ * `seat_quantity_out_of_range` with `min` and `max`, and `seat_total_too_large` with `maxTotalCents` or
+ * `product_unavailable` when that is so for every way asked about).
+ */
+export async function quotePurchase(ask: QuoteAsk, signal?: AbortSignal, lang?: Lang): Promise<PlanQuote> {
   const body = await request(
     "quote",
     {
       productId: ask.productId,
-      ...(ask.provider === "stripe" ? { provider: ask.provider } : {}),
+      providers: [...ask.providers],
       ...(ask.quantity > 0 ? { quantity: ask.quantity } : {}),
       ...(ask.coupon ? { coupon: ask.coupon } : {}),
     },
     signal,
     lang,
   );
-  return parsePurchaseQuote(body, ask);
+  return parsePurchaseQuote(body, ask, lang);
 }
 
 /**
- * What a page knows about one quote it wants:
- * - `loading`: asked, not answered yet. `shown` is the last quote this slot had, if any: the page keeps the fallback display.
+ * What a page knows about one total it shows, for one way of paying (viewOf reads it off the board):
+ * - `loading`: asked, not answered yet: the page keeps the fallback display.
  * - `quoted`: mail's numbers.
  * - `refused`: mail will not sell this (a coded refusal): the quantity is outside the plan's range, the total is above what
  *   one order can charge, or the plan is not on sale with this way of paying. `message` is mail's text in the page language.
@@ -239,6 +311,13 @@ export type QuoteView =
   | { state: "unavailable" }
   | { state: "unsupported" };
 
+/**
+ * What the board knows about one ask (a plan and quantity, for every way of paying asked about): as QuoteView, except
+ * that `quoted` is mail's whole answer, in which a way of paying is priced or refused by itself, and `refused` is a
+ * refusal of the whole request (the quantity, or no way asked about can take the order).
+ */
+export type PlanQuoteView = Exclude<QuoteView, { state: "quoted" }> | { state: "quoted"; quote: PlanQuote };
+
 /** How long a change of quantity waits before it is asked about, so that stepping from 2 to 12 is one request and not ten. */
 export const QUOTE_DEBOUNCE_MS = 350;
 /** How long to stay away after a rate limit that did not say (mail's 429 always carries Retry-After). */
@@ -248,7 +327,7 @@ const QUOTE_CACHE_SIZE = 200;
 
 export interface QuoteBoardOptions {
   /** The request itself; quotePurchase unless a test says otherwise. */
-  fetchQuote?: (ask: QuoteAsk, signal: AbortSignal, lang?: Lang) => Promise<PurchaseQuote>;
+  fetchQuote?: (ask: QuoteAsk, signal: AbortSignal, lang?: Lang) => Promise<PlanQuote>;
   lang?: Lang;
   debounceMs?: number;
   now?: () => number;
@@ -256,7 +335,7 @@ export interface QuoteBoardOptions {
 
 /** What a page reads off its board: every slot's view, and what mail's answers said about the plans beyond the totals. */
 export interface QuoteSnapshot {
-  views: Readonly<Record<string, QuoteView>>;
+  views: Readonly<Record<string, PlanQuoteView>>;
   /** What each slot's view is about. */
   asks: Readonly<Record<string, QuoteAsk>>;
   /**
@@ -272,18 +351,19 @@ const EMPTY_SNAPSHOT: QuoteSnapshot = { views: {}, asks: {}, ranges: {}, maxTota
 
 interface Slot {
   ask: QuoteAsk;
-  view: QuoteView;
+  view: PlanQuoteView;
   timer: ReturnType<typeof setTimeout> | null;
   request: AbortController | null;
 }
 
 function askKey(ask: QuoteAsk): string {
-  return `${ask.productId}:${ask.provider}:${ask.quantity}:${ask.coupon ?? ""}`;
+  return `${ask.productId}:${ask.providers.join("+")}:${ask.quantity}:${ask.coupon ?? ""}`;
 }
 
 /**
- * The quotes of one page. A slot is one figure the page shows ("<plan>:<way of paying>"); `want` says what that figure
- * should be about now, and `view` what is known about it.
+ * The quotes of one page. A slot is one plan's figures on the page (its total for every way of paying on offer); `want`
+ * says what they should be about now, and `view` what is known about them. A slot is one request per settled change,
+ * whatever the number of ways of paying: mail prices them in one answer.
  *
  * - The first ask of a slot goes out at once; a change of an existing slot waits QUOTE_DEBOUNCE_MS, and a further change
  *   within that time replaces it, so only the quantity the buyer settled on is asked about.
@@ -299,7 +379,7 @@ function askKey(ask: QuoteAsk): string {
  */
 export class QuoteBoard {
   private readonly slots = new Map<string, Slot>();
-  private readonly answers = new Map<string, QuoteView>();
+  private readonly answers = new Map<string, PlanQuoteView>();
   private readonly listeners = new Set<() => void>();
   private readonly fetchQuote: NonNullable<QuoteBoardOptions["fetchQuote"]>;
   private readonly lang: Lang | undefined;
@@ -378,7 +458,7 @@ export class QuoteBoard {
     slot.request = null;
   }
 
-  private show(slot: Slot, view: QuoteView): void {
+  private show(slot: Slot, view: PlanQuoteView): void {
     slot.view = view;
     this.publish();
   }
@@ -394,7 +474,7 @@ export class QuoteBoard {
   }
 
   /** Keeps what an answer said about a plan's range or the most one order can charge. */
-  private note(productId: string | undefined, view: QuoteView | undefined, error?: unknown): void {
+  private note(productId: string | undefined, view: PlanQuoteView | undefined, error?: unknown): void {
     const refusal = seatRefusal(error);
     const range = quotedRange(view) ?? (refusal?.code === "seat_quantity_out_of_range" ? refusal : null);
     if (productId && range) {
@@ -402,12 +482,18 @@ export class QuoteBoard {
       if (!known || known.min !== range.min || known.max !== range.max)
         this.ranges = { ...this.ranges, [productId]: { min: range.min, max: range.max } };
     }
+    // The cap is one number for every way of paying (in the unit that way charges in), wherever mail says it: a refusal
+    // elsewhere, the refusal of this request, or the entry of a way of paying that alone cannot take the order.
     const cap =
       refusal?.code === "seat_total_too_large"
         ? refusal.maxTotalCents
         : view?.state === "refused" && view.code === "seat_total_too_large"
           ? view.details.maxTotalCents
-          : undefined;
+          : view?.state === "quoted"
+            ? view.quote.prices.flatMap((price) =>
+                !price.available && price.code === "seat_total_too_large" ? [price.details.maxTotalCents] : [],
+              )[0]
+            : undefined;
     if (isCount(cap) && cap >= 1) this.maxTotalCents = cap;
   }
 
@@ -429,7 +515,7 @@ export class QuoteBoard {
     this.publish();
   }
 
-  private remember(ask: QuoteAsk, view: QuoteView): void {
+  private remember(ask: QuoteAsk, view: PlanQuoteView): void {
     if (this.answers.size >= QUOTE_CACHE_SIZE) this.answers.delete(this.answers.keys().next().value!);
     this.answers.set(askKey(ask), view);
   }
@@ -446,7 +532,7 @@ export class QuoteBoard {
       (quote) => {
         if (!current()) return;
         slot.request = null;
-        const view: QuoteView = { state: "quoted", quote };
+        const view: PlanQuoteView = { state: "quoted", quote };
         this.remember(slot.ask, view);
         this.note(slot.ask.productId, view);
         this.show(slot, view);
@@ -457,7 +543,7 @@ export class QuoteBoard {
         if (error instanceof ShopApiError && error.status === 404 && !error.code) return this.noEndpoint();
         if (error instanceof ShopApiError && error.status === 429) return this.pause(error.retryAfter);
         if (error instanceof ShopApiError && error.code) {
-          const view: QuoteView = {
+          const view: PlanQuoteView = {
             state: "refused",
             code: error.code,
             message: (this.lang && error.messages[this.lang]) || error.message,
@@ -562,7 +648,7 @@ function usableRange(min: unknown, max: unknown): { min: number; max: number } |
  * `maxQuantity`), and so does the refusal of a quantity outside it (`min`, `max`). The catalog the page loaded can be older
  * than either, so the page takes this over the catalog's range. null when the view says nothing about it.
  */
-export function quotedRange(view: QuoteView | undefined): { min: number; max: number } | null {
+export function quotedRange(view: QuoteView | PlanQuoteView | undefined): { min: number; max: number } | null {
   if (view?.state === "quoted") return usableRange(view.quote.minQuantity, view.quote.maxQuantity);
   if (view?.state === "refused" && view.code === "seat_quantity_out_of_range")
     return usableRange(view.details.min, view.details.max);
@@ -593,18 +679,28 @@ export function seatRefusal(
 }
 
 /**
- * A slot's view, when it is about the plan and quantity the page shows right now. A page says what it wants after it has
- * drawn, so for one drawing the slot can still hold the answer for the quantity before: that answer is not shown as the
- * new quantity's (undefined, and the page shows its estimate until the board has caught up).
+ * What a slot knows about one way of paying, when the slot is about the plan and quantity the page shows right now. A
+ * page says what it wants after it has drawn, so for one drawing the slot can still hold the answer for the quantity
+ * before: that answer is not shown as the new quantity's (undefined, and the page shows its estimate until the board has
+ * caught up). The same goes for a way of paying the slot's ask does not name. In mail's answer each way is priced or
+ * refused by itself, and a refusal of the whole request is every way's.
  */
 export function viewOf(
   snapshot: QuoteSnapshot,
   slot: string,
   productId: string,
   quantity: number,
+  provider: ShopPaymentProvider,
 ): QuoteView | undefined {
   const ask = snapshot.asks[slot];
-  return ask && ask.productId === productId && ask.quantity === quantity ? snapshot.views[slot] : undefined;
+  const view = snapshot.views[slot];
+  if (!ask || !view || ask.productId !== productId || ask.quantity !== quantity || !ask.providers.includes(provider))
+    return undefined;
+  if (view.state !== "quoted") return view;
+  const price = view.quote.prices.find((entry) => entry.provider === provider);
+  if (!price) return undefined;
+  if (!price.available) return { state: "refused", code: price.code, message: price.message, details: price.details };
+  return { state: "quoted", quote: price };
 }
 
 /**

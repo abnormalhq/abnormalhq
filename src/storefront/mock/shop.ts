@@ -449,36 +449,46 @@ export class MockShopStore {
     const notSignedIn = say("请先登录。", "Please sign in first.");
     // A refusal with a stable code (`shop.refusalCodes`), in mail's wording: the code, the text in both languages and the
     // numbers that go with it. A demo backend before contract version 3 answers `{ error }` only.
+    const refusalBody = (code: string, zh: string, en: string, details: Record<string, number> = {}) => ({
+      error: say(zh, en),
+      code,
+      messages: { zh, en },
+      ...details,
+    });
     const refuse = (
       status: number,
       code: string,
       zh: string,
       en: string,
       details: Record<string, number> = {},
-    ): Response =>
-      json(this.v3 ? { error: say(zh, en), code, messages: { zh, en }, ...details } : { error: say(zh, en) }, status);
-    const unavailableProduct = () =>
-      refuse(409, "product_unavailable", "该套餐暂不可购买。", "This plan is not available for purchase.");
-    const badQuantity = () =>
-      refuse(400, "seat_quantity_invalid", "请填写整数席位数量。", "Enter a whole number of seats.");
-    const outOfRange = (plan: SeatProduct) => {
+    ): Response => json(this.v3 ? refusalBody(code, zh, en, details) : { error: say(zh, en) }, status);
+    const UNAVAILABLE = [
+      "product_unavailable",
+      "该套餐暂不可购买。",
+      "This plan is not available for purchase.",
+    ] as const;
+    const TOO_LARGE = [
+      "seat_total_too_large",
+      "这么多席位的总价超过了单笔订单的上限，请减少数量。",
+      "That many seats cost more than one order can charge. Choose fewer.",
+    ] as const;
+    const unavailableProduct = () => refuse(409, ...UNAVAILABLE);
+    // `extra` is what mail adds for a request that listed several plans: `index`, the entry refused (the code preview).
+    const badQuantity = (extra: Record<string, number> = {}) =>
+      refuse(400, "seat_quantity_invalid", "请填写整数席位数量。", "Enter a whole number of seats.", extra);
+    const outOfRange = (plan: SeatProduct, extra: Record<string, number> = {}) => {
       const { minQuantity: min, maxQuantity: max } = plan;
       return refuse(
         400,
         "seat_quantity_out_of_range",
         min === max ? `这个套餐固定为 ${min} 个席位。` : `请选择 ${min} ～ ${max} 个席位。`,
         min === max ? `This plan is sold with ${min} seats.` : `Choose between ${min} and ${max} seats.`,
-        { min, max },
+        { min, max, ...extra },
       );
     };
-    const totalTooLarge = () =>
-      refuse(
-        400,
-        "seat_total_too_large",
-        "这么多席位的总价超过了单笔订单的上限，请减少数量。",
-        "That many seats cost more than one order can charge. Choose fewer.",
-        { maxTotalCents: SHOP_PRICE_MAX_CENTS },
-      );
+    // One number for every way of paying, in the unit that way charges in (hundredths of an LDC, or cents by card).
+    const totalTooLarge = (extra: Record<string, number> = {}) =>
+      refuse(400, ...TOO_LARGE, { maxTotalCents: SHOP_PRICE_MAX_CENTS, ...extra });
     if (
       ![
         "catalog",
@@ -577,6 +587,8 @@ export class MockShopStore {
         payment: { ldc: true, stripe: { currency: "usd" } },
         products: PRODUCTS.map((product) => ({
           ...structuredClone(product),
+          // Since contract version 3 a fixed plan says how it is sold too, in the word a seat plan and a quote use.
+          ...(this.v3 ? { planKind: "fixed" } : {}),
           ...this.customDomains(product.id),
           ...(english ? PRODUCT_TEXT_EN[product.id] : {}),
         })),
@@ -686,7 +698,9 @@ export class MockShopStore {
       const typed = couponFrom(body);
       if (!typed) return failure(400, say("请输入优惠码。", "Enter a discount code."));
       const quotes = [];
-      for (const { productId, provider, quantity } of items) {
+      for (const [index, { productId, provider, quantity }] of items.entries()) {
+        // Like mail: the refusal of an entry of `products` says which one, by its position.
+        const at: Record<string, number> = many ? { index } : {};
         const product = this.plans().find((item) => item.id === productId);
         const open = product && (provider === "ldc" || Boolean(product.fiatPriceMinor));
         // Like mail: a seat plan's preview needs the quantity, and its amounts are for that many seats. A quantity the plan
@@ -694,9 +708,9 @@ export class MockShopStore {
         // contract version 3 answered "can't be used" for a total above what one order can charge.)
         const seatPlan = open && isSeatProduct(product) ? product : null;
         const seats = seatPlan ? orderQuantity(seatPlan, quantity) : 0;
-        if (seats === "invalid") return badQuantity();
-        if (seats === "range") return outOfRange(seatPlan!);
-        if (seatPlan && this.v3 && !purchaseTerms(seatPlan, provider === "stripe", seats)) return totalTooLarge();
+        if (seats === "invalid") return badQuantity(at);
+        if (seats === "range") return outOfRange(seatPlan!, at);
+        if (seatPlan && this.v3 && !purchaseTerms(seatPlan, provider === "stripe", seats)) return totalTooLarge(at);
         const quote = open ? couponPrice(product, provider, typed, seats) : null;
         quotes.push(
           product && quote
@@ -725,47 +739,76 @@ export class MockShopStore {
       // the same terms checkout writes, nothing reserved. A code that cannot be used does not fail the quote.
       if (typeof body.productId !== "string" || !ORDER_ID.test(body.productId))
         return failure(400, say("请选择有效的套餐。", "Please choose a valid plan."));
-      if (body.provider !== undefined && body.provider !== "ldc" && body.provider !== "stripe")
+      // `providers` lists the ways of paying to price (each once); the single `provider` is a list of one, LDC when
+      // neither is sent, and `providers` wins when both are.
+      const asked: unknown = body.providers === undefined ? [body.provider ?? "ldc"] : body.providers;
+      if (
+        !Array.isArray(asked) ||
+        asked.length < 1 ||
+        asked.length > 2 ||
+        !asked.every((provider) => provider === "ldc" || provider === "stripe") ||
+        new Set(asked).size !== asked.length
+      )
         return failure(400, say("请选择有效的支付方式。", "Choose a valid payment method."));
-      const card = body.provider === "stripe";
+      const providers = asked as ("ldc" | "stripe")[];
       const product = this.plans().find((item) => item.id === body.productId);
-      if (!product || (card && !product.fiatPriceMinor)) return unavailableProduct();
+      if (!product) return unavailableProduct();
+      // The quantity is the same whichever way the order is paid: a wrong one refuses the whole request.
       const seats = orderQuantity(product, body.quantity);
       if (seats === "invalid") return badQuantity();
       if (seats === "range") return outOfRange(product as SeatProduct);
-      const terms = purchaseTerms(product, card, seats);
-      if (!terms) return totalTooLarge();
       const seatPlan = isSeatProduct(product) ? product : null;
       const typed = this.coupons ? couponFrom(body) : null;
-      const applied = typed ? couponPrice(product, card ? "stripe" : "ldc", typed, seats) : null;
+      // One entry per way asked, in the order asked: its price, or the refusal a quote for that way alone would get.
+      const prices = providers.map((provider) => {
+        const card = provider === "stripe";
+        if (card && !product.fiatPriceMinor)
+          return { provider, available: false, refusal: refusalBody(...UNAVAILABLE) };
+        const terms = purchaseTerms(product, card, seats);
+        if (!terms)
+          return {
+            provider,
+            available: false,
+            refusal: refusalBody(...TOO_LARGE, { maxTotalCents: SHOP_PRICE_MAX_CENTS }),
+          };
+        const applied = typed ? couponPrice(product, provider, typed, seats) : null;
+        return {
+          provider,
+          available: true,
+          currency: card ? "usd" : "",
+          unitOriginalPriceCents: card ? (product.fiatPriceMinor ?? 0) : product.originalPriceCents,
+          unitPriceCents: card ? (product.fiatPriceMinor ?? 0) : product.priceCents,
+          subtotalCents: terms.originalPriceCents,
+          discountPercent: card ? 0 : product.discountPercent,
+          planDiscountCents: terms.originalPriceCents - terms.priceCents,
+          basePriceCents: terms.priceCents,
+          coupon: !typed
+            ? null
+            : applied
+              ? {
+                  valid: true,
+                  code: applied.code,
+                  discountCents: applied.discountCents,
+                  // A subscription renews at the price before the code.
+                  firstPeriodOnly: Boolean(product.periodDays),
+                }
+              : { valid: false },
+          totalCents: applied ? applied.priceCents : terms.priceCents,
+          renewPriceCents: terms.renewPriceCents,
+        };
+      });
+      // No way asked about can take the order: the request is refused, with the first one's refusal.
+      const [first] = prices;
+      if (first?.refusal && !prices.some((price) => price.available))
+        return json(first.refusal, first.refusal.code === UNAVAILABLE[0] ? 409 : 400);
       return json({
         productId: product.id,
-        kind: seatPlan ? "seats" : "fixed",
-        provider: card ? "stripe" : "ldc",
-        currency: card ? "usd" : "",
+        planKind: seatPlan ? "seats" : "fixed",
         quantity: seatPlan ? seats : 1,
         minQuantity: seatPlan ? seatPlan.minQuantity : 1,
         maxQuantity: seatPlan ? seatPlan.maxQuantity : 1,
-        unitOriginalPriceCents: card ? (product.fiatPriceMinor ?? 0) : product.originalPriceCents,
-        unitPriceCents: card ? (product.fiatPriceMinor ?? 0) : product.priceCents,
-        subtotalCents: terms.originalPriceCents,
-        discountPercent: card ? 0 : product.discountPercent,
-        planDiscountCents: terms.originalPriceCents - terms.priceCents,
-        basePriceCents: terms.priceCents,
-        coupon: !typed
-          ? null
-          : applied
-            ? {
-                valid: true,
-                code: applied.code,
-                discountCents: applied.discountCents,
-                // A subscription renews at the price before the code.
-                firstPeriodOnly: Boolean(product.periodDays),
-              }
-            : { valid: false },
-        totalCents: applied ? applied.priceCents : terms.priceCents,
         periodDays: product.periodDays ?? 0,
-        renewPriceCents: terms.renewPriceCents,
+        prices,
       });
     }
     if (route === "account/login") {

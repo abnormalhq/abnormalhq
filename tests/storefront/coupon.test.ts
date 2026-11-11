@@ -968,11 +968,11 @@ test("shop proxy: a mail before discount codes answers a JSON 404, so the shop h
 
 test("contract: the code preview and the order's code fields are in the contract file, as in mail's copy", () => {
   const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
-    shop: { routes: Record<string, string>; publicOrderFields: string[] };
+    shop: { routes: Record<string, string[]>; publicOrderFields: string[] };
   };
   // mail's copy took the route and the two order fields (mail #221); both copies must stay byte for byte equal. The Worker's
   // contract test (tests/storefront/worker.test.ts) now covers the route like every other, and the order fixture carries the fields.
-  expect(contract.shop.routes.coupon).toBe("POST");
+  expect(contract.shop.routes.coupon).toStrictEqual(["POST"]);
   expect(contract.shop.publicOrderFields).toEqual(expect.arrayContaining(["couponCode", "couponDiscountCents"]));
   // The prose follows: nothing about discount codes is described as missing from mail or unused by the storefront any more.
   // (What is still open between the two repositories, seat plans and buyer domains, has its own tests.)

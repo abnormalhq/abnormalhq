@@ -56,7 +56,7 @@ interface Contract {
     notify: { maxLength: number; pattern: string };
   };
   shop: {
-    routes: Record<string, "GET" | "POST">;
+    routes: Record<string, ("GET" | "POST")[]>;
     providers: string[];
     subscriptionStates: string[];
     renewMaxPeriods: number;

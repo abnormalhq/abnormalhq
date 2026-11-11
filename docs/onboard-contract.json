@@ -1,5 +1,5 @@
 {
-  "$comment": "The values mail (abnormalhq/mail) and the storefront (formerly abnormalhq/onboard, now part of the website abnormalhq/abnormalhq) must agree on, as data. Both repositories keep this file at docs/onboard-contract.json, byte for byte the same, and each one's tests check the constants it copies by hand against it (mail: src/lib/__tests__/onboard-contract.test.ts; website: tests/storefront/contract.test.ts and tests/storefront/worker.test.ts). Change both copies together; the prose contract is docs/storefront-api.md in the website. legacyOrderPages is the layout of the retired standalone onboard site (Chinese at the root), which mail still uses while the shop address in its sales settings is that site. Version 3 adds, under shop: planKinds, seats, buyerDomains, trials and refusalCodes. Their routes are listed apart from shop.routes because a storefront may proxy them later than the rest: mail serves every one of them, and a storefront Worker that proxies only shop.routes keeps working. A route that answers two methods lists both (shop.trials.routes).",
+  "$comment": "The values mail (abnormalhq/mail) and the storefront (formerly abnormalhq/onboard, now part of the website abnormalhq/abnormalhq) must agree on, as data. Both repositories keep this file at docs/onboard-contract.json, byte for byte the same, and each one's tests check the constants it copies by hand against it (mail: src/lib/__tests__/onboard-contract.test.ts; website: tests/storefront/contract.test.ts and tests/storefront/worker.test.ts). Change both copies together; the prose contract is docs/storefront-api.md in the website. legacyOrderPages is the layout of the retired standalone onboard site (Chinese at the root), which mail still uses while the shop address in its sales settings is that site. Version 3 adds, under shop: planKinds, seats, quote, buyerDomains, trials and refusalCodes. Their routes are listed apart from shop.routes (shop.seats.routes, shop.quote.routes, shop.buyerDomains.routes, shop.trials.routes) because a storefront may proxy them later than the rest: mail serves every one of them, and a storefront Worker that proxies only shop.routes keeps working. Every route list gives each route the list of methods it answers. planKindField is the one word for how a plan is sold, with a value of planKinds wherever it appears: on every entry of the catalog's products (fixed) and seatProducts (seats), and on a quote; the older kind of a seatProducts entry (seat) is the stored word and is kept only for storefronts that already read it. shop.quote is POST quote, which prices fixed and seat plans alike: requestFields is its body (providers lists 1 to shop.providers.length ways of paying, each once; the single provider is a list of one), fields its answer, and each entry of prices has priceFields when available is true and unavailableFields when it is false, refusal then being a coded refusal's body with one of unavailableCodes. A refusal code's batchDetails are added to its details only where the refused request carried a list: index is the position, from 0, in products of POST coupon. seats.maxTotalCents is one number for every provider, counted in the unit that provider charges in (maxTotalCentsUnit).",
   "version": 3,
   "redeem": {
     "routes": ["cdk", "username", "redeem"],
@@ -36,36 +36,36 @@
   },
   "shop": {
     "routes": {
-      "catalog": "GET",
-      "orders": "GET",
-      "notify": "GET",
-      "account": "GET",
-      "checkout": "POST",
-      "pay": "POST",
-      "pay/stripe": "POST",
-      "reconcile": "POST",
-      "renewal": "POST",
-      "renew": "POST",
-      "address": "POST",
-      "coupon": "POST",
-      "account/login": "POST",
-      "account/peek": "POST",
-      "account/verify": "POST",
-      "account/logout": "POST",
-      "account/portal": "POST",
-      "account/password-login": "POST",
-      "account/password": "POST",
-      "account/register": "POST",
-      "account/mailboxes": "GET",
-      "account/mailboxes/create": "POST",
-      "account/mailboxes/password": "POST",
-      "account/mailboxes/status": "POST",
-      "account/mailboxes/delete": "POST",
-      "account/forgot": "POST",
-      "account/reset": "POST",
-      "account/google/start": "POST",
-      "account/google": "POST",
-      "account/google/unlink": "POST"
+      "catalog": ["GET"],
+      "orders": ["GET"],
+      "notify": ["GET"],
+      "account": ["GET"],
+      "checkout": ["POST"],
+      "pay": ["POST"],
+      "pay/stripe": ["POST"],
+      "reconcile": ["POST"],
+      "renewal": ["POST"],
+      "renew": ["POST"],
+      "address": ["POST"],
+      "coupon": ["POST"],
+      "account/login": ["POST"],
+      "account/peek": ["POST"],
+      "account/verify": ["POST"],
+      "account/logout": ["POST"],
+      "account/portal": ["POST"],
+      "account/password-login": ["POST"],
+      "account/password": ["POST"],
+      "account/register": ["POST"],
+      "account/mailboxes": ["GET"],
+      "account/mailboxes/create": ["POST"],
+      "account/mailboxes/password": ["POST"],
+      "account/mailboxes/status": ["POST"],
+      "account/mailboxes/delete": ["POST"],
+      "account/forgot": ["POST"],
+      "account/reset": ["POST"],
+      "account/google/start": ["POST"],
+      "account/google": ["POST"],
+      "account/google/unlink": ["POST"]
     },
     "cookies": {
       "buyer": { "name": "mailhq_shop", "pattern": "^[a-f0-9]{64}$", "maxAgeSeconds": 31536000 },
@@ -112,13 +112,13 @@
       "paidAt"
     ],
     "planKinds": ["fixed", "seats"],
+    "planKindField": "planKind",
     "seats": {
       "routes": {
-        "quote": "POST",
-        "account/seats/quote": "POST",
-        "account/seats/add": "POST",
-        "account/seats/remove": "POST",
-        "account/seats/keep": "POST"
+        "account/seats/quote": ["POST"],
+        "account/seats/add": ["POST"],
+        "account/seats/remove": ["POST"],
+        "account/seats/keep": ["POST"]
       },
       "catalogField": "seatProducts",
       "planFields": [
@@ -130,26 +130,6 @@
         "unitRenewPriceCents",
         "unitFiatPriceMinor"
       ],
-      "quoteFields": [
-        "productId",
-        "kind",
-        "provider",
-        "currency",
-        "quantity",
-        "minQuantity",
-        "maxQuantity",
-        "unitOriginalPriceCents",
-        "unitPriceCents",
-        "subtotalCents",
-        "discountPercent",
-        "planDiscountCents",
-        "basePriceCents",
-        "coupon",
-        "totalCents",
-        "periodDays",
-        "renewPriceCents"
-      ],
-      "quoteCouponFields": ["valid", "code", "discountCents", "firstPeriodOnly"],
       "accountFields": [
         "seats",
         "seatsNext",
@@ -163,16 +143,44 @@
         "removing"
       ],
       "maxQuantity": 1000,
-      "maxTotalCents": 100000000
+      "maxTotalCents": 100000000,
+      "maxTotalCentsUnit": {
+        "ldc": "hundredths of an LDC",
+        "stripe": "the smallest unit of the catalog's payment.stripe.currency"
+      }
+    },
+    "quote": {
+      "routes": {
+        "quote": ["POST"]
+      },
+      "requestFields": ["productId", "providers", "provider", "quantity", "coupon"],
+      "fields": ["productId", "planKind", "quantity", "minQuantity", "maxQuantity", "periodDays", "prices"],
+      "priceFields": [
+        "provider",
+        "available",
+        "currency",
+        "unitOriginalPriceCents",
+        "unitPriceCents",
+        "subtotalCents",
+        "discountPercent",
+        "planDiscountCents",
+        "basePriceCents",
+        "coupon",
+        "totalCents",
+        "renewPriceCents"
+      ],
+      "couponFields": ["valid", "code", "discountCents", "firstPeriodOnly"],
+      "unavailableFields": ["provider", "available", "refusal"],
+      "unavailableCodes": ["product_unavailable", "seat_total_too_large"]
     },
     "buyerDomains": {
       "routes": {
-        "account/domains": "GET",
-        "account/domains/add": "POST",
-        "account/domains/verify": "POST",
-        "account/domains/check": "POST",
-        "account/domains/refresh": "POST",
-        "account/domains/remove": "POST"
+        "account/domains": ["GET"],
+        "account/domains/add": ["POST"],
+        "account/domains/verify": ["POST"],
+        "account/domains/check": ["POST"],
+        "account/domains/refresh": ["POST"],
+        "account/domains/remove": ["POST"]
       },
       "statuses": ["pending", "provisioning", "review", "live", "suspended"],
       "phases": ["active", "grace", "suspended", "expired"],
@@ -204,9 +212,9 @@
     "refusalFields": ["error", "code", "messages"],
     "refusalLanguages": ["zh", "en"],
     "refusalCodes": {
-      "seat_quantity_invalid": { "status": 400, "details": [] },
-      "seat_quantity_out_of_range": { "status": 400, "details": ["min", "max"] },
-      "seat_total_too_large": { "status": 400, "details": ["maxTotalCents"] },
+      "seat_quantity_invalid": { "status": 400, "details": [], "batchDetails": ["index"] },
+      "seat_quantity_out_of_range": { "status": 400, "details": ["min", "max"], "batchDetails": ["index"] },
+      "seat_total_too_large": { "status": 400, "details": ["maxTotalCents"], "batchDetails": ["index"] },
       "coupon_invalid": { "status": 400, "details": [] },
       "product_unavailable": { "status": 409, "details": [] },
       "domain_not_found": { "status": 404, "details": [] },

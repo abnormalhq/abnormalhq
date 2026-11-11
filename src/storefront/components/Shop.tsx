@@ -160,8 +160,8 @@ export function Shop({ lang }: { lang: Lang }) {
     if (!isSeatProduct(product)) return { ldc, card, ldcFigure: null, cardFigure: null, asking: false };
     const seats = seatsOf(product);
     const estimate = seatTotals(product, seats, { ldc, card }, quotes.maxTotalCents ?? undefined);
-    const ldcView = viewOf(quotes, `${product.id}:ldc`, product.id, seats);
-    const cardView = viewOf(quotes, `${product.id}:stripe`, product.id, seats);
+    const ldcView = viewOf(quotes, product.id, product.id, seats, "ldc");
+    const cardView = viewOf(quotes, product.id, product.id, seats, "stripe");
     const ldcFigure = ldc ? seatFigure(ldcView, estimate.ldc) : null;
     const cardFigure = card
       ? seatFigure(
@@ -178,28 +178,27 @@ export function Shop({ lang }: { lang: Lang }) {
     };
   };
 
-  // One quote per seat plan and way of paying on offer, for the quantity on the card. No discount code goes with it: a
-  // quote with a code is a guess against mail's limit on code guesses, and these are asked without the buyer pressing anything.
+  // One quote per seat plan, for the quantity on the card and every way of paying on offer: mail prices them in one
+  // answer, so a change of quantity is one request per plan. No discount code goes with it: a quote with a code is a guess
+  // against mail's limit on code guesses, and these are asked without the buyer pressing anything.
   const seatAsks = !catalog
     ? []
-    : plans
-        .filter(isSeatProduct)
-        .flatMap((product) => [
-          ...(catalog.payment.ldc ? [{ productId: product.id, provider: "ldc" as const }] : []),
-          ...(catalog.payment.stripe && product.fiatPriceMinor
-            ? [{ productId: product.id, provider: "stripe" as const }]
-            : []),
-        ]);
-  const seatAskKey = seatAsks
-    .map(({ productId, provider }) => {
-      const product = plans.find((item) => item.id === productId)!;
-      return `${productId}:${provider}:${seatsOf(product)}`;
-    })
-    .join(" ");
+    : plans.filter(isSeatProduct).flatMap((product) => {
+        const providers = [
+          ...(catalog.payment.ldc ? ["ldc"] : []),
+          ...(catalog.payment.stripe && product.fiatPriceMinor ? ["stripe"] : []),
+        ];
+        return providers.length > 0 ? [`${product.id}:${providers.join("+")}:${seatsOf(product)}`] : [];
+      });
+  const seatAskKey = seatAsks.join(" ");
   useEffect(() => {
     for (const entry of seatAskKey ? seatAskKey.split(" ") : []) {
-      const [productId, provider, quantity] = entry.split(":") as [string, ShopPaymentProvider, string];
-      board.want(`${productId}:${provider}`, { productId, provider, quantity: Number(quantity) });
+      const [productId, providers, quantity] = entry.split(":") as [string, string, string];
+      board.want(productId, {
+        productId,
+        providers: providers.split("+") as ShopPaymentProvider[],
+        quantity: Number(quantity),
+      });
     }
   }, [board, seatAskKey]);
 
@@ -293,13 +292,22 @@ export function Shop({ lang }: { lang: Lang }) {
       // out of date: the board takes the numbers and asks for its totals again, and the buyer applies the code once more.
       const refusal = seatRefusal(result.error);
       if (refusal) {
+        // mail says which entry it refused (`index`), so the range goes to that plan however many seat plans the page
+        // has. A mail before `index` does not say: with one seat plan on the page there is no doubt, with several the
+        // range is not pinned on any (every total is asked again all the same).
+        const about = result.errorAt === undefined ? undefined : offered[result.errorAt];
         const seatPlans = [...new Set(offered.filter(({ seats }) => seats > 0).map(({ product }) => product.id))];
-        // The refusal does not say which plan it is about; with one seat plan on the page there is no doubt.
-        board.learn(result.error, seatPlans.length === 1 ? seatPlans[0] : undefined);
+        board.learn(result.error, about ? about.product.id : seatPlans.length === 1 ? seatPlans[0] : undefined);
+        // The most one order can charge is one number, counted in the unit of the way of paying refused.
+        const cardCurrency = about?.provider === "stripe" ? catalog?.payment.stripe?.currency : undefined;
         setCouponError(
           refusal.code === "seat_quantity_out_of_range"
             ? t.couponSeatRange(refusal.min, refusal.max)
-            : t.couponSeatTotal(formatCredits(refusal.maxTotalCents)),
+            : t.couponSeatTotal(
+                cardCurrency
+                  ? formatMoney(refusal.maxTotalCents, cardCurrency, lang)
+                  : formatCredits(refusal.maxTotalCents),
+              ),
         );
       } else setCouponError(shopError(result.error, lang));
     }

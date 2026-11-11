@@ -72,8 +72,8 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
   const selected = summary?.trial ? summary.upgradePlans?.find((plan) => plan.id === productId) : undefined;
   const periodDays = selected?.periodDays ?? summary?.periodDays ?? 30;
   const currency = selected ? summary?.upgradePayment?.stripe?.currency : summary?.currency;
-  // An upgrade to a seat plan is priced by mail for the seats chosen (POST /api/shop/quote, one quote per way of paying on
-  // offer; src/storefront/lib/quote.ts). The board asks again when the plan or the seats change, after a pause and
+  // An upgrade to a seat plan is priced by mail for the seats chosen (POST /api/shop/quote, one request for every way of
+  // paying on offer; src/storefront/lib/quote.ts). The board asks again when the plan or the seats change, after a pause and
   // cancelling what was asked before; without a quote (a mail before the endpoint, one on its way, the rate limit, a
   // refusal) the page works the same figures out itself, as it did before. No discount code goes with the quote: `renew` applies it.
   const [board] = useState(() => new QuoteBoard({ lang }));
@@ -83,17 +83,19 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
   const quoteLdc = Boolean(selected && summary?.upgradePayment?.ldc);
   const quoteCard = Boolean(selected && currency && selected.fiatPriceMinor > 0);
   useEffect(() => {
-    if (quoteLdc) board.want("ldc", { productId: upgradeId, provider: "ldc", quantity });
-    else board.drop("ldc");
-    if (quoteCard) board.want("stripe", { productId: upgradeId, provider: "stripe", quantity });
-    else board.drop("stripe");
+    const providers: ShopPaymentProvider[] = [
+      ...(quoteLdc ? ["ldc" as const] : []),
+      ...(quoteCard ? ["stripe" as const] : []),
+    ];
+    if (providers.length > 0) board.want("upgrade", { productId: upgradeId, providers, quantity });
+    else board.drop("upgrade");
   }, [board, upgradeId, quantity, quoteLdc, quoteCard]);
   const upgrade = selected
     ? upgradePeriodPrices(
         selected,
         quantity,
-        quoteLdc ? viewOf(quotes, "ldc", selected.id, quantity) : undefined,
-        quoteCard ? viewOf(quotes, "stripe", selected.id, quantity) : undefined,
+        quoteLdc ? viewOf(quotes, "upgrade", selected.id, quantity, "ldc") : undefined,
+        quoteCard ? viewOf(quotes, "upgrade", selected.id, quantity, "stripe") : undefined,
       )
     : null;
   const baseLdc = upgrade ? upgrade.firstLdcCents : (summary?.renewPriceCents ?? 0);
