@@ -1,6 +1,6 @@
 {
-  "$comment": "The values mail (abnormalhq/mail) and the storefront (formerly abnormalhq/onboard, now part of the website abnormalhq/abnormalhq) must agree on, as data. Both repositories keep this file at docs/onboard-contract.json, byte for byte the same, and each one's tests check the constants it copies by hand against it (mail: src/lib/__tests__/onboard-contract.test.ts; website: tests/storefront/contract.test.ts and tests/storefront/worker.test.ts). Change both copies together; the prose contract is docs/storefront-api.md in the website. legacyOrderPages is the layout of the retired standalone onboard site (Chinese at the root), which mail still uses while the shop address in its sales settings is that site.",
-  "version": 2,
+  "$comment": "The values mail (abnormalhq/mail) and the storefront (formerly abnormalhq/onboard, now part of the website abnormalhq/abnormalhq) must agree on, as data. Both repositories keep this file at docs/onboard-contract.json, byte for byte the same, and each one's tests check the constants it copies by hand against it (mail: src/lib/__tests__/onboard-contract.test.ts; website: tests/storefront/contract.test.ts and tests/storefront/worker.test.ts). Change both copies together; the prose contract is docs/storefront-api.md in the website. legacyOrderPages is the layout of the retired standalone onboard site (Chinese at the root), which mail still uses while the shop address in its sales settings is that site. Version 3 adds, under shop: planKinds, seats, buyerDomains, trials and refusalCodes. Their routes are listed apart from shop.routes because a storefront may proxy them later than the rest: mail serves every one of them, and a storefront Worker that proxies only shop.routes keeps working. A route that answers two methods lists both (shop.trials.routes).",
+  "version": 3,
   "redeem": {
     "routes": ["cdk", "username", "redeem"],
     "errorKinds": {
@@ -110,7 +110,113 @@
       "status",
       "created",
       "paidAt"
-    ]
+    ],
+    "planKinds": ["fixed", "seats"],
+    "seats": {
+      "routes": {
+        "quote": "POST",
+        "account/seats/quote": "POST",
+        "account/seats/add": "POST",
+        "account/seats/remove": "POST",
+        "account/seats/keep": "POST"
+      },
+      "catalogField": "seatProducts",
+      "planFields": [
+        "planKind",
+        "minQuantity",
+        "maxQuantity",
+        "unitOriginalPriceCents",
+        "unitPriceCents",
+        "unitRenewPriceCents",
+        "unitFiatPriceMinor"
+      ],
+      "quoteFields": [
+        "productId",
+        "kind",
+        "provider",
+        "currency",
+        "quantity",
+        "minQuantity",
+        "maxQuantity",
+        "unitOriginalPriceCents",
+        "unitPriceCents",
+        "subtotalCents",
+        "discountPercent",
+        "planDiscountCents",
+        "basePriceCents",
+        "coupon",
+        "totalCents",
+        "periodDays",
+        "renewPriceCents"
+      ],
+      "quoteCouponFields": ["valid", "code", "discountCents", "firstPeriodOnly"],
+      "accountFields": [
+        "seats",
+        "seatsNext",
+        "min",
+        "max",
+        "seatPriceCents",
+        "provider",
+        "currency",
+        "periodDays",
+        "periodEnd",
+        "removing"
+      ],
+      "maxQuantity": 1000,
+      "maxTotalCents": 100000000
+    },
+    "buyerDomains": {
+      "routes": {
+        "account/domains": "GET",
+        "account/domains/add": "POST",
+        "account/domains/verify": "POST",
+        "account/domains/check": "POST",
+        "account/domains/refresh": "POST",
+        "account/domains/remove": "POST"
+      },
+      "statuses": ["pending", "provisioning", "review", "live", "suspended"],
+      "phases": ["active", "grace", "suspended", "expired"],
+      "domainFields": ["id", "name", "status", "phase", "ownership", "verifiedAt", "created"],
+      "ownershipFields": ["type", "name", "value", "expiresAt"],
+      "recordFields": ["type", "name", "value", "priority", "purpose", "required", "status", "observed"],
+      "recordStatuses": ["matched", "missing", "conflict", "error", "pending"],
+      "recordTypes": ["MX", "TXT", "CNAME", "SRV"],
+      "recordPurposes": [
+        "ownership",
+        "mx",
+        "spf",
+        "dkim",
+        "dmarc",
+        "mta-sts-host",
+        "mta-sts",
+        "tls-rpt",
+        "dmarc-report",
+        "autoconfig-host",
+        "client-discovery"
+      ],
+      "maxPerPlan": 20
+    },
+    "trials": {
+      "routes": {
+        "account/trial": ["GET", "POST"]
+      }
+    },
+    "refusalFields": ["error", "code", "messages"],
+    "refusalLanguages": ["zh", "en"],
+    "refusalCodes": {
+      "seat_quantity_invalid": { "status": 400, "details": [] },
+      "seat_quantity_out_of_range": { "status": 400, "details": ["min", "max"] },
+      "seat_total_too_large": { "status": 400, "details": ["maxTotalCents"] },
+      "coupon_invalid": { "status": 400, "details": [] },
+      "product_unavailable": { "status": 409, "details": [] },
+      "domain_not_found": { "status": 404, "details": [] },
+      "domain_ownership_not_found": { "status": 409, "details": [] },
+      "domain_ownership_expired": { "status": 409, "details": [] },
+      "domain_dns_lookup_failed": { "status": 409, "details": [] },
+      "domain_already_verified": { "status": 409, "details": [] },
+      "domain_verification_refused": { "status": 409, "details": [] },
+      "domain_unavailable": { "status": 503, "details": [] }
+    }
   },
   "turnstile": {
     "siteKeyField": "turnstileSiteKey",
