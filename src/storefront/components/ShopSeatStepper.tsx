@@ -61,6 +61,9 @@ export function ShopSeatStepper({
         min={min}
         max={max}
         step={1}
+        // In a form, Enter submits without the blur that brings the draft into the range: an empty field would send the count
+        // before it. With min and max this has the browser refuse the submission instead.
+        required
         value={draft}
         disabled={disabled}
         aria-describedby={describedBy}
