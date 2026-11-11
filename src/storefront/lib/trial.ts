@@ -61,6 +61,10 @@ export const trialCopy = {
     planSummary: (mb: number, domains: number) =>
       `${mb} MB per mailbox · ${domains} own domain${domains === 1 ? "" : "s"}`,
     paidPeriod: "Paid period",
+    paidPeriods: (count: number, days: number) =>
+      `${count} paid period${count === 1 ? "" : "s"}, ${count * days} days in total`,
+    paymentNote:
+      "After payment, return here to confirm your upgrade, then open My account to manage all seats. If the result has not updated, choose Refresh payment result.",
     upgradeTitle: "Upgrade your trial mailbox.",
     upgradeOrder: "Trial upgrade",
     upgradeConfirm: "Confirm your upgrade.",
@@ -98,6 +102,8 @@ export const trialCopy = {
     seats: "邮箱总数（包含现有邮箱）",
     planSummary: (mb: number, domains: number) => `每个邮箱 ${mb} MB · 可接入 ${domains} 个自有域名`,
     paidPeriod: "付费周期",
+    paidPeriods: (count: number, days: number) => `${count} 个付费周期，共 ${count * days} 天`,
+    paymentNote: "付款后返回本页确认升级，再前往「我的账户」管理全部席位。如果结果尚未更新，可点击「刷新支付结果」。",
     upgradeTitle: "升级你的试用邮箱。",
     upgradeOrder: "试用升级",
     upgradeConfirm: "确认升级订单。",

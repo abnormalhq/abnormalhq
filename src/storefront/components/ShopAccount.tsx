@@ -642,7 +642,11 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                         : order.currency && ` · ${formatMoney(order.priceCents, order.currency, lang)}`}
                     </ShopMetaRow>
                     {order.kind === "renewal" && (
-                      <ShopMetaRow label={t.period}>{t.renewalPeriods(order.periods, order.periodDays)}</ShopMetaRow>
+                      <ShopMetaRow label={t.period}>
+                        {order.trialUpgrade
+                          ? trialCopy[lang].paidPeriods(order.periods, order.periodDays)
+                          : t.renewalPeriods(order.periods, order.periodDays)}
+                      </ShopMetaRow>
                     )}
                     {/* The order's discount code and what it took off the price above, as mail publishes them with the list. */}
                     {Boolean(order.couponDiscountCents) && (order.provider !== "stripe" || order.currency) && (

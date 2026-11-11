@@ -308,7 +308,11 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               </p>
             )}
             {renewal ? (
-              <p className={shopTextClass}>{t.renewalPeriods(order.periods ?? 1, order.periodDays ?? 0)}</p>
+              <p className={shopTextClass}>
+                {order.trialUpgrade
+                  ? trialCopy[lang].paidPeriods(order.periods ?? 1, order.periodDays ?? 0)
+                  : t.renewalPeriods(order.periods ?? 1, order.periodDays ?? 0)}
+              </p>
             ) : (
               <ShopDetails
                 item={order}
@@ -410,7 +414,13 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           ) : (
             <ShopPanel>
               <h2 className={shopHeadingClass}>{order.provider === "stripe" ? t.payStripe : t.pay}</h2>
-              <p className={shopTextClass}>{order.provider === "stripe" ? t.stripePaymentNote : t.paymentNote}</p>
+              <p className={shopTextClass}>
+                {order.trialUpgrade
+                  ? trialCopy[lang].paymentNote
+                  : order.provider === "stripe"
+                    ? t.stripePaymentNote
+                    : t.paymentNote}
+              </p>
               <ShopActions>
                 <form method="post" action={`${shopApiRoot}/pay`}>
                   <input type="hidden" name="orderId" value={order.id} />
