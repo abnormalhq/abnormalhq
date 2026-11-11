@@ -162,6 +162,14 @@ test("help: the numbers the articles state are the ones the rest of the site and
     assert.ok(start.includes(String(contract.redeem.password.maxLength)));
     assert.ok(start.includes(String(contract.redeem.maxMailboxes)));
     assert.ok(body(lang, "renewals").includes(String(contract.shop.renewMaxPeriods)));
+    // A lapsed seat subscription and a lapsed plan with an own domain go through the same 7 days of grace and 30 days of
+    // suspension (mail's docs/shop.md); an ownership TXT value works for 7 days (SEVEN_DAYS in mail's domain onboarding).
+    for (const slug of ["team-mailboxes", "own-domain"] as const) {
+      assert.match(body(lang, slug), /7/, slug);
+      assert.match(body(lang, slug), /30/, slug);
+    }
+    // No review time, daily sending limit or seat price is promised: mail defines none, or it is a shop setting.
+    assert.doesNotMatch(body(lang, "own-domain"), /\b(?:24|48|72)\b|\b50\b/);
     // Sign-in links work for 15 minutes (docs/storefront-api.md).
     assert.match(start, /15/);
   }

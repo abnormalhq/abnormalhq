@@ -23,6 +23,8 @@ export const helpSlugs = [
   "calendar",
   "renewals",
   "discount-codes",
+  "team-mailboxes",
+  "own-domain",
   "delete-mailbox",
   "ai-features",
 ] as const;

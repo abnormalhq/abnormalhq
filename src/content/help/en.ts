@@ -766,6 +766,240 @@ export const helpEn: HelpContent = {
       ],
     },
     {
+      slug: "team-mailboxes",
+      category: "billing",
+      title: "Buying mailboxes for a team",
+      summary:
+        "How plans sold per mailbox work: choosing how many, how the total is worked out, adding seats in the middle of a period, removing them at renewal, and what happens if the subscription lapses.",
+      keywords: [
+        "team",
+        "seat",
+        "seats",
+        "per mailbox",
+        "quantity",
+        "company",
+        "business",
+        "colleague",
+        "add mailbox",
+        "remove",
+        "prorated",
+        "bulk",
+      ],
+      sections: [
+        {
+          title: "Plans sold per mailbox",
+          blocks: [
+            {
+              p: "A plan is sold in one of two ways. A fixed plan includes a set number of mailboxes at one price. A plan sold per mailbox lets you choose how many mailboxes to pay for, between the fewest and the most the plan allows; each mailbox you pay for is a seat. Every price of such a plan is for one mailbox, and a mailbox costs the same however many you buy.",
+            },
+            {
+              p: "Which plans are on sale changes with the shop. The [pricing page](pricing/) shows them with live prices and marks a plan sold per mailbox with a per-mailbox price and the range you can choose from. If no such plan is listed, the shop is not offering one right now.",
+            },
+          ],
+        },
+        {
+          title: "Buy mailboxes for your team",
+          howTo: true,
+          blocks: [
+            {
+              ol: [
+                "Sign in to [My account](shop/account/), or create an account first, so the order and its mailboxes belong to it.",
+                "In the [shop](shop/), find the plan sold per mailbox and set the number of mailboxes with the − and + buttons or by typing it.",
+                "Check the total shown under the number. It is an estimate; the price the shop confirms is on the order page.",
+                "Buy with Linux DO Credit or by card, and pay the order.",
+                "Back in My account, under My mailboxes, set up a mailbox for each person: pick a username and a password. The seats line shows how many are used.",
+              ],
+            },
+            {
+              p: "You do not have to set up every mailbox at once. A seat you have paid for stays free until you fill it, and the order's redeem code can also be handed to a colleague to set up their own mailbox on the [redeem page](redeem/).",
+            },
+          ],
+        },
+        {
+          title: "How the total is worked out",
+          blocks: [
+            {
+              ul: [
+                "**Linux DO Credit**: the number of mailboxes times the price of one, then the plan's discount taken off the whole order and rounded once. Because of that single rounding the total can differ by a hundredth from the discounted per-mailbox price times the number.",
+                "**Card**: the number of mailboxes times the card price of one, charged every period for a subscription.",
+                "**Renewal**: each period costs the number of seats times the renewal price of one seat, which is fixed when you buy.",
+                "**Discount codes** work as for any plan: the code is taken off the order's total, for the first period only. See [Discount codes](help/discount-codes/).",
+              ],
+            },
+          ],
+        },
+        {
+          title: "Add seats",
+          blocks: [
+            {
+              p: "Under My mailboxes, choose Add seats on the subscription, set how many, and choose See the price. The added seats are charged for the rest of the current period only, and the price is shown before you confirm.",
+            },
+            {
+              ul: [
+                "**Paid with Linux DO Credit**: confirming creates an order for that amount. Pay it on the order page; the seats are added once it is paid. If the subscription is renewed before you pay, the price no longer applies and the order can't be paid: add the seats again.",
+                "**Paid by card**: the amount shown is an estimate, Stripe works out the final amount and charges the card on the subscription. If your bank asks you to confirm the payment, nothing is added yet: finish on Stripe's invoice page, and the seats are added once Stripe confirms.",
+                "Seats cannot be added after the period has ended (renew first), while a removal is scheduled (cancel it first), or beyond the most the plan allows.",
+              ],
+            },
+          ],
+        },
+        {
+          title: "Remove seats",
+          blocks: [
+            {
+              p: "Choose Remove seats at renewal, set how many, and pick the mailboxes that go with them: enough for the remaining mailboxes to fit the seats you keep. You cannot go below the fewest seats the plan allows.",
+            },
+            {
+              ul: [
+                "The removal takes effect at the next renewal, never before. Nothing is refunded for the current period, and until then every seat and mailbox keeps working.",
+                "At that renewal the chosen mailboxes are deleted together with their mail. Save what you need first: see [Move your mail in, and take it out](help/import-and-export/).",
+                "The next period is charged for the lower number of seats.",
+                "Until the renewal you can cancel the removal in the same place, and all seats stay.",
+              ],
+            },
+          ],
+        },
+        {
+          title: "If the subscription is not renewed",
+          blocks: [
+            {
+              p: "Seats share one subscription and one expiry date, so they lapse together, the same way a single mailbox does.",
+            },
+            {
+              ol: [
+                "**Grace period, 7 days**: every mailbox keeps working, and you can still set up mailboxes on free seats. Seats cannot be added until you renew.",
+                "**Suspended, 30 days**: the mailboxes can no longer be signed in to and cannot send, but they still receive mail, and their mail is kept. Nothing can be changed in My mailboxes until you renew; renewing restores them.",
+                "**After the 30 days**: the mailboxes may be deleted together with their mail.",
+              ],
+            },
+            {
+              p: "A one-time plan sold per mailbox never expires, and its number of mailboxes cannot be changed afterwards. More about renewing is in [Renewals, the grace period and retention](help/renewals/).",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      slug: "own-domain",
+      category: "start",
+      title: "Using your own domain",
+      summary:
+        "Connect a domain you own from My account: prove it is yours, publish the DNS records, wait for the review, and set up mailboxes on it. With what each DNS record does, in plain language.",
+      keywords: [
+        "custom domain",
+        "own domain",
+        "dns",
+        "mx",
+        "spf",
+        "dkim",
+        "dmarc",
+        "txt",
+        "verify",
+        "verification",
+        "srv",
+        "company address",
+        "branded",
+      ],
+      sections: [
+        {
+          title: "What you need",
+          blocks: [
+            {
+              ul: [
+                "**A plan that includes your own domain.** The [pricing page](pricing/) says so on the plans that do, and how many domains each allows. Not every plan includes it, and the shop may not offer one at the moment.",
+                "**An account** that the paid order belongs to: sign in to [My account](shop/account/) before or after buying.",
+                "**Access to the domain's DNS settings**, at the registrar or DNS host where the domain is managed. You add the records yourself; we never change your DNS.",
+              ],
+            },
+          ],
+        },
+        {
+          title: "Connect your domain",
+          howTo: true,
+          blocks: [
+            {
+              ol: [
+                "In [My account](shop/account/), find Use my own domain, enter the domain and choose Connect domain.",
+                "Add the ownership record shown there, a TXT record, at your DNS host. Copy the name and the value exactly; if your DNS host adds the domain by itself, use the shorter name shown beside it.",
+                "Choose Verify. If the record is not visible yet, the page says so: wait a little and try again.",
+                "Add the DNS records listed next. Each one shows whether it is in place, and the page checks again by itself for a few minutes; after that, choose Check again.",
+                "Wait for the review. When the domain shows Live, set up mailboxes on it under My mailboxes by choosing it in the domain list.",
+              ],
+            },
+          ],
+        },
+        {
+          title: "What each DNS record does",
+          blocks: [
+            {
+              p: "DNS is the public directory that tells the rest of the internet where a domain's services are. Mail needs a few entries in it. The exact names and values for your domain are on the account page; this is what they are for.",
+            },
+            {
+              ul: [
+                "**Ownership (TXT)**: a value only you were given. Publishing it proves the domain is yours. It is only needed until the domain is verified.",
+                "**MX**: where mail for your domain is delivered. Until it points here, mail sent to your addresses does not arrive in these mailboxes.",
+                "**SPF (TXT)**: which servers may send mail for your domain, so other providers do not treat your messages as forged.",
+                "**DKIM (TXT)**: a public key. Outgoing mail is signed, and receivers use the key to check that a message really came from your domain and was not changed on the way.",
+                "**DMARC (TXT)**: what receivers should do with mail that fails those checks. It is a suggestion and optional.",
+                "**Auto-configuration and discovery (CNAME, SRV)**: optional records that let mail apps find the server settings from the address alone.",
+              ],
+            },
+            {
+              p: "A record marked Conflict means something else is already published under that name, often left over from a previous mail provider; the page shows what it found. A domain can have only one SPF record, so merge the value into the existing one rather than adding a second.",
+            },
+          ],
+        },
+        {
+          title: "How long it takes",
+          blocks: [
+            {
+              ul: [
+                "**The ownership value** works for 7 days. If you have not verified by then, choose Get a new value and replace the record in your DNS.",
+                "**DNS changes** are not instant: a new record usually shows within minutes, but it can take hours, depending on your DNS host.",
+                "**Verify and Check again** can only be used a limited number of times in a row. If the page asks you to wait, it says for how long.",
+                "**Setting the domain up** on the mail service after verification usually takes a moment.",
+                "**The review**: we normally review a newly connected domain before mailboxes can be set up on it. There is no fixed time for it. You can publish the remaining records while you wait.",
+              ],
+            },
+          ],
+        },
+        {
+          title: "Mailboxes on your domain",
+          blocks: [
+            {
+              ul: [
+                "Only your own orders whose plan includes your own domain can set up mailboxes on it, for as long as the domain is live.",
+                "Mailboxes on your domain use the seats or mailboxes of the plan you bought, like mailboxes on our domains.",
+                "Whoever you give such an order's redeem code to can set up a mailbox on your domain with it. Share the code only with people you want on the domain.",
+                "A new mailbox on your own domain starts with a cautious daily sending limit. If you need more, write to " +
+                  support +
+                  ".",
+                "You can give a domain up in My account until its ownership is verified. After that, write to us to have it removed. We may suspend a domain that is misused: its mailboxes then cannot sign in or send, though mail is still received.",
+              ],
+            },
+          ],
+        },
+        {
+          title: "When your plan ends",
+          blocks: [
+            {
+              p: "Your domain follows your plans that include it. While one of them is running the domain is active; a one-time plan never ends. Once the last has lapsed, the domain goes through the same stages as a subscription's mailboxes.",
+            },
+            {
+              ol: [
+                "**Grace period, 7 days**: everything works as usual, including setting up new mailboxes.",
+                "**Suspended, the next 30 days**: no new mailboxes, and the existing ones cannot be signed in to or send. Mail is still received and kept, and everything comes back when you renew.",
+                "**After those 30 days**: the mailboxes stay disabled. Nothing is deleted automatically, but the mailboxes and then the domain may be removed, after which mail to them is refused.",
+              ],
+            },
+            {
+              p: "The DNS records are yours and are never changed from our side. If you are leaving, point the domain's MX record to your new provider before the plan ends, so no mail is delivered to mailboxes you can no longer open. See also [Renewals, the grace period and retention](help/renewals/).",
+            },
+          ],
+        },
+      ],
+    },
+    {
       slug: "delete-mailbox",
       category: "billing",
       title: "Delete a mailbox",
