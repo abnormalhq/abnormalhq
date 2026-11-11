@@ -12,6 +12,7 @@ import {
   DOMAIN_POLL_SECONDS,
   DOMAIN_STATUSES,
   domainCheckBudget,
+  domainNextCheck,
   domainPollDelay,
   domainSettled,
   getAccountDomains,
@@ -310,6 +311,65 @@ test("domains: the cards of one page share the account's check limit, however ma
   expect(panel).toMatch(/<DomainCard[^>]*budget=\{budget\}/s);
   expect(panel).toMatch(/if \(!budget\.take\(Date\.now\(\), timed\)\) \{\s*setAuto\(false\);/);
   expect(panel.match(/checkAccountDomain\(/g)).toHaveLength(1);
+});
+
+test("domains: a domain verified elsewhere is read at once, even when the other cards used up the shared checks", () => {
+  // Four other domains in review have polled the page's whole allowance.
+  const budget = domainCheckBudget();
+  expect(pollTogether(4, budget)).toHaveLength(DOMAIN_CHECK_BUDGET);
+  const now = 300_000;
+  expect(budget.take(now, true)).toBe(false);
+
+  // This card still shows the reservation: "Verify" was refused with `domain_already_verified`.
+  const card = {
+    status: "pending",
+    checked: false,
+    ready: false,
+    recheck: true,
+    auto: true,
+    busy: false,
+    done: 0,
+  } as const;
+  const recovery = domainNextCheck(card);
+  // It is the end of the buyer's action: made at once, not a round, and not refused by the page's budget. A refused
+  // one would leave the card on the ownership screen, which has no "Check again", until a reload.
+  expect(recovery).toStrictEqual({ kind: "recovery", delay: 0, automatic: false, timed: false });
+  expect(budget.take(now, recovery!.timed)).toBe(true);
+  // Also when this card's automatic checks had stopped (an earlier recovery failed, and the buyer pressed Verify again).
+  expect(domainNextCheck({ ...card, auto: false })).toStrictEqual(recovery);
+  // Never on top of a request that is running; a reservation that was not refused that way waits for the buyer.
+  expect(domainNextCheck({ ...card, busy: true })).toBeNull();
+  expect(domainNextCheck({ ...card, recheck: false })).toBeNull();
+
+  // The checks the page starts by itself are unchanged: one as the page opens for a domain past its reservation and the
+  // backed-off rounds, both drawn from the budget as automatic ones, until there is nothing to wait for or they stopped.
+  const review = {
+    status: "review",
+    checked: false,
+    ready: false,
+    recheck: false,
+    auto: true,
+    busy: false,
+    done: 0,
+  } as const;
+  expect(domainNextCheck(review)).toStrictEqual({ kind: "opening", delay: 0, automatic: false, timed: true });
+  expect(budget.take(now, domainNextCheck(review)!.timed)).toBe(false);
+  expect(domainNextCheck({ ...review, checked: true, done: 1 })).toStrictEqual({
+    kind: "round",
+    delay: 30,
+    automatic: true,
+    timed: true,
+  });
+  expect(domainNextCheck({ ...review, checked: true, done: DOMAIN_POLL_SECONDS.length })).toBeNull();
+  expect(domainNextCheck({ ...review, auto: false })).toBeNull();
+  expect(domainNextCheck({ ...review, status: "live", checked: true, ready: true })).toBeNull();
+  expect(domainNextCheck({ ...review, status: "suspended", checked: true })).toBeNull();
+
+  // The card takes its next check from this decision and hands the budget what it says.
+  const panel = readFileSync("src/storefront/components/ShopDomains.tsx", "utf8");
+  expect(panel).toMatch(/const next = domainNextCheck\(/);
+  expect(panel).toMatch(/latestCheck\.current\(automatic, timed\)/);
+  expect(panel).toMatch(/isRefusal\(cause, "domain_already_verified"\)\) setRecheck\(true\)/);
 });
 
 test("domains: every status, phase, record status and purpose mail names has wording in both languages", () => {

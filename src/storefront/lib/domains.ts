@@ -317,3 +317,44 @@ export function domainCheckBudget(
 export function domainSettled(domain: Pick<AccountDomain, "status">, ready: boolean): boolean {
   return domain.status === "pending" || domain.status === "suspended" || (domain.status === "live" && ready);
 }
+
+/**
+ * The check a domain card makes next without the buyer pressing "Check again", or null when it makes none:
+ * - `recovery`: "Verify" was refused because ownership is verified already (another tab, another device), and the card
+ *   reads where the domain stands. It is the end of the buyer's own action, so it is made at once, is not an automatic
+ *   round (it starts the rounds over) and is never refused by the page's budget, only counted in it: a card still showing
+ *   the reservation has no "Check again" to fall back on, and a refused recovery would leave the buyer on the ownership
+ *   screen until a reload. It is made even after the automatic checks stopped.
+ * - `opening`: the one check as the page opens for a domain past its reservation (its records are not in the list).
+ * - `round`: a backed-off automatic round, while there is something left to wait for.
+ * `delay` is in seconds; `automatic` and `timed` are what DomainCard's runCheck takes (`timed`: drawn from the shared
+ * budget as a check the page started by itself, so refused while the window is full).
+ */
+export interface DomainNextCheck {
+  kind: "recovery" | "opening" | "round";
+  delay: number;
+  automatic: boolean;
+  timed: boolean;
+}
+
+export function domainNextCheck(card: {
+  status: DomainStatus;
+  /** Whether the card has the answer of a check, and whether that answer said every required record matches. */
+  checked: boolean;
+  ready: boolean;
+  /** "Verify" answered `domain_already_verified` and the domain has not been read since. */
+  recheck: boolean;
+  /** Whether the automatic checks go on (a failed or refused one stops them). */
+  auto: boolean;
+  busy: boolean;
+  /** Automatic rounds made since the buyer last acted. */
+  done: number;
+}): DomainNextCheck | null {
+  if (card.busy) return null;
+  if (card.recheck) return { kind: "recovery", delay: 0, automatic: false, timed: false };
+  if (!card.auto) return null;
+  if (!card.checked && card.status !== "pending") return { kind: "opening", delay: 0, automatic: false, timed: true };
+  if (domainSettled(card, card.ready)) return null;
+  const delay = domainPollDelay(card.done);
+  return delay === null ? null : { kind: "round", delay, automatic: true, timed: true };
+}

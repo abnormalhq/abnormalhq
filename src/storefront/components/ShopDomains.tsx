@@ -8,8 +8,7 @@ import {
   addAccountDomain,
   checkAccountDomain,
   domainCheckBudget,
-  domainPollDelay,
-  domainSettled,
+  domainNextCheck,
   getAccountDomains,
   normalizeDomainInput,
   recordHost,
@@ -297,9 +296,13 @@ function DomainCard({
     status.current = result.domain.status;
   }
 
-  /** `timed`: started by the page (the check as it opens, or a round), not by the buyer; `automatic`: a round. */
+  /**
+   * `timed`: started by the page (the check as it opens, or a round), not by the buyer; `automatic`: a round. The check
+   * after "Verify" was refused as verified already is neither: it ends the buyer's own action (domainNextCheck).
+   */
   async function runCheck(automatic: boolean, timed = automatic) {
     if (busy) return;
+    setRecheck(false);
     // The account's limit is shared by every card: a check the page starts by itself waits for "Check again" once it is used up.
     if (!budget.take(Date.now(), timed)) {
       setAuto(false);
@@ -311,7 +314,6 @@ function DomainCard({
     setBusy("check");
     setError("");
     try {
-      setRecheck(false);
       const result = await checkAccountDomain(domain.id, controller.signal, lang);
       if (controller.signal.aborted) return;
       apply(result);
@@ -336,10 +338,20 @@ function DomainCard({
     latestCheck.current = runCheck;
   });
 
-  const settled = domainSettled(domain, check?.ready ?? false);
-  // A domain past its reservation is checked once as the page opens (its records are not in the list), then in backed-off rounds.
-  const first = (check === null && domain.status !== "pending") || recheck;
-  const delay = !auto || busy !== null ? null : first ? 0 : settled ? null : domainPollDelay(done);
+  // A domain past its reservation is checked once as the page opens (its records are not in the list), then in backed-off
+  // rounds; one verified elsewhere is read at once, whatever the shared budget has left (domainNextCheck).
+  const next = domainNextCheck({
+    status: domain.status,
+    checked: check !== null,
+    ready: check?.ready ?? false,
+    recheck,
+    auto,
+    busy: busy !== null,
+    done,
+  });
+  const delay = next ? next.delay : null;
+  const automatic = next?.automatic ?? false;
+  const timed = next?.timed ?? false;
 
   useEffect(() => {
     if (delay === null) return;
@@ -347,7 +359,7 @@ function DomainCard({
     // Politely: never while the tab is hidden. Coming back to the tab starts the wait again.
     const arm = () => {
       window.clearTimeout(timer);
-      if (!document.hidden) timer = window.setTimeout(() => void latestCheck.current(!first, true), delay * 1000);
+      if (!document.hidden) timer = window.setTimeout(() => void latestCheck.current(automatic, timed), delay * 1000);
     };
     arm();
     document.addEventListener("visibilitychange", arm);
@@ -355,7 +367,7 @@ function DomainCard({
       window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", arm);
     };
-  }, [delay, first, done]);
+  }, [delay, automatic, timed, done]);
 
   async function act(kind: "verify" | "refresh" | "remove", work: () => Promise<string | void>) {
     if (busy) return;
