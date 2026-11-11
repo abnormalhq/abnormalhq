@@ -1,5 +1,5 @@
 /**
- * Markdown for agents: the home page is generated from the UI copy, the pricing page from the copy and the live catalog, the legal pages use the MDX body, the storefront pages (redeem, guide, shop)
+ * Markdown for agents: the home page is generated from the UI copy, the pricing page from the copy and the live catalog, the help center from its articles (src/content/help/), the legal pages use the MDX body, the storefront pages (redeem, guide, shop)
  * come from src/storefront/lib/markdown.ts, and llms.txt is the index of all of them.
  * The copy exists only once, in src/i18n; change the UI copy and this follows.
  */
@@ -13,8 +13,18 @@ import {
   type LinkKey,
   type PromoVideo,
 } from "../data/site.ts";
+import {
+  helpArticle,
+  helpArticles,
+  helpCategoryIds,
+  helpContent,
+  helpPath,
+  type HelpSlug,
+} from "../content/help/index.ts";
+import { securityContent } from "../content/security/index.ts";
 import { copies, langs, localePath } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
+import { sectionsMarkdown } from "./docs.ts";
 import { contactChannels } from "./inquiry.ts";
 import { markdownResponse } from "./markdown-response.ts";
 import {
@@ -85,8 +95,10 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
       .join("\n"),
     `## ${t.faq.title}`,
     ...t.faq.items.flatMap((item) => [`### ${item.question}`, item.answer]),
+    `[${t.faq.help}](${links.help})`,
     `## ${t.footer.contactLabel}`,
     `${t.start.support}: [${email}](mailto:${email})`,
+    `[${t.security.navLabel}](${links.security})`,
     `## ${t.footer.legalLabel}`,
     list(t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`)),
   ])}\n`;
@@ -210,6 +222,63 @@ export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string
   ])}\n`;
 }
 
+/** The help center's index: every article by topic, linking to the articles' own Markdown. */
+export function helpIndexMarkdown(lang: Lang): string {
+  const h = copies[lang].help;
+  const { categories } = helpContent[lang];
+  const articles = helpArticles(lang);
+  return `${paragraphs([
+    `# ${h.title}`,
+    h.intro,
+    ...helpCategoryIds.flatMap((category) => [
+      `## ${categories[category]}`,
+      list(
+        articles
+          .filter((article) => article.category === category)
+          .map(
+            (article) =>
+              `[${article.title}](${absolute(pageFor(lang, helpPath(article.slug)).markdown)}): ${article.summary}`,
+          ),
+      ),
+    ]),
+    `## ${h.ask.title}`,
+    `${h.ask.body} [${site.contact.email}](mailto:${site.contact.email})`,
+  ])}\n`;
+}
+
+/** One help article: its sections as written, then the way back to the index and on to support, as on the page. */
+export function helpArticleMarkdown(lang: Lang, slug: HelpSlug): string {
+  const h = copies[lang].help;
+  const article = helpArticle(lang, slug);
+  return `${paragraphs([
+    `# ${article.title}`,
+    article.summary,
+    ...sectionsMarkdown(article.sections, lang),
+    `## ${h.wrong.title}`,
+    h.wrong.body,
+    list([
+      `[${h.wrong.index}](${absolute(pageFor(lang, "/help/").markdown)})`,
+      `[${h.wrong.contact}](mailto:${site.contact.email})`,
+    ]),
+  ])}\n`;
+}
+
+/** The security and privacy overview: its sections as written, the date they were last checked, and the way on to the policy. */
+export function securityMarkdown(lang: Lang): string {
+  const t = copies[lang];
+  const content = securityContent[lang];
+  return `${paragraphs([
+    `# ${content.title}`,
+    content.summary,
+    `${t.security.reviewedLabel}${t.legal.colon}${content.reviewed}`,
+    ...sectionsMarkdown(content.sections, lang),
+    list([
+      `[${t.security.policyLink}](${absolute(pageFor(lang, "/privacy/").markdown)})`,
+      `[${t.security.helpLink}](${absolute(pageFor(lang, "/help/").markdown)})`,
+    ]),
+  ])}\n`;
+}
+
 /** Legal page paths in the copy are plain strings; this confirms the path really is a page in the list. */
 function toPagePath(path: string) {
   const match = pagePaths.find((pagePath) => pagePath === path);
@@ -251,6 +320,11 @@ function llmsSection(lang: Lang, heading: string): string {
       `[${t.meta.title}](${absolute(pageFor(lang, "/").markdown)})`,
       `[${t.pricing.metaTitle}](${absolute(pageFor(lang, "/pricing/").markdown)})`,
       ...storeMarkdownPaths.map((path) => `[${storeTitle(lang, path)}](${absolute(pageFor(lang, path).markdown)})`),
+      `[${t.help.navLabel}](${absolute(pageFor(lang, "/help/").markdown)})`,
+      ...helpArticles(lang).map(
+        (article) => `[${article.title}](${absolute(pageFor(lang, helpPath(article.slug)).markdown)})`,
+      ),
+      `[${t.security.navLabel}](${absolute(pageFor(lang, "/security/").markdown)})`,
       `[${t.download.title}](${absolute(pageFor(lang, "/download/").markdown)})`,
       ...t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`),
       ...[...t.footer.productLinks, ...t.footer.supportLinks].map((item) => `[${item.label}](${links[item.link]})`),

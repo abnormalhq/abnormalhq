@@ -40,6 +40,10 @@ export function linksFor(lang: Lang) {
     /** Opens the sign-up form on the account page directly. */
     register: `${root}shop/account/?mode=register`,
     guide: `${root}guide/`,
+    /** The help center's index (src/components/HelpCenter.tsx); its articles are /help/<slug>/. */
+    help: `${root}help/`,
+    /** The security and privacy overview (src/content/security/). */
+    security: `${root}security/`,
     webmail: "https://webmail.abnormalhq.com/",
     status: "https://console.abnormalhq.com/status",
   } as const;

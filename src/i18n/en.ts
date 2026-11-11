@@ -27,7 +27,7 @@ export const en: Copy = {
       { anchor: "start", label: "Get started" },
       { anchor: "services", label: "Services" },
       { anchor: "how-it-works", wide: "bar", label: "How it works" },
-      { anchor: "faq", label: "FAQ" },
+      { path: "/help/", label: "Help" },
     ],
     openMenu: "Open menu",
     closeMenu: "Close menu",
@@ -461,6 +461,7 @@ export const en: Copy = {
     title: "Questions, answered",
     description: "What's worth knowing before you start.",
     contact: "Something else? Ask us",
+    help: "More answers in the help center",
     items: [
       {
         question: "What does Abnormal offer?",
@@ -494,6 +495,48 @@ export const en: Copy = {
       },
     ],
   },
+  help: {
+    metaTitle: "Help center — Abnormal",
+    metaDescription:
+      "Help for Abnormal mailboxes: getting started, setting up Apple Mail, Outlook, Thunderbird and Android, two-step verification, importing mail, labels and filters, the calendar, renewals, discount codes and deleting a mailbox.",
+    navLabel: "Help center",
+    eyebrow: "Help center",
+    title: "Find your answer",
+    intro:
+      "Step-by-step answers for setting up, using and managing your mailbox. Search by what you want to do, or browse by topic.",
+    search: {
+      label: "Search the help articles",
+      placeholder: "Search: Outlook, import, two-step…",
+      resultsOne: "1 article",
+      results: "{count} articles",
+      empty: "No article matches that. Try another word, or write to support.",
+      clear: "Clear search",
+    },
+    breadcrumbLabel: "Breadcrumb",
+    home: "Home",
+    articleEyebrow: "Help article",
+    tocLabel: "On this page",
+    ask: {
+      title: "Can't find it here?",
+      body: "Write to us and we'll help directly. Include your mailbox address or order number, never a password.",
+    },
+    wrong: {
+      title: "Not the article you were looking for?",
+      body: "Go back to the help center and search again, or write to us and we'll help directly. Include your mailbox address or order number, never a password.",
+      index: "Browse all help articles",
+      contact: "Email support",
+    },
+  },
+  security: {
+    metaTitle: "Security and privacy — Abnormal",
+    metaDescription:
+      "How Abnormal protects mailboxes: encryption in transit, two-step verification and app passwords, phishing warnings and virus scanning, what is stored encrypted, what is not offered (no end-to-end or zero-access encryption), where data is processed, and how to report a vulnerability.",
+    navLabel: "Security and privacy",
+    eyebrow: "Security overview",
+    reviewedLabel: "Last reviewed",
+    policyLink: "Read the Privacy Policy",
+    helpLink: "Go to the help center",
+  },
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["Your next email", "starts here"],
@@ -514,9 +557,11 @@ export const en: Copy = {
       { link: "guide", label: "Guide" },
     ],
     supportLinks: [
+      { link: "help", label: "Help center" },
       { link: "account", label: "My account" },
       { link: "register", label: "Create an account" },
       { link: "status", label: "Service status" },
+      { link: "security", label: "Security and privacy" },
     ],
     faq: "FAQ",
     emailAria: (email) => `Support email: ${email}`,

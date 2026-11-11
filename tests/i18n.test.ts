@@ -119,6 +119,9 @@ test('decorative labels are English in both languages, as their lang="en" says',
       copy.inquiry.kicker,
       copy.legal.tocKicker,
       copy.download.eyebrow,
+      copy.help.eyebrow,
+      copy.help.articleEyebrow,
+      copy.security.eyebrow,
     ];
     for (const label of labels) assert.doesNotMatch(label, cjk, `${copy.htmlLang}: ${label}`);
   }
@@ -173,6 +176,8 @@ const templateSlots = {
     true
   >,
   "pricing.check.taken": { email: true } satisfies Record<TemplateSlot<Copy["pricing"]["check"]["taken"]>, true>,
+  // The help center's search renders in the browser too.
+  "help.search.results": { count: true } satisfies Record<TemplateSlot<Copy["help"]["search"]["results"]>, true>,
 };
 
 /** Each string in the copy that has {name} slots, by its path, with the names it uses. */
@@ -215,7 +220,10 @@ test("the header's entries are home page sections or pages, and the widest bar i
           entry.path,
         );
     }
-    // Six links only fit the English bar from 1200px: below that at most five show, below 1100px four.
+    // Six links only fit the English bar from 1200px: below that at most five show, below 1100px four. The help center
+    // took the place of the home page's FAQ section there, which the footer still links to.
+    assert.ok(copy.header.nav.length <= 6, copy.htmlLang);
+    assert.ok(copy.header.nav.some((entry) => entry.path === "/help/"));
     const shown = (hidden: string[]) => copy.header.nav.filter(({ wide }) => !hidden.includes(wide ?? "")).length;
     assert.ok(shown(["bar"]) <= 5 && shown(["bar", "card"]) <= 4, copy.htmlLang);
   }

@@ -52,6 +52,13 @@ export interface PublicShopOrder {
     provider?: ShopPaymentProvider;
     /** Currency of a Stripe order; the amount priceCents is in its smallest unit. */
     currency?: string;
+    /**
+     * The discount code of the order and what it took off, in the unit of priceCents ("Proposed" in docs/storefront-api.md).
+     * mail does not publish them yet: until it does, the order page works the discount out from what the shop page
+     * remembered at checkout (coupon.ts).
+     */
+    couponCode?: string;
+    couponDiscountCents?: number;
   };
   code: string | null;
   codeStatus: CodeStatus | null;
@@ -113,10 +120,12 @@ function parseOrder(value: unknown, orderId: string): PublicShopOrder["order"] |
     !optional(value.periods, isCount) ||
     !optional(value.subscriptionId, isNullableString) ||
     !optional(value.provider, isProvider) ||
-    !optional(value.currency, isCurrency)
+    !optional(value.currency, isCurrency) ||
+    !optional(value.couponCode, isString) ||
+    !optional(value.couponDiscountCents, isCount)
   )
     return null;
-  const entitlements = parseEntitlements(value);
+  const entitlements = parseEntitlements(value, value.couponDiscountCents ?? 0);
   if (!entitlements) return null;
   return compact({
     id: orderId,
@@ -130,6 +139,8 @@ function parseOrder(value: unknown, orderId: string): PublicShopOrder["order"] |
     subscriptionId: value.subscriptionId,
     provider: value.provider,
     currency: value.currency,
+    couponCode: value.couponCode,
+    couponDiscountCents: value.couponDiscountCents,
   });
 }
 
@@ -160,16 +171,86 @@ export async function createShopOrder(
   email = "",
   /** Not sent for the default ldc (compatible with old backends that only know LDC). */
   provider: ShopPaymentProvider = "ldc",
+  /** Discount code; the field is not sent when empty. mail prices the order with it, or refuses the checkout (400) and creates no order. */
+  coupon = "",
 ): Promise<string> {
   const body = await request(
     "checkout",
-    { productId, ...(email ? { email } : {}), ...(provider === "stripe" ? { provider } : {}) },
+    {
+      productId,
+      ...(email ? { email } : {}),
+      ...(provider === "stripe" ? { provider } : {}),
+      ...(coupon ? { coupon } : {}),
+    },
     undefined,
     lang,
   );
   if (!record(body) || typeof body.orderId !== "string" || !/^[a-z0-9]{15}$/.test(body.orderId))
     throw new ShopApiError("");
   return body.orderId;
+}
+
+/** What a plan costs with a discount code, as mail's preview answers it. Amounts are hundredths of an LDC, or the smallest unit of `currency` for a card price. */
+export interface CouponQuote {
+  /** The code as mail stores it (upper-case). */
+  code: string;
+  provider: ShopPaymentProvider;
+  /** Currency of a card price; the empty string for LDC. */
+  currency: string;
+  /** The price before the code: the plan's discounted LDC price, or its card price. */
+  basePriceCents: number;
+  discountCents: number;
+  priceCents: number;
+  /** A subscription plan: the code lowers the first period only, renewals are at the full price. */
+  firstPeriodOnly: boolean;
+}
+
+/**
+ * Previews a discount code for one plan and way of paying (POST /api/shop/coupon). null means the code cannot be used for
+ * this purchase; mail gives one answer for every reason, so there is none to show. It reserves nothing: checkout prices the
+ * order again. A backend without the endpoint answers 404 (ShopApiError), and every call counts against mail's limit on
+ * code guesses (10 per 10 minutes per IP, shared with checkout), so callers ask on an explicit action, not as the buyer types.
+ */
+export async function previewCoupon(
+  productId: string,
+  provider: ShopPaymentProvider,
+  coupon: string,
+  signal?: AbortSignal,
+  lang?: Lang,
+): Promise<CouponQuote | null> {
+  const body = await request(
+    "coupon",
+    { productId, ...(provider === "stripe" ? { provider } : {}), coupon },
+    signal,
+    lang,
+  );
+  if (!record(body) || !isBoolean(body.valid)) throw new ShopApiError("");
+  if (!body.valid) return null;
+  const { basePriceCents, discountCents, priceCents } = body;
+  if (
+    !isString(body.code) ||
+    !body.code ||
+    body.provider !== provider ||
+    !isCurrency(body.currency) ||
+    (provider === "stripe") !== Boolean(body.currency) ||
+    !isCount(basePriceCents) ||
+    !isCount(discountCents) ||
+    !isCount(priceCents) ||
+    discountCents < 1 ||
+    priceCents < 1 ||
+    basePriceCents !== priceCents + discountCents ||
+    !isBoolean(body.firstPeriodOnly)
+  )
+    throw new ShopApiError("");
+  return {
+    code: body.code,
+    provider,
+    currency: body.currency,
+    basePriceCents,
+    discountCents,
+    priceCents,
+    firstPeriodOnly: body.firstPeriodOnly,
+  };
 }
 
 export async function getShopOrder(orderId: string, signal?: AbortSignal, lang?: Lang): Promise<PublicShopOrder> {

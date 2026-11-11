@@ -418,6 +418,9 @@ const zh: Copy = {
           {
             p: "iPhone / iPad 的路径是：设置 → 邮件 → 账户 → 添加账户 → 其他 → 添加邮件账户；填完地址与密码后选 IMAP，再填两台服务器。",
           },
+          {
+            p: "各个客户端的分步说明在[帮助中心](help/)：[Apple 邮件](help/apple-mail/)（可用描述文件一步配好）、[Outlook](help/outlook/)、[Thunderbird](help/thunderbird/)、[Gmail 与 Android](help/gmail-android/)，以及[两步验证与应用专用密码](help/two-step-verification/)。",
+          },
         ],
       },
       {
@@ -708,6 +711,9 @@ const en: Copy = {
           },
           {
             p: "On iPhone and iPad the path is Settings → Mail → Accounts → Add Account → Other → Add Mail Account; after the address and password, choose IMAP and fill in the two servers.",
+          },
+          {
+            p: "Step-by-step instructions for each app are in the [help center](help/): [Apple Mail](help/apple-mail/) (with a one-step configuration profile), [Outlook](help/outlook/), [Thunderbird](help/thunderbird/), [Gmail and Android](help/gmail-android/), and [two-step verification and app passwords](help/two-step-verification/).",
           },
         ],
       },

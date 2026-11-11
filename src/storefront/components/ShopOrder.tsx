@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +13,11 @@ import {
   reconcileShopOrder,
   shopApiRoot,
   type PublicShopOrder,
+  formatCredits,
   formatDateTime,
   formatMoney,
 } from "@/storefront/lib/shop";
+import { orderCoupon, recallCoupon } from "@/storefront/lib/coupon";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
@@ -58,6 +61,9 @@ export function ShopOrder({ lang }: { lang: Lang }) {
   );
 }
 
+/** The remembered code never changes while the order page is open; it is read once the page runs in the browser. */
+const noSubscription = () => () => {};
+
 function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId: string; paymentError: boolean }) {
   const t = shopCopy[lang];
   const validId = /^[a-z0-9]{15}$/.test(orderId);
@@ -77,6 +83,16 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const pending = order?.status === "pending";
   const renewal = order?.kind === "renewal";
   const embeddedCard = order?.provider === "stripe" && !hostedCard;
+  // The discount code of this order: mail's own fields once it publishes them, until then what the shop page remembered at
+  // checkout, as text so the store's value is stable (src/storefront/lib/coupon.ts).
+  const remembered = useSyncExternalStore(
+    noSubscription,
+    () => JSON.stringify(recallCoupon(orderId)),
+    () => "null",
+  );
+  const couponUsed = order ? orderCoupon(order, JSON.parse(remembered) as ReturnType<typeof recallCoupon>) : null;
+  const amount = (cents: number) =>
+    order?.provider === "stripe" ? formatMoney(cents, order.currency ?? "", lang) : `${formatCredits(cents)} LDC`;
 
   useEffect(() => {
     if (!validId) return;
@@ -229,14 +245,29 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             {order.provider === "stripe" ? (
               // Without the currency the amount cannot be read: show none rather than a guessed one.
               order.currency && (
-                <p className={cn(shopPriceLineClass, "my-[26px]")}>
+                <p className={cn(shopPriceLineClass, "mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}>
                   <strong className={shopPriceAmountClass}>
                     {formatMoney(order.priceCents, order.currency, lang)}
                   </strong>
                 </p>
               )
             ) : (
-              <ShopPrice item={order} lang={lang} />
+              <ShopPrice item={order} lang={lang} className={couponUsed ? "mb-0" : undefined} />
+            )}
+            {couponUsed && (order.provider !== "stripe" || order.currency) && (
+              // What the code took off, and the price before it: without this an order with a code looks like a plain
+              // lower price (mail publishes such an order's original price as the price paid).
+              <p className="mt-3 mb-[26px] flex flex-wrap items-center gap-x-2.5 gap-y-2 text-xs/body text-muted-foreground">
+                <Badge variant="brand" className="h-auto border-0 py-[3px] text-xs/body font-semibold">
+                  {t.orderCoupon(couponUsed.code)}
+                </Badge>
+                <span className="text-foreground">−{amount(couponUsed.discountCents)}</span>
+                <span>
+                  <span className="sr-only">{t.orderCouponBase} </span>
+                  <s>{amount(couponUsed.baseCents)}</s>
+                </span>
+                {Boolean(order.periodDays) && <span className="basis-full">{t.couponFirstPeriod}</span>}
+              </p>
             )}
             {renewal ? (
               <p className={shopTextClass}>{t.renewalPeriods(order.periods ?? 1, order.periodDays ?? 0)}</p>

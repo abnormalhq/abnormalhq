@@ -8,11 +8,16 @@ import { Button } from "@/components/ui/button";
 import { LANG_PATHS, storePath, type Lang } from "@/storefront/i18n";
 import {
   createShopOrder,
+  formatCredits,
   getShopCatalog,
+  previewCoupon,
+  ShopApiError,
+  type CouponQuote,
   type ShopCatalog,
   formatMoney,
   type ShopPaymentProvider,
 } from "@/storefront/lib/shop";
+import { COUPON_MAX_LENGTH, couponVerdict, normalizeCoupon, rememberCoupon } from "@/storefront/lib/coupon";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import {
   ADDRESS_PARAM,
@@ -69,6 +74,16 @@ function dismissAddress(): void {
   forgetAddress();
 }
 
+/**
+ * How many previews one press of "Apply" may make. Each one counts against mail's limit on code guesses (10 per 10 minutes
+ * per IP, shared with checkout), so a large catalog is not asked about plan by plan: the plans past this show "checked when
+ * you order", and checkout, which prices the order, has the final say for every plan anyway.
+ */
+const COUPON_PREVIEWS = 4;
+
+/** The preview of the applied code per plan and way of paying ("<plan id>:<provider>"): a quote, or null when it cannot be used. A key that is absent was not asked about. */
+type CouponQuotes = Record<string, CouponQuote | null>;
+
 export function Shop({ lang }: { lang: Lang }) {
   const t = shopCopy[lang];
   const router = useRouter();
@@ -79,6 +94,15 @@ export function Shop({ lang }: { lang: Lang }) {
   const [buying, setBuying] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const checkoutLock = useRef(false);
+  // Discount code: what is in the field is sent with checkout, whether or not it was previewed, so a typed code is never
+  // dropped silently; mail then prices the order with it or refuses the checkout. "Apply" previews it per plan first.
+  const [coupon, setCoupon] = useState("");
+  const [applied, setApplied] = useState<{ code: string; quotes: CouponQuotes; offered: number } | null>(null);
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  // The backend has no discount codes (the preview answered 404): the field goes away.
+  const [couponsMissing, setCouponsMissing] = useState(false);
+  const couponRequest = useRef<AbortController | null>(null);
   // ?plan=<id> points out the plan a pricing card linked to; ?address=name@domain is the address picked in the address check.
   // The address is kept for this tab (src/storefront/lib/address.ts) so the forms that create the mailbox start with it.
   const search = useSyncExternalStore(subscribeToHistory, readSearch, () => "");
@@ -107,13 +131,76 @@ export function Shop({ lang }: { lang: Lang }) {
     return () => controller.abort();
   }, [attempt, lang]);
 
+  // mail sends no flag for discount codes yet: the field is offered unless the catalog says `coupons: false` or the preview is missing.
+  const couponsOffered = catalog?.coupons !== false && !couponsMissing;
+  const typedCoupon = couponsOffered ? normalizeCoupon(coupon) : "";
+
+  useEffect(() => () => couponRequest.current?.abort(), []);
+
+  function changeCoupon(value: string) {
+    couponRequest.current?.abort();
+    setCoupon(value);
+    // The prices shown were for the code that was applied, not for what is being typed now.
+    setApplied(null);
+    setCouponChecking(false);
+    setCouponError("");
+  }
+
+  async function applyCoupon() {
+    if (!catalog || !typedCoupon) return;
+    couponRequest.current?.abort();
+    const controller = new AbortController();
+    couponRequest.current = controller;
+    setCouponChecking(true);
+    setCouponError("");
+    setApplied(null);
+    // The plan the visitor arrived for first, then catalog order; each plan once per way of paying it offers.
+    const products = [...catalog.products].sort(
+      (a, b) => Number(b.id === selectedPlan) - Number(a.id === selectedPlan),
+    );
+    const offered = products.flatMap((product) => [
+      ...(catalog.payment.ldc ? [{ product, provider: "ldc" as const }] : []),
+      ...(catalog.payment.stripe && product.fiatPriceMinor ? [{ product, provider: "stripe" as const }] : []),
+    ]);
+    const asks = offered.slice(0, COUPON_PREVIEWS);
+    const quotes: CouponQuotes = {};
+    let code = typedCoupon.toUpperCase();
+    try {
+      for (const { product, provider } of asks) {
+        const quote = await previewCoupon(product.id, provider, typedCoupon, controller.signal, lang);
+        if (controller.signal.aborted) return;
+        quotes[`${product.id}:${provider}`] = quote;
+        if (quote) code = quote.code;
+      }
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      if (error instanceof ShopApiError && error.status === 404) {
+        setCouponsMissing(true);
+        setCoupon("");
+        setCouponChecking(false);
+        return;
+      }
+      setCouponError(shopError(error, lang));
+    }
+    // What was answered before a failure still stands: the plans it covers show their price.
+    if (Object.keys(quotes).length > 0) setApplied({ code, quotes, offered: offered.length });
+    setCouponChecking(false);
+  }
+
   async function checkout(productId: string, provider: ShopPaymentProvider = "ldc") {
     if (checkoutLock.current) return;
     checkoutLock.current = true;
     setBuying(`${productId}:${provider}`);
     setCheckoutError("");
     try {
-      const id = await createShopOrder(productId, lang, email.trim(), provider);
+      const id = await createShopOrder(productId, lang, email.trim(), provider, typedCoupon);
+      if (typedCoupon) {
+        // mail took the code (it refuses the checkout otherwise) but does not publish it with the order yet: remember the
+        // price before it, so the order page can show what the code took off (src/storefront/lib/coupon.ts).
+        const product = catalog?.products.find((item) => item.id === productId);
+        const baseCents = provider === "stripe" ? product?.fiatPriceMinor : product?.priceCents;
+        if (baseCents) rememberCoupon({ orderId: id, code: applied?.code ?? typedCoupon.toUpperCase(), baseCents });
+      }
       router.push(`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(id)}`);
     } catch (error) {
       setCheckoutError(shopError(error, lang));
@@ -202,6 +289,66 @@ export function Shop({ lang }: { lang: Lang }) {
               </div>
             </Alert>
           )}
+          {couponsOffered && (
+            <details className="group/coupon my-5 max-w-[640px]">
+              <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current [&::-webkit-details-marker]:hidden">
+                {t.couponToggle}
+                <span
+                  className="text-muted-foreground no-underline transition-transform duration-150 group-open/coupon:rotate-45"
+                  aria-hidden="true"
+                >
+                  +
+                </span>
+              </summary>
+              <form
+                className="mt-1"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void applyCoupon();
+                }}
+              >
+                <ShopField
+                  htmlFor="shop-coupon"
+                  label={t.couponLabel}
+                  hint={couponError || t.couponHint}
+                  hintId="shop-coupon-hint"
+                  invalid={Boolean(couponError)}
+                >
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      className={cn(shopInputClass, "max-w-[260px] min-w-0 flex-1 uppercase placeholder:normal-case")}
+                      id="shop-coupon"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      maxLength={COUPON_MAX_LENGTH}
+                      value={coupon}
+                      onChange={(event) => changeCoupon(event.target.value)}
+                      aria-describedby="shop-coupon-hint"
+                      aria-invalid={couponError ? true : undefined}
+                    />
+                    <ShopButton variant="outline" type="submit" disabled={!typedCoupon || couponChecking}>
+                      {couponChecking ? t.couponChecking : t.couponApply}
+                    </ShopButton>
+                    {coupon !== "" && (
+                      <Button variant="link" className="text-sm" type="button" onClick={() => changeCoupon("")}>
+                        {t.couponRemove}
+                      </Button>
+                    )}
+                  </div>
+                </ShopField>
+                <p className="text-sm/[1.7]" role="status">
+                  {/* "Can't be used" only once every plan on offer was asked: an unchecked plan may still take the code. */}
+                  {applied &&
+                    {
+                      applied: t.couponApplied(applied.code),
+                      refused: t.couponInvalid,
+                      unchecked: t.couponUnchecked,
+                    }[couponVerdict(applied.quotes, applied.offered)]}
+                </p>
+              </form>
+            </details>
+          )}
           {checkoutError && <ShopAlert>{checkoutError}</ShopAlert>}
           {/* Each card spans four rows of the shared grid (heading, price, details, actions) through subgrid, so
               prices, detail lists and buttons line up across the cards in a row whatever the description length. */}
@@ -212,6 +359,37 @@ export function Shop({ lang }: { lang: Lang }) {
                   ? formatMoney(product.fiatPriceMinor, catalog.payment.stripe.currency, lang)
                   : null;
               const selected = product.id === selectedPlan;
+              // The applied code on this plan, per way of paying the card offers: a quote, null (cannot be used) or undefined (not asked).
+              const ldcQuote = catalog.payment.ldc ? applied?.quotes[`${product.id}:ldc`] : undefined;
+              const cardQuote = cardPrice ? applied?.quotes[`${product.id}:stripe`] : undefined;
+              const ways = Number(catalog.payment.ldc) + Number(Boolean(cardPrice));
+              const refused = Number(ldcQuote === null) + Number(cardQuote === null);
+              const couponLines = !applied
+                ? []
+                : [
+                    ...(ldcQuote
+                      ? [t.couponWith(applied.code, t.couponPriceLdc(formatCredits(ldcQuote.priceCents)))]
+                      : []),
+                    ...(cardQuote
+                      ? [
+                          t.couponWith(
+                            applied.code,
+                            t.couponPriceCard(formatMoney(cardQuote.priceCents, cardQuote.currency, lang)),
+                          ),
+                        ]
+                      : []),
+                    ...(ldcQuote?.firstPeriodOnly || cardQuote?.firstPeriodOnly ? [t.couponFirstPeriod] : []),
+                    ...(refused === ways
+                      ? [t.couponNotForPlan]
+                      : [
+                          ...(ldcQuote === null ? [t.couponNotForLdc] : []),
+                          ...(cardQuote === null ? [t.couponNotForCard] : []),
+                        ]),
+                    // Plans past the preview limit: checkout decides.
+                    ...((catalog.payment.ldc && ldcQuote === undefined) || (cardPrice && cardQuote === undefined)
+                      ? [t.couponAtCheckout]
+                      : []),
+                  ];
               return (
                 <Card
                   asChild
@@ -249,6 +427,22 @@ export function Shop({ lang }: { lang: Lang }) {
                           {t.cardPrice(cardPrice, product.periodDays ?? 0)}
                         </p>
                       ) : null}
+                      {couponLines.length > 0 && (
+                        <ul className="mt-4 grid gap-1 border-t border-border pt-4 text-sm/[1.7]">
+                          {couponLines.map((line, index) => (
+                            <li
+                              className={
+                                index < Number(Boolean(ldcQuote)) + Number(Boolean(cardQuote))
+                                  ? "font-semibold"
+                                  : "text-muted-foreground"
+                              }
+                              key={line}
+                            >
+                              {line}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                     <div>
                       <ShopDetails item={product} lang={lang} />

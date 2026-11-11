@@ -9,7 +9,7 @@ import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
 
 export function Faq({ lang }: { lang: Lang }) {
-  const { t } = useCopy(lang);
+  const { t, links } = useCopy(lang);
   return (
     <Container asChild>
       <section
@@ -34,6 +34,11 @@ export function Faq({ lang }: { lang: Lang }) {
               </button>
             </TextLink>
           </InquiryButton>
+          <p className="mt-4">
+            <TextLink href={links.help}>
+              {t.faq.help} <Icon name="arrow" className="size-4" />
+            </TextLink>
+          </p>
         </div>
         <DisclosureList>
           {t.faq.items.map(({ question, answer }, index) => (

@@ -25,7 +25,7 @@ export const zh: Copy = {
       { anchor: "start", label: "开始使用" },
       { anchor: "services", label: "邮箱服务" },
       { anchor: "how-it-works", wide: "bar", label: "开通流程" },
-      { anchor: "faq", label: "常见问题" },
+      { path: "/help/", label: "帮助" },
     ],
     openMenu: "展开导航",
     closeMenu: "收起导航",
@@ -433,6 +433,7 @@ export const zh: Copy = {
     title: "你可能还想知道",
     description: "关于邮箱，先把问题说清楚。",
     contact: "其他问题，聊聊看",
+    help: "更多解答见帮助中心",
     items: [
       {
         question: "Abnormal 提供什么服务？",
@@ -466,6 +467,47 @@ export const zh: Copy = {
       },
     ],
   },
+  help: {
+    metaTitle: "帮助中心 — Abnormal",
+    metaDescription:
+      "Abnormal 邮箱帮助：开始使用，设置 Apple 邮件、Outlook、Thunderbird 和 Android，两步验证，导入邮件，标签与过滤规则，日历，续费，优惠码和删除邮箱。",
+    navLabel: "帮助中心",
+    eyebrow: "Help center",
+    title: "找到你要的答案",
+    intro: "关于设置、使用和管理邮箱的分步说明。可以按想做的事搜索，也可以按主题浏览。",
+    search: {
+      label: "搜索帮助文章",
+      placeholder: "搜索：Outlook、导入、两步验证…",
+      resultsOne: "1 篇文章",
+      results: "{count} 篇文章",
+      empty: "没有找到相关文章。换个词试试，或者写信给客服。",
+      clear: "清除搜索",
+    },
+    breadcrumbLabel: "当前位置",
+    home: "首页",
+    articleEyebrow: "Help article",
+    tocLabel: "本页目录",
+    ask: {
+      title: "这里没有找到？",
+      body: "直接写信给我们。请附上邮箱地址或订单号，但不要发送密码。",
+    },
+    wrong: {
+      title: "不是你要找的内容？",
+      body: "可以回到帮助中心重新搜索，或直接写信给我们。请附上邮箱地址或订单号，但不要发送密码。",
+      index: "浏览全部帮助文章",
+      contact: "写信给客服",
+    },
+  },
+  security: {
+    metaTitle: "安全与隐私 — Abnormal",
+    metaDescription:
+      "Abnormal 如何保护邮箱：传输加密、两步验证与应用专用密码、钓鱼提醒与病毒扫描、哪些内容加密保存、不提供什么（没有端到端加密和零访问加密）、数据在哪里处理，以及如何报告漏洞。",
+    navLabel: "安全与隐私",
+    eyebrow: "Security overview",
+    reviewedLabel: "最近核对",
+    policyLink: "阅读隐私政策",
+    helpLink: "前往帮助中心",
+  },
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["下一封邮件，", "从这里开始"],
@@ -486,9 +528,11 @@ export const zh: Copy = {
       { link: "guide", label: "使用教程" },
     ],
     supportLinks: [
+      { link: "help", label: "帮助中心" },
       { link: "account", label: "我的账户" },
       { link: "register", label: "注册账户" },
       { link: "status", label: "服务状态" },
+      { link: "security", label: "安全与隐私" },
     ],
     faq: "常见问题",
     emailAria: (email) => `客服邮箱：${email}`,

@@ -321,7 +321,54 @@ export interface Copy {
     title: string;
     description: string;
     contact: string;
+    /** Under the questions: on to the help center. */
+    help: string;
     items: readonly { question: string; answer: string }[];
+  };
+  /**
+   * The help center (/help/ and /help/<slug>/): the wording around the articles. The articles themselves are in
+   * src/content/help/, one file per language. The index's search is a client component and gets `search` through props.
+   */
+  help: {
+    metaTitle: string;
+    metaDescription: string;
+    /** The entry in the footer and the breadcrumb. */
+    navLabel: string;
+    eyebrow: string;
+    title: string;
+    intro: string;
+    search: {
+      label: string;
+      placeholder: string;
+      /** Announced as the list narrows: one match, and several. */
+      resultsOne: string;
+      results: Template<"count">;
+      empty: string;
+      clear: string;
+    };
+    /** Name of the breadcrumb landmark, and its first entry (the home page). */
+    breadcrumbLabel: string;
+    home: string;
+    /** English label above an article's title. */
+    articleEyebrow: string;
+    tocLabel: string;
+    /** At the foot of the index: on to support. */
+    ask: { title: string; body: string };
+    /** At the foot of every article: back to the index, or on to support. */
+    wrong: { title: string; body: string; index: string; contact: string };
+  };
+  /** The security and privacy overview (/security/): the wording around it. The text itself is in src/content/security/. */
+  security: {
+    metaTitle: string;
+    metaDescription: string;
+    /** The entry in the footer and the breadcrumb's own name of the page. */
+    navLabel: string;
+    eyebrow: string;
+    /** Before the date the statements were last checked. */
+    reviewedLabel: string;
+    /** At the foot of the page: on to the full policy and to the help center. */
+    policyLink: string;
+    helpLink: string;
   };
   closing: {
     eyebrow: string;
