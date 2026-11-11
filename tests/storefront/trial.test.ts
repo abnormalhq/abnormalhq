@@ -1,7 +1,8 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { orderCoupon } from "@/storefront/lib/coupon";
-import { claimTrial, getTrial } from "@/storefront/lib/trial";
-import { getShopOrder, createRenewalOrder } from "@/storefront/lib/shop";
+import { claimTrial, getTrial, paidPeriodLimit } from "@/storefront/lib/trial";
+import { getShopOrder, createRenewalOrder, getRenewal } from "@/storefront/lib/shop";
+import { renewalResponse } from "./fixtures/shop-contract";
 import { parseShopCatalog } from "@/storefront/lib/catalog";
 import { storefrontApi as worker, type StorefrontEnv } from "@/storefront/worker/index";
 
@@ -120,3 +121,64 @@ test.each(["ldc", "stripe"] as const)(
     ).toEqual({ code: "WELCOME10", discountCents: 150, baseCents: 4500 });
   },
 );
+
+const teamPlan = {
+  id: "teamproduct0001",
+  name: "Team",
+  description: "Team mailboxes",
+  seatMin: 2,
+  seatMax: 50,
+  quotaMb: 1024,
+  customDomains: 1,
+  periodDays: 30,
+  priceCents: 1500,
+  originalPriceCents: 1500,
+  discountPercent: 0,
+  renewPriceCents: 1500,
+  fiatPriceMinor: 199,
+};
+test("trial summary offers bilingual server-priced Team plans without losing existing mailboxes", async () => {
+  const payload = {
+    ...renewalResponse,
+    trial: true,
+    mailboxes: ["existing@example.com"],
+    upgradePlans: [teamPlan],
+    upgradePayment: { ldc: true, stripe: { currency: "usd" } },
+  };
+  vi.stubGlobal("fetch", async () => Response.json(payload));
+  expect(await getRenewal("signed-token")).toEqual(payload);
+  payload.upgradePlans[0] = { ...teamPlan, seatMax: 1 };
+  await expect(getRenewal("signed-token")).rejects.toThrow();
+});
+test.each(["ldc", "stripe"] as const)(
+  "Team upgrade sends the chosen plan, seats and coupon without client prices (%s)",
+  async (provider) => {
+    const fetcher = vi.fn(async () => Response.json({ orderId: "teamupgrade0001" }));
+    vi.stubGlobal("fetch", fetcher);
+    await createRenewalOrder("signed-token", 2, "en", "", provider, "WELCOME10", {
+      productId: teamPlan.id,
+      quantity: 3,
+    });
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.stringContaining("/renew"),
+      expect.objectContaining({
+        body: JSON.stringify({
+          token: "signed-token",
+          periods: 2,
+          ...(provider === "stripe" ? { provider } : {}),
+          coupon: "WELCOME10",
+          productId: teamPlan.id,
+          quantity: 3,
+        }),
+      }),
+    );
+  },
+);
+
+test("each payment method has its own period cap and allows the first-period price to differ", () => {
+  expect(paidPeriodLimit(100_000_001, 100_000_001)).toBe(0);
+  expect(paidPeriodLimit(199, 199)).toBe(12);
+  expect(paidPeriodLimit(1, 50_000_000)).toBe(2);
+  expect(paidPeriodLimit(100_000_000, 1)).toBe(1);
+  expect(paidPeriodLimit(0, 199)).toBe(0);
+});

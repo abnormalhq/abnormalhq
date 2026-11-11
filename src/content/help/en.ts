@@ -688,11 +688,14 @@ export const helpEn: HelpContent = {
             {
               ul: [
                 "**Paid with Linux DO Credit**: renew on the renewal page. The link is on the order page, in [My account](shop/account/) and in the reminder emails, and works without signing in. Choose 1 to 12 periods and pay the renewal order like any order.",
-                "**Paid by card**: the subscription renews automatically each period. In My account you can change the card, or cancel and resume automatic renewal. A card subscription cannot be renewed by hand on the renewal page.",
+                "**Subscriptions bought directly by card**: the subscription renews automatically each period. In My account you can change the card, or cancel and resume automatic renewal. A card subscription cannot be renewed by hand on the renewal page.",
               ],
             },
             {
-              p: "For plans paid with Linux DO Credit, reminders before the expiry go to the contact email you gave at checkout, or to your account's email; without either they arrive in the mailbox itself. A discount code never applies to a renewal.",
+              p: "For plans paid with Linux DO Credit, reminders before the expiry go to the contact email you gave at checkout, or to your account's email; without either they arrive in the mailbox itself. Discount codes do not apply to renewals of paid subscriptions; the first paid upgrade from a free trial can use an eligible first-period offer.",
+            },
+            {
+              p: "A free-trial upgrade is an exception: whether paid with LDC or by card, it is a one-time payment and requires manual renewal on the renewal page afterward. It does not charge automatically. The trial itself is suspended at expiry with no 7-day grace period, and mail is kept for 30 days.",
             },
           ],
         },
@@ -720,6 +723,14 @@ export const helpEn: HelpContent = {
       summary: "Where to enter a discount code, what it applies to, and what to do when a code can't be used.",
       keywords: ["coupon", "promo", "promotion", "voucher", "code", "offer", "discount"],
       sections: [
+        {
+          title: "First-period discounts when upgrading a free trial",
+          blocks: [
+            {
+              p: "A free trial can upgrade directly to a single-mailbox or Team plan. Enter WELCOME10 on the upgrade page before ordering for 10% off the first paid period when eligible. For Team, the discount covers the first-period total for all selected seats. Other prepaid periods and later renewals use the regular price. The code’s expiry, total usage limit and one use per account still apply.",
+            },
+          ],
+        },
         {
           title: "Use a code",
           howTo: true,
@@ -786,6 +797,23 @@ export const helpEn: HelpContent = {
         "bulk",
       ],
       sections: [
+        {
+          title: "Upgrade a free trial to Team",
+          blocks: [
+            {
+              p: "Each verified account can claim one free 7-day trial with one 1 GB mailbox. No card or automatic charge is required. The mailbox is suspended as soon as the trial ends, and mail is kept for 30 days. Complete your upgrade before retention ends.",
+            },
+            {
+              p: "Find your trial mailbox in [My account](shop/account/), choose Upgrade to single mailbox or Team, then select the Team plan, total mailbox count and paid periods. Your existing mailbox counts as one seat: choosing 2 seats lets you open 1 more mailbox after payment. Your address, password and mail stay in place, with no migration.",
+            },
+            {
+              p: "Team offers 2–50 seats, 1 GB per seat and 1 own domain. Each seat costs 15 LDC or $1.99 per 30 days, or 150 LDC or $12 per 365 days. See the [shop](shop/) for currently available plans. Paid service starts when payment succeeds.",
+            },
+            {
+              p: "Enter WELCOME10 before placing the upgrade order for 10% off the first paid period when eligible. If you buy several periods together, only the first is discounted; later periods use the regular price. The code’s expiry and usage limits still apply. Both LDC and card upgrades are one-time payments and require manual renewal afterward; neither enables automatic renewal.",
+            },
+          ],
+        },
         {
           title: "Plans sold per mailbox",
           blocks: [

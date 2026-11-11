@@ -171,32 +171,40 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
         }}
       />
       <ShopHero
-        eyebrow={renewal ? t.renewalLabel : t.orderLabel}
+        eyebrow={order?.trialUpgrade ? trialCopy[lang].upgradeOrder : renewal ? t.renewalLabel : t.orderLabel}
         title={
-          order?.trial
-            ? trialCopy[lang].title
-            : renewal
-              ? paid
-                ? t.renewalPaidTitle
-                : t.renewalOrderTitle
-              : paid
-                ? t.paidTitle
-                : t.orderTitle
+          order?.trialUpgrade
+            ? paid
+              ? trialCopy[lang].upgradePaid
+              : trialCopy[lang].upgradeConfirm
+            : order?.trial
+              ? trialCopy[lang].title
+              : renewal
+                ? paid
+                  ? t.renewalPaidTitle
+                  : t.renewalOrderTitle
+                : paid
+                  ? t.paidTitle
+                  : t.orderTitle
         }
       >
-        {order?.trial
-          ? trialCopy[lang].expiry
-          : renewal
-            ? paid
-              ? t.renewalPaidDescription
-              : t.renewalOrderDescription
-            : paid
-              ? t.paidDescription
-              : order?.provider === "stripe"
-                ? hostedCard
-                  ? t.orderDescriptionStripeHosted
-                  : t.orderDescriptionStripe
-                : t.orderDescription}
+        {order?.trialUpgrade
+          ? paid
+            ? trialCopy[lang].upgradePaidDescription
+            : trialCopy[lang].upgradeCheck
+          : order?.trial
+            ? trialCopy[lang].expiry
+            : renewal
+              ? paid
+                ? t.renewalPaidDescription
+                : t.renewalOrderDescription
+              : paid
+                ? t.paidDescription
+                : order?.provider === "stripe"
+                  ? hostedCard
+                    ? t.orderDescriptionStripeHosted
+                    : t.orderDescriptionStripe
+                  : t.orderDescription}
       </ShopHero>
       {!validId ? (
         <ShopPanel>
@@ -300,7 +308,11 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               </p>
             )}
             {renewal ? (
-              <p className={shopTextClass}>{t.renewalPeriods(order.periods ?? 1, order.periodDays ?? 0)}</p>
+              <p className={shopTextClass}>
+                {order.trialUpgrade
+                  ? trialCopy[lang].paidPeriods(order.periods ?? 1, order.periodDays ?? 0)
+                  : t.renewalPeriods(order.periods ?? 1, order.periodDays ?? 0)}
+              </p>
             ) : (
               <ShopDetails
                 item={order}
@@ -309,6 +321,9 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               />
             )}
             <ShopMeta>
+              {order.trialUpgrade && (
+                <ShopMetaRow label={trialCopy[lang].seats}>{t.quantity(order.mailboxCount)}</ShopMetaRow>
+              )}
               <ShopMetaRow label={t.orderId}>
                 <ShopOrderCode>{order.id}</ShopOrderCode>
               </ShopMetaRow>
@@ -399,7 +414,13 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           ) : (
             <ShopPanel>
               <h2 className={shopHeadingClass}>{order.provider === "stripe" ? t.payStripe : t.pay}</h2>
-              <p className={shopTextClass}>{order.provider === "stripe" ? t.stripePaymentNote : t.paymentNote}</p>
+              <p className={shopTextClass}>
+                {order.trialUpgrade
+                  ? trialCopy[lang].paymentNote
+                  : order.provider === "stripe"
+                    ? t.stripePaymentNote
+                    : t.paymentNote}
+              </p>
               <ShopActions>
                 <form method="post" action={`${shopApiRoot}/pay`}>
                   <input type="hidden" name="orderId" value={order.id} />
