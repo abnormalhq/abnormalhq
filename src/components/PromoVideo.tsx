@@ -3,6 +3,7 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import { configuredVideo, videoMimeType, type Lang, type PromoVideo as Video } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import { Icon } from "./Icon";
 import { VideoPlayer } from "./VideoPlayer";
 
@@ -20,7 +21,10 @@ export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang
   return (
     <section className="border-t border-border" id="video" aria-labelledby="video-title">
       <Container className={sectionSpaceClassName}>
-        <div className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start">
+        <div
+          className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
+          {...reveal()}
+        >
           <div>
             <Eyebrow lang="en">{v.eyebrow}</Eyebrow>
             <SectionTitle id="video-title">
@@ -31,7 +35,7 @@ export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang
           <p className="max-w-[34rem] pb-[0.2rem] text-md/prose text-muted-foreground">{v.description}</p>
         </div>
         {/* Same treatment as the cards: a thin border, no fill, no shadow. The video is a paper-colored picture, so the background is paper too and no black bars show. */}
-        <figure className="overflow-hidden rounded-panel border border-border bg-card">
+        <figure className="overflow-hidden rounded-panel border border-border bg-card" {...reveal(1)}>
           <VideoPlayer
             src={video.src}
             type={type}

@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/container";
 import { Eyebrow } from "@/components/ui/section-heading";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import { homeStructuredData } from "@/lib/structured-data";
 import { Faq } from "./Faq";
 import { Features } from "./Features";
@@ -14,6 +15,7 @@ import { JsonLd } from "./JsonLd";
 import { PricingSection } from "./PricingSection";
 import { Process } from "./Process";
 import { PromoVideo } from "./PromoVideo";
+import { ScrollReveal } from "./ScrollReveal";
 import { Start } from "./Start";
 import { Subscriptions } from "./Subscriptions";
 
@@ -23,6 +25,7 @@ export function Home({ lang }: { lang: Lang }) {
   return (
     <>
       <JsonLd data={homeStructuredData(lang)} />
+      <ScrollReveal />
       <Hero lang={lang} />
       <Container className="flex flex-wrap items-center justify-between gap-4 border-t border-border py-6 text-muted-foreground max-lg:justify-center max-md:flex-col">
         <p className="text-sm/body">
@@ -51,6 +54,7 @@ export function Home({ lang }: { lang: Lang }) {
           <Card
             asChild
             className="relative isolate flex-row items-center justify-between gap-8 overflow-hidden px-14 py-12 max-lg:p-11 max-md:flex-col max-md:items-start max-md:gap-7 max-md:px-6 max-md:py-8"
+            {...reveal()}
           >
             <div>
               <div

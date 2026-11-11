@@ -4,6 +4,7 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import { Icon } from "./Icon";
 
 /**
@@ -17,7 +18,10 @@ export function Features({ lang }: { lang: Lang }) {
   return (
     <section className="border-t border-border" id="features" aria-labelledby="features-title">
       <Container className={sectionSpaceClassName}>
-        <div className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start">
+        <div
+          className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
+          {...reveal()}
+        >
           <div>
             <Eyebrow lang="en">
               <span className="mr-1">01 /</span> {f.eyebrow}
@@ -35,7 +39,10 @@ export function Features({ lang }: { lang: Lang }) {
           </p>
         </div>
 
-        <ul className="grid overflow-hidden rounded-panel border border-border bg-border gap-px sm:grid-cols-2 lg:grid-cols-3">
+        <ul
+          className="grid overflow-hidden rounded-panel border border-border bg-border gap-px sm:grid-cols-2 lg:grid-cols-3"
+          {...reveal(1)}
+        >
           {f.items.map((item) => (
             <li
               className="flex flex-col bg-background px-5 py-5 sm:px-6 sm:pt-6 sm:pb-7 lg:px-7 lg:pt-7 lg:pb-8"
@@ -53,13 +60,13 @@ export function Features({ lang }: { lang: Lang }) {
         </ul>
 
         <div className="mt-14 max-md:mt-11">
-          <h3 className="flex items-center gap-4 text-sm/body font-medium text-muted-foreground">
+          <h3 className="flex items-center gap-4 text-sm/body font-medium text-muted-foreground" {...reveal()}>
             {f.platformsTitle}
             <span className="h-px flex-1 bg-border" aria-hidden="true"></span>
           </h3>
           <ul className="mt-7 grid gap-8 md:grid-cols-3 md:gap-10">
-            {f.platforms.map((platform) => (
-              <li className="flex items-start gap-4" key={platform.name}>
+            {f.platforms.map((platform, index) => (
+              <li className="flex items-start gap-4" key={platform.name} {...reveal(index)}>
                 <IconTile variant="default" aria-hidden="true">
                   <Icon name={platform.icon} />
                 </IconTile>

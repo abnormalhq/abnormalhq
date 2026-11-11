@@ -21,16 +21,17 @@ export function Hero({ lang }: { lang: Lang }) {
 
   return (
     <Container asChild>
+      {/* The copy rises in line by line on load and the showcase follows; it is CSS only, so it also plays without JavaScript. */}
       <section
         className="grid grid-cols-2 items-center gap-8 pt-20 pb-[4.5rem] max-hero:gap-4 max-hero:py-[3.75rem] max-md:grid-cols-1 max-md:gap-12 max-md:pt-[2.8rem] max-md:pb-14 max-phone:gap-10 max-phone:pt-[2.3rem] wide:gap-16 wide:pt-[5.5rem] wide:pb-20"
         aria-labelledby="hero-title"
       >
         <div className="relative z-1 max-md:text-center">
-          <Eyebrow className="inline-flex" lang="en">
+          <Eyebrow className="inline-flex animate-rise" lang="en">
             {h.eyebrow}
           </Eyebrow>
           <h1
-            className="my-[1.4rem] text-[clamp(2.5rem,4.4vw,3.5rem)] leading-[1.25] font-semibold tracking-[-0.02em] max-hero:text-[2.5rem] max-md:my-6 max-md:text-[clamp(2.35rem,8.2vw,3.6rem)]"
+            className="my-[1.4rem] animate-rise text-[clamp(2.5rem,4.4vw,3.5rem)] leading-[1.25] font-semibold tracking-[-0.02em] max-hero:text-[2.5rem] max-md:my-6 max-md:text-[clamp(2.35rem,8.2vw,3.6rem)] [animation-delay:70ms]"
             id="hero-title"
           >
             {h.titleLines[0]}
@@ -40,12 +41,12 @@ export function Hero({ lang }: { lang: Lang }) {
               <span className="-ml-[0.12em] text-signal">{t.dot}</span>
             </span>
           </h1>
-          <p className="max-w-[500px] text-md/prose text-muted-foreground max-hero:text-base/prose max-md:mx-auto">
+          <p className="max-w-[500px] animate-rise text-md/prose text-muted-foreground max-hero:text-base/prose max-md:mx-auto [animation-delay:140ms]">
             {h.description[0]}
             <br />
             {h.description[1]}
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3 max-md:justify-center">
+          <div className="mt-8 flex animate-rise flex-wrap items-center gap-3 max-md:justify-center [animation-delay:210ms]">
             <Button asChild size="lg">
               <a href={links.shop}>
                 {h.buy} <Icon name="arrow" className="size-4" />
@@ -89,7 +90,7 @@ export function Hero({ lang }: { lang: Lang }) {
         </div>
 
         <div
-          className="group/visual relative isolate h-[475px] min-w-0 max-hero:h-[450px] max-md:mx-auto max-md:h-[445px] max-md:w-[min(100%,470px)] max-phone:h-[425px]"
+          className="group/visual relative isolate h-[475px] animate-rise [animation-delay:180ms] min-w-0 max-hero:h-[450px] max-md:mx-auto max-md:h-[445px] max-md:w-[min(100%,470px)] max-phone:h-[425px]"
           role="img"
           aria-label={h.visualLabel}
         >
@@ -109,9 +110,10 @@ export function Hero({ lang }: { lang: Lang }) {
           >
             +
           </span>
+          {/* The yellow block and the address card float slowly, out of step with each other; the inbox between them stays put. */}
           {/* The hero showcase: a big highlight-yellow block with ink on top throughout. */}
           <div
-            className="absolute top-0 right-[1%] z-2 h-[143px] w-[125px] rotate-10 rounded-mark bg-highlight p-4 text-highlight-foreground max-hero:right-[2%] max-hero:h-[125px] max-hero:w-[108px] max-md:-top-2 max-md:h-[127px] max-md:w-[110px] max-phone:h-[112px] max-phone:w-[96px] max-phone:p-[0.8rem]"
+            className="absolute top-0 right-[1%] z-2 h-[143px] w-[125px] rotate-10 animate-drift rounded-mark bg-highlight p-4 text-highlight-foreground max-hero:right-[2%] max-hero:h-[125px] max-hero:w-[108px] max-md:-top-2 max-md:h-[127px] max-md:w-[110px] max-phone:h-[112px] max-phone:w-[96px] max-phone:p-[0.8rem] [animation-delay:-2s]"
             aria-hidden="true"
           >
             <span className="mb-[0.55rem] flex items-start justify-between text-[2rem] leading-none font-semibold">
@@ -188,7 +190,7 @@ export function Hero({ lang }: { lang: Lang }) {
             </div>
           </div>
           <div
-            className="absolute bottom-1 left-[7%] z-3 flex rotate-2 items-center gap-[0.8rem] rounded-mark border border-border bg-card px-4 py-[0.85rem] max-hero:left-0 max-hero:gap-2 max-hero:p-[0.7rem] max-md:bottom-0 max-md:left-[5%] max-md:gap-[0.8rem] max-md:px-4 max-md:py-[0.85rem] max-phone:left-0 max-phone:gap-[0.55rem] max-phone:p-[0.7rem]"
+            className="absolute bottom-1 left-[7%] z-3 flex rotate-2 animate-drift [animation-duration:9s] items-center gap-[0.8rem] rounded-mark border border-border bg-card px-4 py-[0.85rem] max-hero:left-0 max-hero:gap-2 max-hero:p-[0.7rem] max-md:bottom-0 max-md:left-[5%] max-md:gap-[0.8rem] max-md:px-4 max-md:py-[0.85rem] max-phone:left-0 max-phone:gap-[0.55rem] max-phone:p-[0.7rem]"
             aria-hidden="true"
           >
             <span className="grid size-[2.6rem] place-items-center rounded-full bg-surface text-[1.4rem] text-foreground">

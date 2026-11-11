@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import type { Product, ProductIcon } from "@/i18n/types";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
@@ -28,6 +29,7 @@ export function ProductCard({ lang, product, index }: { lang: Lang; product: Pro
       asChild
       variant={product.featured ? "featured" : "interactive"}
       className="relative px-[1.4rem] pt-6 pb-[1.4rem] max-card:px-[1.1rem] max-lg:px-[1.4rem] max-sm:p-6"
+      {...reveal(index)}
     >
       <article>
         <div className="flex items-center justify-between gap-[0.7rem]">

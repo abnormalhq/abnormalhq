@@ -5,6 +5,7 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import { Icon } from "./Icon";
 
 export function Process({ lang }: { lang: Lang }) {
@@ -12,7 +13,10 @@ export function Process({ lang }: { lang: Lang }) {
   return (
     <section className="border-t border-border" id="how-it-works" aria-labelledby="process-title">
       <Container className={sectionSpaceClassName}>
-        <div className="mb-11 flex flex-col gap-5 md:mb-[3.75rem] md:flex-row md:items-end md:justify-between md:gap-8">
+        <div
+          className="mb-11 flex flex-col gap-5 md:mb-[3.75rem] md:flex-row md:items-end md:justify-between md:gap-8"
+          {...reveal()}
+        >
           <div>
             <Eyebrow lang="en">
               <span className="mr-1">05 /</span>
@@ -32,7 +36,7 @@ export function Process({ lang }: { lang: Lang }) {
         </div>
         <div className="grid gap-9 md:grid-cols-2 md:gap-10 lg:grid-cols-4">
           {t.process.steps.map((step, index) => (
-            <article className="min-w-0" key={step.title}>
+            <article className="min-w-0" key={step.title} {...reveal(index)}>
               <div className="mb-[1.3rem] flex items-center gap-5 md:mb-7">
                 {/* The number is highlighted with the registry's Marker: a band of yellow across its lower half, dim yellow in dark mode. */}
                 <Marker

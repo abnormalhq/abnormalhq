@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
+import { reveal } from "@/lib/reveal";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
 import { ProductCard } from "./ProductCard";
@@ -14,7 +15,10 @@ export function Subscriptions({ lang }: { lang: Lang }) {
   return (
     <section className="border-t border-border" id="services" aria-labelledby="services-title">
       <Container className={sectionSpaceClassName}>
-        <div className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start">
+        <div
+          className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
+          {...reveal()}
+        >
           <div>
             <Eyebrow lang="en">
               <span className="mr-1">04 /</span> {s.eyebrow}
