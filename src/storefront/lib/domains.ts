@@ -20,6 +20,13 @@ import {
   type SubscriptionState,
 } from "./catalog.ts";
 
+/*
+ * The enums below are mail's, as data in docs/onboard-contract.json since version 3 (`shop.buyerDomains.statuses`, `phases`,
+ * `recordStatuses`, `recordTypes`, `recordPurposes`; mail's packages/core/src/lib/shop/refusals.ts). The parsers accept exactly
+ * these, the types are derived from them, and tests/storefront/contract.test.ts checks each list against the contract file,
+ * so a status mail adds fails a test here before it fails a page.
+ */
+
 /**
  * Where a domain stands: pending (publish the ownership TXT, then verify), provisioning (ownership verified, the mail service
  * is still setting the domain up), review (waiting for the provider's approval), live, or suspended (by the provider).
@@ -34,7 +41,7 @@ export type DnsRecordType = (typeof DNS_RECORD_TYPES)[number];
 export const DNS_RECORD_STATUSES = ["matched", "missing", "conflict", "error", "pending"] as const;
 export type DnsRecordStatus = (typeof DNS_RECORD_STATUSES)[number];
 
-/** The purposes mail names today; a record with one the page does not know is still shown, by its type. */
+/** The purposes mail names today (`shop.buyerDomains.recordPurposes`); a record with one the page does not know is still shown, by its type. */
 export const DNS_RECORD_PURPOSES = [
   "ownership",
   "mx",
@@ -50,9 +57,10 @@ export const DNS_RECORD_PURPOSES = [
 ] as const;
 export type DnsRecordPurpose = (typeof DNS_RECORD_PURPOSES)[number];
 
-const PHASES: readonly SubscriptionState[] = ["active", "grace", "suspended", "expired"];
+/** Where the buyer's plans that allow own domains stand (`shop.buyerDomains.phases`): the states of a subscription. */
+export const DOMAIN_PHASES: readonly SubscriptionState[] = ["active", "grace", "suspended", "expired"];
 const isStatus = oneOf(DOMAIN_STATUSES);
-const isPhase = oneOf(PHASES);
+const isPhase = oneOf(DOMAIN_PHASES);
 const isRecordType = oneOf(DNS_RECORD_TYPES);
 const isRecordStatus = oneOf(DNS_RECORD_STATUSES);
 
@@ -75,7 +83,8 @@ export interface DomainRecord {
   /** For SRV: `priority weight port target`, the whole record data. */
   value: string;
   priority?: number;
-  purpose: string;
+  /** One of DNS_RECORD_PURPOSES today. Kept as mail sent it: a record with a purpose the page does not know yet is still shown, by its type. */
+  purpose: DnsRecordPurpose | (string & {});
   /** false: optional (the DMARC suggestion, the client-discovery records); the domain works without it. */
   required: boolean;
   status: DnsRecordStatus;

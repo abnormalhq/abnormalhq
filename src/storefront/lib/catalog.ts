@@ -34,18 +34,35 @@ export interface ShopProduct {
 }
 
 /**
- * A plan sold per mailbox (mail's `seatProducts`, docs/storefront-api.md "Seat plans"): the buyer chooses how many, from seatMin to
- * seatMax. Every price field is for ONE seat (per period for a subscription) and `mailboxCount` equals seatMin; an order is
- * priced by mail for the quantity sent with checkout (seatOrderPrice below is the same rule, for the estimate the page shows).
+ * A plan sold per mailbox (mail's `seatProducts`, docs/storefront-api.md "Seat plans"): the buyer chooses how many, from
+ * `minQuantity` to `maxQuantity`, and mail prices the order for the quantity (its quote says the total before checkout).
+ *
+ * The fields below are what a buyer page needs of a seat plan, as mail says them outright since contract version 3
+ * (`shop.seats.planFields` in docs/onboard-contract.json). A mail before them publishes the same facts under the fixed-plan
+ * names (`seatMin`, `seatMax`, and the price fields of ShopProduct, which are for ONE seat on a seat plan); parseSeatProduct
+ * reads the explicit fields and falls back to those, so the pages only ever read the names here. The ShopProduct price
+ * fields of a parsed seat plan carry the same per-seat numbers. `mailboxCount` of a seat plan equals its minimum.
  */
 export interface SeatProduct extends ShopProduct {
-  seatMin: number;
-  seatMax: number;
+  /** The range of the quantity field. */
+  minQuantity: number;
+  maxQuantity: number;
+  /** One seat before and after the plan's discount, in hundredths of an LDC. */
+  unitOriginalPriceCents: number;
+  unitPriceCents: number;
+  /** One seat per later period: the plan's renewal price, or its discounted price when it has none; 0 for a one-time plan. */
+  unitRenewPriceCents: number;
+  /** One seat with a card, in the smallest unit of the shop currency; 0 when the plan cannot be bought with a card. */
+  unitFiatPriceMinor: number;
 }
 
-/** The most seats one order or subscription can hold: a redeem code's largest allowance (mail's SEAT_MAX, `redeem.code.maxUses`). */
+/** How a plan is sold, in the public words of the contract (`shop.planKinds`): a set of mailboxes at one price, or by the seat. */
+export const PLAN_KINDS = ["fixed", "seats"] as const;
+export type PlanKind = (typeof PLAN_KINDS)[number];
+
+/** The most seats one order or subscription can hold: a redeem code's largest allowance (mail's SEAT_MAX, `shop.seats.maxQuantity`). */
 export const SEAT_MAX = 1000;
-/** The most one order can charge, in hundredths (mail's SHOP_PRICE_MAX_CENTS). */
+/** The most one order can charge, in hundredths (mail's SHOP_PRICE_MAX_CENTS, `shop.seats.maxTotalCents`). */
 export const SHOP_PRICE_MAX_CENTS = 100_000_000;
 
 /** ldc = Linux DO Credit; stripe = card (Stripe Checkout). */
@@ -83,6 +100,62 @@ export interface ShopCatalog {
 
 export const shopApiRoot = `${apiBase}/api/shop`;
 
+/**
+ * The refusals of mail's shop API that carry a stable code, with the status of each (`shop.refusalCodes` in
+ * docs/onboard-contract.json, mail's SHOP_REFUSAL_CODES). Such a refusal answers `{ error, code, messages: { zh, en },
+ * ...details }`: `code` is what the pages branch on, `messages` the buyer-facing text in both languages, and the details are
+ * numbers only (`min` and `max` of a plan's range, `maxTotalCents`). Every other refusal answers `{ error }` only, as all of
+ * them did before contract version 3.
+ */
+export const REFUSAL_CODES = {
+  seat_quantity_invalid: 400,
+  seat_quantity_out_of_range: 400,
+  seat_total_too_large: 400,
+  coupon_invalid: 400,
+  product_unavailable: 409,
+  domain_not_found: 404,
+  domain_ownership_not_found: 409,
+  domain_ownership_expired: 409,
+  domain_dns_lookup_failed: 409,
+  domain_already_verified: 409,
+  domain_verification_refused: 409,
+  domain_unavailable: 503,
+} as const;
+export type RefusalCode = keyof typeof REFUSAL_CODES;
+
+/** What a coded refusal carries next to `error`; all empty for a refusal without a code. */
+export interface ShopRefusal {
+  /** The code as mail sent it. A code this storefront does not know yet is kept: its text is still shown. */
+  code: string | null;
+  /** The buyer-facing text per page language (`shop.refusalLanguages`); a language mail did not send is absent. */
+  messages: Readonly<Partial<Record<Lang, string>>>;
+  /** The numbers next to the code, by name. */
+  details: Readonly<Record<string, number>>;
+}
+
+const NO_REFUSAL: ShopRefusal = { code: null, messages: {}, details: {} };
+const REFUSAL_FIELDS = ["error", "code", "messages"];
+
+/**
+ * Reads the code, the two texts and the numeric details of a failed answer. A body without a `code` (every refusal of a
+ * mail before coded refusals, and most refusals of any mail) reads as no refusal, and the page shows `error` as it always did.
+ */
+export function parseRefusal(body: unknown): ShopRefusal {
+  if (!record(body) || typeof body.code !== "string" || !body.code) return NO_REFUSAL;
+  const messages: Partial<Record<Lang, string>> = {};
+  if (record(body.messages)) {
+    for (const lang of ["zh", "en"] as const) {
+      const text = body.messages[lang];
+      if (typeof text === "string" && text.trim()) messages[lang] = text;
+    }
+  }
+  const details: Record<string, number> = {};
+  for (const [key, value] of Object.entries(body)) {
+    if (!REFUSAL_FIELDS.includes(key) && typeof value === "number" && Number.isSafeInteger(value)) details[key] = value;
+  }
+  return { code: body.code, messages, details };
+}
+
 export class ShopApiError extends Error {
   readonly status: number;
   /**
@@ -92,14 +165,34 @@ export class ShopApiError extends Error {
   readonly answered: boolean;
   /** Seconds until the request may be tried again, from the answer's Retry-After (every 429 of mail's shop API carries it); null when absent. */
   readonly retryAfter: number | null;
+  /** The stable code of a coded refusal (REFUSAL_CODES); null for every other failure. */
+  readonly code: string | null;
+  /** A coded refusal's text in both page languages; shopError shows the page's own. */
+  readonly messages: Readonly<Partial<Record<Lang, string>>>;
+  /** A coded refusal's numbers (`min`, `max`, `maxTotalCents`). */
+  readonly details: Readonly<Record<string, number>>;
 
-  constructor(message: string, status = 0, answered = false, retryAfter: number | null = null) {
+  constructor(
+    message: string,
+    status = 0,
+    answered = false,
+    retryAfter: number | null = null,
+    refusal: ShopRefusal = NO_REFUSAL,
+  ) {
     super(message);
     this.name = "ShopApiError";
     this.status = status;
     this.answered = answered;
     this.retryAfter = retryAfter;
+    this.code = refusal.code;
+    this.messages = refusal.messages;
+    this.details = refusal.details;
   }
+}
+
+/** Whether a failure is the coded refusal `code`. */
+export function isRefusal(error: unknown, code: RefusalCode): error is ShopApiError {
+  return error instanceof ShopApiError && error.code === code;
 }
 
 /*
@@ -224,49 +317,112 @@ export function parseProduct(value: unknown): ShopProduct | null {
   return entitlements && compact({ id: value.id, name: value.name, description: value.description, ...entitlements });
 }
 
-/** A seat plan: a product with `kind: "seat"` and a seat range mail itself would accept (1 to SEAT_MAX, min not above max). */
+/**
+ * A seat plan. mail says the kind twice: `planKind: "seats"` (the public word, since contract version 3) and `kind: "seat"`
+ * (the stored word, which a mail before version 3 sends alone); either marks a seat plan, and a `planKind` that says
+ * anything else does not. The range and the prices of one seat are read from the explicit fields (`minQuantity`,
+ * `maxQuantity`, `unit…`) and, where a mail before them sends none, from the fields that have always carried the same
+ * numbers (`seatMin`, `seatMax` and the plan's own price fields). A field that is present must be usable: a range mail
+ * itself would accept (1 to SEAT_MAX, min not above max) and prices that agree like any plan's.
+ */
 export function parseSeatProduct(value: unknown): SeatProduct | null {
   const product = parseProduct(value);
-  if (!product || !record(value) || value.kind !== "seat") return null;
-  const { seatMin, seatMax } = value;
-  if (!isCount(seatMin) || !isCount(seatMax) || seatMin < 1 || seatMax < seatMin || seatMax > SEAT_MAX) return null;
-  return { ...product, seatMin, seatMax };
+  if (!product || !record(value)) return null;
+  if (value.planKind === undefined ? value.kind !== "seat" : value.planKind !== "seats") return null;
+  const minQuantity = value.minQuantity === undefined ? value.seatMin : value.minQuantity;
+  const maxQuantity = value.maxQuantity === undefined ? value.seatMax : value.maxQuantity;
+  if (
+    !isCount(minQuantity) ||
+    !isCount(maxQuantity) ||
+    minQuantity < 1 ||
+    maxQuantity < minQuantity ||
+    maxQuantity > SEAT_MAX
+  )
+    return null;
+  const {
+    unitOriginalPriceCents = product.originalPriceCents,
+    unitPriceCents = product.priceCents,
+    // A mail before the field: the plan's renewal price, or its discounted price when it has none; a one-time plan renews at nothing.
+    unitRenewPriceCents = product.periodDays ? product.renewPriceCents || product.priceCents : 0,
+    unitFiatPriceMinor = product.fiatPriceMinor ?? 0,
+  } = value;
+  if (
+    !validPrice({
+      originalPriceCents: unitOriginalPriceCents,
+      discountPercent: product.discountPercent,
+      priceCents: unitPriceCents,
+    }) ||
+    !isCount(unitRenewPriceCents) ||
+    !isCount(unitFiatPriceMinor)
+  )
+    return null;
+  return {
+    ...product,
+    // The plan's own price fields are for one seat too, and say what the explicit fields say: where the two disagree the
+    // explicit ones win, so whatever reads a seat plan as a plan (the price line, the details, the pricing page) shows them.
+    originalPriceCents: unitOriginalPriceCents as number,
+    priceCents: unitPriceCents as number,
+    renewPriceCents: unitRenewPriceCents,
+    fiatPriceMinor: unitFiatPriceMinor,
+    minQuantity,
+    maxQuantity,
+    unitOriginalPriceCents: unitOriginalPriceCents as number,
+    unitPriceCents: unitPriceCents as number,
+    unitRenewPriceCents,
+    unitFiatPriceMinor,
+  };
 }
+
+/** One seat's prices, as the estimates below read them: a catalog seat plan, or the fixed-plan names an upgrade plan of the renewal page carries. */
+type SeatPrices =
+  | Pick<SeatProduct, "unitOriginalPriceCents" | "discountPercent">
+  | Pick<ShopProduct, "originalPriceCents" | "discountPercent">;
 
 /**
  * What `quantity` seats of a seat plan cost in LDC at purchase, by mail's rule (seatOrderPrice in its pricing.ts): quantity ×
  * the seat's ORIGINAL price, then the plan's discount on the whole order, rounded half up once. Not quantity × the seat's
  * discounted price: 3.33 a seat at 10% off is 20.98 for 7 seats (23.31 × 0.9 = 20.979), not 7 × 3.00.
- * mail prices the order at checkout; this is only the figure the page shows before that, marked as an estimate.
- * null when the total is above what one order can charge (mail refuses that checkout).
+ *
+ * This is the FALLBACK, for a mail before POST /api/shop/quote and for the moments a quote is not there (still loading, the
+ * rate limit, a failed request): with a quote the pages show mail's own total and work out no money (quote.ts). What is
+ * shown from here is marked as an estimate, and mail prices the order at checkout either way.
+ * null when the total is above what one order can charge (`maxTotalCents`: mail refuses that checkout).
  */
 export function seatOrderPrice(
-  product: Pick<ShopProduct, "originalPriceCents" | "discountPercent">,
+  product: SeatPrices,
   quantity: number,
+  maxTotalCents: number = SHOP_PRICE_MAX_CENTS,
 ): { originalPriceCents: number; priceCents: number } | null {
   if (!Number.isSafeInteger(quantity) || quantity < 1) return null;
-  const originalPriceCents = product.originalPriceCents * quantity;
-  if (!Number.isSafeInteger(originalPriceCents) || originalPriceCents > SHOP_PRICE_MAX_CENTS) return null;
+  const unit = "unitOriginalPriceCents" in product ? product.unitOriginalPriceCents : product.originalPriceCents;
+  const originalPriceCents = unit * quantity;
+  if (!Number.isSafeInteger(originalPriceCents) || originalPriceCents > maxTotalCents) return null;
   const priceCents = Math.floor((originalPriceCents * (100 - product.discountPercent) + 50) / 100);
   return priceCents < 1 ? null : { originalPriceCents, priceCents };
 }
 
-/** What `quantity` seats cost by card: quantity × the seat's card price, per period for a subscription. null above the payable limit or without a card price. */
-export function seatCardPrice(product: Pick<ShopProduct, "fiatPriceMinor">, quantity: number): number | null {
-  const total = (product.fiatPriceMinor ?? 0) * quantity;
-  return Number.isSafeInteger(quantity) && quantity >= 1 && total >= 1 && total <= SHOP_PRICE_MAX_CENTS ? total : null;
+/** What `quantity` seats cost by card: quantity × the seat's card price, per period for a subscription. null above the payable limit or without a card price. The fallback, like seatOrderPrice. */
+export function seatCardPrice(
+  product: Pick<SeatProduct, "unitFiatPriceMinor"> | Pick<ShopProduct, "fiatPriceMinor">,
+  quantity: number,
+  maxTotalCents: number = SHOP_PRICE_MAX_CENTS,
+): number | null {
+  const unit = "unitFiatPriceMinor" in product ? product.unitFiatPriceMinor : (product.fiatPriceMinor ?? 0);
+  const total = unit * quantity;
+  return Number.isSafeInteger(quantity) && quantity >= 1 && total >= 1 && total <= maxTotalCents ? total : null;
 }
 
 /**
  * What `quantity` seats cost by each way of paying the shop offers, each judged on its own: mail refuses an order above what one
  * order can charge per way of paying (the LDC total and the card total are different amounts in different units), so a quantity
  * that is too many for one can still be bought with the other. `ldcTooMany` / `cardTooMany` are true only for a way that is
- * offered and cannot take the quantity; `tooMany` when no offered way can.
+ * offered and cannot take the quantity; `tooMany` when no offered way can. The fallback, like seatOrderPrice.
  */
 export function seatTotals(
-  product: Pick<ShopProduct, "originalPriceCents" | "discountPercent" | "fiatPriceMinor">,
+  product: SeatPrices & (Pick<SeatProduct, "unitFiatPriceMinor"> | Pick<ShopProduct, "fiatPriceMinor">),
   quantity: number,
   offered: { ldc: boolean; card: boolean },
+  maxTotalCents: number = SHOP_PRICE_MAX_CENTS,
 ): {
   ldc: { originalPriceCents: number; priceCents: number } | null;
   card: number | null;
@@ -274,17 +430,21 @@ export function seatTotals(
   cardTooMany: boolean;
   tooMany: boolean;
 } {
-  const ldc = offered.ldc ? seatOrderPrice(product, quantity) : null;
-  const card = offered.card ? seatCardPrice(product, quantity) : null;
+  const ldc = offered.ldc ? seatOrderPrice(product, quantity, maxTotalCents) : null;
+  const card = offered.card ? seatCardPrice(product, quantity, maxTotalCents) : null;
   const ldcTooMany = offered.ldc && !ldc;
   const cardTooMany = offered.card && !card;
   return { ldc, card, ldcTooMany, cardTooMany, tooMany: !ldc && !card };
 }
 
+/** The range of a quantity field: a catalog seat plan's, or the old names an upgrade plan of the renewal page carries. */
+type SeatRange = Pick<SeatProduct, "minQuantity" | "maxQuantity"> | { seatMin: number; seatMax: number };
+
 /** A quantity typed or stepped to, kept inside the plan's range; anything that is no whole number becomes the minimum. */
-export function clampSeats(value: number, plan: Pick<SeatProduct, "seatMin" | "seatMax">): number {
-  if (!Number.isFinite(value)) return plan.seatMin;
-  return Math.min(plan.seatMax, Math.max(plan.seatMin, Math.trunc(value)));
+export function clampSeats(value: number, plan: SeatRange): number {
+  const [min, max] = "minQuantity" in plan ? [plan.minQuantity, plan.maxQuantity] : [plan.seatMin, plan.seatMax];
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, Math.trunc(value)));
 }
 
 /** Retry-After as whole seconds (mail sends the seconds left in the counter's window); null when absent or not a number. */
@@ -315,11 +475,14 @@ export async function request(
   });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
+    const refusal = parseRefusal(body);
     throw new ShopApiError(
-      record(body) && typeof body.error === "string" ? body.error : "",
+      // A coded refusal says its text in both languages: the page's own is the one to show, whatever language `error` came in.
+      (lang && refusal.messages[lang]) || (record(body) && typeof body.error === "string" ? body.error : ""),
       response.status,
       record(body),
       retryAfterSeconds(response),
+      refusal,
     );
   }
   return body;
@@ -383,7 +546,7 @@ export function catalogPlans(catalog: Pick<ShopCatalog, "products" | "seatProduc
 }
 
 export function isSeatProduct(product: ShopProduct | SeatProduct): product is SeatProduct {
-  return "seatMax" in product;
+  return "maxQuantity" in product;
 }
 
 export interface AddressAvailability {

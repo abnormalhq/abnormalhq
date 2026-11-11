@@ -1,0 +1,630 @@
+/**
+ * What an order would cost before it exists: the browser client of mail's POST /api/shop/quote (`shop.seats.routes` and
+ * `shop.seats.quoteFields` in docs/onboard-contract.json; "Seat plans" in docs/storefront-api.md), and the board the pages
+ * keep their quotes on.
+ *
+ * mail prices an order: a seat plan's discount is taken off the whole order and rounded once, each way of paying has its own
+ * price, and the most one order can charge is mail's to say. With a quote the pages show mail's numbers and work out no money
+ * themselves. A mail before the endpoint answers 404: the pages then show the estimate they always showed (seatOrderPrice
+ * and seatCardPrice in catalog.ts), and they show the same estimate while a quote is on its way or cannot be had.
+ * This file does not depend on the DOM and must not use TypeScript syntax Node cannot run directly; tests run it as is.
+ */
+import type { Lang } from "../i18n.ts";
+import {
+  isBoolean,
+  isCount,
+  isCurrency,
+  isString,
+  oneOf,
+  PLAN_KINDS,
+  record,
+  request,
+  SEAT_MAX,
+  seatOrderPrice,
+  ShopApiError,
+  type PlanKind,
+  type ShopPaymentProvider,
+} from "./catalog.ts";
+
+/** What is asked: a plan, a way of paying and, for a seat plan, how many seats (0 for a fixed plan, which is sold whole). */
+export interface QuoteAsk {
+  productId: string;
+  provider: ShopPaymentProvider;
+  quantity: number;
+  /**
+   * A discount code to price the order with. Every quote that carries one is a guess against mail's limit on code guesses
+   * (10 per 10 minutes per source IP, shared with checkout), so the pages send none with the quotes they ask by themselves.
+   */
+  coupon?: string;
+}
+
+/** A discount code on a quote: null when none was sent, `valid: false` when it cannot be used for this order (one answer for every reason). */
+export type QuoteCoupon =
+  null | { valid: false } | { valid: true; code: string; discountCents: number; firstPeriodOnly: boolean };
+
+/**
+ * mail's PurchaseQuote (apps/console/src/lib/shop/quote.ts). Amounts are hundredths of an LDC, or the smallest unit of
+ * `currency` for a card.
+ */
+export interface PurchaseQuote {
+  productId: string;
+  kind: PlanKind;
+  provider: ShopPaymentProvider;
+  /** "" for LDC. */
+  currency: string;
+  /** Seats of a seat plan; 1 for a fixed plan. */
+  quantity: number;
+  /** The range `quantity` may be in right now: the plan's seat range, 1 and 1 for a fixed plan. */
+  minQuantity: number;
+  maxQuantity: number;
+  /** One seat (or the fixed plan) before and after the plan's own discount. `quantity` times the second is NOT the total. */
+  unitOriginalPriceCents: number;
+  unitPriceCents: number;
+  /** The order before the plan's discount (an order's `originalPriceCents`). */
+  subtotalCents: number;
+  discountPercent: number;
+  /** What the plan's discount takes off the subtotal. */
+  planDiscountCents: number;
+  /** The price before a discount code. */
+  basePriceCents: number;
+  coupon: QuoteCoupon;
+  /** What the buyer pays now (an order's `priceCents`). */
+  totalCents: number;
+  /** The subscription period in days; 0 for a one-time purchase. */
+  periodDays: number;
+  /** What each later period costs for this quantity; 0 for a one-time purchase. A code never applies to it. */
+  renewPriceCents: number;
+}
+
+const isProvider = oneOf(["ldc", "stripe"] as const);
+const isPlanKind = oneOf(PLAN_KINDS);
+
+function parseQuoteCoupon(value: unknown): QuoteCoupon | undefined {
+  if (value === null) return null;
+  if (!record(value) || !isBoolean(value.valid)) return undefined;
+  if (!value.valid) return { valid: false };
+  if (
+    !isString(value.code) ||
+    !value.code ||
+    !isCount(value.discountCents) ||
+    value.discountCents < 1 ||
+    !isBoolean(value.firstPeriodOnly)
+  )
+    return undefined;
+  return {
+    valid: true,
+    code: value.code,
+    discountCents: value.discountCents,
+    firstPeriodOnly: value.firstPeriodOnly,
+  };
+}
+
+/**
+ * Checks a quote and builds the typed one; throws ShopApiError on anything else. Like every answer the pages render, a
+ * half-right quote never reaches them: it must be for the plan, way of paying and quantity asked, its amounts must add up
+ * the way mail's document says they do (`planDiscountCents = subtotalCents − basePriceCents`, `totalCents = basePriceCents −
+ * the code's discountCents`), and a card amount must come with its currency. What mail multiplies and rounds is not redone.
+ */
+export function parsePurchaseQuote(body: unknown, ask: QuoteAsk): PurchaseQuote {
+  if (!record(body)) throw new ShopApiError("");
+  const {
+    kind,
+    provider,
+    currency,
+    quantity,
+    minQuantity,
+    maxQuantity,
+    unitOriginalPriceCents,
+    unitPriceCents,
+    subtotalCents,
+    discountPercent,
+    planDiscountCents,
+    basePriceCents,
+    totalCents,
+    periodDays,
+    renewPriceCents,
+  } = body;
+  const coupon = parseQuoteCoupon(body.coupon);
+  if (
+    body.productId !== ask.productId ||
+    !isPlanKind(kind) ||
+    !isProvider(provider) ||
+    provider !== ask.provider ||
+    !isCurrency(currency) ||
+    (provider === "stripe") !== Boolean(currency) ||
+    ![
+      quantity,
+      minQuantity,
+      maxQuantity,
+      unitOriginalPriceCents,
+      unitPriceCents,
+      subtotalCents,
+      discountPercent,
+      planDiscountCents,
+      basePriceCents,
+      totalCents,
+      periodDays,
+      renewPriceCents,
+    ].every(isCount) ||
+    coupon === undefined
+  )
+    throw new ShopApiError("");
+  const [count, min, max] = [quantity, minQuantity, maxQuantity] as number[];
+  const [subtotal, planDiscount, base, total] = [
+    subtotalCents,
+    planDiscountCents,
+    basePriceCents,
+    totalCents,
+  ] as number[];
+  const discount = coupon?.valid ? coupon.discountCents : 0;
+  if (
+    min! < 1 ||
+    max! < min! ||
+    max! > SEAT_MAX ||
+    count! < min! ||
+    count! > max! ||
+    // A fixed plan is sold whole; a seat plan's quote is for the seats asked.
+    (kind === "fixed" ? max !== 1 : count !== ask.quantity) ||
+    (kind === "fixed") !== ask.quantity < 1 ||
+    (unitPriceCents as number) < 1 ||
+    (unitOriginalPriceCents as number) < (unitPriceCents as number) ||
+    (discountPercent as number) > 99 ||
+    base! < 1 ||
+    subtotal! < base! ||
+    planDiscount !== subtotal! - base! ||
+    total! < 1 ||
+    total !== base! - discount ||
+    // A code was sent or it was not: the answer says which.
+    (coupon === null) !== !ask.coupon
+  )
+    throw new ShopApiError("");
+  return {
+    productId: ask.productId,
+    kind,
+    provider,
+    currency,
+    quantity: count!,
+    minQuantity: min!,
+    maxQuantity: max!,
+    unitOriginalPriceCents: unitOriginalPriceCents as number,
+    unitPriceCents: unitPriceCents as number,
+    subtotalCents: subtotal!,
+    discountPercent: discountPercent as number,
+    planDiscountCents: planDiscount!,
+    basePriceCents: base!,
+    coupon,
+    totalCents: total!,
+    periodDays: periodDays as number,
+    renewPriceCents: renewPriceCents as number,
+  };
+}
+
+/**
+ * Asks mail what an order would cost (POST /api/shop/quote). It reserves nothing, and checkout prices the order again by
+ * the same rules. Failures are ShopApiError: 404 from a mail before the endpoint, 429 with `retryAfter` (60 quotes per 10
+ * minutes per source IP), and mail's coded refusals (`seat_quantity_invalid`, `seat_quantity_out_of_range` with `min` and
+ * `max`, `seat_total_too_large` with `maxTotalCents`, `product_unavailable`).
+ */
+export async function quotePurchase(ask: QuoteAsk, signal?: AbortSignal, lang?: Lang): Promise<PurchaseQuote> {
+  const body = await request(
+    "quote",
+    {
+      productId: ask.productId,
+      ...(ask.provider === "stripe" ? { provider: ask.provider } : {}),
+      ...(ask.quantity > 0 ? { quantity: ask.quantity } : {}),
+      ...(ask.coupon ? { coupon: ask.coupon } : {}),
+    },
+    signal,
+    lang,
+  );
+  return parsePurchaseQuote(body, ask);
+}
+
+/**
+ * What a page knows about one quote it wants:
+ * - `loading`: asked, not answered yet. `shown` is the last quote this slot had, if any: the page keeps the fallback display.
+ * - `quoted`: mail's numbers.
+ * - `refused`: mail will not sell this (a coded refusal): the quantity is outside the plan's range, the total is above what
+ *   one order can charge, or the plan is not on sale with this way of paying. `message` is mail's text in the page language.
+ * - `limited`: the rate limit; the board asks again by itself at `retryAt` (milliseconds on the board's clock).
+ * - `unavailable`: the request failed (network, an outage, an answer that does not parse). The page shows its estimate,
+ *   and the next change of the ask tries again.
+ * - `unsupported`: the backend has no quote endpoint (404). Nothing is asked again; the page behaves as it did before quotes.
+ */
+export type QuoteView =
+  | { state: "loading" }
+  | { state: "quoted"; quote: PurchaseQuote }
+  | { state: "refused"; code: string; message: string; details: Readonly<Record<string, number>> }
+  | { state: "limited"; retryAt: number }
+  | { state: "unavailable" }
+  | { state: "unsupported" };
+
+/** How long a change of quantity waits before it is asked about, so that stepping from 2 to 12 is one request and not ten. */
+export const QUOTE_DEBOUNCE_MS = 350;
+/** How long to stay away after a rate limit that did not say (mail's 429 always carries Retry-After). */
+export const QUOTE_RETRY_SECONDS = 60;
+/** Answers kept per board: stepping back to a quantity already quoted asks nothing. */
+const QUOTE_CACHE_SIZE = 200;
+
+export interface QuoteBoardOptions {
+  /** The request itself; quotePurchase unless a test says otherwise. */
+  fetchQuote?: (ask: QuoteAsk, signal: AbortSignal, lang?: Lang) => Promise<PurchaseQuote>;
+  lang?: Lang;
+  debounceMs?: number;
+  now?: () => number;
+}
+
+/** What a page reads off its board: every slot's view, and what mail's answers said about the plans beyond the totals. */
+export interface QuoteSnapshot {
+  views: Readonly<Record<string, QuoteView>>;
+  /** What each slot's view is about. */
+  asks: Readonly<Record<string, QuoteAsk>>;
+  /**
+   * A plan's quantity range as mail last said it (in a quote, or in the refusal of a quantity outside it), by plan id. The
+   * catalog the page loaded can be older, so the page reads the range here first.
+   */
+  ranges: Readonly<Record<string, { min: number; max: number }>>;
+  /** The most one order can charge as mail last said it (`seat_total_too_large`); null until it did. */
+  maxTotalCents: number | null;
+}
+
+const EMPTY_SNAPSHOT: QuoteSnapshot = { views: {}, asks: {}, ranges: {}, maxTotalCents: null };
+
+interface Slot {
+  ask: QuoteAsk;
+  view: QuoteView;
+  timer: ReturnType<typeof setTimeout> | null;
+  request: AbortController | null;
+}
+
+function askKey(ask: QuoteAsk): string {
+  return `${ask.productId}:${ask.provider}:${ask.quantity}:${ask.coupon ?? ""}`;
+}
+
+/**
+ * The quotes of one page. A slot is one figure the page shows ("<plan>:<way of paying>"); `want` says what that figure
+ * should be about now, and `view` what is known about it.
+ *
+ * - The first ask of a slot goes out at once; a change of an existing slot waits QUOTE_DEBOUNCE_MS, and a further change
+ *   within that time replaces it, so only the quantity the buyer settled on is asked about.
+ * - A request in flight for a slot is cancelled when the slot's ask changes: a late answer for another quantity is never
+ *   shown, and never overwrites a newer one.
+ * - Answers (quotes and coded refusals) are remembered per ask, so going back to a quantity asks nothing.
+ * - A 429 stops every request until Retry-After has passed, then the open slots are asked again, once.
+ * - A 404 means the backend has no quote endpoint: every slot becomes `unsupported` and nothing is asked again.
+ * - Any other failure leaves the slot `unavailable` (the page shows its estimate) and is not remembered.
+ *
+ * A slot the page stops showing is dropped (`drop`), and `clear` drops them all.
+ * It holds no DOM or React state: `subscribe` and `snapshot` are what useSyncExternalStore takes.
+ */
+export class QuoteBoard {
+  private readonly slots = new Map<string, Slot>();
+  private readonly answers = new Map<string, QuoteView>();
+  private readonly listeners = new Set<() => void>();
+  private readonly fetchQuote: NonNullable<QuoteBoardOptions["fetchQuote"]>;
+  private readonly lang: Lang | undefined;
+  private readonly debounceMs: number;
+  private readonly now: () => number;
+  private current: QuoteSnapshot = EMPTY_SNAPSHOT;
+  private ranges: Record<string, { min: number; max: number }> = {};
+  private maxTotalCents: number | null = null;
+  private unsupported = false;
+  private pausedUntil = 0;
+  private resume: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(options: QuoteBoardOptions = {}) {
+    this.fetchQuote = options.fetchQuote ?? quotePurchase;
+    this.lang = options.lang;
+    this.debounceMs = options.debounceMs ?? QUOTE_DEBOUNCE_MS;
+    this.now = options.now ?? Date.now;
+  }
+
+  readonly subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  /** Every slot's view and what was learned about the plans, as one object that is replaced (never changed) when any of it changes. */
+  readonly snapshot = (): QuoteSnapshot => this.current;
+
+  /** Whether the backend answered that it has no quote endpoint. */
+  get supported(): boolean {
+    return !this.unsupported;
+  }
+
+  /** Says what a slot should be about. The same ask again changes nothing and asks nothing. */
+  want(slot: string, ask: QuoteAsk): void {
+    const current = this.slots.get(slot);
+    if (current && askKey(current.ask) === askKey(ask)) return;
+    this.cancel(current);
+    const next: Slot = { ask, view: { state: "loading" }, timer: null, request: null };
+    this.slots.set(slot, next);
+    if (this.unsupported) return this.show(next, { state: "unsupported" });
+    const known = this.answers.get(askKey(ask));
+    if (known) return this.show(next, known);
+    if (this.now() < this.pausedUntil) return this.show(next, { state: "limited", retryAt: this.pausedUntil });
+    this.show(next, { state: "loading" });
+    // The first figure of a slot is asked for at once; a change waits for the buyer to stop changing it.
+    if (current) next.timer = setTimeout(() => this.send(slot, next), this.debounceMs);
+    else this.send(slot, next);
+  }
+
+  /** The page no longer shows this figure: its request is cancelled and its view goes away. */
+  drop(slot: string): void {
+    const current = this.slots.get(slot);
+    if (!current) return;
+    this.cancel(current);
+    this.slots.delete(slot);
+    this.publish();
+  }
+
+  /**
+   * Cancels every request and timer and forgets the slots: the page is gone, or is being set up again. The board stays
+   * usable (React runs an effect's cleanup and the effect again in development), and what was answered stays remembered.
+   */
+  clear(): void {
+    for (const slot of this.slots.values()) this.cancel(slot);
+    if (this.resume) clearTimeout(this.resume);
+    this.resume = null;
+    this.slots.clear();
+    this.publish();
+  }
+
+  private cancel(slot: Slot | undefined): void {
+    if (!slot) return;
+    if (slot.timer) clearTimeout(slot.timer);
+    slot.timer = null;
+    slot.request?.abort();
+    slot.request = null;
+  }
+
+  private show(slot: Slot, view: QuoteView): void {
+    slot.view = view;
+    this.publish();
+  }
+
+  private publish(): void {
+    this.current = {
+      views: Object.fromEntries([...this.slots].map(([name, slot]) => [name, slot.view])),
+      asks: Object.fromEntries([...this.slots].map(([name, slot]) => [name, slot.ask])),
+      ranges: this.ranges,
+      maxTotalCents: this.maxTotalCents,
+    };
+    for (const listener of [...this.listeners]) listener();
+  }
+
+  /** Keeps what an answer said about a plan's range or the most one order can charge. */
+  private note(productId: string | undefined, view: QuoteView | undefined, error?: unknown): void {
+    const refusal = seatRefusal(error);
+    const range = quotedRange(view) ?? (refusal?.code === "seat_quantity_out_of_range" ? refusal : null);
+    if (productId && range) {
+      const known = this.ranges[productId];
+      if (!known || known.min !== range.min || known.max !== range.max)
+        this.ranges = { ...this.ranges, [productId]: { min: range.min, max: range.max } };
+    }
+    const cap =
+      refusal?.code === "seat_total_too_large"
+        ? refusal.maxTotalCents
+        : view?.state === "refused" && view.code === "seat_total_too_large"
+          ? view.details.maxTotalCents
+          : undefined;
+    if (isCount(cap) && cap >= 1) this.maxTotalCents = cap;
+  }
+
+  /**
+   * A refusal mail gave elsewhere (the discount code preview, checkout) says the page's picture is out of date: a plan's
+   * range changed, or the most one order can charge is not what the page assumed. What the refusal says is kept
+   * (`productId` names the plan a range refusal is about, when the caller knows it), the remembered answers are dropped
+   * and every figure is asked about again.
+   */
+  learn(error: unknown, productId?: string): void {
+    if (!seatRefusal(error)) return;
+    this.note(productId, undefined, error);
+    this.answers.clear();
+    for (const [name, slot] of this.slots) {
+      this.cancel(slot);
+      slot.view = { state: "loading" };
+      this.send(name, slot);
+    }
+    this.publish();
+  }
+
+  private remember(ask: QuoteAsk, view: QuoteView): void {
+    if (this.answers.size >= QUOTE_CACHE_SIZE) this.answers.delete(this.answers.keys().next().value!);
+    this.answers.set(askKey(ask), view);
+  }
+
+  private send(name: string, slot: Slot): void {
+    slot.timer = null;
+    if (this.slots.get(name) !== slot) return;
+    if (this.unsupported) return this.show(slot, { state: "unsupported" });
+    if (this.now() < this.pausedUntil) return this.show(slot, { state: "limited", retryAt: this.pausedUntil });
+    const controller = new AbortController();
+    slot.request = controller;
+    const current = () => !controller.signal.aborted && this.slots.get(name) === slot;
+    this.fetchQuote(slot.ask, controller.signal, this.lang).then(
+      (quote) => {
+        if (!current()) return;
+        slot.request = null;
+        const view: QuoteView = { state: "quoted", quote };
+        this.remember(slot.ask, view);
+        this.note(slot.ask.productId, view);
+        this.show(slot, view);
+      },
+      (error: unknown) => {
+        if (!current()) return;
+        slot.request = null;
+        if (error instanceof ShopApiError && error.status === 404 && !error.code) return this.noEndpoint();
+        if (error instanceof ShopApiError && error.status === 429) return this.pause(error.retryAfter);
+        if (error instanceof ShopApiError && error.code) {
+          const view: QuoteView = {
+            state: "refused",
+            code: error.code,
+            message: (this.lang && error.messages[this.lang]) || error.message,
+            details: error.details,
+          };
+          this.remember(slot.ask, view);
+          this.note(slot.ask.productId, view);
+          return this.show(slot, view);
+        }
+        this.show(slot, { state: "unavailable" });
+      },
+    );
+  }
+
+  /** The backend has no quote endpoint: every figure falls back for good, and what is in flight is cancelled. */
+  private noEndpoint(): void {
+    this.unsupported = true;
+    for (const slot of this.slots.values()) {
+      this.cancel(slot);
+      slot.view = { state: "unsupported" };
+    }
+    this.publish();
+  }
+
+  /** The rate limit: nothing is asked until it has passed, then every figure still waiting is asked about once. */
+  private pause(retryAfter: number | null): void {
+    this.pausedUntil = this.now() + (retryAfter ?? QUOTE_RETRY_SECONDS) * 1000;
+    for (const slot of this.slots.values()) {
+      if (slot.view.state !== "loading") continue;
+      this.cancel(slot);
+      slot.view = { state: "limited", retryAt: this.pausedUntil };
+    }
+    this.publish();
+    if (this.resume) clearTimeout(this.resume);
+    this.resume = setTimeout(
+      () => {
+        this.resume = null;
+        for (const [name, slot] of this.slots) {
+          if (slot.view.state !== "limited") continue;
+          slot.view = { state: "loading" };
+          this.send(name, slot);
+        }
+        this.publish();
+      },
+      Math.max(0, this.pausedUntil - this.now()),
+    );
+  }
+}
+
+/**
+ * One total a seat plan's card shows, for one way of paying:
+ * - `quoted`: mail's numbers for the quantity. Nothing on the page is worked out.
+ * - `estimate`: no quote (a mail before the endpoint, one on its way, the rate limit, a failed request): the total the page
+ *   works out by mail's rule, shown as an estimate that checkout confirms.
+ * - `tooMany`: that many seats cost more than one order can charge with this way of paying; the other way may still take them.
+ * - `refused`: mail will not sell this for another reason (the plan left the shop, the range changed), in its own words.
+ */
+export type SeatFigure =
+  | {
+      kind: "quoted";
+      totalCents: number;
+      /** The order before the plan's discount; equal to the total when there is none. */
+      subtotalCents: number;
+      discountPercent: number;
+      /** Each later period for this quantity; 0 for a one-time purchase. */
+      renewPriceCents: number;
+      periodDays: number;
+      /** What a discount code is applied to. */
+      basePriceCents: number;
+    }
+  | { kind: "estimate"; totalCents: number; subtotalCents: number }
+  | { kind: "tooMany" }
+  | { kind: "refused"; message: string };
+
+/**
+ * What to show for a slot of the board, given the page's own estimate for the same quantity (null when the estimate is
+ * above what one order can charge). A quote and a coded refusal are mail's answer and win; everything else falls back.
+ */
+export function seatFigure(
+  view: QuoteView | undefined,
+  estimate: { originalPriceCents: number; priceCents: number } | null,
+): SeatFigure {
+  if (view?.state === "quoted") {
+    const { totalCents, subtotalCents, discountPercent, renewPriceCents, periodDays, basePriceCents } = view.quote;
+    return { kind: "quoted", totalCents, subtotalCents, discountPercent, renewPriceCents, periodDays, basePriceCents };
+  }
+  if (view?.state === "refused") {
+    return view.code === "seat_total_too_large" ? { kind: "tooMany" } : { kind: "refused", message: view.message };
+  }
+  return estimate
+    ? { kind: "estimate", totalCents: estimate.priceCents, subtotalCents: estimate.originalPriceCents }
+    : { kind: "tooMany" };
+}
+
+/** A range mail would accept for a quantity field: whole numbers, 1 to SEAT_MAX, min not above max. */
+function usableRange(min: unknown, max: unknown): { min: number; max: number } | null {
+  return isCount(min) && isCount(max) && min >= 1 && max >= min && max <= SEAT_MAX ? { min, max } : null;
+}
+
+/**
+ * The plan's quantity range as mail says it right now, when a view says it: a quote carries it (`minQuantity`,
+ * `maxQuantity`), and so does the refusal of a quantity outside it (`min`, `max`). The catalog the page loaded can be older
+ * than either, so the page takes this over the catalog's range. null when the view says nothing about it.
+ */
+export function quotedRange(view: QuoteView | undefined): { min: number; max: number } | null {
+  if (view?.state === "quoted") return usableRange(view.quote.minQuantity, view.quote.maxQuantity);
+  if (view?.state === "refused" && view.code === "seat_quantity_out_of_range")
+    return usableRange(view.details.min, view.details.max);
+  return null;
+}
+
+/**
+ * What a failed request says about seat quantities, for the callers that are not the board (the discount code preview,
+ * checkout): the plan's range from `seat_quantity_out_of_range`, or the most one order can charge from
+ * `seat_total_too_large`. null for any other failure.
+ */
+export function seatRefusal(
+  error: unknown,
+):
+  | { code: "seat_quantity_out_of_range"; min: number; max: number }
+  | { code: "seat_total_too_large"; maxTotalCents: number }
+  | null {
+  if (!(error instanceof ShopApiError)) return null;
+  if (error.code === "seat_quantity_out_of_range") {
+    const range = usableRange(error.details.min, error.details.max);
+    return range && { code: error.code, ...range };
+  }
+  if (error.code === "seat_total_too_large") {
+    const { maxTotalCents } = error.details;
+    return isCount(maxTotalCents) && maxTotalCents >= 1 ? { code: error.code, maxTotalCents } : null;
+  }
+  return null;
+}
+
+/**
+ * A slot's view, when it is about the plan and quantity the page shows right now. A page says what it wants after it has
+ * drawn, so for one drawing the slot can still hold the answer for the quantity before: that answer is not shown as the
+ * new quantity's (undefined, and the page shows its estimate until the board has caught up).
+ */
+export function viewOf(
+  snapshot: QuoteSnapshot,
+  slot: string,
+  productId: string,
+  quantity: number,
+): QuoteView | undefined {
+  const ask = snapshot.asks[slot];
+  return ask && ask.productId === productId && ask.quantity === quantity ? snapshot.views[slot] : undefined;
+}
+
+/**
+ * What one period of a trial's upgrade to a seat plan costs, for the renewal page: the first period in LDC (the plan's
+ * discount applies to it), each later LDC period, and a period by card. mail's quote prices a new order of the same plan
+ * and quantity by the terms `renew` uses for the upgrade's first period (mail's docs/shop.md, "Upgrading a trial directly
+ * to Team"), so its numbers are shown when it is there; without one the page works them out as it did before quotes.
+ * The quote knows nothing of further periods or of the trial's own conditions: `renew` has the final say.
+ */
+export function upgradePeriodPrices(
+  plan: { originalPriceCents: number; discountPercent: number; renewPriceCents: number; fiatPriceMinor: number },
+  quantity: number,
+  ldc: QuoteView | undefined,
+  card: QuoteView | undefined,
+): { firstLdcCents: number; renewLdcCents: number; cardCents: number } {
+  const ldcQuote = ldc?.state === "quoted" ? ldc.quote : null;
+  const cardQuote = card?.state === "quoted" ? card.quote : null;
+  return {
+    firstLdcCents: ldcQuote ? ldcQuote.basePriceCents : (seatOrderPrice(plan, quantity)?.priceCents ?? 0),
+    renewLdcCents: ldcQuote ? ldcQuote.renewPriceCents : plan.renewPriceCents * quantity,
+    cardCents: cardQuote ? cardQuote.basePriceCents : plan.fiatPriceMinor * quantity,
+  };
+}

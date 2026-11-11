@@ -672,9 +672,14 @@ test("dev shop: checkout prices the order with the code or creates none, and pub
     { productId: ONE_TIME, coupon: 7 },
   ]) {
     const refused = await checkout(body, { "Accept-Language": "en" });
+    // Since contract version 3 the refusal carries its code and the text in both languages next to `error`.
     expect([refused.status, await refused.json()], JSON.stringify(body)).toStrictEqual([
       400,
-      { error: "This discount code can't be used for this order." },
+      {
+        error: "This discount code can't be used for this order.",
+        code: "coupon_invalid",
+        messages: { zh: "此优惠码不能用于这笔订单。", en: "This discount code can't be used for this order." },
+      },
     ]);
     expect(refused.headers.get("Set-Cookie")).toBeNull();
   }
@@ -766,7 +771,7 @@ test("dev shop: several plans are previewed in one request, like mail, and the c
   const catalog = await getShopCatalog();
   expect(catalog.coupons).toBe(true);
   const asks = catalogPlans(catalog).flatMap((product) => {
-    const quantity = isSeatProduct(product) ? product.seatMin : 0;
+    const quantity = isSeatProduct(product) ? product.minQuantity : 0;
     return [
       { productId: product.id, provider: "ldc" as const, quantity },
       ...(product.fiatPriceMinor ? [{ productId: product.id, provider: "stripe" as const, quantity }] : []),

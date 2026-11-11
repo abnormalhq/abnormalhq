@@ -833,7 +833,7 @@ export const helpEn: HelpContent = {
               ol: [
                 "Sign in to [My account](shop/account/), or create an account first, so the order and its mailboxes belong to it.",
                 "In the [shop](shop/), find the plan sold per mailbox and set the number of mailboxes with the − and + buttons or by typing it.",
-                "Check the total shown under the number. It is an estimate; the price the shop confirms is on the order page.",
+                "Check the total shown under the number: it is the shop's price for that many mailboxes, and the order page confirms what you pay.",
                 "Buy with Linux DO Credit or by card, and pay the order.",
                 "Back in My account, under My mailboxes, set up a mailbox for each person: pick a username and a password. The seats line shows how many are used.",
               ],

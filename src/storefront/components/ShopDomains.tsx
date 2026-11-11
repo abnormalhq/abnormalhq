@@ -22,7 +22,7 @@ import {
   type DomainCheck,
   type DomainRecord,
 } from "@/storefront/lib/domains";
-import { formatDateTime } from "@/storefront/lib/shop";
+import { formatDateTime, isRefusal } from "@/storefront/lib/shop";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "./onboard/CopyButton";
@@ -276,6 +276,9 @@ function DomainCard({
   const [done, setDone] = useState(0);
   const [auto, setAuto] = useState(true);
   const [shownAt] = useState(() => Date.now());
+  // The ownership value mail refused as expired, and whether mail said the domain is past its reservation already.
+  const [expiredValue, setExpiredValue] = useState<string | null>(null);
+  const [recheck, setRecheck] = useState(false);
   const status = useRef(domain.status);
   const mounted = useRef(true);
   const request = useRef<AbortController | null>(null);
@@ -308,6 +311,7 @@ function DomainCard({
     setBusy("check");
     setError("");
     try {
+      setRecheck(false);
       const result = await checkAccountDomain(domain.id, controller.signal, lang);
       if (controller.signal.aborted) return;
       apply(result);
@@ -334,7 +338,7 @@ function DomainCard({
 
   const settled = domainSettled(domain, check?.ready ?? false);
   // A domain past its reservation is checked once as the page opens (its records are not in the list), then in backed-off rounds.
-  const first = check === null && domain.status !== "pending";
+  const first = (check === null && domain.status !== "pending") || recheck;
   const delay = !auto || busy !== null ? null : first ? 0 : settled ? null : domainPollDelay(done);
 
   useEffect(() => {
@@ -363,15 +367,21 @@ function DomainCard({
       const message = await work();
       if (mounted.current && message) setNotice(message);
     } catch (cause) {
-      // mail's reason: the TXT record is not visible yet, wrong or expired; the wait of a rate limit; the mail server not answering.
-      if (mounted.current) setError(shopError(cause, lang));
+      // mail's reason, in the page language: the TXT record is not visible yet, wrong or expired; the wait of a rate limit;
+      // the mail server not answering. Two of them say what to do next by their code (`shop.refusalCodes`).
+      if (!mounted.current) return;
+      setError(shopError(cause, lang));
+      // The value ran out before it was verified: "Get a new value" becomes the way on, whatever this browser's clock says.
+      if (isRefusal(cause, "domain_ownership_expired")) setExpiredValue(domain.ownership?.value ?? null);
+      // Ownership was verified meanwhile (another tab, another device): read where the domain stands now.
+      if (isRefusal(cause, "domain_already_verified")) setRecheck(true);
     } finally {
       if (mounted.current) setBusy(null);
     }
   }
 
   const ownership = domain.ownership;
-  const expired = ownership ? Date.parse(ownership.expiresAt) <= shownAt : false;
+  const expired = ownership ? Date.parse(ownership.expiresAt) <= shownAt || ownership.value === expiredValue : false;
   const note =
     domain.status === "live" && check && !check.ready
       ? t.domainStatusNotes.liveNotReady

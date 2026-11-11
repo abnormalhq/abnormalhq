@@ -29,14 +29,19 @@ export {
   formatCredits,
   formatMoney,
   getShopCatalog,
+  isRefusal,
   isSeatProduct,
   parseShopCatalog,
+  PLAN_KINDS,
+  REFUSAL_CODES,
   seatCardPrice,
   seatOrderPrice,
   seatTotals,
   ShopApiError,
   shopApiRoot,
   type AddressAvailability,
+  type PlanKind,
+  type RefusalCode,
   type SeatProduct,
   type ShopCatalog,
   type ShopPaymentProvider,
@@ -247,8 +252,9 @@ export interface CouponQuote {
 /**
  * Previews a discount code for one plan and way of paying (POST /api/shop/coupon, the single form; the shop page uses
  * previewCouponPlans below and falls back to this for a mail before the several-plans form). null means the code cannot be used for
- * this purchase; mail gives one answer for every reason, so there is none to show. It reserves nothing: checkout prices the
- * order again. A backend without the endpoint answers 404 (ShopApiError), and every call counts against mail's limit on
+ * this purchase; mail gives one answer for every reason, so there is none to show. A seat quantity mail does not sell is
+ * not that answer: it is a 400 with a code (`seat_quantity_invalid`, `seat_quantity_out_of_range` with `min` and `max`,
+ * `seat_total_too_large` with `maxTotalCents`), thrown like any refusal. It reserves nothing: checkout prices the order again. A backend without the endpoint answers 404 (ShopApiError), and every call counts against mail's limit on
  * code guesses (10 per 10 minutes per IP, shared with checkout), so callers ask on an explicit action, not as the buyer types.
  */
 export async function previewCoupon(
@@ -376,8 +382,10 @@ export async function previewCouponPlans(
         answers.forEach((quote, index) => (quotes[start + index] = quote));
         start += batch.length;
       } catch (error) {
-        // Only the first request decides: a backend that answered the form once has it.
-        if (start === 0 && error instanceof ShopApiError && error.status === 400) legacy = true;
+        // Only the first request decides: a backend that answered the form once has it. A coded refusal (a seat quantity
+        // outside the plan's range, a total above what one order can charge) is from a mail that knows the form: it fails
+        // the whole request and is the caller's to show, never a reason to ask again plan by plan.
+        if (start === 0 && error instanceof ShopApiError && error.status === 400 && !error.code) legacy = true;
         else throw error;
       }
     }
@@ -1026,6 +1034,11 @@ export interface AccountSeats {
   provider: ShopPaymentProvider;
   /** Currency of a card subscription; the empty string for LDC. */
   currency: string;
+  /**
+   * The length of the period `seatPriceCents` is for, in days (`shop.seats.accountFields` since contract version 3). Absent
+   * on a mail before the field: the page then says "per period" without the length.
+   */
+  periodDays?: number;
   periodEnd: string;
   /** Ids of the mailboxes that go with the scheduled removal. */
   removing: string[];
@@ -1051,6 +1064,8 @@ function parseAccountSeats(value: unknown): AccountSeats | null | undefined {
     !isCurrency(value.currency) ||
     // A card amount without its currency cannot be shown.
     (value.provider === "stripe") !== Boolean(value.currency) ||
+    // Seats are only ever those of a subscription, so a period that is there is at least a day.
+    !(value.periodDays === undefined || (isCount(value.periodDays) && value.periodDays >= 1)) ||
     !isString(value.periodEnd) ||
     !isStrings(value.removing)
   )
@@ -1063,6 +1078,7 @@ function parseAccountSeats(value: unknown): AccountSeats | null | undefined {
     seatPriceCents: value.seatPriceCents,
     provider: value.provider,
     currency: value.currency,
+    ...(value.periodDays === undefined ? {} : { periodDays: value.periodDays }),
     periodEnd: value.periodEnd,
     removing: [...value.removing],
   };

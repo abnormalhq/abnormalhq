@@ -39,7 +39,10 @@ import { catalogResponse, orderResponse } from "./fixtures/shop-contract";
 
 /**
  * docs/onboard-contract.json is byte-for-byte identical to the file of the same name in the mail repo; mail tests its own constants against it, here the hand-copied values of this repo are tested.
- * When either side changes a value, one side's tests fail until the code on both sides and both files agree. The Worker part is in tests/worker.test.ts.
+ * When either side changes a value, one side's tests fail until the code on both sides and both files agree. The Worker part is in tests/worker.test.ts
+ * (all four route lists of the shop). What contract version 3 added is checked where its client is tested: plan kinds, the quote's and a seat plan's
+ * fields, the seat limits and the refusal codes in quote.test.ts, an account's seats in seats.test.ts, and the buyer-domain routes, fields and enums
+ * in domains.test.ts.
  */
 interface Contract {
   redeem: {

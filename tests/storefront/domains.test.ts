@@ -5,8 +5,10 @@ import {
   checkAccountDomain,
   DNS_RECORD_PURPOSES,
   DNS_RECORD_STATUSES,
+  DNS_RECORD_TYPES,
   DOMAIN_CHECK_BUDGET,
   DOMAIN_CHECK_WINDOW_SECONDS,
+  DOMAIN_PHASES,
   DOMAIN_POLL_SECONDS,
   DOMAIN_STATUSES,
   domainCheckBudget,
@@ -19,7 +21,14 @@ import {
   removeAccountDomain,
   verifyAccountDomain,
 } from "@/storefront/lib/domains";
-import { createShopOrder, getAccountMailboxes, getShopCatalog, ShopApiError } from "@/storefront/lib/shop";
+import {
+  createShopOrder,
+  getAccountMailboxes,
+  getShopCatalog,
+  isRefusal,
+  REFUSAL_CODES,
+  ShopApiError,
+} from "@/storefront/lib/shop";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import { MockShopStore, SEAT_PRODUCT } from "@/storefront/mock/shop";
 import { storefrontApi as worker, type StorefrontEnv } from "@/storefront/worker/index";
@@ -492,7 +501,16 @@ test("dev shop: refused domains get mail's reasons and reveal nothing about who 
   const mine = "0".repeat(15);
   for (const route of ["verify", "check", "refresh", "remove"]) {
     const response = await other.send(`account/domains/${route}`, { body: { id: mine }, lang: "en" });
-    expect([route, response.status, await response.json()]).toStrictEqual([route, 404, { error: "Domain not found." }]);
+    // Since contract version 3 with its code and both texts; `error` stays in the request's language.
+    expect([route, response.status, await response.json()]).toStrictEqual([
+      route,
+      404,
+      {
+        error: "Domain not found.",
+        code: "domain_not_found",
+        messages: { zh: "域名不存在。", en: "Domain not found." },
+      },
+    ]);
   }
 });
 
@@ -508,20 +526,33 @@ test("dev shop: each state of a domain can be simulated by its name", async () =
 
   // The TXT record is not visible yet: 409 with the reason, and the reservation can still be given up.
   const unseen = await fresh("pending-dns.example");
-  await expect(verifyAccountDomain(unseen.id, "en")).rejects.toMatchObject({
-    status: 409,
-    message:
-      "No matching ownership TXT record found yet. Check the host name and value, and wait for DNS to propagate.",
-  });
+  const notVisible: unknown = await verifyAccountDomain(unseen.id, "en").catch((cause: unknown) => cause);
+  expect(notVisible).toMatchObject({ status: 409, code: "domain_ownership_not_found" });
+  // The refusal carries its text in both languages; the page shows its own, whatever language the request asked for.
+  expect(shopError(notVisible, "en")).toBe(
+    "The verification TXT record isn't visible yet. Check its name and value at your DNS host, wait for the change to spread, then verify again.",
+  );
+  expect(shopError(notVisible, "zh")).toBe(
+    "暂时查不到验证用的 TXT 记录。请在 DNS 服务商处核对记录的名称和值，等待解析生效后再验证。",
+  );
 
   // The value expired: 409 until a new one is requested, which replaces the old one.
   const expired = await fresh("expired-value.example");
   expect(Date.parse(expired.ownership!.expiresAt)).toBeLessThan(NOW);
-  await expect(verifyAccountDomain(expired.id, "en")).rejects.toMatchObject({ status: 409 });
+  const ranOut: unknown = await verifyAccountDomain(expired.id, "zh").catch((cause: unknown) => cause);
+  // The code, not the wording, is what tells the card to lead with "Get a new value".
+  expect(isRefusal(ranOut, "domain_ownership_expired")).toBe(true);
+  expect(ranOut).toMatchObject({
+    status: 409,
+    message: "验证值已过期。请获取新的验证值并更新 TXT 记录，然后重新验证。",
+  });
   const renewed = await refreshAccountDomain(expired.id, "en");
   expect(renewed.ownership!.value).not.toBe(expired.ownership!.value);
   expect(Date.parse(renewed.ownership!.expiresAt)).toBeGreaterThan(NOW);
   expect((await verifyAccountDomain(expired.id, "en")).domain.status).toBe("review");
+  // Past its reservation there is no value to replace: the card reads where the domain stands instead.
+  const verified: unknown = await refreshAccountDomain(expired.id, "en").catch((cause: unknown) => cause);
+  expect(verified).toMatchObject({ status: 409, code: "domain_already_verified" });
 
   // Rate limited with Retry-After, and the mail server not answering.
   const store2 = new MockShopStore(() => now);
@@ -529,7 +560,7 @@ test("dev shop: each state of a domain can be simulated by its name", async () =
   const busy = await addAccountDomain("busy-day.example", "en");
   await expect(verifyAccountDomain(busy.id, "en")).rejects.toMatchObject({ status: 429, retryAfter: 300 });
   const down = await addAccountDomain("down-server.example", "en");
-  await expect(verifyAccountDomain(down.id, "en")).rejects.toMatchObject({ status: 503 });
+  await expect(verifyAccountDomain(down.id, "en")).rejects.toMatchObject({ status: 503, code: "domain_unavailable" });
 
   // Still being set up for two checks, then waiting for review; never approved; suspended; a conflict; a failed lookup; a lapsed plan.
   const store3 = new MockShopStore(() => now);
@@ -721,13 +752,80 @@ test("shop proxy: a mail before buyer domains answers a JSON 404; mail's own ans
   }
 });
 
-test("contract: the domain routes stay out of the contract file until mail's copy takes them", () => {
+test("contract: the domain routes, fields, enums and refusal codes are the contract file's, as in mail's copy", async () => {
   const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
-    shop: { routes: Record<string, string> };
+    shop: {
+      routes: Record<string, string>;
+      subscriptionStates: string[];
+      buyerDomains: {
+        routes: Record<string, string>;
+        statuses: string[];
+        phases: string[];
+        domainFields: string[];
+        ownershipFields: string[];
+        recordFields: string[];
+        recordStatuses: string[];
+        recordTypes: string[];
+        recordPurposes: string[];
+      };
+      refusalCodes: Record<string, { status: number; details: string[] }>;
+    };
   };
-  // mail's docs/shop.md lists them under "Proposed: storefront contract" and its contract test leaves them out. When mail's
-  // copy gains them, copy the file here byte for byte: this test then fails, as the reminder to move "Buyer domains" out of
-  // "Proposed" in docs/storefront-api.md.
+  const { buyerDomains } = contract.shop;
+  // Contract version 3 lists the routes apart from `shop.routes` (a storefront may proxy them later than the rest); this
+  // Worker proxies every one, and tests/storefront/worker.test.ts checks the methods of all four lists.
+  expect(Object.keys(buyerDomains.routes)).toStrictEqual(DOMAIN_ROUTES);
   for (const route of DOMAIN_ROUTES) expect(contract.shop.routes, route).not.toHaveProperty(route);
-  expect(readFileSync("docs/storefront-api.md", "utf8")).toMatch(/^- \*\*Buyer domains\*\*/m);
+
+  // The enums the parsers accept and the types are derived from are exactly mail's.
+  expect([...DOMAIN_STATUSES]).toStrictEqual(buyerDomains.statuses);
+  expect([...DOMAIN_PHASES]).toStrictEqual(buyerDomains.phases);
+  expect(buyerDomains.phases).toStrictEqual(contract.shop.subscriptionStates);
+  expect([...DNS_RECORD_STATUSES]).toStrictEqual(buyerDomains.recordStatuses);
+  expect([...DNS_RECORD_TYPES]).toStrictEqual(buyerDomains.recordTypes);
+  expect([...DNS_RECORD_PURPOSES]).toStrictEqual(buyerDomains.recordPurposes);
+  // Every value of every enum is read, and one mail does not name fails the answer rather than reach the page.
+  for (const status of buyerDomains.statuses) {
+    respond({ limit: 1, domains: [{ ...pending, status, ownership: null }] });
+    expect((await getAccountDomains())!.domains[0]!.status).toBe(status);
+  }
+  for (const phase of buyerDomains.phases) {
+    respond({ limit: 1, domains: [{ ...pending, phase }] });
+    expect((await getAccountDomains())!.domains[0]!.phase).toBe(phase);
+  }
+  for (const [field, value] of [
+    ["status", "verified"],
+    ["phase", "lapsed"],
+  ] as const) {
+    respond({ limit: 1, domains: [{ ...pending, [field]: value }] });
+    await expect(getAccountDomains(), field).rejects.toBeInstanceOf(ShopApiError);
+  }
+  for (const status of buyerDomains.recordStatuses) {
+    for (const type of buyerDomains.recordTypes) {
+      respond({ ...checked, records: [{ ...checked.records[0], type, status }] });
+      expect((await checkAccountDomain(pending.id)).records[0]).toMatchObject({ type, status });
+    }
+  }
+  for (const patch of [{ status: "ok" }, { type: "A" }]) {
+    respond({ ...checked, records: [{ ...checked.records[0], ...patch }] });
+    await expect(checkAccountDomain(pending.id), JSON.stringify(patch)).rejects.toBeInstanceOf(ShopApiError);
+  }
+
+  // The fields the client reads off a domain, its ownership record and a DNS record are the ones mail publishes.
+  respond({ limit: 1, domains: [pending] });
+  const [read] = (await getAccountDomains())!.domains;
+  expect(Object.keys(read!).toSorted()).toStrictEqual(buyerDomains.domainFields.toSorted());
+  expect(Object.keys(read!.ownership!).toSorted()).toStrictEqual(buyerDomains.ownershipFields.toSorted());
+  respond({ ...checked, records: [{ ...checked.records[0], priority: 10 }] });
+  const [record] = (await checkAccountDomain(pending.id)).records;
+  expect(Object.keys(record!).toSorted()).toStrictEqual(buyerDomains.recordFields.toSorted());
+
+  // The refusals of a buyer's domain carry a code: the ones the storefront knows are the contract's, with their statuses.
+  const domainCodes = Object.entries(contract.shop.refusalCodes).filter(([code]) => code.startsWith("domain_"));
+  expect(domainCodes.length).toBeGreaterThan(0);
+  for (const [code, { status, details }] of domainCodes) {
+    expect(REFUSAL_CODES[code as keyof typeof REFUSAL_CODES], code).toBe(status);
+    expect(details, code).toStrictEqual([]);
+  }
+  expect(readFileSync("docs/storefront-api.md", "utf8")).not.toMatch(/^- \*\*Buyer domains\*\*: add/m);
 });
