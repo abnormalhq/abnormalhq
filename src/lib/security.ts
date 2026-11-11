@@ -1,7 +1,7 @@
 /**
  * Security headers of every response the Worker gives (pages, Markdown, redirects and the storefront API). Neither Next.js nor OpenNext sets them,
  * and headers() in next.config.ts only reaches the listed pages, not the 404, the redirects or the API, so they are added at the Worker layer like the cache headers.
- * Files served by the static asset service (fonts, /_next/, public/) never pass through the Worker and are not covered.
+ * Files served by the static asset service (fonts, /_next/, public/) never pass through the Worker and are not covered, except the promo videos (src/lib/range.ts).
  */
 const securityHeaders: Record<string, string> = {
   // The declared Content-Type is final: a response is never sniffed into a script or a style sheet.

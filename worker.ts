@@ -4,21 +4,33 @@
  * The rewrites in next.config can only match Accept with a regex and cannot compare weights; the cache headers OpenNext hardcodes can only be changed at this layer too.
  * The language redirect (src/lib/lang.ts) reads the cookie and Accept-Language, which prerendered pages cannot do, so it also lives here.
  * The storefront API (/api/onboard/*, /api/shop/*) is a proxy to mail over the MAIL Service Binding (src/storefront/worker/); it never reaches Next.js.
+ * The promo videos (/video/*) are the only static files that pass through here (assets.run_worker_first in wrangler.jsonc): the asset service
+ * ignores Range requests, which browsers need to play video, so the Worker cuts the ranges itself (src/lib/range.ts).
  */
 import handler from "./.open-next/worker.js";
 import { revalidateInBrowser } from "./src/lib/cache.ts";
 import { languageRedirect } from "./src/lib/lang.ts";
 import { markdownUrl, varyOnAccept } from "./src/lib/negotiate.ts";
+import { isRangedAsset, serveByteRanges } from "./src/lib/range.ts";
 import { withSecurityHeaders } from "./src/lib/security.ts";
 import { isStorefrontApi, storefrontApi, type StorefrontEnv } from "./src/storefront/worker/index.ts";
 import { legacyRedirect } from "./src/storefront/worker/legacy.ts";
 
+/** The bindings of wrangler.jsonc this entry uses: the storefront's, and the static asset service. */
+type Env = StorefrontEnv & { ASSETS: { fetch(request: Request): Promise<Response> } };
+
 /** The response before the headers every response shares. */
-async function respond(request: Request, env: StorefrontEnv, ctx: unknown): Promise<Response> {
+async function respond(request: Request, env: Env, ctx: unknown): Promise<Response> {
+  const { pathname } = new URL(request.url);
   // The API answers on the old storefront domain too, so payment notifications sent there keep arriving.
-  if (isStorefrontApi(new URL(request.url).pathname)) return storefrontApi.fetch(request, env);
+  if (isStorefrontApi(pathname)) return storefrontApi.fetch(request, env);
   const legacy = legacyRedirect(request);
   if (legacy) return legacy;
+  if (isRangedAsset(pathname)) {
+    const asset = await serveByteRanges(request, (assetRequest) => env.ASSETS.fetch(assetRequest));
+    // A file that does not exist falls through to the site's 404 page.
+    if (asset) return asset;
+  }
   const markdown = markdownUrl(request);
   if (markdown) {
     // Markdown is requested by agents, and the language in the address is the one they want: no change by cookie or browser language.
@@ -28,7 +40,7 @@ async function respond(request: Request, env: StorefrontEnv, ctx: unknown): Prom
 }
 
 const worker = {
-  async fetch(request: Request, env: StorefrontEnv, ctx: unknown) {
+  async fetch(request: Request, env: Env, ctx: unknown) {
     return withSecurityHeaders(await respond(request, env, ctx));
   },
 };
