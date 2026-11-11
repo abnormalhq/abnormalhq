@@ -23,14 +23,20 @@ import {
 } from "./catalog.ts";
 
 export {
+  catalogPlans,
   checkAddress,
+  clampSeats,
   formatCredits,
   formatMoney,
   getShopCatalog,
+  isSeatProduct,
   parseShopCatalog,
+  seatCardPrice,
+  seatOrderPrice,
   ShopApiError,
   shopApiRoot,
   type AddressAvailability,
+  type SeatProduct,
   type ShopCatalog,
   type ShopPaymentProvider,
   type ShopProduct,
@@ -173,6 +179,8 @@ export async function createShopOrder(
   provider: ShopPaymentProvider = "ldc",
   /** Discount code; the field is not sent when empty. mail prices the order with it, or refuses the checkout (400) and creates no order. */
   coupon = "",
+  /** Seats of a seat plan (required for one: mail refuses the checkout without a whole number in the plan's range); not sent for a fixed plan. */
+  quantity = 0,
 ): Promise<string> {
   const body = await request(
     "checkout",
@@ -181,6 +189,7 @@ export async function createShopOrder(
       ...(email ? { email } : {}),
       ...(provider === "stripe" ? { provider } : {}),
       ...(coupon ? { coupon } : {}),
+      ...(quantity > 0 ? { quantity } : {}),
     },
     undefined,
     lang,
@@ -217,10 +226,12 @@ export async function previewCoupon(
   coupon: string,
   signal?: AbortSignal,
   lang?: Lang,
+  /** Seats of a seat plan: the amounts in the answer are then for that many seats (mail answers 400 without it). Not sent for a fixed plan. */
+  quantity = 0,
 ): Promise<CouponQuote | null> {
   const body = await request(
     "coupon",
-    { productId, ...(provider === "stripe" ? { provider } : {}), coupon },
+    { productId, ...(provider === "stripe" ? { provider } : {}), coupon, ...(quantity > 0 ? { quantity } : {}) },
     signal,
     lang,
   );
@@ -774,7 +785,68 @@ export interface AccountMailboxGroup {
   domains: string[];
   /** The subscription is suspended or pending reclamation: read-only until renewed. */
   locked: boolean;
+  /**
+   * The seats of a seat subscription; null (or absent, on a backend before seat plans) for every other order. mail also
+   * answers null for a one-time order of a seat plan: its seats cannot be changed afterwards.
+   */
+  seats?: AccountSeats | null;
   mailboxes: AccountMailbox[];
+}
+
+/** A seat subscription as the account page shows it (mail's CustomerSeats, src/lib/shop/seats.ts). */
+export interface AccountSeats {
+  /** Seats paid for in the current period. */
+  seats: number;
+  /** The count from the next renewal on while a removal is scheduled; otherwise null. */
+  seatsNext: number | null;
+  /** The plan's range: seats can be added up to max and removed down to min. */
+  min: number;
+  max: number;
+  /** One seat for one period: hundredths of an LDC, or the smallest unit of `currency` for a card subscription. */
+  seatPriceCents: number;
+  provider: ShopPaymentProvider;
+  /** Currency of a card subscription; the empty string for LDC. */
+  currency: string;
+  periodEnd: string;
+  /** Ids of the mailboxes that go with the scheduled removal. */
+  removing: string[];
+}
+
+const SEAT_LIMIT = 1000;
+
+function isSeatCount(value: unknown): value is number {
+  return isCount(value) && value >= 1 && value <= SEAT_LIMIT;
+}
+
+function parseAccountSeats(value: unknown): AccountSeats | null | undefined {
+  if (value === undefined || value === null) return null;
+  if (
+    !record(value) ||
+    !isSeatCount(value.seats) ||
+    !(value.seatsNext === null || isSeatCount(value.seatsNext)) ||
+    !isSeatCount(value.min) ||
+    !isSeatCount(value.max) ||
+    value.max < value.min ||
+    !isCount(value.seatPriceCents) ||
+    !isProvider(value.provider) ||
+    !isCurrency(value.currency) ||
+    // A card amount without its currency cannot be shown.
+    (value.provider === "stripe") !== Boolean(value.currency) ||
+    !isString(value.periodEnd) ||
+    !isStrings(value.removing)
+  )
+    return undefined;
+  return {
+    seats: value.seats,
+    seatsNext: value.seatsNext,
+    min: value.min,
+    max: value.max,
+    seatPriceCents: value.seatPriceCents,
+    provider: value.provider,
+    currency: value.currency,
+    periodEnd: value.periodEnd,
+    removing: [...value.removing],
+  };
 }
 
 export interface AccountMailboxes {
@@ -830,7 +902,8 @@ function parseMailboxGroup(value: unknown): AccountMailboxGroup | null {
   )
     return null;
   const mailboxes = value.mailboxes.map(parseAccountMailbox);
-  if (!mailboxes.every((item) => item !== null)) return null;
+  const seats = parseAccountSeats(value.seats);
+  if (!mailboxes.every((item) => item !== null) || seats === undefined) return null;
   return {
     orderId: value.orderId,
     productName: value.productName,
@@ -841,6 +914,8 @@ function parseMailboxGroup(value: unknown): AccountMailboxGroup | null {
     codeExpires: value.codeExpires,
     domains: [...value.domains],
     locked: value.locked,
+    // Absent on a backend before seat plans, and then absent here too.
+    ...(value.seats === undefined ? {} : { seats }),
     mailboxes: mailboxes as AccountMailbox[],
   };
 }
@@ -903,4 +978,130 @@ export async function setAccountMailboxStatus(
 /** Deletes one of the buyer's mailboxes with all its mail (irreversible); confirm must repeat the address; the quota goes back to the redeem code. */
 export async function deleteAccountMailbox(mailboxId: string, confirm: string, lang?: Lang): Promise<void> {
   await request("account/mailboxes/delete", { mailboxId, confirm }, undefined, lang);
+}
+
+/* ---------------------------------------------------------------------------
+ * Seats of a seat subscription (mail's src/lib/shop/seats.ts; "Seat plans" in docs/storefront-api.md). `orderId` is always the
+ * subscription's purchase order, the one its group in "My mailboxes" is listed under.
+ * ------------------------------------------------------------------------- */
+
+/** What adding seats would cost for the rest of the current period, as mail quotes it. Reserves nothing. */
+export interface SeatQuote {
+  add: number;
+  /** The seat count after adding. */
+  seats: number;
+  provider: ShopPaymentProvider;
+  currency: string;
+  priceCents: number;
+  /**
+   * true for LDC: the price of the order if it is placed at once (it falls as the period runs down). false for a card
+   * subscription: mail's estimate by the same rule, while Stripe works out the final amount itself when the change is made.
+   */
+  exact: boolean;
+  periodEnd: string;
+}
+
+export async function quoteSeats(orderId: string, add: number, signal?: AbortSignal, lang?: Lang): Promise<SeatQuote> {
+  const body = await request("account/seats/quote", { orderId, add }, signal, lang);
+  if (
+    !record(body) ||
+    body.add !== add ||
+    !isSeatCount(body.seats) ||
+    !isProvider(body.provider) ||
+    !isCurrency(body.currency) ||
+    (body.provider === "stripe") !== Boolean(body.currency) ||
+    !isCount(body.priceCents) ||
+    body.priceCents < 1 ||
+    !isBoolean(body.exact) ||
+    !isString(body.periodEnd)
+  )
+    throw new ShopApiError("");
+  return {
+    add,
+    seats: body.seats,
+    provider: body.provider,
+    currency: body.currency,
+    priceCents: body.priceCents,
+    exact: body.exact,
+    periodEnd: body.periodEnd,
+  };
+}
+
+/**
+ * The outcome of adding seats:
+ * - order: an LDC subscription got an order for the prorated amount, paid on the order page like a renewal order; the seats
+ *   rise when it is paid;
+ * - applied: a card subscription's card was charged and `seats` is the new count;
+ * - payment_required: the bank wants the buyer (authentication, or a declined card). Nothing changed: `seats` is still the
+ *   old count, and the seats rise only once Stripe confirms the payment made on `invoiceUrl` (Stripe's hosted invoice page;
+ *   null when Stripe gave none).
+ */
+export type SeatAddition =
+  | { kind: "order"; orderId: string }
+  | { kind: "applied"; seats: number }
+  | { kind: "payment_required"; seats: number; invoiceUrl: string | null };
+
+/** Stripe's hosted invoice page. Any other address counts as none, so the buyer is never sent elsewhere to pay. */
+function invoicePage(value: unknown): string | null {
+  if (!isString(value)) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && /(^|\.)stripe\.com$/.test(url.hostname) && !url.username && !url.password
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function addSeats(orderId: string, add: number, lang?: Lang): Promise<SeatAddition> {
+  const body = await request("account/seats/add", { orderId, add }, undefined, lang);
+  if (!record(body)) throw new ShopApiError("");
+  if (typeof body.orderId === "string" && /^[a-z0-9]{15}$/.test(body.orderId))
+    return { kind: "order", orderId: body.orderId };
+  if (body.status === "applied" && isSeatCount(body.seats)) return { kind: "applied", seats: body.seats };
+  if (body.status === "payment_required" && isSeatCount(body.seats))
+    return { kind: "payment_required", seats: body.seats, invoiceUrl: invoicePage(body.invoiceUrl) };
+  throw new ShopApiError("");
+}
+
+/** A removal scheduled for the next renewal, or what is left after taking one back. */
+export interface SeatRemoval {
+  seats: number;
+  seatsNext: number | null;
+  /** When the removal takes effect: the end of the current period. */
+  effective: string;
+  removing: string[];
+}
+
+function parseSeatRemoval(body: unknown): SeatRemoval {
+  if (
+    !record(body) ||
+    !isSeatCount(body.seats) ||
+    !(body.seatsNext === null || isSeatCount(body.seatsNext)) ||
+    !isString(body.effective) ||
+    !isStrings(body.removing)
+  )
+    throw new ShopApiError("");
+  return { seats: body.seats, seatsNext: body.seatsNext, effective: body.effective, removing: [...body.removing] };
+}
+
+/**
+ * Removes `remove` seats at the next renewal, never before; `mailboxIds` are the mailboxes that go with them (enough for the
+ * rest to fit the new count; they keep working until then). Scheduling again replaces an earlier removal.
+ */
+export async function removeSeats(
+  orderId: string,
+  remove: number,
+  mailboxIds: readonly string[],
+  lang?: Lang,
+): Promise<SeatRemoval> {
+  return parseSeatRemoval(
+    await request("account/seats/remove", { orderId, remove, mailboxIds: [...mailboxIds] }, undefined, lang),
+  );
+}
+
+/** Takes a scheduled removal back: the subscription keeps all its seats. */
+export async function keepSeats(orderId: string, lang?: Lang): Promise<SeatRemoval> {
+  return parseSeatRemoval(await request("account/seats/keep", { orderId }, undefined, lang));
 }

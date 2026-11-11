@@ -36,7 +36,7 @@ import {
   type DesktopReleases,
 } from "./releases.ts";
 import { pageFor, pagePaths } from "./pages.ts";
-import { planRows, planViews } from "./pricing.ts";
+import { planRowsFor, planViews } from "./pricing.ts";
 import type { ShopCatalog } from "../storefront/lib/catalog.ts";
 import { storeMarkdownPaths, storeTitle } from "../storefront/lib/markdown.ts";
 
@@ -177,6 +177,7 @@ export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string
   const p = t.pricing;
   const links = absoluteLinks(lang);
   const plans = catalog ? planViews(catalog, lang, p, linksFor(lang).shop) : [];
+  const rows = planRowsFor(plans);
   const cell = (text: string) => text.replace(/[\\|]/g, "\\$&").replace(/\s*\n\s*/g, " ");
   return `${paragraphs([
     `# ${p.title}`,
@@ -189,8 +190,10 @@ export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string
             ...plans.flatMap((plan) => [
               `## ${plan.name}`,
               ...(plan.description ? [plan.description] : []),
+              // A plan sold per mailbox: the amounts below are for one mailbox.
+              ...(plan.note ? [plan.note] : []),
               list([
-                ...planRows.map(
+                ...rows.map(
                   (row) =>
                     `${p.compare.rows[row]}${t.legal.colon}${plan.rows[row]}${
                       row === "price" && plan.discount
@@ -208,7 +211,7 @@ export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string
                   [
                     `| ${[p.compare.feature, ...plans.map((plan) => cell(plan.name))].join(" | ")} |`,
                     `| ${["---", ...plans.map(() => "---")].join(" | ")} |`,
-                    ...planRows.map(
+                    ...rows.map(
                       (row) => `| ${[p.compare.rows[row], ...plans.map((plan) => cell(plan.rows[row]))].join(" | ")} |`,
                     ),
                   ].join("\n"),

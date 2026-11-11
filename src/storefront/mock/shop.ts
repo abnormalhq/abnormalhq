@@ -5,7 +5,9 @@
  * a password can be set without the current one only within 10 minutes of signing in by link and signs other browsers out,
  * registering mails (logs) a confirmation link that sets the password, the mailbox manager only touches the account's own orders' mailboxes,
  * paying returns to the order page in the form's language, errors come in the request's language, and a discount code is
- * priced by the server, refused with one message for every reason, and not published with the order.
+ * priced by the server, refused with one message for every reason, and not published with the order. A seat plan is priced
+ * for its quantity by mail's rounding rule, seats are added for the rest of the period (an LDC order to pay, or the card
+ * charged) and removed only at the next renewal, and an order that adds seats is published as a renewal order.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { normalizeUsername, passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
@@ -15,9 +17,11 @@ import type {
   CustomerAccount,
   PublicShopOrder,
   RenewalSummary,
+  SeatProduct,
   ShopCatalog,
   ShopProduct,
 } from "@/storefront/lib/shop";
+import { seatCardPrice, seatOrderPrice } from "@/storefront/lib/catalog";
 
 const COOKIE = "mailhq_shop";
 const TOKEN = /^[a-f0-9]{64}$/;
@@ -61,6 +65,36 @@ const SUBSCRIPTION_PRODUCT: ShopProduct = {
   fiatPriceMinor: 299,
 };
 const PRODUCTS = [PRODUCT, SUBSCRIPTION_PRODUCT];
+/**
+ * A plan sold per mailbox, listed under `seatProducts`. Every price is for one seat: 3.33 LDC at 10% off (the example of mail's
+ * docs/shop.md: 7 seats are 20.98, not 7 × 3.00), renewing at the discounted seat price, or 1.99 USD a seat by card. It also
+ * allows two domains of the buyer's own.
+ */
+export const SEAT_PRODUCT: SeatProduct = {
+  id: "demoproduct0003",
+  name: "演示套餐 · 团队邮箱（按邮箱计价）",
+  description: "仅供本地开发演示：按邮箱数量购买，每 30 天续费一次，可中途加席位、续费时减席位。",
+  originalPriceCents: 333,
+  discountPercent: 10,
+  priceCents: 300,
+  mailboxCount: 2,
+  quotaMb: 2048,
+  quotaSupportedByDomain: { "abnormalhq.com": true },
+  codeExpiresDays: 30,
+  domains: ["abnormalhq.com"],
+  periodDays: 30,
+  renewPriceCents: 0,
+  fiatPriceMinor: 199,
+  customDomains: 2,
+  seatMin: 2,
+  seatMax: 50,
+};
+/** Adding exactly this many seats to a demo card subscription needs the buyer at the bank: nothing changes until the invoice is paid. */
+export const MOCK_SEATS_PAYMENT_REQUIRED = 7;
+/** Adding exactly this many seats to a demo card subscription fails: the card could not be charged (409). */
+export const MOCK_SEATS_CARD_DECLINED = 9;
+/** Stripe's hosted invoice page of the demo. */
+const MOCK_INVOICE_URL = "https://invoice.stripe.com/i/demo";
 /** Plan names and descriptions in English: like mail, the catalog answers in the request's language. */
 const PRODUCT_TEXT_EN: Record<string, Pick<ShopProduct, "name" | "description">> = {
   [PRODUCT.id]: {
@@ -70,6 +104,11 @@ const PRODUCT_TEXT_EN: Record<string, Pick<ShopProduct, "name" | "description">>
   [SUBSCRIPTION_PRODUCT.id]: {
     name: "Demo plan · Monthly mailbox",
     description: "For local development only: renews every 30 days, with a reminder before it expires.",
+  },
+  [SEAT_PRODUCT.id]: {
+    name: "Demo plan · Team mailboxes (per mailbox)",
+    description:
+      "For local development only: buy as many mailboxes as you need, renewing every 30 days; add seats any time and remove them at renewal.",
   },
 };
 /**
@@ -98,10 +137,19 @@ function couponPrice(
   product: ShopProduct,
   provider: "ldc" | "stripe",
   typed: string,
+  /** Seats of a seat plan: the code then applies to the order's total, like mail. 0 for a fixed plan. */
+  quantity = 0,
 ): { code: string; baseCents: number; priceCents: number; discountCents: number } | null {
   const code = typed.trim().toUpperCase();
   const coupon = Object.hasOwn(MOCK_COUPONS, code) ? MOCK_COUPONS[code] : undefined;
-  const baseCents = provider === "stripe" ? (product.fiatPriceMinor ?? 0) : product.priceCents;
+  const baseCents =
+    quantity > 0
+      ? provider === "stripe"
+        ? (seatCardPrice(product, quantity) ?? 0)
+        : (seatOrderPrice(product, quantity)?.priceCents ?? 0)
+      : provider === "stripe"
+        ? (product.fiatPriceMinor ?? 0)
+        : product.priceCents;
   if (!coupon || baseCents < 1 || (coupon.products && !coupon.products.includes(product.id))) return null;
   const off = provider === "stripe" ? coupon.fiatAmountOffMinor : coupon.amountOffCents;
   // A percentage is rounded half up, like the plan discount.
@@ -120,6 +168,18 @@ function couponFrom(body: Record<string, unknown>): string | null {
   if (body.coupon === undefined || body.coupon === null) return null;
   if (typeof body.coupon !== "string") return "?";
   return body.coupon.trim().slice(0, 64) || null;
+}
+
+/** A quantity mail would take for a seat plan: a whole number inside the plan's range. */
+function seatQuantity(value: unknown, plan: SeatProduct): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= plan.seatMin && value <= plan.seatMax;
+}
+
+function seatRangeMessage(plan: SeatProduct, say: (zh: string, en: string) => string): string {
+  return say(
+    `请选择 ${plan.seatMin} ～ ${plan.seatMax} 个席位。`,
+    `Choose between ${plan.seatMin} and ${plan.seatMax} seats.`,
+  );
 }
 
 /** Token of the demo renewal link; the local subscription id is the purchase order number. */
@@ -142,6 +202,12 @@ interface StoredOrder {
   order: PublicShopOrder["order"];
   /** The discount code of the order and what it took off. Like mail, kept with the order and not published with it yet. */
   coupon?: { code: string; discountCents: number };
+  /**
+   * An order that adds seats to a seat subscription (mail's kind "seats"): published as `kind: "renewal"` with `periods: 1`, and
+   * `order.mailboxCount` is the seats added. `pricedTo` is the period end it was priced to: once a renewal has moved the
+   * subscription's period end, the order can no longer be paid.
+   */
+  addsSeats?: { pricedTo: number };
 }
 
 interface StoredLogin {
@@ -167,6 +233,22 @@ interface StoredSubscription {
   end: number;
   /** The demo card subscription always has auto-renewal on. */
   stripe: boolean;
+  periodDays: number;
+  /** What one period costs at renewal: hundredths of an LDC, or the card price in cents for a card subscription. */
+  renewPriceCents: number;
+  mailboxCount: number;
+  /** A seat subscription: its seats, the plan's range, what one seat costs per period and a removal scheduled for the next renewal. */
+  seats?: {
+    seats: number;
+    min: number;
+    max: number;
+    seatPriceCents: number;
+    /** The count from the next renewal on; 0 when no removal is scheduled. */
+    pending: number;
+    removing: string[];
+    /** Seats a card subscription gets once Stripe confirms the invoice the buyer was sent to; the demo confirms after one more read of the list. */
+    awaitingPayment?: { seats: number; reads: number };
+  };
 }
 
 function json(body: unknown, status = 200, headers: HeadersInit = {}): Response {
@@ -248,15 +330,27 @@ export class MockShopStore {
    * checkout ignores the field, like a mail before them, to see the shop page hide the field.
    */
   private readonly coupons: boolean;
+  /**
+   * Whether the demo backend has seat plans. Off, the catalog has no `seatProducts`, the seat routes answer 404 and the mailbox
+   * groups carry no `seats`, like a mail before them: the pages then show nothing about seats.
+   */
+  private readonly seats: boolean;
 
   constructor(
     now: () => number = Date.now,
     addressCheck = process.env.MOCK_ADDRESS_CHECK !== "off",
     coupons = process.env.MOCK_COUPONS !== "off",
+    seats = process.env.MOCK_SEATS !== "off",
   ) {
     this.now = now;
     this.addressCheck = addressCheck;
     this.coupons = coupons;
+    this.seats = seats;
+  }
+
+  /** The plans checkout and the code preview know: the seat plan only while the demo backend has seat plans. */
+  private plans(): (ShopProduct | SeatProduct)[] {
+    return this.seats ? [...PRODUCTS, SEAT_PRODUCT] : PRODUCTS;
   }
 
   async fetch(route: string, request: Request): Promise<Response> {
@@ -303,6 +397,9 @@ export class MockShopStore {
         "account/mailboxes/password",
         "account/mailboxes/status",
         "account/mailboxes/delete",
+        ...(this.seats
+          ? ["account/seats/quote", "account/seats/add", "account/seats/remove", "account/seats/keep"]
+          : []),
       ].includes(route)
     ) {
       return failure(404, say("接口不存在。", "Endpoint not found."));
@@ -319,6 +416,11 @@ export class MockShopStore {
     const base = apiIndex > 0 ? url.pathname.slice(0, apiIndex) : "";
     const onboardUrl = `${origin}${base}/`;
     if (route === "catalog") {
+      const seatEntry = {
+        ...structuredClone(SEAT_PRODUCT),
+        kind: "seat",
+        ...(english ? PRODUCT_TEXT_EN[SEAT_PRODUCT.id] : {}),
+      };
       const catalog: ShopCatalog = {
         available: true,
         payment: { ldc: true, stripe: { currency: "usd" } },
@@ -326,6 +428,12 @@ export class MockShopStore {
           ...structuredClone(product),
           ...(english ? PRODUCT_TEXT_EN[product.id] : {}),
         })),
+        // Like mail: seat plans are listed apart, with `kind: "seat"`, and the key is absent while none is on sale.
+        ...(this.seats
+          ? {
+              seatProducts: [seatEntry],
+            }
+          : {}),
         onboardUrl,
         ...(this.addressCheck ? { addressCheck: true as const } : {}),
       };
@@ -383,7 +491,7 @@ export class MockShopStore {
       // The address check before buying: no redeem code and no session; only domains of the plans on sale can be asked about.
       if (
         typeof body.domain !== "string" ||
-        !PRODUCTS.some((product) => product.domains.includes(body.domain as string))
+        !this.plans().some((product) => product.domains.includes(body.domain as string))
       )
         return failure(400, say("请选择可用的域名。", "Choose an available domain."));
       const username = normalizeUsername(typeof body.username === "string" ? body.username : "");
@@ -401,8 +509,11 @@ export class MockShopStore {
       const typed = couponFrom(body);
       if (!typed) return failure(400, say("请输入优惠码。", "Enter a discount code."));
       const provider = body.provider === "stripe" ? "stripe" : "ldc";
-      const product = PRODUCTS.find((item) => item.id === body.productId);
-      const quote = product ? couponPrice(product, provider, typed) : null;
+      const product = this.plans().find((item) => item.id === body.productId);
+      // Like mail: a seat plan's preview needs the quantity, and its amounts are for that many seats.
+      const seatPlan = product && "seatMax" in product ? product : null;
+      if (seatPlan && !seatQuantity(body.quantity, seatPlan)) return failure(400, seatRangeMessage(seatPlan, say));
+      const quote = product ? couponPrice(product, provider, typed, seatPlan ? (body.quantity as number) : 0) : null;
       if (!product || !quote) return json({ valid: false });
       return json({
         valid: true,
@@ -579,6 +690,10 @@ export class MockShopStore {
       if (!customer) return failure(401, notSignedIn);
       return this.mailboxWrite(route.slice("account/mailboxes/".length), customer, body, say);
     }
+    if (route.startsWith("account/seats/")) {
+      if (!customer) return failure(401, notSignedIn);
+      return this.seatWrite(route.slice("account/seats/".length), customer, token, body, say, english, secure);
+    }
     if (route === "account/password-login") {
       if (typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()))
         return failure(400, say("请输入有效的邮箱地址。", "Enter a valid email address."));
@@ -643,7 +758,7 @@ export class MockShopStore {
     }
     if (route === "checkout" || route === "renew") {
       const renewal = route === "renew" ? this.renewalSummary(body.token) : null;
-      const product = PRODUCTS.find((item) => item.id === body.productId);
+      const product = this.plans().find((item) => item.id === body.productId);
       if (route === "renew" && !renewal) return failure(404, renewalInvalid);
       // Like mail: Stripe charges its subscriptions itself, so they cannot be renewed by hand here.
       if (renewal?.provider === "stripe")
@@ -657,10 +772,36 @@ export class MockShopStore {
       if (route === "checkout" && !product) return failure(409, unavailableProduct);
       if (route === "checkout" && body.provider === "stripe" && !product?.fiatPriceMinor)
         return failure(409, unavailableProduct);
+      // Like mail: a seat plan is ordered by the seat, within its range, and a fixed plan takes no quantity (one above 1 is refused).
+      const seatPlan = route === "checkout" && product && "seatMax" in product ? product : null;
+      const quantity = body.quantity === undefined || body.quantity === null ? 0 : body.quantity;
+      if (route === "checkout") {
+        if (typeof quantity !== "number" || !Number.isSafeInteger(quantity) || quantity < 0)
+          return failure(400, say("请填写整数的席位数量。", "Enter a whole number of seats."));
+        if (seatPlan ? !seatQuantity(quantity, seatPlan) : quantity > 1)
+          return failure(
+            400,
+            seatPlan
+              ? seatRangeMessage(seatPlan, say)
+              : say("请填写整数的席位数量。", "Enter a whole number of seats."),
+          );
+      }
+      const seats = seatPlan ? (quantity as number) : 0;
+      const card = body.provider === "stripe";
+      // What the order costs before a discount code: for a seat plan, the whole order priced by mail's rule.
+      const seatLdc = seatPlan ? seatOrderPrice(seatPlan, seats) : null;
+      const seatCard = seatPlan ? seatCardPrice(seatPlan, seats) : null;
+      if (seatPlan && (card ? !seatCard : !seatLdc))
+        return failure(
+          400,
+          say(
+            "这么多席位超出了单笔订单的金额上限，请减少数量。",
+            "That many seats cost more than one order can charge. Choose fewer.",
+          ),
+        );
       // Like mail: a code that cannot be used fails the checkout with one message for every reason, and no order is created.
       const typed = route === "checkout" && this.coupons ? couponFrom(body) : null;
-      const quote =
-        typed && product ? couponPrice(product, body.provider === "stripe" ? "stripe" : "ldc", typed) : null;
+      const quote = typed && product ? couponPrice(product, card ? "stripe" : "ldc", typed, seats) : null;
       if (typed && !quote)
         return failure(400, say("此优惠码不能用于这笔订单。", "This discount code can't be used for this order."));
       const periods = renewal ? body.periods : 1;
@@ -675,6 +816,11 @@ export class MockShopStore {
         id = randomBytes(8).toString("hex").slice(0, 15);
       } while (this.orders.has(id));
       const price = renewal ? renewal.renewPriceCents * periods : 0;
+      // A seat plan's order: the seats in mailboxCount, the total in the price fields, and seats × the seat's renewal price per period.
+      const seatUnit = seatPlan ? seatPlan.renewPriceCents || seatPlan.priceCents : 0;
+      const fixedOriginal = seatLdc ? seatLdc.originalPriceCents : product?.originalPriceCents;
+      const fixedPrice = seatLdc ? seatLdc.priceCents : product?.priceCents;
+      const cardPrice = seatPlan ? (seatCard ?? 0) : (product?.fiatPriceMinor ?? 0);
       // Orders placed while logged in belong to this account from the start (like mail's customer_id).
       if (customer) {
         const owned = this.owned.get(customer) ?? new Set<string>();
@@ -712,10 +858,10 @@ export class MockShopStore {
               productName: product!.name,
               // mail does not publish an order's code yet. With a plan discount the three price fields stay as stored, with the
               // lower price actually paid; without one the original price is published as the price paid (mail's toPublicOrder).
-              originalPriceCents: quote && !product!.discountPercent ? quote.priceCents : product!.originalPriceCents,
+              originalPriceCents: quote && !product!.discountPercent ? quote.priceCents : fixedOriginal!,
               discountPercent: product!.discountPercent,
-              priceCents: quote ? quote.priceCents : product!.priceCents,
-              mailboxCount: product!.mailboxCount,
+              priceCents: quote ? quote.priceCents : fixedPrice!,
+              mailboxCount: seatPlan ? seats : product!.mailboxCount,
               quotaMb: product!.quotaMb,
               quotaSupportedByDomain: { ...product!.quotaSupportedByDomain },
               codeExpiresDays: product!.codeExpiresDays,
@@ -723,16 +869,16 @@ export class MockShopStore {
               kind: "purchase",
               periods: 1,
               periodDays: product!.periodDays,
-              renewPriceCents: product!.renewPriceCents,
-              ...(body.provider === "stripe"
+              renewPriceCents: seatPlan ? seatUnit * seats : product!.renewPriceCents,
+              ...(card
                 ? {
                     provider: "stripe" as const,
                     currency: "usd",
-                    priceCents: quote ? quote.priceCents : (product!.fiatPriceMinor ?? 0),
-                    originalPriceCents: quote ? quote.priceCents : (product!.fiatPriceMinor ?? 0),
+                    priceCents: quote ? quote.priceCents : cardPrice,
+                    originalPriceCents: quote ? quote.priceCents : cardPrice,
                     discountPercent: 0,
                     // Same as the backend: Stripe subscriptions charge the fiat price from purchase time each period.
-                    renewPriceCents: product!.fiatPriceMinor ?? 0,
+                    renewPriceCents: cardPrice,
                   }
                 : { provider: "ldc" as const }),
               status: "pending",
@@ -753,6 +899,19 @@ export class MockShopStore {
       return json({ status: stored.order.status === "paid" ? "paid" : "hosted" });
     }
     if (route === "pay") {
+      const lang = body.lang === "en" || body.lang === "zh" ? body.lang : stored.locale;
+      // The site's layout: English at the root, Chinese under /zh/.
+      const prefix = lang === "zh" ? "/zh" : "";
+      // Like mail: seats priced to a period a renewal has since extended can no longer be paid; back to the order page with the payment error.
+      if (
+        stored.order.status !== "paid" &&
+        stored.addsSeats &&
+        this.subscriptions.get(stored.order.subscriptionId ?? "")?.end !== stored.addsSeats.pricedTo
+      )
+        return new Response(null, {
+          status: 303,
+          headers: { ...HEADERS, Location: `${base}${prefix}/shop/orders/?id=${stored.order.id}&error=payment` },
+        });
       // A local button press simulates provider confirmation; no money is sent.
       if (stored.order.status !== "paid") {
         stored.order.status = "paid";
@@ -761,9 +920,6 @@ export class MockShopStore {
       }
       // Locally, pressing "Pay" counts as paid, as if the payment provider sent the buyer back to the order page: like mail's payment return address, use the form's lang,
       // and when an old page does not send it, the language at order time.
-      const lang = body.lang === "en" || body.lang === "zh" ? body.lang : stored.locale;
-      // The site's layout: English at the root, Chinese under /zh/.
-      const prefix = lang === "zh" ? "/zh" : "";
       return new Response(null, {
         status: 303,
         headers: {
@@ -802,17 +958,44 @@ export class MockShopStore {
   private mailboxList(email: string): AccountMailboxes {
     const groups = this.paidPurchases(email).map((order) => {
       const mailboxes = this.mailboxes.get(order.id) ?? [];
-      const limit = order.mailboxCount;
+      const seats = this.seats ? this.settleSeats(order.id) : undefined;
+      // A seat subscription's code allows as many mailboxes as it has seats; a seat on its way out is not filled again.
+      const limit = seats ? seats.seats : order.mailboxCount;
+      const kept = seats ? mailboxes.filter((mailbox) => !seats.removing.includes(mailbox.id)).length : 0;
+      const usesLeft =
+        seats && seats.pending > 0
+          ? Math.max(0, Math.min(limit - mailboxes.length, seats.pending - kept))
+          : Math.max(0, limit - mailboxes.length);
+      const subscription = this.subscriptions.get(order.id);
       return {
         orderId: order.id,
         productName: order.productName,
         code: DEMO_CODE,
-        codeStatus: mailboxes.length >= limit ? ("used" as const) : ("available" as const),
-        usesLeft: Math.max(0, limit - mailboxes.length),
+        codeStatus: usesLeft === 0 ? ("used" as const) : ("available" as const),
+        usesLeft,
         mailboxLimit: limit,
         codeExpires: null,
-        domains: mailboxes.length >= limit ? [] : [...order.domains],
+        domains: usesLeft === 0 ? [] : [...order.domains],
         locked: false,
+        // Like mail: `seats` is there on a backend with seat plans, and null for anything but a seat subscription.
+        ...(this.seats
+          ? {
+              seats:
+                seats && subscription
+                  ? {
+                      seats: seats.seats,
+                      seatsNext: seats.pending > 0 ? seats.pending : null,
+                      min: seats.min,
+                      max: seats.max,
+                      seatPriceCents: seats.seatPriceCents,
+                      provider: subscription.stripe ? ("stripe" as const) : ("ldc" as const),
+                      currency: subscription.stripe ? "usd" : "",
+                      periodEnd: new Date(subscription.end).toISOString(),
+                      removing: [...seats.removing],
+                    }
+                  : null,
+            }
+          : {}),
         mailboxes: structuredClone(mailboxes),
       };
     });
@@ -846,7 +1029,8 @@ export class MockShopStore {
       const order = orders.find((item) => item.id === body.orderId);
       if (!order) return failure(404, say("未找到订单。", "Order not found."));
       const list = this.mailboxes.get(order.id) ?? [];
-      if (list.length >= order.mailboxCount)
+      const group = this.mailboxList(email).groups.find((item) => item.orderId === order.id);
+      if (!group || group.usesLeft < 1)
         return failure(409, say("这个兑换码已经用完了。", "This code has been used up."));
       if (typeof body.domain !== "string" || !order.domains.includes(body.domain))
         return failure(400, say("请选择可用的域名。", "Choose an available domain."));
@@ -953,7 +1137,8 @@ export class MockShopStore {
             provider: summary.provider,
             autoRenew: summary.autoRenew,
             currency: "usd",
-            fiatRenewMinor: SUBSCRIPTION_PRODUCT.fiatPriceMinor,
+            fiatRenewMinor:
+              summary.provider === "stripe" ? summary.renewPriceCents : SUBSCRIPTION_PRODUCT.fiatPriceMinor,
           };
         }),
       orders: orders.map((order) => ({
@@ -972,7 +1157,8 @@ export class MockShopStore {
         // Consistent with mailbox management: once the quota is filled the redeem code is used up.
         codeStatus:
           order.status === "paid" && order.kind !== "renewal"
-            ? (this.mailboxes.get(order.id)?.length ?? 0) >= order.mailboxCount
+            ? (this.mailboxes.get(order.id)?.length ?? 0) >=
+              (this.subscriptions.get(order.id)?.seats?.seats ?? order.mailboxCount)
               ? "used"
               : "available"
             : null,
@@ -1002,27 +1188,262 @@ export class MockShopStore {
     if (!days) return;
     const id = order.kind === "renewal" ? order.subscriptionId! : order.id;
     const current = this.subscriptions.get(id);
-    const base = Math.max(current?.end ?? 0, this.now());
+    // An order that adds seats: the period stays, the seats and what a period costs rise by the seats bought.
+    if (stored.addsSeats) {
+      if (current?.seats) this.raiseSeats(current, current.seats.seats + order.mailboxCount);
+      return;
+    }
+    if (current) {
+      // A renewal: the period is extended, and a removal scheduled for it is applied (the chosen mailboxes go with their seats).
+      current.end = Math.max(current.end, this.now()) + days * 86_400_000;
+      if (current.seats && current.seats.pending > 0) {
+        const { pending, removing } = current.seats;
+        this.mailboxes.set(
+          id,
+          (this.mailboxes.get(id) ?? []).filter((mailbox) => !removing.includes(mailbox.id)),
+        );
+        current.seats = { ...current.seats, seats: pending, pending: 0, removing: [] };
+        current.mailboxCount = pending;
+        current.renewPriceCents = current.seats.seatPriceCents * pending;
+      }
+      return;
+    }
+    // Orders carry the plan's name as the catalog has it, which is how the demo finds the plan again.
+    const plan = this.plans().find((item) => item.name === order.productName);
+    const seatPlan = plan && "seatMax" in plan ? plan : null;
+    const stripe = order.provider === "stripe";
+    // What one seat costs per period at renewal: the card price, or the plan's renewal price (its discounted price when it has none).
+    const seatPriceCents = seatPlan
+      ? stripe
+        ? (seatPlan.fiatPriceMinor ?? 0)
+        : seatPlan.renewPriceCents || seatPlan.priceCents
+      : 0;
     this.subscriptions.set(id, {
       productName: order.productName,
-      end: base + days * 86_400_000,
-      stripe: current?.stripe ?? order.provider === "stripe",
+      end: this.now() + days * 86_400_000,
+      stripe,
+      periodDays: order.periodDays ?? 0,
+      renewPriceCents: seatPlan ? seatPriceCents * order.mailboxCount : order.renewPriceCents || order.priceCents,
+      mailboxCount: order.mailboxCount,
+      ...(seatPlan
+        ? {
+            seats: {
+              seats: order.mailboxCount,
+              min: seatPlan.seatMin,
+              max: seatPlan.seatMax,
+              seatPriceCents,
+              pending: 0,
+              removing: [],
+            },
+          }
+        : {}),
     });
+  }
+
+  private raiseSeats(subscription: StoredSubscription, seats: number): void {
+    if (!subscription.seats) return;
+    subscription.seats = { ...subscription.seats, seats, awaitingPayment: undefined };
+    subscription.mailboxCount = seats;
+    subscription.renewPriceCents = subscription.seats.seatPriceCents * seats;
+  }
+
+  /**
+   * The seats of a seat subscription as the account reads them. A card addition that needed the buyer at the bank is applied
+   * here one read later, the way mail raises the seats once Stripe reports the new quantity.
+   */
+  private settleSeats(subscriptionId: string): StoredSubscription["seats"] {
+    const subscription = this.subscriptions.get(subscriptionId);
+    const seats = subscription?.seats;
+    if (!subscription || !seats) return undefined;
+    if (seats.awaitingPayment) {
+      if (seats.awaitingPayment.reads > 0) seats.awaitingPayment.reads -= 1;
+      else this.raiseSeats(subscription, seats.awaitingPayment.seats);
+    }
+    return subscription.seats;
+  }
+
+  /** What `add` seats cost for the rest of the period, by mail's rule: rounded down to the hundredth, never below 0.01; 0 once the period is over. */
+  private prorated(subscription: StoredSubscription, add: number): number {
+    const remaining = Math.floor(subscription.end - this.now());
+    if (!subscription.seats || remaining <= 0) return 0;
+    const cents =
+      (BigInt(subscription.seats.seatPriceCents) * BigInt(add) * BigInt(remaining)) /
+      (BigInt(subscription.periodDays) * BigInt(86_400_000));
+    return Math.max(1, Number(cents));
+  }
+
+  /** The four seat routes: only seat subscriptions of the account's own paid purchase orders count; anything else is the same 404. */
+  private seatWrite(
+    action: string,
+    email: string,
+    token: string | null,
+    body: Record<string, unknown>,
+    say: (zh: string, en: string) => string,
+    english: boolean,
+    secure: string,
+  ): Response {
+    const order = this.paidPurchases(email).find((item) => item.id === body.orderId);
+    const subscription = order ? this.subscriptions.get(order.id) : undefined;
+    const seats = subscription?.seats;
+    const count = (value: unknown): value is number =>
+      typeof value === "number" && Number.isSafeInteger(value) && value >= 1 && value <= 1000;
+    const badCount = () => failure(400, say("请填写整数的席位数量。", "Enter a whole number of seats."));
+    const missing = () => failure(404, say("这个订阅没有可调整的席位。", "This subscription has no seats to change."));
+    if (action === "quote" || action === "add") {
+      if (!count(body.add)) return badCount();
+      if (!order || !subscription || !seats) return missing();
+      if (subscription.end <= this.now())
+        return failure(
+          409,
+          say(
+            "当前周期已结束，请先续费再加席位。",
+            "The current period has ended. Renew the subscription before adding seats.",
+          ),
+        );
+      if (seats.pending > 0)
+        return failure(
+          409,
+          say(
+            "已安排在下次续费时减少席位，请先撤销再加席位。",
+            "Seats are being removed at the next renewal. Take that back before adding seats.",
+          ),
+        );
+      if (seats.seats + body.add > seats.max)
+        return failure(409, say(`这个套餐最多 ${seats.max} 个席位。`, `This plan allows at most ${seats.max} seats.`));
+      const priceCents = this.prorated(subscription, body.add);
+      const periodEnd = new Date(subscription.end).toISOString();
+      if (action === "quote")
+        return json({
+          add: body.add,
+          seats: seats.seats + body.add,
+          provider: subscription.stripe ? "stripe" : "ldc",
+          currency: subscription.stripe ? "usd" : "",
+          priceCents,
+          // LDC: the order's price if ordered at once. Card: an estimate, Stripe's invoice has the final amount.
+          exact: !subscription.stripe,
+          periodEnd,
+        });
+      if (subscription.stripe) {
+        if (body.add === MOCK_SEATS_CARD_DECLINED)
+          return failure(
+            409,
+            say(
+              "这次变更的扣款没有成功，请在客户门户检查银行卡后重试。",
+              "The charge for this change didn't go through. Check your card in the customer portal and try again.",
+            ),
+          );
+        if (body.add === MOCK_SEATS_PAYMENT_REQUIRED) {
+          // The bank wants the buyer: nothing changes until the invoice is paid.
+          seats.awaitingPayment = { seats: seats.seats + body.add, reads: 1 };
+          return json({ status: "payment_required", seats: seats.seats, invoiceUrl: MOCK_INVOICE_URL });
+        }
+        this.raiseSeats(subscription, seats.seats + body.add);
+        return json({ status: "applied", seats: subscription.seats!.seats, invoiceUrl: null });
+      }
+      // LDC: an order for the prorated amount, paid on the order page like a renewal order; it starts a purchase session like renew.
+      const buyer = token ?? randomBytes(32).toString("hex");
+      let id: string;
+      do {
+        id = randomBytes(8).toString("hex").slice(0, 15);
+      } while (this.orders.has(id));
+      const owned = this.owned.get(email) ?? new Set<string>();
+      owned.add(id);
+      this.owned.set(email, owned);
+      this.orders.set(id, {
+        buyerHash: hash(buyer),
+        contactEmail: email,
+        locale: english ? "en" : "zh",
+        addsSeats: { pricedTo: subscription.end },
+        order: {
+          id,
+          productName: subscription.productName,
+          originalPriceCents: priceCents,
+          discountPercent: 0,
+          priceCents,
+          // The seats added.
+          mailboxCount: body.add,
+          quotaMb: 0,
+          codeExpiresDays: 0,
+          domains: [],
+          // mail's kind is "seats"; until the storefront contract takes it, such an order is published as a renewal of one period.
+          kind: "renewal",
+          periods: 1,
+          periodDays: subscription.periodDays,
+          renewPriceCents: 0,
+          subscriptionId: order.id,
+          provider: "ldc",
+          currency: "",
+          status: "pending",
+          created: new Date(this.now()).toISOString(),
+          paidAt: null,
+        },
+      });
+      return json({ orderId: id }, 201, {
+        "Set-Cookie": `${COOKIE}=${buyer}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${secure}`,
+      });
+    }
+    const effective = subscription ? new Date(subscription.end).toISOString() : "";
+    if (action === "remove") {
+      if (!count(body.remove)) return badCount();
+      const ids = body.mailboxIds === undefined ? [] : body.mailboxIds;
+      const choose = () =>
+        failure(
+          400,
+          say(
+            "请选择这个订阅里要随席位一起移除的邮箱。",
+            "Choose which of this subscription's mailboxes go with the removed seats.",
+          ),
+        );
+      if (
+        !Array.isArray(ids) ||
+        !ids.every((id) => typeof id === "string" && ORDER_ID.test(id)) ||
+        new Set(ids).size !== ids.length
+      )
+        return choose();
+      if (!order || !subscription || !seats) return missing();
+      const target = seats.seats - body.remove;
+      if (target < seats.min)
+        return failure(
+          409,
+          say(`这个套餐至少需要 ${seats.min} 个席位。`, `This plan needs at least ${seats.min} seats.`),
+        );
+      const provisioned = (this.mailboxes.get(order.id) ?? []).map((mailbox) => mailbox.id);
+      if (ids.length > body.remove || !ids.every((id) => provisioned.includes(id as string))) return choose();
+      const need = provisioned.length - ids.length - target;
+      if (need > 0)
+        return failure(
+          400,
+          say(
+            `还需再选 ${need} 个要移除的邮箱：留下的邮箱数不能超过保留的席位数。`,
+            `Choose ${need} more ${need === 1 ? "mailbox" : "mailboxes"} to remove: the rest must fit the seats that stay.`,
+          ),
+        );
+      seats.pending = target;
+      seats.removing = [...(ids as string[])];
+      return json({ seats: seats.seats, seatsNext: target, effective, removing: [...seats.removing] });
+    }
+    if (!order || !subscription || !seats) return missing();
+    if (seats.pending < 1) return failure(409, say("没有已安排的减席位。", "No seat removal is scheduled."));
+    seats.pending = 0;
+    seats.removing = [];
+    return json({ seats: seats.seats, seatsNext: null, effective, removing: [] });
   }
 
   private renewalSummary(token: unknown): RenewalSummary | null {
     const id = typeof token === "string" ? RENEW_TOKEN.exec(token)?.[1] : null;
     const subscription = id ? this.subscriptions.get(id) : null;
     if (!id || !subscription) return null;
+    // Like mail: for a seat subscription the next period is priced for the seats it will have, already lowered by a scheduled removal.
+    const nextSeats = subscription.seats ? subscription.seats.pending || subscription.seats.seats : 0;
     return {
       subscriptionId: id,
       productName: subscription.productName,
-      mailboxCount: SUBSCRIPTION_PRODUCT.mailboxCount,
-      periodDays: SUBSCRIPTION_PRODUCT.periodDays!,
-      renewPriceCents: SUBSCRIPTION_PRODUCT.renewPriceCents!,
+      mailboxCount: nextSeats || subscription.mailboxCount,
+      periodDays: subscription.periodDays,
+      renewPriceCents: nextSeats ? subscription.seats!.seatPriceCents * nextSeats : subscription.renewPriceCents,
       currentPeriodEnd: new Date(subscription.end).toISOString(),
       state: subscription.end > this.now() ? "active" : "grace",
-      mailboxes: ["demo@abnormalhq.com"],
+      mailboxes: (this.mailboxes.get(id) ?? []).map((mailbox) => mailbox.email),
       maxPeriods: subscription.stripe ? 0 : RENEW_MAX_PERIODS,
       hasContactEmail: false,
       provider: subscription.stripe ? "stripe" : "ldc",

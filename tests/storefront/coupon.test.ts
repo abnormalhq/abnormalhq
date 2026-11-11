@@ -300,7 +300,7 @@ test("copy: both languages say that a code cannot be used without giving a reaso
 test("shop page: a typed code always goes with checkout, and the page never previews as the buyer types", () => {
   const source = readFileSync("src/storefront/components/Shop.tsx", "utf8");
   // Whatever is in the field is sent: a code that was typed but not previewed is refused or applied by mail, never dropped.
-  expect(source).toMatch(/createShopOrder\(productId, lang, email\.trim\(\), provider, typedCoupon\)/);
+  expect(source).toMatch(/createShopOrder\(productId, lang, email\.trim\(\), provider, typedCoupon, seats\)/);
   // Each preview is a code guess against mail's limit of 10 per 10 minutes: only "Apply" asks, and for a bounded number of plans.
   expect(source.match(/previewCoupon\(/g)).toHaveLength(1);
   expect(source).toMatch(/offered\.slice\(0, COUPON_PREVIEWS\)/);
@@ -571,7 +571,7 @@ test("shop proxy: a mail before discount codes answers a JSON 404, so the shop h
   expect([limited.status, limited.headers.get("Retry-After")]).toStrictEqual([429, "540"]);
 });
 
-test("contract: the code preview is the one proxied shop route outside the contract file, as both repositories' docs say", () => {
+test("contract: the code preview is proxied outside the contract file, as both repositories' docs say", () => {
   const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
     shop: { routes: Record<string, string>; publicOrderFields: string[] };
   };

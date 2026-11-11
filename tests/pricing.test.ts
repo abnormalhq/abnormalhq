@@ -4,8 +4,9 @@ import { readFileSync } from "node:fs";
 import { en } from "../src/i18n/en.ts";
 import { zh } from "../src/i18n/zh.ts";
 import { pagePaths } from "../src/lib/pages.ts";
-import { decimalAmount, planRows, planView, planViews } from "../src/lib/pricing.ts";
-import { catalog } from "./support/catalog.ts";
+import { decimalAmount, planRows, planRowsFor, planView, planViews } from "../src/lib/pricing.ts";
+import { catalogDomains, seatCardPrice, seatOrderPrice } from "../src/storefront/lib/catalog.ts";
+import { catalog, seatCatalog, seatPlan } from "./support/catalog.ts";
 
 const [solo, team] = catalog.products as [(typeof catalog.products)[0], (typeof catalog.products)[0]];
 
@@ -28,6 +29,7 @@ test("a plan card shows the backend's amounts as they are: price, discount, card
     mailboxes: "1 mailbox",
     storage: "1 GB per mailbox",
     domains: "@abnormalhq.com",
+    ownDomains: "Not included",
     code: "Set up within 30 days of paying",
   });
   assert.equal(first!.offer, undefined);
@@ -50,9 +52,82 @@ test("a plan card shows the backend's amounts as they are: price, discount, card
     mailboxes: "5 mailboxes",
     storage: "2.5 GB per mailbox",
     domains: "@abnormalhq.com, @abnormal.bid",
+    ownDomains: "Not included",
     code: "Set up whenever you like",
   });
   assert.deepEqual(second!.offer, { price: "2.99", currency: "USD" });
+});
+
+test("a plan sold per mailbox says so on every line: the amounts are for one mailbox and the buyer chooses how many", () => {
+  const views = planViews(seatCatalog, "en", en.pricing, "/shop/");
+  // Fixed plans first, then the seat plans, as the shop lists them.
+  assert.deepEqual(
+    views.map((view) => view.id),
+    ["planonetimeabcd", "planmonthlyabcd", "planseatsabcdef"],
+  );
+  const seat = views[2]!;
+  assert.deepEqual(
+    { amount: seat.amount, unit: seat.unit, discount: seat.discount, card: seat.card },
+    {
+      amount: "3.00",
+      unit: "LDC / mailbox / 30 days",
+      discount: { label: "10% off", original: "3.33 LDC" },
+      card: "or $1.99 per mailbox every 30 days by card, renewing automatically",
+    },
+  );
+  assert.deepEqual(seat.rows, {
+    price: "3.00 LDC / mailbox / 30 days",
+    card: "$1.99 per mailbox every 30 days, renewing automatically",
+    billing: "Subscription, every 30 days",
+    renewal: "3.00 LDC per mailbox every 30 days",
+    mailboxes: "2 to 50, you choose",
+    storage: "2 GB per mailbox",
+    domains: "@abnormalhq.com",
+    ownDomains: "Up to 2 of your own domains",
+    code: "Set up within 30 days of paying",
+  });
+  // The total is not the per-mailbox price times the count: the page says where it is set.
+  assert.equal(
+    seat.note,
+    "Priced per mailbox: you choose how many in the shop, and the order total is confirmed at checkout. The 10% discount is taken off the order total and rounded once.",
+  );
+  assert.deepEqual(seat.offer, { price: "1.99", currency: "USD", seats: { unit: "mailbox", min: 2, max: 50 } });
+  assert.equal(seat.href, "/shop/?plan=planseatsabcdef");
+
+  const zhSeat = planViews(seatCatalog, "zh", zh.pricing, "/zh/shop/")[2]!;
+  assert.equal(zhSeat.unit, "LDC / 邮箱 / 30 天");
+  assert.equal(zhSeat.rows.mailboxes, "2 ～ 50 个，数量自选");
+  assert.equal(zhSeat.rows.ownDomains, "可接入 2 个自有域名");
+
+  // In a card-only shop the card price leads, per mailbox, and no LDC discount is quoted.
+  const cardOnly = planView(seatPlan, { ldc: false, stripe: { currency: "usd" } }, "en", en.pricing, "/shop/");
+  assert.deepEqual(
+    [cardOnly.amount, cardOnly.unit, cardOnly.discount],
+    ["$1.99", "by card / mailbox / 30 days", undefined],
+  );
+  assert.doesNotMatch(cardOnly.note ?? "", /discount/);
+});
+
+test("the comparison only has a row for own domains when a plan on sale includes it", () => {
+  const without = planViews(catalog, "en", en.pricing, "/shop/");
+  assert.ok(!planRowsFor(without).includes("ownDomains"));
+  assert.ok(planRowsFor(planViews(seatCatalog, "en", en.pricing, "/shop/")).includes("ownDomains"));
+  // The address check offers the seat plans' domains too, as mail's check answers for every plan on sale.
+  assert.deepEqual(catalogDomains(seatCatalog), ["abnormalhq.com", "abnormal.bid"]);
+});
+
+test("a seat order's estimate follows mail's rounding: the discount on the whole order, rounded half up once", () => {
+  // mail's docs/shop.md: 3.33 a seat at 10% off is 20.98 for 7 seats (23.31 × 0.9 = 20.979), not 7 × 3.00.
+  assert.deepEqual(seatOrderPrice(seatPlan, 7), { originalPriceCents: 2331, priceCents: 2098 });
+  assert.notEqual(seatOrderPrice(seatPlan, 7)!.priceCents, 7 * seatPlan.priceCents);
+  // Half up: 0.05 at 50% off is 0.03, not 0.02.
+  assert.equal(seatOrderPrice({ originalPriceCents: 5, discountPercent: 50 }, 1)!.priceCents, 3);
+  assert.equal(seatOrderPrice({ originalPriceCents: 333, discountPercent: 0 }, 3)!.priceCents, 999);
+  // Above what one order can charge (1,000,000.00), and nonsense quantities, there is no figure to show.
+  assert.equal(seatOrderPrice({ originalPriceCents: 100_000_00, discountPercent: 0 }, 11), null);
+  for (const quantity of [0, -1, 1.5, Number.NaN]) assert.equal(seatOrderPrice(seatPlan, quantity), null);
+  assert.equal(seatCardPrice(seatPlan, 7), 1393);
+  assert.equal(seatCardPrice({ fiatPriceMinor: 0 }, 7), null);
 });
 
 test("the Chinese cards say the same in Chinese", () => {

@@ -305,6 +305,75 @@ export const shopCopy = {
     manageInAccount: "前往账户页",
     renewalStripeNote: "这个订阅由 Stripe 按期自动扣款，不能在这里续费。要恢复自动续费或更新银行卡，请登录账户页管理。",
     portalOpening: "正在打开…",
+    rateLimitedWait: (seconds: number) =>
+      `操作过于频繁，请在 ${seconds < 60 ? `${seconds} 秒` : seconds < 3600 ? `${Math.ceil(seconds / 60)} 分钟` : `${Math.ceil(seconds / 3600)} 小时`}后重试。`,
+    seatUnit: (days: number) => (days > 0 ? `LDC / 邮箱 / ${days} 天` : "LDC / 邮箱"),
+    seatCardEach: (price: string, days: number) =>
+      days > 0 ? `银行卡 ${price} / 邮箱 / ${days} 天，自动续费` : `银行卡 ${price} / 邮箱`,
+    seatRenewAt: (price: string) => `续费每个邮箱 ${price} LDC / 周期`,
+    seatQuantity: "邮箱数量",
+    seatRange: (min: number, max: number) => (min === max ? `固定 ${min} 个` : `可选 ${min} ～ ${max} 个`),
+    seatFewer: "减少一个邮箱",
+    seatMore: "增加一个邮箱",
+    seatTotal: "合计",
+    seatTotalLdc: (price: string, days: number) => (days > 0 ? `${price} LDC / ${days} 天` : `${price} LDC`),
+    seatTotalCard: (price: string, days: number) => (days > 0 ? `银行卡 ${price} / ${days} 天` : `银行卡 ${price}`),
+    seatWas: "优惠前",
+    seatEstimate: "合计为预估金额，以下单时商店确认的价格为准。",
+    seatDiscountNote: (percent: number) => `${percent}% 的优惠按整笔订单计算，只取整一次。`,
+    seatTooMany: "这个数量超出了单笔订单的金额上限，请减少邮箱数量。",
+    seatCountValue: (min: number, max: number) => `${min} ～ ${max} 个，数量自选`,
+    ownDomains: "自有域名",
+    ownDomainsValue: (n: number) => `可接入 ${n} 个`,
+    seatsTitle: "席位",
+    seatsUsed: (used: number, total: number) => `已用 ${used} / ${total} 个席位`,
+    seatsPriceLabel: "每个席位",
+    seatsPriceValue: (price: string) => `${price} / 周期`,
+    seatsPeriodEnd: "本期到期",
+    seatsAdd: "增加席位",
+    seatsAddCount: "增加的席位数",
+    seatsAddRoom: (n: number) => `这个套餐最多还能加 ${n} 个。`,
+    seatsAtMax: (max: number) => `已达这个套餐的上限（${max} 个席位）。`,
+    seatsEnded: "当前周期已结束，续费后才能增加席位。",
+    seatsQuote: "查看价格",
+    seatsQuoting: "正在计算…",
+    seatsQuoteLdc: (n: number, price: string, date: string) =>
+      `增加 ${n} 个席位，按本期剩余时间（到 ${date}）计费：${price} LDC。现在下单就是这个价格，时间越晚越少。`,
+    seatsQuoteCard: (n: number, price: string, date: string) =>
+      `增加 ${n} 个席位，按本期剩余时间（到 ${date}）计费：约 ${price}。这是预估金额，最终金额由 Stripe 计算，并从订阅绑定的银行卡扣款。`,
+    seatsQuoteAfter: (total: number, renew: string) => `增加后共 ${total} 个席位，之后每期续费 ${renew}。`,
+    seatsConfirmLdc: "创建订单并前往支付",
+    seatsConfirmCard: "确认并从银行卡扣款",
+    seatsAdding: "正在处理…",
+    seatsApplied: (n: number) => `席位已增加，现在共 ${n} 个。`,
+    seatsPaymentRequired:
+      "银行需要你确认这笔付款，席位暂时没有增加。请在 Stripe 的账单页面完成付款；Stripe 确认到账后席位才会增加，届时刷新本页即可看到。",
+    seatsPaymentRequiredNoLink:
+      "银行需要你确认这笔付款，席位暂时没有增加。请点下方订阅里的「管理自动续费」，在 Stripe 检查银行卡并付清未付账单；Stripe 确认到账后席位才会增加。",
+    seatsOpenInvoice: "前往 Stripe 完成付款",
+    seatsRefresh: "刷新席位",
+    seatsRemove: "续费时减少席位",
+    seatsRemoveCount: "减少的席位数",
+    seatsRemoveRoom: (n: number) => `最多可减少 ${n} 个。`,
+    seatsAtMin: (min: number) => `已是这个套餐的下限（${min} 个席位）。`,
+    seatsRemoveHint: (date: string) => `减少从下次续费（${date}）起生效，本期不退款；在那之前，席位和邮箱都照常使用。`,
+    seatsRemoveChoose: (n: number) => `选择随席位一起移除的邮箱（至少 ${n} 个）`,
+    seatsRemoveChooseNone: "现有邮箱没有超出保留的席位数，不需要移除邮箱。",
+    seatsRemoveChooseMore: (n: number) => `还需再选 ${n} 个邮箱。`,
+    seatsRemoveChooseFewer: (n: number) => `选中的邮箱不能多于减少的席位数（${n} 个）。`,
+    seatsRemoveWarning: "选中的邮箱会在续费时连同其中的全部邮件一并删除。",
+    seatsRemoveSubmit: "安排减少席位",
+    seatsRemoving: "正在安排…",
+    seatsRemovalScheduled: (next: number, date: string) => `已安排：从下次续费（${date}）起减为 ${next} 个席位。`,
+    seatsPending: (next: number, date: string) => `下次续费（${date}）起减为 ${next} 个席位`,
+    seatsPendingMailboxes: "届时移除的邮箱",
+    seatsPendingNoMailboxes: "不移除邮箱",
+    seatsKeep: "撤销减少，保留全部席位",
+    seatsKeeping: "正在撤销…",
+    seatsKept: "已撤销，席位保持不变。",
+    mailboxLeaving: "续费时移除",
+    seatsOrderHint:
+      "如果这笔订单是为订阅增加席位，而订阅在下单后已经续费，原来的价格就不再适用：请回到「我的账户」重新增加席位。",
   },
   en: {
     nav: "Buy mailboxes",
@@ -639,6 +708,83 @@ export const shopCopy = {
     renewalStripeNote:
       "This subscription renews automatically through Stripe and can't be renewed here. Sign in to your account to resume auto-renewal or update your card.",
     portalOpening: "Opening…",
+    rateLimitedWait: (seconds: number) =>
+      `Too many requests. Try again in ${seconds < 60 ? `${seconds} ${seconds === 1 ? "second" : "seconds"}` : seconds < 3600 ? `${Math.ceil(seconds / 60)} ${Math.ceil(seconds / 60) === 1 ? "minute" : "minutes"}` : `${Math.ceil(seconds / 3600)} ${Math.ceil(seconds / 3600) === 1 ? "hour" : "hours"}`}.`,
+    seatUnit: (days: number) => (days > 0 ? `LDC / mailbox / ${days} days` : "LDC / mailbox"),
+    seatCardEach: (price: string, days: number) =>
+      days > 0
+        ? `${price} per mailbox every ${days} days by card, renewing automatically`
+        : `${price} per mailbox by card`,
+    seatRenewAt: (price: string) => `Renews at ${price} LDC per mailbox per period`,
+    seatQuantity: "Mailboxes",
+    seatRange: (min: number, max: number) => (min === max ? `${min} exactly` : `${min} to ${max}`),
+    seatFewer: "One mailbox fewer",
+    seatMore: "One mailbox more",
+    seatTotal: "Total",
+    seatTotalLdc: (price: string, days: number) => (days > 0 ? `${price} LDC every ${days} days` : `${price} LDC`),
+    seatTotalCard: (price: string, days: number) =>
+      days > 0 ? `${price} every ${days} days by card` : `${price} by card`,
+    seatWas: "Before the discount",
+    seatEstimate: "The total is an estimate; the shop confirms the price when you place the order.",
+    seatDiscountNote: (percent: number) => `The ${percent}% discount is taken off the whole order and rounded once.`,
+    seatTooMany: "That many mailboxes cost more than one order can charge. Choose fewer.",
+    seatCountValue: (min: number, max: number) => `${min} to ${max}, you choose`,
+    ownDomains: "Your own domains",
+    ownDomainsValue: (n: number) => `Up to ${n}`,
+    seatsTitle: "Seats",
+    seatsUsed: (used: number, total: number) => `${used} of ${total} seats used`,
+    seatsPriceLabel: "Each seat",
+    seatsPriceValue: (price: string) => `${price} per period`,
+    seatsPeriodEnd: "Current period ends",
+    seatsAdd: "Add seats",
+    seatsAddCount: "Seats to add",
+    seatsAddRoom: (n: number) => `This plan has room for ${n} more.`,
+    seatsAtMax: (max: number) => `This plan's limit of ${max} seats is reached.`,
+    seatsEnded: "The current period has ended. Renew the subscription before adding seats.",
+    seatsQuote: "See the price",
+    seatsQuoting: "Working it out…",
+    seatsQuoteLdc: (n: number, price: string, date: string) =>
+      `${n} more ${n === 1 ? "seat" : "seats"} for the rest of this period (until ${date}): ${price} LDC. That is the price if you order now; it falls as the period runs down.`,
+    seatsQuoteCard: (n: number, price: string, date: string) =>
+      `${n} more ${n === 1 ? "seat" : "seats"} for the rest of this period (until ${date}): about ${price}. This is an estimate; Stripe works out the final amount and charges the card on the subscription.`,
+    seatsQuoteAfter: (total: number, renew: string) =>
+      `You will then have ${total} seats, renewing at ${renew} per period.`,
+    seatsConfirmLdc: "Create the order and pay",
+    seatsConfirmCard: "Confirm and charge my card",
+    seatsAdding: "Working…",
+    seatsApplied: (n: number) => `Seats added. You now have ${n}.`,
+    seatsPaymentRequired:
+      "Your bank needs you to confirm this payment, so no seats have been added yet. Finish it on Stripe's invoice page: the seats are added once Stripe confirms the payment, and show here after a refresh.",
+    seatsPaymentRequiredNoLink:
+      "Your bank needs you to confirm this payment, so no seats have been added yet. Choose “Manage auto-renewal” on the subscription below to check your card and pay the open invoice at Stripe: the seats are added once Stripe confirms the payment.",
+    seatsOpenInvoice: "Finish paying at Stripe",
+    seatsRefresh: "Refresh seats",
+    seatsRemove: "Remove seats at renewal",
+    seatsRemoveCount: "Seats to remove",
+    seatsRemoveRoom: (n: number) => `You can remove up to ${n}.`,
+    seatsAtMin: (min: number) => `This plan's minimum of ${min} ${min === 1 ? "seat" : "seats"} is reached.`,
+    seatsRemoveHint: (date: string) =>
+      `The removal takes effect at the next renewal (${date}). Nothing is refunded for this period, and until then the seats and mailboxes keep working.`,
+    seatsRemoveChoose: (n: number) => `Choose the mailboxes that go with the seats (at least ${n})`,
+    seatsRemoveChooseNone: "Your mailboxes already fit the seats that stay, so none has to go.",
+    seatsRemoveChooseMore: (n: number) => `Choose ${n} more ${n === 1 ? "mailbox" : "mailboxes"}.`,
+    seatsRemoveChooseFewer: (n: number) =>
+      `You can't choose more mailboxes than the ${n} ${n === 1 ? "seat" : "seats"} you remove.`,
+    seatsRemoveWarning: "The mailboxes you choose are deleted at the renewal, with all the mail in them.",
+    seatsRemoveSubmit: "Schedule the removal",
+    seatsRemoving: "Scheduling…",
+    seatsRemovalScheduled: (next: number, date: string) =>
+      `Scheduled: ${next} ${next === 1 ? "seat" : "seats"} from the next renewal (${date}).`,
+    seatsPending: (next: number, date: string) =>
+      `Down to ${next} ${next === 1 ? "seat" : "seats"} from the next renewal (${date})`,
+    seatsPendingMailboxes: "Mailboxes removed then",
+    seatsPendingNoMailboxes: "No mailbox is removed",
+    seatsKeep: "Cancel the removal and keep all seats",
+    seatsKeeping: "Cancelling…",
+    seatsKept: "The removal is cancelled. Your seats stay as they are.",
+    mailboxLeaving: "Removed at renewal",
+    seatsOrderHint:
+      "If this order adds seats to a subscription that has been renewed since, its price no longer applies: go back to My account and add the seats again.",
   },
 };
 
@@ -650,6 +796,8 @@ export const shopCopy = {
 export function shopError(error: unknown, lang: Lang, fallback: { notFound?: string } = {}): string {
   const t = shopCopy[lang];
   if (error instanceof ShopApiError) {
+    // A rate limit that says how long: mail's own sentence only says "later", so the wait is spelled out (every 429 of the shop API carries Retry-After).
+    if (error.status === 429 && error.retryAfter) return t.rateLimitedWait(error.retryAfter);
     if (error.message.trim()) return error.message;
     if (error.status === 404 && fallback.notFound) return fallback.notFound;
     if (error.status === 429) return t.rateLimited;

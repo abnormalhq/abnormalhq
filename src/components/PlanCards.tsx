@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
 import type { Copy } from "@/i18n/types";
-import { planRows, type PlanRow, type PlanView } from "@/lib/pricing";
+import { planRows, planRowsFor, type PlanRow, type PlanView } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 
@@ -69,13 +69,17 @@ export function PlanCards({
                 </p>
               )}
               {plan.card && <p className="mt-auto pt-3 text-sm/body text-muted-foreground">{plan.card}</p>}
+              {plan.note && <p className="pt-3 text-xs/[1.7] text-muted-foreground">{plan.note}</p>}
             </div>
             <dl className="mt-6 border-t border-border pt-5 text-sm/body">
-              {cardRows.map((row) => (
-                <Fact label={copy.compare.rows[row]} key={row}>
-                  {plan.rows[row]}
-                </Fact>
-              ))}
+              {cardRows
+                // "Your own domain" is listed on the plans that include it; the table says which do not.
+                .filter((row) => row !== "ownDomains" || plan.customDomains > 0)
+                .map((row) => (
+                  <Fact label={copy.compare.rows[row]} key={row}>
+                    {plan.rows[row]}
+                  </Fact>
+                ))}
             </dl>
             <div className="text-sm/body">
               <p className="text-muted-foreground">{copy.compare.rows.domains}</p>
@@ -133,6 +137,7 @@ export function PlanComparison({
   labelledBy: string;
 }) {
   const cell = "border-b border-border px-5 py-3.5 text-left align-top";
+  const rows = planRowsFor(plans);
   return (
     <div
       className="overflow-x-auto rounded-panel border border-border focus-visible:outline-2 focus-visible:outline-ring"
@@ -154,16 +159,16 @@ export function PlanComparison({
           </tr>
         </thead>
         <tbody>
-          {planRows.map((row, index) => (
+          {rows.map((row, index) => (
             <tr key={row}>
               <th
                 scope="row"
-                className={cn(cell, "font-normal text-muted-foreground", index === planRows.length - 1 && "border-b-0")}
+                className={cn(cell, "font-normal text-muted-foreground", index === rows.length - 1 && "border-b-0")}
               >
                 {copy.compare.rows[row]}
               </th>
               {plans.map((plan) => (
-                <td className={cn(cell, "wrap-anywhere", index === planRows.length - 1 && "border-b-0")} key={plan.id}>
+                <td className={cn(cell, "wrap-anywhere", index === rows.length - 1 && "border-b-0")} key={plan.id}>
                   {plan.rows[row]}
                   {row === "price" && plan.discount && (
                     <span className="mt-1 block text-xs/body text-muted-foreground">

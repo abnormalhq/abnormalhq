@@ -11,7 +11,7 @@ import {
 } from "./proxy";
 
 const SHOP_PATH =
-  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?))?)\/?$/;
+  /^\/api\/shop\/(catalog|address|coupon|orders|notify|checkout|reconcile|pay(?:\/stripe)?|renewal|renew|account(?:\/(?:login|peek|verify|logout|portal|password-login|password|register|forgot|reset|google(?:\/(?:start|unlink))?|mailboxes(?:\/(?:create|password|status|delete))?|seats\/(?:quote|add|remove|keep)))?)\/?$/;
 const GET_ROUTES = ["catalog", "orders", "notify", "account", "account/mailboxes"];
 /**
  * The address check before buying (POST address: is this username free on this domain?), in docs/storefront-api.md and
@@ -29,6 +29,18 @@ export const ADDRESS_ROUTE = "address";
  * takes that as "no discount codes" and hides the field.
  */
 export const COUPON_ROUTE = "coupon";
+/**
+ * Seats of a seat subscription on the account page (POST account/seats/quote, add, remove, keep; "Seat plans" in
+ * docs/storefront-api.md). mail implements them, but like the code preview they are "Proposed" in mail's docs/shop.md and not in
+ * docs/onboard-contract.json yet. They are proxied like account/mailboxes/create: same-origin Origin, the client IP kept, the
+ * purchase and account cookies forwarded; `add` may start a purchase session like `renew` (an LDC order to pay). A mail before
+ * seat plans answers its own 404 page, passed on as a JSON 404 rather than as an outage.
+ */
+export const SEAT_ROUTES = ["account/seats/quote", "account/seats/add", "account/seats/remove", "account/seats/keep"];
+/** Routes of features an older mail does not have: its 404 page becomes a JSON 404, which the pages take as "not offered". */
+function optionalRoute(route: string): boolean {
+  return route === ADDRESS_ROUTE || route === COUPON_ROUTE || SEAT_ROUTES.includes(route);
+}
 // The cookie names, shapes and lifetimes are mail's (src/lib/shop/session.ts, customers.ts); tests/worker.test.ts checks
 // them against docs/onboard-contract.json.
 export const BUYER_COOKIE = "mailhq_shop";
@@ -289,6 +301,11 @@ async function forward(
       await upstream.body?.cancel();
       return failure(404, localizer(request)("接口不存在。", "Endpoint not found."));
     }
+    if (optionalRoute(route) && upstream.status === 404 && mediaType(upstream.headers) !== "application/json") {
+      // A mail before the feature answers its own 404 page. mail's JSON 404 ("not a seat subscription of this account") is an answer and passes below.
+      await upstream.body?.cancel();
+      return failure(404, localizer(request)("接口不存在。", "Endpoint not found."));
+    }
     if (mediaType(upstream.headers) !== (notify ? "text/plain" : "application/json")) {
       await upstream.body?.cancel();
       console.error({ event: "mail_shop_invalid_response", route, status: upstream.status });
@@ -297,7 +314,8 @@ async function forward(
     const out = responseHeaders(upstream, SHOP_HEADERS);
     const secure = url.protocol === "https:";
     // Renewal orders hang off this browser's purchase session, like purchase orders.
-    if ((route === "checkout" || route === "renew") && upstream.ok) {
+    // So does an LDC order that adds seats (account/seats/add).
+    if ((route === "checkout" || route === "renew" || route === "account/seats/add") && upstream.ok) {
       const cookie = checkoutCookie(upstream.headers, secure);
       if (cookie) out.set("Set-Cookie", cookie);
     }

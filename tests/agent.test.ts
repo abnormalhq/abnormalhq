@@ -18,7 +18,7 @@ import { pages } from "../src/lib/pages.ts";
 import { storeMarkdown, storeMarkdownPaths } from "../src/storefront/lib/markdown.ts";
 import { parseReleaseIndex } from "../src/lib/releases.ts";
 import { releaseIndex, releaseIndexWithLinux } from "./support/releases.ts";
-import { catalog } from "./support/catalog.ts";
+import { catalog, seatCatalog, seatPlan } from "./support/catalog.ts";
 
 test("every page has a Markdown path under /md/ that mirrors its URL", () => {
   assert.deepEqual(
@@ -160,6 +160,21 @@ for (const lang of ["zh", "en"] as const) {
     for (const item of p.included.items) assert.ok(markdown.includes(item.description));
     assert.ok(!markdown.includes("undefined"));
     for (const [, href] of markdown.matchAll(/\]\(([^)\s]+)\)/g)) assert.match(href!, /^https:\/\//, href);
+  });
+
+  test(`${lang} pricing Markdown lists a plan sold per mailbox with per-mailbox amounts and its own-domain allowance`, () => {
+    const p = copies[lang].pricing;
+    const markdown = pricingMarkdown(lang, seatCatalog);
+    assert.ok(markdown.includes(`## ${seatPlan.name}`));
+    // The amounts are for one mailbox, and the text says so before listing them.
+    assert.ok(markdown.includes(p.plan.seatNote));
+    assert.ok(markdown.includes(lang === "en" ? "3.00 LDC / mailbox / 30 days" : "3.00 LDC / 邮箱 / 30 天"));
+    assert.ok(markdown.includes(lang === "en" ? "2 to 50, you choose" : "2 ～ 50 个，数量自选"));
+    // "Your own domain" is a row once a plan includes it, and absent from a catalog where none does.
+    assert.ok(markdown.includes(`| ${p.compare.rows.ownDomains} |`));
+    assert.match(markdown, /^\| --- \| --- \| --- \| --- \|$/m);
+    assert.ok(!pricingMarkdown(lang, catalog).includes(p.compare.rows.ownDomains));
+    assert.ok(!markdown.includes("undefined"));
   });
 
   test(`${lang} pricing Markdown never invents a price: a closed shop or an unread catalog says so`, () => {

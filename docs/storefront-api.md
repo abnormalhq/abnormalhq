@@ -183,10 +183,10 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 
 | Method | Path                                   | Request                                                                                    | Success response                                                                     |
 | ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, onboardUrl }`                                |
+| GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, seatProducts?, onboardUrl }`                 |
 | POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")              |
-| POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon }`                                                   | `200`, `{ valid: true, … }` or `{ valid: false }` (see "Discount codes")             |
-| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon? }`                                          | `201`, `{ orderId }`, and sets the buyer cookie                                      |
+| POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon, quantity? }`                                        | `200`, `{ valid: true, … }` or `{ valid: false }` (see "Discount codes")             |
+| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon?, quantity? }`                               | `201`, `{ orderId }`, and sets the buyer cookie                                      |
 | GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                       |
 | POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page        |
 | POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`            |
@@ -208,6 +208,10 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | POST   | `/api/shop/account/mailboxes/password` | JSON: `{ mailboxId, password }`                                                            | `200`, `{ email }`                                                                   |
 | POST   | `/api/shop/account/mailboxes/status`   | JSON: `{ mailboxId, status }` (`active` / `disabled`)                                      | `200`, `{ status }`                                                                  |
 | POST   | `/api/shop/account/mailboxes/delete`   | JSON: `{ mailboxId, confirm }` (`confirm` repeats the email address)                       | `200`, `{ "ok": true }`                                                              |
+| POST   | `/api/shop/account/seats/quote`        | JSON: `{ orderId, add }` (see "Seat plans")                                                | `200`, `{ add, seats, provider, currency, priceCents, exact, periodEnd }`            |
+| POST   | `/api/shop/account/seats/add`          | JSON: `{ orderId, add }`                                                                   | LDC `201`, `{ orderId }` and the buyer cookie; card `200`, `{ status, seats, … }`    |
+| POST   | `/api/shop/account/seats/remove`       | JSON: `{ orderId, remove, mailboxIds }`                                                    | `200`, `{ seats, seatsNext, effective, removing }`                                   |
+| POST   | `/api/shop/account/seats/keep`         | JSON: `{ orderId }`                                                                        | `200`, `{ seats, seatsNext: null, effective, removing: [] }`                         |
 | POST   | `/api/shop/account/forgot`             | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`; sends a password reset email when this account exists     |
 | POST   | `/api/shop/account/reset`              | JSON: `{ token, password }` (reset token)                                                  | `200`, `{ email, claimed }`, and sets the account cookie                             |
 | POST   | `/api/shop/account/google/start`       | JSON: `{ lang?, link? }`                                                                   | `200`, `{ url }` (Google authorization page), and sets the Google state cookie       |
@@ -451,6 +455,119 @@ What the shop page does (`src/storefront/components/Shop.tsx`):
 way of paying), `LDC1` (1.00 LDC off, so not for card orders) and `MONTHLY` (half off the monthly plan's first period only).
 `MOCK_COUPONS=off pnpm dev` behaves like a mail before discount codes: the preview answers `404` and checkout ignores the field.
 
+### Seat plans
+
+A plan is sold in one of two ways: **fixed**, a set number of mailboxes at one price, or **per seat**, where the buyer chooses how
+many mailboxes to pay for (mail's `docs/shop.md`, "Seat-based plans"; `packages/core/src/lib/shop/pricing.ts`,
+`apps/console/src/lib/shop/seats.ts` and the routes under `apps/console/src/app/api/shop/`). mail implements everything below and
+the storefront uses it; none of it is in `docs/onboard-contract.json` yet (see "Proposed"). This section is written from mail's
+code; where its `docs/shop.md` says something else, the code is what the storefront follows, and the differences are listed at the
+end of the section.
+
+**Catalog.** `GET /api/shop/catalog` gains `seatProducts`, present only while a seat plan is on sale. `products` keeps listing
+fixed plans only, so a page that knows nothing of seats sells none of them wrongly. A seat product has every field of a product
+plus `kind: "seat"`, `seatMin` and `seatMax` (1 to 1000, `seatMin` ≤ `seatMax`); `originalPriceCents`, `discountPercent`,
+`priceCents`, `renewPriceCents` and `fiatPriceMinor` are **for one seat** (per period for a subscription), and `mailboxCount`
+equals `seatMin`. The parser (`parseSeatProduct` in `src/storefront/lib/catalog.ts`) requires `kind: "seat"` and a usable range;
+a malformed seat plan fails the catalog like a malformed product. `customDomains` (a number, on `products` and `seatProducts`
+alike; absent or `0` when the plan has none) says how many domains of their own the plan's buyer may connect.
+
+**Pricing an order.** mail prices the order; the browser sends only the quantity.
+
+- LDC: `quantity × originalPriceCents`, then the plan's discount on the whole order, rounded half up **once**
+  (`floor((total × (100 − discountPercent) + 50) / 100)`, mail's `seatOrderPrice`). It is not `quantity × priceCents`: 3.33 a seat
+  at 10% off is 20.98 for 7 seats (23.31 × 0.9 = 20.979), not 7 × 3.00.
+- Card: `quantity × fiatPriceMinor`, per period for a subscription.
+- A period renews at `seats × (renewPriceCents || priceCents)` (LDC) or `seats × fiatPriceMinor` (card).
+- There is no quote endpoint for a purchase without a discount code, so the shop page computes the total with exactly this rule
+  (`seatOrderPrice` and `seatCardPrice` in `catalog.ts`) and marks it as an estimate confirmed at checkout. The order page then
+  shows what mail charged.
+
+**Checkout and the code preview.** `POST /api/shop/checkout` takes `quantity` (a JSON number) for a seat plan: `400` when it is
+missing, `null`, not a whole number or outside `seatMin`…`seatMax`, or when the total is above what one order can charge
+(1,000,000.00). A fixed plan takes none: `0`, `1`, `null` or absent are accepted and anything above 1 is `400`. The storefront
+sends `quantity` for seat plans only. `POST /api/shop/coupon` takes the same `quantity` for a seat plan (`400` without a valid
+one) and its three amounts are then for that many seats; a quantity sent for a fixed plan is ignored. The order of a seat plan
+has the seats in `mailboxCount`.
+
+**The shop page** (`src/storefront/components/Shop.tsx`) lists the seat plans after the fixed ones: the price per mailbox, a
+quantity stepper within `seatMin`…`seatMax` (`ShopSeatStepper`), the total for either way of paying with the price before the
+discount struck through, and the note that the total is an estimate. A discount code is previewed for the quantity on the card;
+when the quantity changes after "Apply", the card says the code is checked when ordering until it is applied again (mail quotes a
+code for one quantity). The pricing page, its Markdown and its structured data list seat plans with per-mailbox wording
+(`src/lib/pricing.ts`); the offer of a seat plan is a `UnitPriceSpecification` per mailbox with the `eligibleQuantity` range.
+
+**The account's seats.** Each group of `GET /api/shop/account/mailboxes` carries `seats`: `null` unless the order is a seat
+**subscription**, otherwise `{ seats, seatsNext, min, max, seatPriceCents, provider, currency, periodEnd, removing }`. `seatsNext`
+is the count from the next renewal on (`null` when no removal is scheduled), `removing` the ids of the mailboxes that go with it,
+`seatPriceCents` one seat per period in hundredths of an LDC or the smallest unit of `currency` (`""` for LDC). `mailboxLimit` and
+`usesLeft` of the group follow the seats; while a removal is scheduled `usesLeft` only offers what the new count has room for. A
+backend before seat plans sends no `seats` key. The page (`ShopSeats.tsx`, inside the group in "My mailboxes") shows seats used
+of total, the price of a seat, the period end and a scheduled removal with its mailboxes.
+
+The four routes take `orderId`, the subscription's **purchase order** (the group's `orderId`), need the account session, and are
+proxied like `account/mailboxes/create` (`SEAT_ROUTES` in `src/storefront/worker/shop.ts`): same-origin `Origin`, JSON, the client
+IP kept, the `mailhq_shop` and `mailhq_customer` cookies forwarded, never cached, nothing logged but the route name.
+
+- **`quote`** `{ orderId, add }` → `{ add, seats, provider, currency, priceCents, exact, periodEnd }`. `priceCents` is what the
+  added seats cost for the rest of the period (`seats × seat price × time left ÷ period length`, rounded **down** to 0.01 and
+  never below it), `seats` the count after adding. `exact` is `true` for LDC (the order's price if placed at once: it falls as
+  the period runs down) and `false` for a card subscription, where it is mail's estimate and Stripe's invoice has the final
+  amount. It reserves nothing. The page asks for it on "See the price" and shows it before the confirm button appears.
+- **`add`** `{ orderId, add }`. LDC: `201 { orderId }`, a new order paid on the order page with the `pay` form like a renewal
+  order; the Worker rebuilds the buyer cookie as for `renew`; the seats and the code's allowance rise when it is paid. Card:
+  `200 { status: "applied", seats, invoiceUrl: null }` when the card was charged (`seats` is the new count), or
+  `{ status: "payment_required", seats, invoiceUrl }` when the bank wants the buyer: **nothing has changed**, `seats` is still the
+  old count, and the seats rise only when Stripe reports the paid invoice to mail. The page keeps a notice with a link to
+  `invoiceUrl` (Stripe's hosted invoice page; accepted only on an `https` `stripe.com` host, otherwise treated as `null` and the
+  notice points at "Manage auto-renewal") and a "Refresh seats" button until the list shows the new count.
+- **`remove`** `{ orderId, remove, mailboxIds }` → `{ seats, seatsNext, effective, removing }`. Takes effect at the next renewal,
+  never before, and nothing is refunded. `mailboxIds` are the mailboxes that go with the seats: at most `remove` of them, and
+  enough for the remaining ones to fit the new count (it may be empty, or absent, when they already fit). Scheduling again
+  replaces the earlier removal. The page shows the mailboxes as checkboxes only when some have to go.
+- **`keep`** `{ orderId }` → `{ seats, seatsNext: null, effective, removing: [] }`: takes a scheduled removal back.
+- Status codes: `401` not signed in; `403` wrong `Origin`; `404` not a seat subscription of this account (the same answer whether
+  or not it exists); `400` a count that is not a whole number from 1 to 1000, mailbox ids that are malformed, repeated or not this
+  subscription's, more mailboxes than seats removed, or too few chosen (the message says how many more); `409` the period has
+  ended or the subscription is not active (add), a removal is scheduled (add), above the plan's most (add), below the plan's
+  fewest (remove), the subscription is suspended (remove), the seats changed meanwhile (remove), no removal is scheduled (keep),
+  or Stripe refused the change (add, remove and keep of a card subscription); `413` / `415` body; `429` with `Retry-After`
+  (`add`, `remove` and `keep` share 10 per 10 minutes per account, `add` also 30 per 10 minutes per source IP, `quote` 60 per 10
+  minutes per account; the page shows the wait from `Retry-After`); `503` the way of paying is not configured. A mail before seat
+  plans answers its own `404` page, which the Worker turns into a JSON `404`.
+
+**Orders that add seats.** mail's order kind is `seats`, but `toPublicOrder` publishes it as `kind: "renewal"` with `periods: 1`
+and the seats added in `mailboxCount` (in `orders` and in the account's order list), because a storefront before seat plans
+rejects an unknown kind. No published field tells such an order from a one-period renewal, so the order page and the account's
+order list show it as mail labels it, a renewal order. Its `pay` form returns to the order page with `&error=payment` when the
+subscription was renewed after the order was priced (mail's `409` inside the redirect): the payment error on a renewal order
+therefore adds that an order that added seats must be placed again from "My account". A card subscription's seats are recorded
+by mail as an already-paid order of the same kind.
+
+**Renewal page.** No change in shape: for a seat subscription `mailboxCount` and `renewPriceCents` of `renewal` are the seats and
+the price of the next period, already lowered when a removal is scheduled; paying that renewal applies the removal.
+
+**Where mail's code differs from its `docs/shop.md`** (the storefront follows the code):
+
+- `seats` of a mailbox group is `null` for a **one-time** order of a seat plan as well (`listCustomerMailboxes` only loads
+  subscriptions of orders with `periodDays > 0`), not only for a fixed plan's order as the document says. Seats of a one-time
+  order cannot be added or removed.
+- `checkout` treats `quantity: null` like an absent one, and accepts `0` and `1` for a fixed plan; the preview ignores a quantity
+  sent for a fixed plan. The document only says a fixed plan takes none.
+- The preview answers `{ valid: false }` (not `400`) when a seat order's total is above the payable limit.
+- `add` is refused with `409` whenever the subscription's phase is not `active` (grace included) and also when the prorated
+  amount falls outside the payable range, with the "at most N seats" message; the document names the period end only.
+- `remove` and `keep` of a card subscription can also answer `409` when Stripe refuses the quantity change; the document lists
+  that for `add` only. `remove` treats an absent `mailboxIds` as empty.
+- A count above 1000 is `400` on every seat route ("a whole number of seats"), before any plan limit is looked at.
+
+`pnpm dev` sells a demo seat plan (`demoproduct0003`: 3.33 LDC a mailbox at 10% off, or 1.99 USD by card, 2 to 50 mailboxes, every
+30 days, two own domains). Paying is simulated, so a seat subscription exists as soon as "Pay" is pressed. Adding seats to an
+LDC subscription creates an order to pay; to a card subscription it applies at once, except that adding exactly 7 answers
+`payment_required` (the seats arrive on the second refresh of the list, as if Stripe had confirmed) and adding exactly 9 answers
+the declined-card `409`. `MOCK_SEATS=off pnpm dev` behaves like a mail before seat plans: no `seatProducts`, the four routes answer
+`404`, and the groups carry no `seats`.
+
 ### Cookies, origin and caching
 
 - The purchase credential is `mailhq_shop` (64 lowercase hex characters), set only by the server via an HttpOnly, SameSite=Lax cookie; over HTTPS it is also Secure, the path is `/`,
@@ -458,7 +575,7 @@ way of paying), `LDC1` (1.00 LDC off, so not for card orders) and `MONTHLY` (hal
 - The account session is `mailhq_customer` (43 base64url characters), set when `account/verify` or `account/password-login` succeeds, valid for 30 days, with the same attributes as above; the database likewise stores only a digest.
   On `account/logout` the Worker returns a `Set-Cookie` that clears it regardless of how mail answers (including failures and internal call exceptions), except for cross-site or malformed requests rejected at the Worker;
   the page also treats a `5xx` with a JSON body on logout (the Worker's answer) as logged out; Cloudflare's own error pages (Worker threw or exceeded limits, cookie not cleared) do not count.
-- Shop browser requests use same-origin cookies; the Worker forwards only these two cookies (each when unique and well-formed), and rebuilds only the corresponding one on success of `checkout` / `renew` and `account/verify` / `account/password-login`
+- Shop browser requests use same-origin cookies; the Worker forwards only these two cookies (each when unique and well-formed), and rebuilds only the corresponding one on success of `checkout` / `renew` / `account/seats/add` and `account/verify` / `account/password-login`
   (not inheriting upstream Domain, Path and other attributes); it does not forward the backend login cookie, Authorization or other private request headers.
   The redeem API keeps using `credentials: omit` and does not carry cookies because of the shop.
 - For shop POST requests, this site's Worker requires a real `Origin` exactly equal to the current origin, rejecting missing, `null` and cross-origin values; it preserves the original value when forwarding and must not forge it.
@@ -506,6 +623,13 @@ couponDiscountCents` for an order without a plan discount, so mail can start pub
   absent otherwise. A flag that is always present would be cleaner for the storefront: `coupons: true | false` on every backend
   with discount codes, where `false` hides the field without a request, `true` shows it, and only an absent flag (an old backend)
   falls back to today's "offer the field, hide it on `404`". The storefront reads the flag that way already.
+- **Seat plans**: add `"account/seats/quote"`, `"account/seats/add"`, `"account/seats/remove"` and `"account/seats/keep"`
+  (all `POST`) to `shop.routes` in both copies of the contract file; the Worker already proxies them (`SEAT_ROUTES`) and
+  `tests/storefront/seats.test.ts` fails once the file takes them, as the reminder to move this point out. Also proposed by mail:
+  `quantity` and `seatPriceCents` in `publicOrderFields` (0 for a fixed plan's order) and a third order `kind`, `"seats"`. The
+  storefront's order parser does not accept `"seats"` yet; when mail is ready to publish it, the parser, the order page ("Seats
+  added" instead of "Renewal order", "add seats again" instead of "pay" after a stale price) and the account's order list change
+  first, then mail stops rewriting the kind. See "Seat plans" above for what the storefront does until then.
 - **A code on the order page**: a field on an unpaid purchase order without a code, sent as `coupon` with the pay form or
   `pay/stripe` (it only works before the first press on "Pay"). Not built: the Worker's pay form handling and the order page would
   both need it, and the shop page covers the common case.

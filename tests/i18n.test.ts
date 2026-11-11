@@ -171,6 +171,22 @@ const templateSlots = {
   "pricing.plan.renewAt": { price: true, period: true } satisfies Record<TemplateSlot<Plan["renewAt"]>, true>,
   "pricing.plan.codeDays": { days: true } satisfies Record<TemplateSlot<Plan["codeDays"]>, true>,
   "pricing.plan.chooseAria": { name: true } satisfies Record<TemplateSlot<Plan["chooseAria"]>, true>,
+  "pricing.plan.seatUnitPeriod": { period: true } satisfies Record<TemplateSlot<Plan["seatUnitPeriod"]>, true>,
+  "pricing.plan.cardSeatUnitPeriod": { period: true } satisfies Record<TemplateSlot<Plan["cardSeatUnitPeriod"]>, true>,
+  "pricing.plan.seatCardOnce": { price: true } satisfies Record<TemplateSlot<Plan["seatCardOnce"]>, true>,
+  "pricing.plan.seatCardPeriod": { price: true, period: true } satisfies Record<
+    TemplateSlot<Plan["seatCardPeriod"]>,
+    true
+  >,
+  "pricing.plan.seatCardRowOnce": { price: true } satisfies Record<TemplateSlot<Plan["seatCardRowOnce"]>, true>,
+  "pricing.plan.seatCardRowPeriod": { price: true, period: true } satisfies Record<
+    TemplateSlot<Plan["seatCardRowPeriod"]>,
+    true
+  >,
+  "pricing.plan.seatRenewAt": { price: true, period: true } satisfies Record<TemplateSlot<Plan["seatRenewAt"]>, true>,
+  "pricing.plan.seatMailboxes": { min: true, max: true } satisfies Record<TemplateSlot<Plan["seatMailboxes"]>, true>,
+  "pricing.plan.seatDiscountNote": { percent: true } satisfies Record<TemplateSlot<Plan["seatDiscountNote"]>, true>,
+  "pricing.plan.ownDomains": { count: true } satisfies Record<TemplateSlot<Plan["ownDomains"]>, true>,
   "pricing.check.available": { email: true } satisfies Record<
     TemplateSlot<Copy["pricing"]["check"]["available"]>,
     true

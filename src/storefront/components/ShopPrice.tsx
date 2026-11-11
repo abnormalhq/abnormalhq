@@ -13,11 +13,14 @@ export function ShopPrice({
   item,
   lang,
   purchase = false,
+  unit,
   className,
 }: {
   item: Pick<ShopProduct, "originalPriceCents" | "discountPercent" | "priceCents" | "periodDays">;
   lang: Lang;
   purchase?: boolean;
+  /** What the amount is in, instead of the purchase unit: a seat plan's "LDC / mailbox / 30 days". */
+  unit?: string;
   className?: string;
 }) {
   const t = shopCopy[lang];
@@ -27,7 +30,7 @@ export function ShopPrice({
       <p className={shopPriceLineClass}>
         <strong className={shopPriceAmountClass}>{formatCredits(item.priceCents)}</strong>
         <span className={shopPriceUnitClass}>
-          {purchase ? (item.periodDays ? t.perPeriod(item.periodDays) : t.once) : "LDC"}
+          {unit ?? (purchase ? (item.periodDays ? t.perPeriod(item.periodDays) : t.once) : "LDC")}
         </span>
       </p>
       {discounted ? (

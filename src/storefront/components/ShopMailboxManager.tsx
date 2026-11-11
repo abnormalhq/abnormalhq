@@ -39,6 +39,7 @@ import {
   shopInputClass,
   shopTextClass,
 } from "./ShopParts";
+import { ShopSeats } from "./ShopSeats";
 
 /** The action open on one mailbox: only one at a time on the page. */
 type Open = { mailboxId: string; kind: "password" | "delete" } | { orderId: string; kind: "create" } | null;
@@ -175,6 +176,7 @@ export function ShopMailboxManager({ lang }: { lang: Lang }) {
               open={open}
               busy={busy}
               created={created?.orderId === group.orderId ? created : null}
+              onReload={() => setReload((value) => value + 1)}
               onOpen={(next) => {
                 setOpen(next);
                 setError("");
@@ -219,6 +221,7 @@ function MailboxGroup({
   open,
   busy,
   created,
+  onReload,
   onOpen,
   onCreate,
   onPassword,
@@ -227,6 +230,8 @@ function MailboxGroup({
 }: {
   lang: Lang;
   group: AccountMailboxGroup;
+  /** Read the list again: the seats panel changed something. */
+  onReload: () => void;
   open: Open;
   busy: boolean;
   created: Created | null;
@@ -254,6 +259,18 @@ function MailboxGroup({
         <ShopMetaRow label={t.mailboxesLeft}>{t.mailboxesLeftValue(group.usesLeft)}</ShopMetaRow>
       </ShopMeta>
       {group.locked && <p className={shopTextClass}>{t.mailboxesLockedHint}</p>}
+      {/* A seat subscription: seats used, adding seats and removing them at renewal. Absent for every other order and on a backend without seat plans. */}
+      {group.seats && (
+        <ShopSeats
+          lang={lang}
+          orderId={group.orderId}
+          seats={group.seats}
+          mailboxes={group.mailboxes}
+          locked={group.locked}
+          disabled={busy}
+          onChanged={onReload}
+        />
+      )}
       {group.mailboxes.length > 0 && (
         <ul className="mt-5 grid gap-3">
           {group.mailboxes.map((mailbox) => (
@@ -262,6 +279,7 @@ function MailboxGroup({
               lang={lang}
               mailbox={mailbox}
               locked={group.locked}
+              leaving={group.seats?.removing.includes(mailbox.id) ?? false}
               open={open && "mailboxId" in open && open.mailboxId === mailbox.id ? open.kind : null}
               busy={busy}
               onOpen={(kind) => onOpen(kind ? { mailboxId: mailbox.id, kind } : null)}
@@ -317,6 +335,7 @@ function MailboxRow({
   lang,
   mailbox,
   locked,
+  leaving,
   open,
   busy,
   onOpen,
@@ -327,6 +346,8 @@ function MailboxRow({
   lang: Lang;
   mailbox: AccountMailbox;
   locked: boolean;
+  /** Chosen to go with a seat removal scheduled for the next renewal. */
+  leaving: boolean;
   open: "password" | "delete" | null;
   busy: boolean;
   onOpen: (kind: "password" | "delete" | null) => void;
@@ -357,6 +378,7 @@ function MailboxRow({
           <p className="font-mono text-sm/[1.5] wrap-anywhere">{mailbox.email}</p>
           <p className="mt-0.5 text-xs/[1.6] text-muted-foreground">
             {mailbox.status === "active" ? t.mailboxActive : t.mailboxInactive} · {usage(t, mailbox)}
+            {leaving && ` · ${t.mailboxLeaving}`}
           </p>
         </div>
         {!locked && open === null && (

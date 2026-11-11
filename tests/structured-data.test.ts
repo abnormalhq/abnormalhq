@@ -10,7 +10,7 @@ import {
   pricingStructuredData,
   serializeJsonLd,
 } from "../src/lib/structured-data.ts";
-import { catalog } from "./support/catalog.ts";
+import { catalog, seatCatalog } from "./support/catalog.ts";
 
 type Node = Record<string, unknown>;
 const nodes = (data: { "@graph": Node[] }) => data["@graph"];
@@ -94,6 +94,33 @@ test("pricing without a readable catalog, or with the shop closed, claims no pro
   const ldcOnly = { ...catalog, payment: { ldc: true, stripe: null } };
   const graph = nodes(pricingStructuredData("en", planViews(ldcOnly, "en", copies.en.pricing, "/shop/")));
   assert.equal(ofType(graph, "Product"), undefined);
+});
+
+test("a plan sold per mailbox is offered as a unit price with the range that can be bought, never as the plan's whole price", () => {
+  for (const lang of ["en", "zh"] as const) {
+    const plans = planViews(seatCatalog, lang, copies[lang].pricing, linksFor(lang).shop);
+    const graph = nodes(pricingStructuredData(lang, plans));
+    const product = graph.find((node) => String(node["@id"]).endsWith("#plan-planseatsabcdef"))!;
+    const offer = product.offers as Node;
+    assert.equal("price" in offer, false);
+    const unit = copies[lang].pricing.plan.seatUnitName;
+    assert.deepEqual(offer.priceSpecification, {
+      "@type": "UnitPriceSpecification",
+      price: "1.99",
+      priceCurrency: "USD",
+      unitText: unit,
+      referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitText: unit },
+    });
+    assert.deepEqual(offer.eligibleQuantity, {
+      "@type": "QuantitativeValue",
+      minValue: 2,
+      maxValue: 50,
+      unitText: unit,
+    });
+    // The fixed plan beside it keeps its plain price.
+    const fixed = graph.find((node) => String(node["@id"]).endsWith("#plan-planmonthlyabcd"))!;
+    assert.equal((fixed.offers as Node).price, "2.99");
+  }
 });
 
 test("every @id the graph refers to is defined in it", () => {

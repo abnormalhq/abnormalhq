@@ -144,8 +144,25 @@ export function pricingStructuredData(lang: Lang, plans: readonly PlanView[]) {
       brand: { "@id": organizationId },
       offers: {
         "@type": "Offer",
-        price: plan.offer!.price,
-        priceCurrency: plan.offer!.currency,
+        // A plan sold per mailbox: the price is for one mailbox, stated as a unit price with how many can be bought, so the
+        // offer never reads as the price of the whole plan.
+        ...(plan.offer!.seats
+          ? {
+              priceSpecification: {
+                "@type": "UnitPriceSpecification",
+                price: plan.offer!.price,
+                priceCurrency: plan.offer!.currency,
+                unitText: plan.offer!.seats.unit,
+                referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitText: plan.offer!.seats.unit },
+              },
+              eligibleQuantity: {
+                "@type": "QuantitativeValue",
+                minValue: plan.offer!.seats.min,
+                maxValue: plan.offer!.seats.max,
+                unitText: plan.offer!.seats.unit,
+              },
+            }
+          : { price: plan.offer!.price, priceCurrency: plan.offer!.currency }),
         availability: "https://schema.org/InStock",
         url: absolute(plan.href),
         seller: { "@id": organizationId },

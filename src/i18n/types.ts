@@ -246,6 +246,32 @@ export interface Copy {
       codeNoExpiry: string;
       choose: string;
       chooseAria: Template<"name">;
+      /**
+       * Plans sold per mailbox (the catalog's `seatProducts`): every amount is for one mailbox and the buyer chooses how many.
+       * After the amount, in LDC and in a card-only shop.
+       */
+      seatUnitOnce: string;
+      seatUnitPeriod: Template<"period">;
+      cardSeatUnitOnce: string;
+      cardSeatUnitPeriod: Template<"period">;
+      /** The card price per mailbox next to an LDC price, and in the comparison table's "By card" row. */
+      seatCardOnce: Template<"price">;
+      seatCardPeriod: Template<"price" | "period">;
+      seatCardRowOnce: Template<"price">;
+      seatCardRowPeriod: Template<"price" | "period">;
+      seatRenewAt: Template<"price" | "period">;
+      /** How many mailboxes a seat plan can be bought with. */
+      seatMailboxes: Template<"min" | "max">;
+      /** Under a seat plan's price: the amount is per mailbox and the total is set at checkout. */
+      seatNote: string;
+      /** Added to it for a discounted plan: mail takes the discount off the order total and rounds once. */
+      seatDiscountNote: Template<"percent">;
+      /** The unit of a per-mailbox price in the structured data (schema.org unitText). */
+      seatUnitName: string;
+      /** "Use my own domain": how many domains of their own a buyer of the plan may connect, and a plan without it. */
+      ownDomains: Template<"count">;
+      ownDomainOne: string;
+      ownDomainsNone: string;
     };
     compare: {
       title: string;
@@ -260,6 +286,8 @@ export interface Copy {
         mailboxes: string;
         storage: string;
         domains: string;
+        /** Shown only when a plan on sale includes it. */
+        ownDomains: string;
         code: string;
       };
       /** A cell with nothing to say, such as the card price of a plan that cannot be bought by card. */
