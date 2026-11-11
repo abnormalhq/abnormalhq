@@ -24,6 +24,34 @@
   --breakpoint-desk: 62.5625rem; /* <= 1000px */
 }
 
+/*
+ * The storefront's own motion, next to the registry's enter and exit animations (abnormal.css). The theme's reduced-motion
+ * rule stops both; each is written so that its resting state is the finished one (a drawn check, a full line).
+ */
+@theme {
+  /* The success check draws itself once its disc has popped in; the path carries pathLength="1". */
+  --animate-draw: draw 0.32s ease-out 0.16s both;
+  /* The line between two steps of the order progress fills from the completed step. */
+  --animate-fill-line: fill-line 0.45s cubic-bezier(0.32, 0.72, 0, 1) both;
+
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes fill-line {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0);
+    }
+  }
+}
+
 /* Only the site's own global rules go below; component styles are written in className. */
 @layer base {
   html {

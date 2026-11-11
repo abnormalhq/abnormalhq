@@ -47,7 +47,9 @@ import {
   ShopButton,
   ShopField,
   ShopHero,
+  ShopSkeleton,
   ShopTextLink,
+  shopArriveClass,
   shopEmptyClass,
   shopHeadingClass,
   shopHeadingRowClass,
@@ -117,6 +119,7 @@ export function Shop({ lang }: { lang: Lang }) {
   const linkedAddress = new URLSearchParams(search).get(ADDRESS_PARAM);
   const carried = parseAddress(useSyncExternalStore(subscribeAddress, storedAddress, () => ""));
   const selectedCard = useRef<HTMLElement>(null);
+  const checkoutAlert = useRef<HTMLDivElement>(null);
   // Fixed plans, then the plans sold per mailbox (the catalog's `seatProducts`; none on a backend without them).
   const plans = catalog ? catalogPlans(catalog) : [];
   const hasSelected = Boolean(selectedPlan && plans.some((product) => product.id === selectedPlan));
@@ -141,6 +144,11 @@ export function Shop({ lang }: { lang: Lang }) {
   useEffect(() => {
     if (hasSelected) selectedCard.current?.scrollIntoView({ block: "nearest" });
   }, [hasSelected]);
+
+  // The refusal is shown above the plans, and the button that was pressed can be a screen further down.
+  useEffect(() => {
+    if (checkoutError) checkoutAlert.current?.scrollIntoView({ block: "center" });
+  }, [checkoutError]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -294,16 +302,33 @@ export function Shop({ lang }: { lang: Lang }) {
           </div>
         </Card>
       ) : !catalog ? (
-        <Card asChild className={shopEmptyClass}>
-          <p role="status">{t.loading}</p>
-        </Card>
+        // The shape of the plans to come, so the page does not jump when they arrive.
+        <div
+          className="mt-[26px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-5"
+          role="status"
+          aria-busy="true"
+        >
+          <span className="sr-only">{t.loading}</span>
+          {[0, 1, 2].map((index) => (
+            <Card className="block p-7 max-narrow:px-5 max-narrow:py-[22px]" key={index}>
+              <ShopSkeleton className="mb-[22px] size-[38px]" />
+              <ShopSkeleton className="h-6 w-3/5" />
+              <ShopSkeleton className="mt-4 h-4 w-full" />
+              <ShopSkeleton className="mt-2 h-4 w-4/5" />
+              <ShopSkeleton className="mt-[30px] h-11 w-2/5" />
+              <ShopSkeleton className="mt-[30px] h-4 w-full" />
+              <ShopSkeleton className="mt-2 h-4 w-2/3" />
+              <ShopSkeleton className="mt-8 h-10 w-36" />
+            </Card>
+          ))}
+        </div>
       ) : !catalog.available || plans.length === 0 ? (
         <Card className={shopEmptyClass}>
           <h2 className="text-xl">{t.closed}</h2>
           <p className={shopTextClass}>{t.closedDescription}</p>
         </Card>
       ) : (
-        <section aria-labelledby="shop-products-title">
+        <section className={shopArriveClass} aria-labelledby="shop-products-title">
           <div>
             <h2 className={shopHeadingClass} id="shop-products-title">
               {t.choose}
@@ -401,11 +426,15 @@ export function Shop({ lang }: { lang: Lang }) {
               </form>
             </details>
           )}
-          {checkoutError && <ShopAlert>{checkoutError}</ShopAlert>}
+          {checkoutError && (
+            <ShopAlert ref={checkoutAlert} className={cn("scroll-mt-24", shopArriveClass)}>
+              {checkoutError}
+            </ShopAlert>
+          )}
           {/* Each card spans four rows of the shared grid (heading, price, details, actions) through subgrid, so
               prices, detail lists and buttons line up across the cards in a row whatever the description length. */}
           <div className="mt-[26px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-5">
-            {plans.map((product) => {
+            {plans.map((product, planIndex) => {
               const stripeCurrency = catalog.payment.stripe?.currency;
               const cardPrice =
                 stripeCurrency && product.fiatPriceMinor
@@ -456,7 +485,12 @@ export function Shop({ lang }: { lang: Lang }) {
                 <Card
                   asChild
                   variant={selected ? "featured" : "default"}
-                  className="row-span-4 grid scroll-mt-24 grid-rows-subgrid gap-y-0 p-7 max-narrow:px-5 max-narrow:py-[22px]"
+                  className={cn(
+                    "row-span-4 grid scroll-mt-24 grid-rows-subgrid gap-y-0 p-7 max-narrow:px-5 max-narrow:py-[22px]",
+                    shopArriveClass,
+                  )}
+                  // One after another, so the eye is led across the plans.
+                  style={{ animationDelay: `${Math.min(planIndex, 5) * 70}ms` }}
                   key={product.id}
                 >
                   <article ref={selected ? selectedCard : undefined} aria-current={selected ? "true" : undefined}>
@@ -525,7 +559,8 @@ export function Shop({ lang }: { lang: Lang }) {
                             ) : (
                               <>
                                 {seatLdc && (
-                                  <p className="font-semibold">
+                                  // Keyed by the amount: a new total rises in, so a change of quantity is seen to land.
+                                  <p className="animate-arrive font-semibold" key={seatLdc.priceCents}>
                                     {t.seatTotalLdc(formatCredits(seatLdc.priceCents), days)}
                                     {seatLdc.originalPriceCents > seatLdc.priceCents && (
                                       <span className="ml-2 font-normal text-muted-foreground">
@@ -536,7 +571,13 @@ export function Shop({ lang }: { lang: Lang }) {
                                   </p>
                                 )}
                                 {seatCard && stripeCurrency && (
-                                  <p className={seatLdc ? "text-muted-foreground" : "font-semibold"}>
+                                  <p
+                                    className={cn(
+                                      "animate-arrive",
+                                      seatLdc ? "text-muted-foreground" : "font-semibold",
+                                    )}
+                                    key={seatCard}
+                                  >
                                     {t.seatTotalCard(formatMoney(seatCard, stripeCurrency, lang), days)}
                                   </p>
                                 )}
@@ -555,7 +596,9 @@ export function Shop({ lang }: { lang: Lang }) {
                         </div>
                       )}
                       {couponLines.length > 0 && (
-                        <ul className="mt-4 grid gap-1 border-t border-border pt-4 text-sm/[1.7]">
+                        <ul
+                          className={cn("mt-4 grid gap-1 border-t border-border pt-4 text-sm/[1.7]", shopArriveClass)}
+                        >
                           {couponLines.map((line, index) => (
                             <li
                               className={
@@ -585,24 +628,26 @@ export function Shop({ lang }: { lang: Lang }) {
                       {catalog.payment.ldc && (
                         <ShopButton
                           type="button"
+                          loading={buying === `${product.id}:ldc`}
                           disabled={buying !== null || Boolean(totals?.ldcTooMany)}
                           onClick={() => void checkout(product.id)}
                           aria-label={`${t.buy} · ${product.name}`}
                         >
                           {buying === `${product.id}:ldc` ? t.buying : t.buy}
-                          <span aria-hidden="true">↗</span>
+                          {buying !== `${product.id}:ldc` && <span aria-hidden="true">↗</span>}
                         </ShopButton>
                       )}
                       {cardPrice ? (
                         <ShopButton
                           variant={catalog.payment.ldc ? "outline" : "default"}
                           type="button"
+                          loading={buying === `${product.id}:stripe`}
                           disabled={buying !== null || Boolean(totals?.cardTooMany)}
                           onClick={() => void checkout(product.id, "stripe")}
                           aria-label={`${t.payCard} · ${product.name}`}
                         >
                           {buying === `${product.id}:stripe` ? t.buying : t.payCard}
-                          <span aria-hidden="true">↗</span>
+                          {buying !== `${product.id}:stripe` && <span aria-hidden="true">↗</span>}
                         </ShopButton>
                       ) : null}
                     </div>

@@ -15,7 +15,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Lang } from "@/storefront/i18n";
 import { startStripePayment } from "@/storefront/lib/shop";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
-import { ShopActions, ShopAlert, ShopButton, shopTextClass } from "./ShopParts";
+import { cn } from "@/lib/utils";
+import { ShopActions, ShopAlert, ShopButton, ShopSkeleton, shopArriveClass, shopTextClass } from "./ShopParts";
 import { Spinner } from "@/components/ui/spinner";
 import { useDocumentTheme } from "./useDocumentTheme";
 
@@ -203,13 +204,23 @@ export function ShopStripeCheckout({
   return (
     <div className="mt-6">
       {phase === "loading" && (
-        <p className={shopTextClass} role="status">
-          {t.cardLoading}
-        </p>
+        // The outline of the card form while Stripe loads; the form itself mounts below, unseen until it is ready.
+        <div role="status" aria-busy="true">
+          <span className="sr-only">{t.cardLoading}</span>
+          <ShopSkeleton className="h-11 w-full" />
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <ShopSkeleton className="h-11" />
+            <ShopSkeleton className="h-11" />
+          </div>
+          <ShopSkeleton className="mt-6 h-10 w-36" />
+        </div>
       )}
-      <div ref={contactRef} className="mb-4 empty:mb-0" />
-      <div ref={paymentRef} className="min-h-10" />
-      {error && <ShopAlert>{error}</ShopAlert>}
+      {/* Hidden by visibility, not display: Stripe measures the place it mounts in, and it must have its width. */}
+      <div className={cn(phase === "loading" ? "invisible h-0 overflow-hidden" : "animate-fade-in")}>
+        <div ref={contactRef} className="mb-4 empty:mb-0" />
+        <div ref={paymentRef} className="min-h-10" />
+      </div>
+      {error && <ShopAlert className={shopArriveClass}>{error}</ShopAlert>}
       {phase !== "loading" && (
         <ShopActions>
           <ShopButton type="button" onClick={() => void pay()} disabled={phase !== "ready" || !canConfirm}>

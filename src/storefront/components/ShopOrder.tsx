@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { LANG_PATHS, storePath, type Lang } from "@/storefront/i18n";
 import {
   getShopOrder,
@@ -18,9 +20,11 @@ import {
   formatMoney,
 } from "@/storefront/lib/shop";
 import { orderCoupon, recallCoupon } from "@/storefront/lib/coupon";
+import { markAwaiting, orderSteps, takeAwaiting } from "@/storefront/lib/order-progress";
 import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
+import { celebrate } from "./onboard/celebrate";
 import { copyText } from "./onboard/clipboard";
 import { ShopDetails } from "./ShopDetails";
 import {
@@ -32,8 +36,12 @@ import {
   ShopMetaRow,
   ShopOrderCode,
   ShopPanel,
+  ShopProgress,
+  ShopSkeleton,
   ShopStatus,
+  ShopSuccessMark,
   ShopTextLink,
+  shopArriveClass,
   shopEmptyClass,
   shopHeadingClass,
   shopHeadingRowClass,
@@ -79,11 +87,20 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const [hostedCard, setHostedCard] = useState(false);
   // Each time the buyer pays on this page, polling starts over (the first round may have run out while they typed the card).
   const [pollRound, setPollRound] = useState(0);
+  // The round of polling that ran out without a payment: until then the page says it is waiting for the payment.
+  const [pollEnded, setPollEnded] = useState(-1);
+  // "Copied" on the button for a moment; the sentence below stays for screen readers and for a failed copy.
+  const [copied, setCopied] = useState(false);
+  const successMark = useRef<HTMLDivElement>(null);
+  // This tab showed the order waiting for payment (now or before the trip to the payment page): its payment is celebrated.
+  const awaited = useRef(false);
   const order = result?.order;
   const paid = order?.status === "paid";
   const pending = order?.status === "pending";
   const renewal = order?.kind === "renewal";
   const embeddedCard = order?.provider === "stripe" && !hostedCard;
+  const watching = pending && pollEnded !== pollRound;
+  const status = order?.status;
   // The discount code of this order: mail's own fields once it publishes them, until then what the shop page remembered at
   // checkout, as text so the store's value is stable (src/storefront/lib/coupon.ts).
   const remembered = useSyncExternalStore(
@@ -128,6 +145,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
         }
       }
       if (attempts < 12) timer = window.setTimeout(() => void poll(), 5000);
+      else setPollEnded(pollRound);
     }
 
     timer = window.setTimeout(() => void poll(), 5000);
@@ -136,6 +154,28 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
       window.clearTimeout(timer);
     };
   }, [orderId, pending, lang, pollRound]);
+
+  // Confetti for a payment that was just made, once: not for opening an order that was paid some other day.
+  useEffect(() => {
+    if (!validId || !status) return;
+    if (status === "pending") {
+      awaited.current = true;
+      markAwaiting(orderId);
+      return;
+    }
+    if (status !== "paid") return;
+    if (takeAwaiting(orderId)) awaited.current = true;
+    if (!awaited.current) return;
+    const controller = new AbortController();
+    void celebrate(successMark.current, controller.signal);
+    return () => controller.abort();
+  }, [orderId, validId, status]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
 
   async function reconcile() {
     if (checkLock.current) return;
@@ -164,13 +204,22 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
       <ShopSession
         lang={lang}
         onSignedOut={() => {
-          // This order may only be visible to the account: re-read it after logging out.
+          // This order may only be visible to the account: re-read it after logging out. Reading a paid order again is
+          // not a new payment: it is not celebrated a second time.
+          awaited.current = false;
           setResult(null);
           setError("");
           setAttempt((value) => value + 1);
         }}
       />
       <ShopHero
+        mark={
+          paid && (
+            <div ref={successMark} className="w-fit">
+              <ShopSuccessMark />
+            </div>
+          )
+        }
         eyebrow={order?.trialUpgrade ? trialCopy[lang].upgradeOrder : renewal ? t.renewalLabel : t.orderLabel}
         title={
           order?.trialUpgrade
@@ -229,34 +278,54 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             <ShopButton type="submit">{t.searchButton}</ShopButton>
           </form>
         </ShopPanel>
-      ) : !result ? (
+      ) : !result && error ? (
         <Card asChild className={shopEmptyClass}>
           <div>
-            {error ? (
-              <>
-                <p className={shopTextClass} role="alert">
-                  {error}
-                </p>
-                <ShopButton
-                  variant="outline"
-                  className="mt-[18px]"
-                  onClick={() => {
-                    setError("");
-                    setAttempt((value) => value + 1);
-                  }}
-                >
-                  {t.retry}
-                </ShopButton>
-              </>
-            ) : (
-              <p className={shopTextClass} role="status">
-                {t.loading}
-              </p>
-            )}
+            <p className={shopTextClass} role="alert">
+              {error}
+            </p>
+            <ShopButton
+              variant="outline"
+              className="mt-[18px]"
+              onClick={() => {
+                setError("");
+                setAttempt((value) => value + 1);
+              }}
+            >
+              {t.retry}
+            </ShopButton>
           </div>
         </Card>
+      ) : !result ? (
+        // The shape of the order to come: the plan and its price, then the payment panel.
+        <div role="status" aria-busy="true">
+          <span className="sr-only">{t.loading}</span>
+          <ShopPanel>
+            <div className={shopHeadingRowClass}>
+              <ShopSkeleton className="h-6 w-2/5" />
+              <ShopSkeleton className="h-5 w-16" />
+            </div>
+            <ShopSkeleton className="mt-[30px] h-11 w-1/3" />
+            <ShopSkeleton className="mt-[30px] h-4 w-4/5" />
+            <ShopSkeleton className="mt-2 h-4 w-3/5" />
+            <ShopSkeleton className="mt-8 h-4 w-full" />
+            <ShopSkeleton className="mt-2 h-4 w-full" />
+          </ShopPanel>
+          <ShopPanel>
+            <ShopSkeleton className="h-6 w-1/3" />
+            <ShopSkeleton className="mt-4 h-4 w-4/5" />
+            <ShopSkeleton className="mt-6 h-10 w-40" />
+          </ShopPanel>
+        </div>
       ) : order ? (
-        <>
+        <div className={shopArriveClass}>
+          {!order.trial && (
+            <ShopProgress
+              label={t.progressLabel}
+              doneLabel={t.stepDone}
+              steps={orderSteps(order).map((step) => ({ ...step, title: t.progress[step.key] }))}
+            />
+          )}
           {!paid && paymentError && !embeddedCard && (
             <ShopAlert>
               {t.paymentError}
@@ -276,7 +345,20 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           <ShopPanel>
             <div className={shopHeadingRowClass}>
               <h2 className={shopHeadingClass}>{order.productName}</h2>
-              <ShopStatus active={paid}>{order.trial ? trialCopy[lang].title : paid ? t.paid : t.pending}</ShopStatus>
+              <ShopStatus active={paid}>
+                {/* A paid order ticks; one that is being watched for its payment shows a beating dot. */}
+                {paid ? (
+                  <CheckIcon className="size-3 animate-pop" strokeWidth={3} aria-hidden="true" />
+                ) : (
+                  watching && (
+                    <span className="relative grid size-1.5 place-items-center" aria-hidden="true">
+                      <span className="absolute size-full animate-ping rounded-full bg-current opacity-60" />
+                      <span className="size-full rounded-full bg-current" />
+                    </span>
+                  )
+                )}
+                {order.trial ? trialCopy[lang].title : paid ? t.paid : t.pending}
+              </ShopStatus>
             </div>
             {order.trial ? (
               <p className={shopTextClass}>{trialCopy[lang].title}</p>
@@ -332,11 +414,12 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             </ShopMeta>
           </ShopPanel>
           {paid && renewal ? null : paid ? (
-            <ShopPanel>
+            // Keyed apart from the payment panel it replaces, so it arrives rather than changing in place.
+            <ShopPanel key="code" className={shopArriveClass}>
               <h2 className={shopHeadingClass}>{t.codeTitle}</h2>
               {result.code ? (
                 <>
-                  <code className="mt-6 block rounded-mark border border-dashed border-border bg-surface px-[18px] py-[26px] text-center font-mono text-[clamp(16px,3vw,24px)] tracking-[0.06em] wrap-anywhere select-all">
+                  <code className="mt-6 block animate-flash rounded-mark border border-dashed border-border bg-surface px-[18px] py-[26px] text-center font-mono text-[clamp(16px,3vw,24px)] tracking-[0.06em] wrap-anywhere select-all">
                     {result.code}
                   </code>
                   {result.codeStatus && result.codeStatus in t.statuses && (
@@ -350,9 +433,14 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                     <ShopButton
                       variant="outline"
                       type="button"
-                      onClick={async () => setCopyNotice((await copyText(result.code!)) ? t.copied : t.copyFailed)}
+                      onClick={async () => {
+                        const done = await copyText(result.code!);
+                        setCopied(done);
+                        setCopyNotice(done ? t.copied : t.copyFailed);
+                      }}
                     >
-                      {t.copy}
+                      {copied && <CheckIcon className="animate-pop text-success" aria-hidden="true" />}
+                      {copied ? t.copiedShort : t.copy}
                     </ShopButton>
                     {result.codeStatus === "available" && (
                       <>
@@ -389,7 +477,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               )}
             </ShopPanel>
           ) : embeddedCard ? (
-            <ShopPanel>
+            <ShopPanel key="card">
               <h2 className={shopHeadingClass}>{t.cardTitle}</h2>
               <p className={shopTextClass}>{t.cardNote}</p>
               <ShopStripeCheckout
@@ -402,17 +490,23 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                 onHosted={() => setHostedCard(true)}
               />
               <ShopActions>
-                <ShopButton variant="outline" type="button" disabled={checking} onClick={() => void reconcile()}>
+                <ShopButton variant="outline" type="button" loading={checking} onClick={() => void reconcile()}>
                   {checking ? t.refreshing : t.refresh}
                 </ShopButton>
               </ShopActions>
-              {error && <ShopAlert>{error}</ShopAlert>}
+              {error && <ShopAlert className={shopArriveClass}>{error}</ShopAlert>}
+              {watching && !checking && !notice && (
+                <p className={cn(shopTextClass, "flex items-center gap-2")}>
+                  <Spinner className="size-3" />
+                  {t.watching}
+                </p>
+              )}
               <p className={shopTextClass} role="status">
                 {notice}
               </p>
             </ShopPanel>
           ) : (
-            <ShopPanel>
+            <ShopPanel key="pay">
               <h2 className={shopHeadingClass}>{order.provider === "stripe" ? t.payStripe : t.pay}</h2>
               <p className={shopTextClass}>
                 {order.trialUpgrade
@@ -431,18 +525,24 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                     <span aria-hidden="true">↗</span>
                   </ShopButton>
                 </form>
-                <ShopButton variant="outline" type="button" disabled={checking} onClick={() => void reconcile()}>
+                <ShopButton variant="outline" type="button" loading={checking} onClick={() => void reconcile()}>
                   {checking ? t.refreshing : t.refresh}
                 </ShopButton>
               </ShopActions>
-              {error && <ShopAlert>{error}</ShopAlert>}
+              {error && <ShopAlert className={shopArriveClass}>{error}</ShopAlert>}
+              {watching && !checking && !notice && (
+                <p className={cn(shopTextClass, "flex items-center gap-2")}>
+                  <Spinner className="size-3" />
+                  {t.watching}
+                </p>
+              )}
               <p className={shopTextClass} role="status">
                 {notice}
               </p>
             </ShopPanel>
           )}
           {paid && result.subscription && (
-            <ShopPanel>
+            <ShopPanel className={shopArriveClass}>
               <h2 className={shopHeadingClass}>{t.subscriptionTitle}</h2>
               <ShopMeta>
                 <ShopMetaRow label={t.subscriptionEnds}>{date(result.subscription.currentPeriodEnd)}</ShopMetaRow>
@@ -483,7 +583,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               ) : null}
             </ShopPanel>
           )}
-        </>
+        </div>
       ) : null}
       <p className={shopNoteClass}>{t.browserNote}</p>
     </div>
