@@ -41,7 +41,7 @@ The order, renewal and account pages depend on a purchase or login session: they
 2. **Domain and count**: pick a domain when the code allows several, and a count when more than one can be activated (at most 20 per request).
 3. **Accounts**: one row per mailbox; the username is validated live against mailhq's rules, checked for duplicates and, after a half-second pause, for availability; the password is 8 to 128 characters without whitespace, or "generated randomly".
 4. **Notification address** (optional): after activation mailhq sends a copy of the new mailbox's address, password and server addresses there.
-5. **Activate**: successes are listed with the IMAP / SMTP servers and the webmail entry (passwords are shown only this once, with confetti when everything activates); failures stay in the form with the reason beside them.
+5. **Activate**: successes are listed with the IMAP / SMTP servers and the webmail entry (passwords are shown only this once, with confetti when everything activates; until a copy has been emailed, the browser asks before the page is reloaded, closed or left in the same tab, except by "Redeem again"); failures stay in the form with the reason beside them.
 
 Buying happens at `/shop/` with Linux DO Credit or a card (Stripe); the order page collects the code after payment, and "My account" manages mailboxes, orders and subscriptions.
 

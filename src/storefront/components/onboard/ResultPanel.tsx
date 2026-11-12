@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { REDEEM_PATH, type Copy } from "@/storefront/i18n";
 import type { ServerEndpoint } from "@/storefront/lib/api";
 import { cn } from "@/lib/utils";
@@ -43,6 +43,22 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
   const notification = outcome?.notification ?? null;
   // When the backend has no webmail configured the entry is not shown, so users are not sent to an unrelated mail service.
   const webmail = outcome?.webmail ?? null;
+  // The passwords on this panel are shown once and nowhere else unless a copy was emailed. Until then, a reload, a closed
+  // tab or a link followed in this tab (the guide) would lose them silently, so the browser asks first. "Redeem again"
+  // leaves on purpose and is let through; webmail opens in a new tab and leaves this one as it is.
+  const unsaved = issued.length > 0 && !notification?.sent;
+  const leaving = useRef(false);
+  useEffect(() => {
+    if (!unsaved) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (leaving.current) return;
+      event.preventDefault();
+      // Older browsers ask only when returnValue is set; its text is never shown.
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [unsaved]);
   return (
     <Card
       className={cn(panelClass, "mt-6 [div[hidden]+&]:mt-0")}
@@ -133,7 +149,13 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
         <RichText text={t.result.next} base={homePath} linkClassName={inlineLinkClass} />
       </p>
       <p>
-        <TextLink className="mt-[18px] min-h-10 text-sm/body font-normal" href={`${homePath}${REDEEM_PATH}`}>
+        <TextLink
+          className="mt-[18px] min-h-10 text-sm/body font-normal"
+          href={`${homePath}${REDEEM_PATH}`}
+          onClick={() => {
+            leaving.current = true;
+          }}
+        >
           <span aria-hidden="true">←</span> {t.result.again}
         </TextLink>
       </p>
