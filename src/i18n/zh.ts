@@ -226,6 +226,7 @@ export const zh: Copy = {
     support: "客服邮箱",
   },
   pricing: {
+    questions: { title: "关于套餐与账单的问题", all: "全部帮助文章" },
     metaTitle: "套餐与价格 — Abnormal",
     metaDescription:
       "Abnormal 邮箱套餐与实时价格：包含的邮箱数量、每个邮箱的容量、可选域名、计费周期与续费价格，以及每个邮箱都有的功能与限制。",

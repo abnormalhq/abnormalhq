@@ -7,6 +7,7 @@ import { useCopy } from "@/i18n";
 import { helpArticleStructuredData } from "@/lib/structured-data";
 import { fillTemplate } from "@/lib/template";
 import { DocArticle } from "./DocArticle";
+import { HelpLinks } from "./HelpLinks";
 import { Icon } from "./Icon";
 import { JsonLd } from "./JsonLd";
 
@@ -35,29 +36,12 @@ export function HelpArticle({ lang, article }: { lang: Lang; article: Article })
         sections={article.sections}
       >
         {related.length > 0 && (
-          <nav className="mt-14" aria-labelledby="help-related-title">
-            <h2 className="text-lg/[1.5] font-semibold" id="help-related-title">
-              {fillTemplate(h.related, { topic }).join("")}
-            </h2>
-            <ul className="mt-3 border-t border-border">
-              {related.map((entry) => (
-                <li className="border-b border-border" key={entry.slug}>
-                  <Link className="group/entry flex items-start gap-4 py-4" href={path(helpPath(entry.slug))}>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-base/[1.5] font-medium underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-150 group-hover/entry:decoration-current">
-                        {entry.title}
-                      </span>
-                      <span className="mt-1 block text-sm/[1.6] text-muted-foreground">{entry.summary}</span>
-                    </span>
-                    <Icon
-                      name="arrow"
-                      className="mt-1 size-4 text-muted-foreground transition-colors duration-150 group-hover/entry:text-foreground"
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <HelpLinks
+            className="mt-14"
+            id="help-related-title"
+            title={fillTemplate(h.related, { topic }).join("")}
+            entries={related.map((entry) => ({ ...entry, href: path(helpPath(entry.slug)) }))}
+          />
         )}
         <Card asChild className="mt-14 block p-[1.4rem] md:px-8 md:py-7">
           <aside aria-labelledby="help-wrong-title">

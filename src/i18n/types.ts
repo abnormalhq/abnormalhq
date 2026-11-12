@@ -193,6 +193,8 @@ export interface Copy {
    * template rather than a function.
    */
   pricing: {
+    /** At the foot of the pricing page: the help center's plans and billing articles, then a link on to all of them. */
+    questions: { title: string; all: string };
     metaTitle: string;
     metaDescription: string;
     eyebrow: string;

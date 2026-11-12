@@ -241,6 +241,7 @@ export const en: Copy = {
     support: "Support",
   },
   pricing: {
+    questions: { title: "Questions about plans and billing", all: "All help articles" },
     metaTitle: "Pricing — Abnormal",
     metaDescription:
       "Abnormal mailbox plans with live prices: mailboxes included, storage per mailbox, domains, billing period and renewal price, plus what every mailbox gets.",
