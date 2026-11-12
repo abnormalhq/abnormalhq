@@ -384,6 +384,8 @@ export interface Copy {
     ask: { title: string; body: string };
     /** At the foot of every article: back to the index, or on to support. */
     wrong: { title: string; body: string; index: string; contact: string };
+    /** Above that, the other articles of the same topic, named by the topic. */
+    related: Template<"topic">;
   };
   /** The security and privacy overview (/security/): the wording around it. The text itself is in src/content/security/. */
   security: {
@@ -480,6 +482,12 @@ export interface Copy {
     copyCommand: string;
     copiedCommand: string;
     copyFailed: string;
+    /** Badge on the card that fits the visitor's computer, which the browser works out after the page loads. */
+    forThisComputer: string;
+    /** Shown instead, above the cards, to a visitor on a phone or tablet: the desktop app does not run there. */
+    phone: { title: string; body: string; webmail: string; apps: string };
+    /** Under the latest few previous versions: opens the rest. */
+    historyMore: Template<"count">;
     webmailNote: string;
     webmailLink: string;
   };

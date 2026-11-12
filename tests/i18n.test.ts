@@ -199,6 +199,8 @@ const templateSlots = {
   "pricing.check.taken": { email: true } satisfies Record<TemplateSlot<Copy["pricing"]["check"]["taken"]>, true>,
   // The help center's search renders in the browser too.
   "help.search.results": { count: true } satisfies Record<TemplateSlot<Copy["help"]["search"]["results"]>, true>,
+  "help.related": { topic: true } satisfies Record<TemplateSlot<Copy["help"]["related"]>, true>,
+  "download.historyMore": { count: true } satisfies Record<TemplateSlot<Copy["download"]["historyMore"]>, true>,
 };
 
 /** Each string in the copy that has {name} slots, by its path, with the names it uses. */

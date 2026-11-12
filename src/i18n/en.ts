@@ -552,6 +552,7 @@ export const en: Copy = {
       index: "Browse all help articles",
       contact: "Email support",
     },
+    related: "More in {topic}",
   },
   security: {
     metaTitle: "Security and privacy — Abnormal",
@@ -655,6 +656,14 @@ export const en: Copy = {
     copyCommand: "Copy",
     copiedCommand: "Copied",
     copyFailed: "Your browser didn't allow copying. Select the command and copy it yourself.",
+    forThisComputer: "For this computer",
+    phone: {
+      title: "On a phone or tablet?",
+      body: "The desktop app runs on computers. On this device, read your mail in webmail, or add the mailbox to the mail app you already have.",
+      webmail: "Open webmail",
+      apps: "Set up a mail app",
+    },
+    historyMore: "Show {count} earlier versions",
     webmailNote: "Rather not install anything?",
     webmailLink: "Use webmail in your browser",
   },
