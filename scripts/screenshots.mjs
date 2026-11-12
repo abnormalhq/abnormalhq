@@ -260,8 +260,9 @@ async function signIn(page) {
   await page.locator("[data-mail-grid]").waitFor({ timeout: 120000 });
 }
 
+/** A request to WebMail's API as the signed-in mailbox; a refusal stops the run, so no picture is saved with sample content missing. */
 async function api(page, pathname, body) {
-  return page.evaluate(
+  const r = await page.evaluate(
     async ({ pathname, body, mailbox }) => {
       const r = await fetch(pathname, {
         method: "POST",
@@ -272,6 +273,8 @@ async function api(page, pathname, body) {
     },
     { pathname, body, mailbox: ALICE.id },
   );
+  if (r.status < 200 || r.status >= 300) throw new Error(`${pathname}: ${r.status} ${r.body.slice(0, 200)}`);
+  return JSON.parse(r.body);
 }
 
 async function seed(page) {
@@ -283,20 +286,15 @@ async function seed(page) {
       id: e.id,
       patch: { mailboxIds: { b: true }, "keywords/$seen": true },
     });
-  const labelIds = [];
+  // One id per label, at that label's index in C.labels (which the mails' `labels` refer to).
   const colors = ["blue", "green", "orange"];
-  for (const [i, name] of C.labels.entries()) {
-    const r = await api(page, "/api/webmail/labels", { name, color: colors[i] });
-    try {
-      labelIds.push(JSON.parse(r.body).label.id);
-    } catch {
-      console.log("label failed", r.status, r.body.slice(0, 200));
-    }
-  }
+  const labelIds = [];
+  for (const [i, name] of C.labels.entries())
+    labelIds[i] = (await api(page, "/api/webmail/labels", { name, color: colors[i] })).label.id;
   const all = [...C.mails].reverse();
   for (const m of all) {
     const keywords = { ...(m.unread ? {} : { $seen: true }) };
-    for (const l of m.labels) if (labelIds[l]) keywords[`mailhq_label_${labelIds[l]}`] = true;
+    for (const l of m.labels) keywords[`mailhq_label_${labelIds[l]}`] = true;
     const email = {
       id: m.id,
       subject: m.subject,
@@ -325,7 +323,7 @@ async function seedEvents(page) {
     return `${x.toISOString().slice(0, 10)}T${String(h).padStart(2, "0")}:00`;
   };
   for (const [title, d, s, e, location] of C.events) {
-    const r = await api(page, "/api/webmail/calendar/events", {
+    await api(page, "/api/webmail/calendar/events", {
       calendarId: "cal1",
       title,
       description: "",
@@ -338,7 +336,6 @@ async function seedEvents(page) {
       alerts: [],
       participants: [],
     });
-    if (r.status >= 300) console.log("event", r.status, r.body.slice(0, 200));
   }
 }
 
