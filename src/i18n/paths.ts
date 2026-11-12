@@ -65,3 +65,13 @@ export function switchHref(pathname: string, to: Lang, search = ""): string {
   kept.set(langParam, to);
   return `${localePath(to, page)}?${kept.toString()}`;
 }
+
+/**
+ * Whether a header entry that is a page of its own (`path`, such as /help/) is the page being viewed or one under it (a help article),
+ * so the header can mark it as current. Both paths carry the language prefix; the home page is never matched by prefix.
+ */
+export function isCurrentSection(pathname: string, href: string): boolean {
+  const path = pathname.endsWith("/") ? pathname : `${pathname}/`;
+  if (langs.some((lang) => localePath(lang, "/") === href)) return path === href;
+  return path === href || path.startsWith(href);
+}

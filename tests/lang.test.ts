@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { langParam, switchHref } from "../src/i18n/paths.ts";
+import { isCurrentSection, langParam, switchHref } from "../src/i18n/paths.ts";
 import { langCookie, langCookieFrom, langSetCookie, languageRedirect, negotiateLang } from "../src/lib/lang.ts";
 
 const origin = "https://abnormalhq.com";
@@ -151,4 +151,17 @@ test("only whole-page GET and HEAD requests for known pages are redirected", () 
     languageRedirect(new Request("https://www.abnormalhq.com/", { headers: { cookie: "abnormal_lang=zh" } })),
     undefined,
   );
+});
+
+test("the header marks a page entry as current on that page and the pages under it", () => {
+  assert.equal(isCurrentSection("/pricing/", "/pricing/"), true);
+  assert.equal(isCurrentSection("/pricing", "/pricing/"), true);
+  assert.equal(isCurrentSection("/zh/help/own-domain/", "/zh/help/"), true);
+  assert.equal(isCurrentSection("/help/", "/zh/help/"), false);
+  assert.equal(isCurrentSection("/pricing-old/", "/pricing/"), false);
+  assert.equal(isCurrentSection("/shop/", "/pricing/"), false);
+  // The home page is never current by prefix: every page sits under it.
+  assert.equal(isCurrentSection("/pricing/", "/"), false);
+  assert.equal(isCurrentSection("/zh/pricing/", "/zh/"), false);
+  assert.equal(isCurrentSection("/zh/", "/zh/"), true);
 });

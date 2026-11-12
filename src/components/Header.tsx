@@ -7,7 +7,7 @@ import { BrandArrow } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { linksFor, type Lang } from "@/data/site";
-import { localePath, switchHref } from "@/i18n/paths";
+import { isCurrentSection, localePath, switchHref } from "@/i18n/paths";
 import type { Copy } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
@@ -45,18 +45,18 @@ export function Header({
 
   const links = linksFor(lang);
   // An entry is a section of the home page (anchor) or a page of its own (path), such as the pricing page.
-  const nav = copy.nav.map(({ anchor, path, label, wide }) => ({
-    href: localePath(lang, path ?? `/#${anchor}`),
-    label,
-    wide,
-  }));
+  const normalizedPath = pathname.endsWith("/") ? pathname : `${pathname}/`;
+  // Only the entries that are pages of their own can be current: the home page's sections are anchors on one long page.
+  const nav = copy.nav.map(({ anchor, path, label, wide }) => {
+    const href = localePath(lang, path ?? `/#${anchor}`);
+    return { href, label, wide, current: path !== undefined && isCurrentSection(normalizedPath, href) };
+  });
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
   // With ?lang=: the Worker stores the choice in the cookie shared by the three sites, so shared links open in this language from then on (src/lib/lang.ts).
   // The storefront's order, renewal and account pages carry their query string (order number, tokens) across; see switchHref.
   // Prerendering has no query string; after hydration the link carries it, so opening it in a new tab keeps it too.
   const search = useSyncExternalStore(subscribeToHistory, readSearch, () => "");
-  const normalizedPath = pathname.endsWith("/") ? pathname : `${pathname}/`;
   const otherPath = switchHref(normalizedPath, other, search);
   // Client-side changes of the query string on the same page do not re-render the header; read it afresh right before the link is used.
   const refreshOtherPath = (event: SyntheticEvent<HTMLAnchorElement>) => {
@@ -93,18 +93,21 @@ export function Header({
       <Container className="flex min-h-16 items-center justify-between gap-6 max-md:gap-3">
         {brand}
         <nav className="mr-auto ml-6 flex items-center gap-1 max-nav:ml-2 max-md:hidden" aria-label={copy.navLabel}>
-          {nav.map(({ href, label, wide }) => (
+          {nav.map(({ href, label, wide, current }) => (
             <Button
               asChild
               variant="ghost"
               className={cn(
-                "border-0 px-2.5 font-normal max-nav:px-2",
+                // The page being viewed keeps the fill a ghost button shows on hover, so the bar says where the visitor is.
+                "border-0 px-2.5 font-normal max-nav:px-2 aria-[current=page]:bg-control aria-[current=page]:text-foreground",
                 wide === "card" && "max-card:hidden",
                 wide === "bar" && "max-bar:hidden",
               )}
               key={href}
             >
-              <Link href={href}>{label}</Link>
+              <Link href={href} aria-current={current ? "page" : undefined}>
+                {label}
+              </Link>
             </Button>
           ))}
         </nav>
@@ -150,7 +153,7 @@ export function Header({
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
           >
-            <Icon name="menu" />
+            <Icon name={menuOpen ? "close" : "menu"} />
           </Button>
         </div>
       </Container>
@@ -161,16 +164,21 @@ export function Header({
         hidden={!menuOpen}
       >
         <Container className="flex flex-col pt-2 pb-5">
-          {nav.map(({ href, label }, index) => (
+          {nav.map(({ href, label, current }, index) => (
             <Link
-              className="flex min-h-[52px] items-center gap-3.5 border-b border-border text-md/body"
+              className="flex min-h-[52px] items-center gap-3.5 border-b border-border text-md/body aria-[current=page]:font-semibold"
               href={href}
               key={href}
               onClick={closeMenu}
+              aria-current={current ? "page" : undefined}
             >
               <span className="text-xs/body text-muted-foreground">0{index + 1}</span>
               {label}
-              <Icon name="up-right" className="ml-auto size-4 text-muted-foreground" />
+              {current ? (
+                <span className="ml-auto size-2 rounded-full bg-signal" aria-hidden="true" />
+              ) : (
+                <Icon name="up-right" className="ml-auto size-4 text-muted-foreground" />
+              )}
             </Link>
           ))}
           <div className="mt-4 grid gap-2">

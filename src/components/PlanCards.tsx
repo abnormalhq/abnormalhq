@@ -140,7 +140,9 @@ export function PlanComparison({
   const rows = planRowsFor(plans);
   return (
     <div
-      className="overflow-x-auto rounded-panel border border-border focus-visible:outline-2 focus-visible:outline-ring"
+      // relative: the cells' sr-only text is absolutely positioned, and without a positioned frame it escapes the scroll clip
+      // and makes the whole page scroll sideways on a phone.
+      className="relative overflow-x-auto rounded-panel border border-border focus-visible:outline-2 focus-visible:outline-ring"
       role="region"
       aria-labelledby={labelledBy}
       tabIndex={0}

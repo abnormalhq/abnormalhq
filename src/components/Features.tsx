@@ -1,4 +1,5 @@
 import { Container } from "@/components/ui/container";
+import { Disclosure, DisclosureContent, DisclosureList, DisclosureTrigger } from "@/components/ui/disclosure";
 import { IconTile } from "@/components/ui/icon-tile";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
@@ -39,16 +40,34 @@ export function Features({ lang }: { lang: Lang }) {
           </p>
         </div>
 
+        {/*
+         * On a phone the nine features stacked in one column ran to several screens, so there they fold like the FAQ:
+         * the titles form a list and each description opens on a tap (native <details>, so it works before hydration).
+         * From sm up they are the hairline grid. Only one of the two is ever displayed, so assistive technology meets the list once.
+         */}
+        <DisclosureList className="sm:hidden" {...reveal(1)}>
+          {f.items.map((item) => (
+            <Disclosure key={item.title}>
+              <DisclosureTrigger className="min-h-16 gap-3 py-3 max-[23.4375rem]:gap-3">
+                <IconTile variant="outline" size="sm" aria-hidden="true">
+                  <Icon name={item.icon} className="size-4" />
+                </IconTile>
+                <h3 className="flex-1 text-[17px] leading-[1.4] font-semibold tracking-[-0.01em]">{item.title}</h3>
+              </DisclosureTrigger>
+              <DisclosureContent className="mt-0 ml-11 text-base/prose">
+                <p>{item.description}</p>
+              </DisclosureContent>
+            </Disclosure>
+          ))}
+        </DisclosureList>
+
         <ul
-          className="grid overflow-hidden rounded-panel border border-border bg-border gap-px sm:grid-cols-2 lg:grid-cols-3"
+          className="grid overflow-hidden rounded-panel border border-border bg-border gap-px max-sm:hidden sm:grid-cols-2 lg:grid-cols-3"
           {...reveal(1)}
         >
           {f.items.map((item) => (
-            <li
-              className="flex flex-col bg-background px-5 py-5 sm:px-6 sm:pt-6 sm:pb-7 lg:px-7 lg:pt-7 lg:pb-8"
-              key={item.title}
-            >
-              <div className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-5">
+            <li className="flex flex-col bg-background px-6 pt-6 pb-7 lg:px-7 lg:pt-7 lg:pb-8" key={item.title}>
+              <div className="flex flex-col items-start gap-5">
                 <IconTile variant="outline" size="sm" aria-hidden="true">
                   <Icon name={item.icon} className="size-4" />
                 </IconTile>
