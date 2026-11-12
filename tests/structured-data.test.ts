@@ -1,16 +1,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { site } from "../src/data/site.ts";
+import { desktopAppName, desktopDownloads, site } from "../src/data/site.ts";
 import { copies } from "../src/i18n/index.ts";
 import { linksFor } from "../src/data/site.ts";
 import { planViews } from "../src/lib/pricing.ts";
+import { parseReleaseIndex } from "../src/lib/releases.ts";
+import { copy as storeCopy } from "../src/storefront/i18n.ts";
+import { shopCopy } from "../src/storefront/lib/shop-copy.ts";
+import { storeMarkdownPaths } from "../src/storefront/lib/markdown.ts";
 import {
+  downloadStructuredData,
   homeStructuredData,
   legalStructuredData,
   pricingStructuredData,
   serializeJsonLd,
+  storeStructuredData,
 } from "../src/lib/structured-data.ts";
 import { catalog, seatCatalog } from "./support/catalog.ts";
+import { releaseIndex, releaseIndexWithLinux } from "./support/releases.ts";
 
 type Node = Record<string, unknown>;
 const nodes = (data: { "@graph": Node[] }) => data["@graph"];
@@ -123,11 +130,83 @@ test("a plan sold per mailbox is offered as a unit price with the range that can
   }
 });
 
+test("the organization names the brand apart from the unrelated companies called Abnormal", () => {
+  const organization = ofType(nodes(homeStructuredData("en")), "Organization")!;
+  assert.equal(organization.name, "Abnormal");
+  assert.deepEqual(organization.alternateName, ["Abnormal Mail", "abnormalhq"]);
+  assert.deepEqual(organization.sameAs, ["https://github.com/abnormalhq"]);
+});
+
+for (const lang of ["zh", "en"] as const) {
+  test(`${lang} download page describes the desktop app with the systems and installers the page offers`, () => {
+    const d = copies[lang].download;
+    const graph = nodes(downloadStructuredData(lang, parseReleaseIndex(releaseIndex)));
+    const page = ofType(graph, "WebPage")!;
+    assert.equal(page.url, lang === "en" ? `${site.url}/download/` : `${site.url}/zh/download/`);
+    assert.equal(page.name, d.metaTitle);
+    const app = ofType(graph, "SoftwareApplication")!;
+    assert.equal(app.name, desktopAppName);
+    assert.equal(app.operatingSystem, `${d.macos.name}, ${d.windows.name}`);
+    assert.deepEqual(app.downloadUrl, [desktopDownloads.macos, desktopDownloads.windows, desktopDownloads.windowsArm]);
+    assert.equal(app.softwareVersion, "0.2.0");
+    assert.equal(app.datePublished, "2026-12-01");
+    assert.deepEqual(page.mainEntity, { "@id": app["@id"] });
+    // Nothing the page does not say: no price, no rating.
+    assert.equal("offers" in app, false);
+    assert.equal("aggregateRating" in app, false);
+  });
+
+  test(`${lang} download page lists Linux only with Linux packages, and no version without the release list`, () => {
+    const d = copies[lang].download;
+    const withLinux = ofType(
+      nodes(downloadStructuredData(lang, parseReleaseIndex(releaseIndexWithLinux))),
+      "SoftwareApplication",
+    )!;
+    assert.equal(withLinux.operatingSystem, `${d.macos.name}, ${d.windows.name}, ${d.linux.name}`);
+    assert.ok((withLinux.downloadUrl as string[]).some((url) => url.endsWith(".deb")));
+    const without = ofType(nodes(downloadStructuredData(lang, undefined)), "SoftwareApplication")!;
+    assert.equal("softwareVersion" in without, false);
+    assert.equal("datePublished" in without, false);
+    assert.equal(without.operatingSystem, `${d.macos.name}, ${d.windows.name}`);
+  });
+
+  test(`${lang} storefront pages carry a breadcrumb, and the steps the redeem and shop pages walk through`, () => {
+    for (const path of storeMarkdownPaths) {
+      const graph = nodes(storeStructuredData(lang, path));
+      const page = ofType(graph, "WebPage")!;
+      assert.equal(page.url, `${site.url}${lang === "en" ? "" : "/zh"}${path}`);
+      const crumbs = (page.breadcrumb as { itemListElement: { name: string; item: string }[] }).itemListElement;
+      assert.deepEqual(
+        crumbs.map(({ item }) => item),
+        [`${site.url}${lang === "en" ? "/" : "/zh/"}`, page.url],
+      );
+      assert.ok(!crumbs[1]!.name.includes(" · "), crumbs[1]!.name);
+      const howTo = ofType(graph, "HowTo");
+      const steps = (howTo?.step as { text: string }[] | undefined)?.map(({ text }) => text);
+      if (path === "/guide/") assert.equal(howTo, undefined);
+      if (path === "/shop/") assert.deepEqual(steps, [...shopCopy[lang].steps]);
+      if (path === "/redeem/") {
+        const { code, options, accounts, notify } = storeCopy[lang].steps;
+        assert.deepEqual(
+          steps,
+          [code, options, accounts, notify].map((step) => `${step.label}: ${step.hint}`),
+        );
+      }
+    }
+  });
+}
+
 test("every @id the graph refers to is defined in it", () => {
-  const graph = nodes(homeStructuredData("zh"));
-  const defined = new Set(graph.map((node) => node["@id"]));
-  const refs = JSON.stringify(graph).match(/\{"@id":"[^"]+"\}/g) ?? [];
-  for (const ref of refs) assert.ok(defined.has(JSON.parse(ref)["@id"]), ref);
+  for (const data of [
+    homeStructuredData("zh"),
+    downloadStructuredData("en", parseReleaseIndex(releaseIndex)),
+    ...storeMarkdownPaths.map((path) => storeStructuredData("zh", path)),
+  ]) {
+    const graph = nodes(data);
+    const defined = new Set(graph.map((node) => node["@id"]));
+    const refs = JSON.stringify(graph).match(/\{"@id":"[^"]+"\}/g) ?? [];
+    for (const ref of refs) assert.ok(defined.has(JSON.parse(ref)["@id"]), ref);
+  }
 });
 
 test("serialized JSON-LD cannot close its script tag", () => {
