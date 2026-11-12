@@ -6,6 +6,7 @@ import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { homeStructuredData } from "@/lib/structured-data";
+import { Demo } from "./Demo";
 import { Faq } from "./Faq";
 import { Features } from "./Features";
 import { Hero } from "./Hero";
@@ -44,6 +45,7 @@ export function Home({ lang }: { lang: Lang }) {
       </Container>
       <PromoVideo lang={lang} />
       <Screens lang={lang} />
+      <Demo lang={lang} />
       <Features lang={lang} />
       <Start lang={lang} />
       <PricingSection lang={lang} />
