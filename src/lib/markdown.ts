@@ -24,6 +24,7 @@ import {
 } from "../content/help/index.ts";
 import { securityContent } from "../content/security/index.ts";
 import { apiReference, developersContent } from "../content/developers/index.ts";
+import type { ApiOperation } from "./api-reference.ts";
 import { copies, langs, localePath } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { sectionsMarkdown } from "./docs.ts";
@@ -293,8 +294,11 @@ export function developersMarkdown(lang: Lang): string {
   const t = copies[lang];
   const d = t.developers;
   const content = developersContent[lang];
-  const scopes = (scopes: readonly string[]) =>
-    scopes.length > 0 ? scopes.map((scope) => `\`${scope}\``).join(", ") : d.reference.anyKey;
+  const access = ({ keyRule, scopes }: ApiOperation) => {
+    if (keyRule === "original-key") return d.reference.originalKey;
+    const list = scopes.map((scope) => `\`${scope}\``).join(", ");
+    return keyRule === "per-operation" ? `${d.reference.perOperation}${t.legal.colon}${list}` : list;
+  };
   return `${paragraphs([
     `# ${content.title}`,
     content.summary,
@@ -306,7 +310,7 @@ export function developersMarkdown(lang: Lang): string {
       list(
         group.operations.map(
           (operation) =>
-            `\`${operation.method.toUpperCase()} ${operation.path}\`: ${operation.summary} (${scopes(operation.scopes)})${
+            `\`${operation.method.toUpperCase()} ${operation.path}\`: ${operation.summary} (${access(operation)})${
               operation.deprecated ? ` · ${d.reference.deprecated}` : ""
             }`,
         ),

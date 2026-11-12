@@ -1,15 +1,29 @@
 /**
- * The developer documentation's endpoint list, derived from the management API's OpenAPI document. mail owns the document
- * (abnormalhq/mail docs/openapi.json, written from its code); this repository keeps a byte-for-byte copy in
- * public/developers/openapi.json, served as a static file for download and for tools that read OpenAPI.
+ * The developer documentation's endpoint list and downloadable specification, derived from the management API's OpenAPI
+ * document. mail owns the document (abnormalhq/mail docs/openapi.json, written from its code); this repository keeps a
+ * byte-for-byte copy in docs/openapi.json.
  *
- * The page does not import that file: it is several hundred kilobytes and would be bundled into the Worker. The few fields the
- * page shows are kept in src/content/developers/reference.ts instead, written by `pnpm api-reference` from the copy, and
- * tests/developers-page.test.ts fails while the two disagree. Runs in Node as is (the script and the tests use it).
+ * Two files are written from that copy by `pnpm api-reference` (scripts/api-reference.ts), and tests/developers-page.test.ts
+ * fails while either differs from it:
+ * - src/content/developers/reference.ts: the few fields the page shows. The page does not import the document itself, which
+ *   is several hundred kilobytes and would be bundled into the Worker.
+ * - public/developers/openapi.json: the document for download and API tools, with the production API address as its server.
+ *   mail's document is instance-independent (`servers: [{ url: "/api/v1" }]`), and a tool resolving that against this site
+ *   would call https://abnormalhq.com/api/v1, which is not the API.
+ *
+ * Runs in Node as is (the script and the tests use it).
  */
 
 export const HTTP_METHODS = ["get", "post", "put", "patch", "delete"] as const;
 export type HttpMethod = (typeof HTTP_METHODS)[number];
+
+/**
+ * Which key may call an operation:
+ * - `scopes`: a key with every scope in `scopes`;
+ * - `per-operation`: `POST /batch`, which checks the scope of each item it carries (`scopes` lists them all);
+ * - `original-key`: only the key that created the resource (`GET /batch/{requestId}`); `scopes` is empty.
+ */
+export type KeyRule = "scopes" | "per-operation" | "original-key";
 
 export interface ApiOperation {
   method: HttpMethod;
@@ -17,7 +31,7 @@ export interface ApiOperation {
   path: string;
   operationId: string;
   summary: string;
-  /** Scopes the key needs; empty when any valid key will do. */
+  keyRule: KeyRule;
   scopes: readonly string[];
   deprecated: boolean;
 }
@@ -41,17 +55,35 @@ interface OpenApiOperation {
   tags?: string[];
   deprecated?: boolean;
   "x-required-scopes"?: string[];
+  /** Batch: the scope each kind of item needs. */
+  "x-operation-required-scopes"?: Record<string, string>;
+  /** "original": only the key that created the resource. */
+  "x-required-key"?: string;
 }
 
-interface OpenApiDocument {
+export interface OpenApiDocument {
   info: { version: string };
+  servers?: { url: string; description?: string }[];
   tags?: { name: string; description?: string }[];
   paths: Record<string, Partial<Record<HttpMethod, OpenApiOperation>> & Record<string, unknown>>;
 }
 
+/** Who may call an operation, from the document's extensions. An empty scope list alone is never read as "any key". */
+function keyAccess(operation: OpenApiOperation, where: string): { keyRule: KeyRule; scopes: string[] } {
+  const scopes = operation["x-required-scopes"] ?? [];
+  if (scopes.length > 0) return { keyRule: "scopes", scopes };
+  const perItem = operation["x-operation-required-scopes"];
+  if (perItem) return { keyRule: "per-operation", scopes: [...new Set(Object.values(perItem))] };
+  if (operation["x-required-key"] === "original") return { keyRule: "original-key", scopes: [] };
+  throw new Error(
+    `${where}: no scope, no per-operation scopes and no x-required-key; the page cannot say who may call it`,
+  );
+}
+
 /**
  * Groups the operations by their first tag, in the document's tag order, each group in path order as the document lists
- * them. Throws on what the page could not show truthfully: an operation without an id, a summary or a known tag.
+ * them. Throws on what the page could not show truthfully: an operation without an id, a summary, a known tag or a rule
+ * for which key may call it.
  */
 export function buildApiReference(document: OpenApiDocument): ApiReference {
   const tags = document.tags ?? [];
@@ -69,7 +101,7 @@ export function buildApiReference(document: OpenApiDocument): ApiReference {
         path,
         operationId: operation.operationId,
         summary: operation.summary,
-        scopes: operation["x-required-scopes"] ?? [],
+        ...keyAccess(operation, where),
         deprecated: operation.deprecated === true,
       });
     }
@@ -80,6 +112,16 @@ export function buildApiReference(document: OpenApiDocument): ApiReference {
       .map((tag) => ({ tag: tag.name, description: tag.description ?? "", operations: groups.get(tag.name)! }))
       .filter((group) => group.operations.length > 0),
   };
+}
+
+/** The document as published on this site: the same contract, with `apiBase` (the production API) as its only server. */
+export function publicOpenApiDocument(document: OpenApiDocument, apiBase: string): OpenApiDocument {
+  return { ...document, servers: [{ url: apiBase, description: "Abnormal management API" }] };
+}
+
+/** How the script writes a JSON file, and how mail writes docs/openapi.json: two-space indent and a final newline. */
+export function serializeJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
 }
 
 /** Every operation, in page order. */

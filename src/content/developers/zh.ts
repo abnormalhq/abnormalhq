@@ -67,7 +67,7 @@ export const developersZh: DevelopersContent = {
       title: "权限范围",
       blocks: [
         {
-          p: "每个操作需要一个权限范围，在下方的接口列表里标在操作旁边。写权限不包含对应的读权限。",
+          p: "每个操作需要一个权限范围，在下方的接口列表里标在操作旁边。写权限不包含对应的读权限。有两个例外：`POST /batch` 会逐一检查其中每项操作的权限范围，`GET /batch/{requestId}` 只接受提交该批次的那个密钥。",
         },
         {
           ul: [

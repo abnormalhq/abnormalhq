@@ -189,14 +189,19 @@ The page may only state what a source backs up, and each sentence has one: the p
 
 `/developers/` (Chinese `/zh/developers/`, linked from the footer's Product column) documents mail's management API and MCP server for people who build on an Abnormal workspace: how to apply for a workspace and create a key, a first request, scopes, the response and error format, rate limits, signed webhooks, MCP, versions, and what is not offered yet. Then it lists every operation of the API, grouped by area, with the scope it needs. The text is content like the security overview (`src/content/developers/en.ts` and `zh.ts`, rendered by `DevelopersOverview` through `DocArticle`), with one addition to the shape: code blocks (`{ code, language }`, the same in both languages) and `inline code` in backticks, which only this page turns on (`RichText`'s `code` prop). It has a Markdown version that carries the whole endpoint list, a sitemap and `llms.txt` entry, and a breadcrumb in its structured data. The API addresses are `developerApi` in `src/data/site.ts`.
 
-The endpoint list comes from mail's OpenAPI document, which mail writes from its code (`docs/openapi.json` there, see its `docs/api-versioning.md`). This repository keeps a byte-for-byte copy in `public/developers/openapi.json`, served as a static file at `https://abnormalhq.com/developers/openapi.json` for download and API tools, and excluded from Prettier so it stays identical. The page does not import that file (several hundred kilobytes in the Worker): `pnpm api-reference` (`scripts/api-reference.ts`, through `src/lib/api-reference.ts`) writes the few fields the page shows into `src/content/developers/reference.ts`. After mail changes its API:
+The endpoint list comes from mail's OpenAPI document, which mail writes from its code (`docs/openapi.json` there, see its `docs/api-versioning.md`). This repository keeps a byte-for-byte copy in `docs/openapi.json`, like the onboard contract, excluded from Prettier so it stays identical. `pnpm api-reference` (`scripts/api-reference.ts`, through `src/lib/api-reference.ts`) writes two files from it:
+
+- `src/content/developers/reference.ts`: the few fields the page shows. The page does not import the document, which would put several hundred kilobytes into the Worker.
+- `public/developers/openapi.json`: the document for download and API tools, served as a static file at `https://abnormalhq.com/developers/openapi.json`. It is mail's document with one change: its server is the production API (`developerApi.base`) instead of the relative `/api/v1`, which a tool would otherwise resolve against this site.
+
+Every operation shows which key may call it: its scope, or for the two operations no single scope grants, the rule mail's document states (`x-operation-required-scopes` on `POST /batch`, `x-required-key: "original"` on `GET /batch/{requestId}`). The generator refuses an operation with none of these rather than show it as open to any key. After mail changes its API:
 
 ```sh
-cp ../mail/docs/openapi.json public/developers/openapi.json
+cp ../mail/docs/openapi.json docs/openapi.json
 pnpm api-reference
 ```
 
-`tests/developers-page.test.ts` fails while `reference.ts` differs from the copy, compares the two languages block for block (the same inline code and links, the same code blocks), checks that the scope families the text names are the ones the document uses, and refuses anything that looks like a key in an example. Every sentence has a source in mail's `docs/api.md`, `mcp.md`, `multi-tenancy.md` (applying for a workspace) or `api-versioning.md`; limits that are deployment settings are given as defaults and pointed at `GET /capabilities`. When one of those changes, re-read the page in both languages and update `reviewed`.
+`tests/developers-page.test.ts` fails while either generated file differs from the copy, compares the two languages block for block (the same inline code and links, the same code blocks), checks that the scope families the text names are the ones the document uses, and refuses anything that looks like a key in an example. Every sentence has a source in mail's `docs/api.md`, `mcp.md`, `multi-tenancy.md` (applying for a workspace) or `api-versioning.md`; limits that are deployment settings are given as defaults and pointed at `GET /capabilities`. When one of those changes, re-read the page in both languages and update `reviewed`.
 
 ## Working with the other sites
 
@@ -313,7 +318,7 @@ src/
   content/legal/  Privacy policy and terms of service written in MDX, one set each in zh/ and en/
   content/help/   Help center articles, one file per language (see "Help center")
   content/security/  The security and privacy overview, one file per language
-  content/developers/  The developer documentation, one file per language, and reference.ts generated from public/developers/openapi.json
+  content/developers/  The developer documentation, one file per language, and reference.ts generated from docs/openapi.json
   storefront/     Shop, redeem page, buyer account and guide, and the Worker's API proxy to mail (see "Storefront")
   data/site.ts    Public contact details, buyer-journey addresses (linksFor), promo videos (promoVideos) and desktop client download addresses
   i18n/           Chinese and English copy (zh.ts, en.ts, types.ts) and language path helpers (paths.ts)

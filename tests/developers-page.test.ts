@@ -5,13 +5,21 @@ import type { DevDocBlock, DevDocSection } from "../src/content/help/types.ts";
 import { apiReference, developersContent } from "../src/content/developers/index.ts";
 import { developerApi, linksFor, site } from "../src/data/site.ts";
 import { copies, langs, localePath } from "../src/i18n/index.ts";
-import { apiOperations, buildApiReference, groupId } from "../src/lib/api-reference.ts";
+import {
+  apiOperations,
+  buildApiReference,
+  groupId,
+  publicOpenApiDocument,
+  serializeJson,
+} from "../src/lib/api-reference.ts";
 import { blockTexts, linkTargets, withAbsoluteLinks } from "../src/lib/docs.ts";
 import { developersMarkdown, homeMarkdown, llmsTxt } from "../src/lib/markdown.ts";
 import { pageUrls, pages } from "../src/lib/pages.ts";
 import { developersStructuredData } from "../src/lib/structured-data.ts";
 
-const spec = readFileSync("public/developers/openapi.json", "utf8");
+/** The byte-for-byte copy of mail's docs/openapi.json, and what this site publishes from it. */
+const spec = readFileSync("docs/openapi.json", "utf8");
+const published = readFileSync("public/developers/openapi.json", "utf8");
 const texts = (sections: readonly DevDocSection[]) =>
   sections.flatMap((section) => [section.title, ...section.blocks.flatMap((block) => blockTexts(block))]);
 const whole = (lang: "en" | "zh") =>
@@ -29,21 +37,64 @@ const kind = (block: DevDocBlock) =>
 const codeBlocks = (lang: "en" | "zh") =>
   developersContent[lang].sections.flatMap((section) => section.blocks.filter((block) => "code" in block));
 
-test("developers page: the reference is exactly what the copy of mail's OpenAPI document says (run `pnpm api-reference`)", () => {
-  assert.deepEqual(apiReference, buildApiReference(JSON.parse(spec)));
-  const document = JSON.parse(spec) as { openapi: string; servers: { url: string }[] };
+test("developers page: the reference and the published document are what the copy of mail's says (run `pnpm api-reference`)", () => {
+  const document = JSON.parse(spec);
+  assert.deepEqual(apiReference, buildApiReference(document));
   assert.equal(document.openapi, "3.1.0");
+  // mail's document is instance-independent; the copy keeps that, byte for byte, as mail writes it.
   assert.deepEqual(
-    document.servers.map((server) => server.url),
+    document.servers.map((server: { url: string }) => server.url),
     ["/api/v1"],
   );
-  assert.ok(developerApi.base.endsWith("/api/v1"));
-  // mail writes the file with JSON.stringify(document, null, 2) and a final newline; prettier must not touch the copy.
-  assert.equal(spec, `${JSON.stringify(JSON.parse(spec), null, 2)}\n`);
-  assert.match(readFileSync(".prettierignore", "utf8"), /^public\/developers\/openapi\.json$/m);
+  assert.equal(spec, serializeJson(document));
+  // The published one points tools at the real API: resolved against this site, "/api/v1" would be a 404 here.
+  assert.equal(published, serializeJson(publicOpenApiDocument(document, developerApi.base)));
+  const servers = (JSON.parse(published) as { servers: { url: string }[] }).servers;
+  assert.deepEqual(
+    servers.map((server) => server.url),
+    [developerApi.base],
+  );
+  assert.match(developerApi.base, /^https:\/\/console\.abnormalhq\.com\/api\/v1$/);
+  const ignored = readFileSync(".prettierignore", "utf8");
+  assert.match(ignored, /^docs\/openapi\.json$/m);
+  assert.match(ignored, /^public\/developers\/openapi\.json$/m);
 });
 
-test("developers page: every operation is listed once, with a scope or as open to any key, and anchors are unique", () => {
+test("developers page: an operation without a scope is never shown as open to any key", () => {
+  const document = JSON.parse(spec);
+  const withRule = (rule: Record<string, unknown>) => ({
+    info: { version: "1.0.0" },
+    tags: [{ name: "Batch" }],
+    paths: { "/x": { get: { operationId: "x", summary: "X", tags: ["Batch"], "x-required-scopes": [], ...rule } } },
+  });
+  assert.throws(() => buildApiReference(withRule({})), /cannot say who may call it/);
+  assert.equal(
+    buildApiReference(withRule({ "x-required-key": "original" })).groups[0]!.operations[0]!.keyRule,
+    "original-key",
+  );
+  const byId = new Map(apiOperations(apiReference).map((operation) => [operation.operationId, operation]));
+  const batch = byId.get("executeBatch")!;
+  assert.equal(batch.keyRule, "per-operation");
+  assert.deepEqual(
+    [...batch.scopes].sort(),
+    [
+      ...new Set(Object.values(document.paths["/batch"].post["x-operation-required-scopes"] as Record<string, string>)),
+    ].sort(),
+  );
+  assert.equal(byId.get("getBatchStatus")!.keyRule, "original-key");
+  assert.deepEqual(byId.get("getBatchStatus")!.scopes, []);
+  for (const operation of byId.values()) {
+    assert.equal(operation.scopes.length > 0, operation.keyRule !== "original-key", operation.operationId);
+  }
+  for (const lang of langs) {
+    const markdown = developersMarkdown(lang);
+    const r = copies[lang].developers.reference;
+    assert.ok(markdown.includes(`\`GET /batch/{requestId}\`: Get batch execution status (${r.originalKey})`), lang);
+    assert.ok(markdown.includes(`(${r.perOperation}${copies[lang].legal.colon}\``), lang);
+  }
+});
+
+test("developers page: every operation is listed once, scopes are well formed, and anchors are unique", () => {
   const operations = apiOperations(apiReference);
   assert.ok(operations.length >= 80, `${operations.length} operations`);
   const ids = operations.map((operation) => operation.operationId);

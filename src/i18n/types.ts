@@ -409,8 +409,18 @@ export interface Copy {
     reviewedLabel: string;
     /** Before the specification's version, beside the reviewed date. */
     versionLabel: string;
-    /** The endpoint list: column headers, the cell of an operation any valid key may call, and the deprecated badge. */
-    reference: { operation: string; summary: string; scope: string; anyKey: string; deprecated: string };
+    /**
+     * The endpoint list: column headers, the deprecated badge, and the scope cell of the two operations no single scope
+     * grants: `perOperation` before the scopes POST /batch checks item by item, `originalKey` for GET /batch/{requestId}.
+     */
+    reference: {
+      operation: string;
+      summary: string;
+      scope: string;
+      deprecated: string;
+      perOperation: string;
+      originalKey: string;
+    };
     /** At the foot of the page. */
     specLink: string;
     statusLink: string;

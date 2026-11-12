@@ -100,7 +100,13 @@ export function DevelopersOverview({ lang }: { lang: Lang }) {
   );
 }
 
-function OperationRow({ operation, copy }: { operation: ApiOperation; copy: { anyKey: string; deprecated: string } }) {
+function OperationRow({
+  operation,
+  copy,
+}: {
+  operation: ApiOperation;
+  copy: { deprecated: string; perOperation: string; originalKey: string };
+}) {
   return (
     <tr className="border-b border-border align-top last:border-b-0" id={operation.operationId}>
       <td className="px-4 py-3 font-mono text-[13px]">
@@ -132,7 +138,14 @@ function OperationRow({ operation, copy }: { operation: ApiOperation; copy: { an
         )}
       </td>
       <td className="px-4 py-3 font-mono text-[12px] whitespace-nowrap text-muted-foreground">
-        {operation.scopes.length > 0 ? operation.scopes.join(", ") : <span className="font-sans">{copy.anyKey}</span>}
+        {operation.keyRule === "original-key" ? (
+          <span className="font-sans whitespace-normal">{copy.originalKey}</span>
+        ) : (
+          <>
+            {operation.keyRule === "per-operation" && <span className="block font-sans">{copy.perOperation}</span>}
+            {operation.scopes.join(", ")}
+          </>
+        )}
       </td>
     </tr>
   );

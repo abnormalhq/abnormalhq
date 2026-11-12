@@ -73,7 +73,7 @@ curl --fail-with-body "$API_BASE/capabilities" \\
       title: "Scopes",
       blocks: [
         {
-          p: "Each operation needs one scope, listed next to it in the reference below. A write scope does not include the matching read scope.",
+          p: "Each operation needs one scope, listed next to it in the reference below. A write scope does not include the matching read scope. Two operations differ: `POST /batch` checks the scope of every operation it carries, and `GET /batch/{requestId}` answers only the key that submitted the batch.",
         },
         {
           ul: [

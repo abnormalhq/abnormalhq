@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "/api/v1",
-      "description": "Current MailHQ instance"
+      "url": "https://console.abnormalhq.com/api/v1",
+      "description": "Abnormal management API"
     }
   ],
   "security": [
@@ -11440,7 +11440,8 @@
               }
             }
           }
-        }
+        },
+        "x-required-key": "original"
       }
     },
     "/agent-tasks": {
