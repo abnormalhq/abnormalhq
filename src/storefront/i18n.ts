@@ -431,7 +431,7 @@ const zh: Copy = {
             ol: [
               "打开 [claude.ai](https://claude.ai/)，选「Continue with email」，填入新邮箱地址。",
               "到邮箱里收一封主题为「Secure link to log in to Claude.ai」的邮件，点里面的「Sign in with Claude.ai」。在同一台设备上点开会直接登录；在别的设备上点开会显示一个验证码，回到原来的设备填上。",
-              "第一次注册还要验证手机号：填一个能收短信的普通手机号，输入收到的 6 位数字验证码。只验这一次；网络电话与固话不行，一个号码最多绑 3 个账号，绑定后不能改。",
+              "第一次注册还要验证手机号：填你自己的手机号，输入短信收到的 6 位数字验证码。只验这一次。",
               "之后每次登录重复前两步即可。",
             ],
           },
@@ -727,7 +727,7 @@ const en: Copy = {
             ol: [
               "Open [claude.ai](https://claude.ai/), choose Continue with email and enter the new address.",
               "In the mailbox, open the message titled Secure link to log in to Claude.ai and click Sign in with Claude.ai. On the same device it logs you straight in; on another device it shows a code to type on the device you started from.",
-              "The first time, Claude also verifies a phone number: enter a regular mobile number that receives texts and type the six-digit code it sends. This happens once. VoIP and landline numbers do not work, a number can verify at most three accounts, and it cannot be changed afterwards.",
+              "The first time, Claude also verifies a phone number: enter your own mobile number and type the six-digit code it texts you. This happens once.",
               "Every later login is just the first two steps.",
             ],
           },
