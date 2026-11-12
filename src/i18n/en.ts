@@ -654,6 +654,7 @@ export const en: Copy = {
     historyChecksums: "SHA-256",
     copyCommand: "Copy",
     copiedCommand: "Copied",
+    copyFailed: "Your browser didn't allow copying. Select the command and copy it yourself.",
     webmailNote: "Rather not install anything?",
     webmailLink: "Use webmail in your browser",
   },

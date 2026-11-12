@@ -618,6 +618,7 @@ export const zh: Copy = {
     historyChecksums: "SHA-256 校验值",
     copyCommand: "复制",
     copiedCommand: "已复制",
+    copyFailed: "浏览器没有允许复制，请选中命令后自行复制。",
     webmailNote: "不想安装？",
     webmailLink: "在浏览器里使用网页邮箱",
   },

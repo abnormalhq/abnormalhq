@@ -115,7 +115,12 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
                   </p>
                 )}
                 {platform.command && (
-                  <CommandLine {...platform.command} copy={d.copyCommand} copied={d.copiedCommand} />
+                  <CommandLine
+                    {...platform.command}
+                    copy={d.copyCommand}
+                    copied={d.copiedCommand}
+                    failed={d.copyFailed}
+                  />
                 )}
                 <p className="mt-5 border-t border-border pt-4 text-sm/[1.6] text-muted-foreground">{platform.note}</p>
               </div>

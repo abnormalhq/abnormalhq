@@ -479,6 +479,7 @@ export interface Copy {
     /** The button beside an install command (Homebrew, apt), and what it says for a moment after copying. */
     copyCommand: string;
     copiedCommand: string;
+    copyFailed: string;
     webmailNote: string;
     webmailLink: string;
   };

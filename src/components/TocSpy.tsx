@@ -18,13 +18,18 @@ export function TocSpy({ children }: { children: ReactNode }) {
     let frame = 0;
     const update = () => {
       frame = 0;
-      // A heading counts as reached a little below the sticky header (html's scroll-padding-top is 5rem).
-      const offset = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) + 32 || 112;
       const page = document.documentElement;
+      // A heading counts as reached once it is where following its link puts it: below the sticky header by html's
+      // scroll-padding-top plus the heading's own scroll-margin-top (which differs between the help and legal pages),
+      // so each heading is measured from its own resting place, with a little slack for rounding.
+      const padding = parseFloat(getComputedStyle(page).scrollPaddingTop) || 0;
       const atBottom = Math.ceil(window.scrollY + window.innerHeight) >= page.scrollHeight - 2;
       const index = currentSection(
-        targets.map((target) => target!.getBoundingClientRect().top),
-        offset,
+        targets.map(
+          (target) =>
+            target!.getBoundingClientRect().top - (parseFloat(getComputedStyle(target!).scrollMarginTop) || 0),
+        ),
+        padding + 32,
         atBottom,
       );
       links.forEach((link, i) => {

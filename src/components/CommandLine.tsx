@@ -17,19 +17,27 @@ export function CommandLine({
   code,
   copy,
   copied: copiedLabel,
+  failed: failedLabel,
 }: {
   label: string;
   code: string;
   copy: string;
   copied: string;
+  /** Said when the browser refuses the clipboard, so the button never does nothing silently. */
+  failed: string;
 }) {
   const labelId = useId();
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
   const timer = useRef(0);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   async function onCopy(): Promise<void> {
-    if (!(await copyText(code))) return;
+    if (!(await copyText(code))) {
+      setFailed(true);
+      return;
+    }
+    setFailed(false);
     setCopied(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setCopied(false), COPIED_MS);
@@ -63,6 +71,10 @@ export function CommandLine({
       >
         <code>{code}</code>
       </pre>
+      {/* Present from the start (empty), so screen readers announce the message when it appears. */}
+      <p className={failed ? "mt-2 text-sm/[1.6] text-muted-foreground" : undefined} aria-live="polite">
+        {failed ? failedLabel : ""}
+      </p>
     </div>
   );
 }
