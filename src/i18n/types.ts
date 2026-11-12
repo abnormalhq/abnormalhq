@@ -476,6 +476,9 @@ export interface Copy {
     historyEmpty: string;
     /** At the end of each past release row, linking to that version's latest.json. */
     historyChecksums: string;
+    /** The button beside an install command (Homebrew, apt), and what it says for a moment after copying. */
+    copyCommand: string;
+    copiedCommand: string;
     webmailNote: string;
     webmailLink: string;
   };

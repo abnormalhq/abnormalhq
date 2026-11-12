@@ -437,7 +437,7 @@ export const en: Copy = {
     ],
     priceFallback: "On request",
     consult: "Ask about this",
-    consultAria: (name) => `Ask about: ${name}`,
+    consultAria: (name) => `Ask about this: ${name}`,
     noteQuestion: "Need a hand setting things up, or something else?",
     noteAction: "Talk to us",
     noteFine:
@@ -652,6 +652,8 @@ export const en: Copy = {
     historyIntro: "Earlier releases stay available, in case you need to go back to one.",
     historyEmpty: "No previous versions yet: this is the first release.",
     historyChecksums: "SHA-256",
+    copyCommand: "Copy",
+    copiedCommand: "Copied",
     webmailNote: "Rather not install anything?",
     webmailLink: "Use webmail in your browser",
   },

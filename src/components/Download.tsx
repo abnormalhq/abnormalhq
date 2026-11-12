@@ -10,6 +10,7 @@ import { desktopDownloads, type Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { fileLabel, formatSize, linuxDownload, releaseDate, type DesktopReleases } from "@/lib/releases";
 import { cn } from "@/lib/utils";
+import { CommandLine } from "./CommandLine";
 import { Icon } from "./Icon";
 
 /**
@@ -114,12 +115,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
                   </p>
                 )}
                 {platform.command && (
-                  <div className="mt-5">
-                    <p className="text-sm/[1.6] text-muted-foreground">{platform.command.label}</p>
-                    <pre className="mt-2 overflow-x-auto rounded-control border border-border bg-control px-3 py-2 font-mono text-sm/[1.6]">
-                      <code>{platform.command.code}</code>
-                    </pre>
-                  </div>
+                  <CommandLine {...platform.command} copy={d.copyCommand} copied={d.copiedCommand} />
                 )}
                 <p className="mt-5 border-t border-border pt-4 text-sm/[1.6] text-muted-foreground">{platform.note}</p>
               </div>

@@ -15,7 +15,7 @@ export const zh: Copy = {
   },
   skipLink: "跳到主要内容",
   brandLabel: "Abnormal 首页",
-  langToggle: { label: "EN", aria: "Switch to English" },
+  langToggle: { label: "EN", aria: "EN: switch to English" },
   header: {
     navLabel: "主导航",
     mobileNavLabel: "移动端导航",
@@ -616,6 +616,8 @@ export const zh: Copy = {
     historyIntro: "以前发布的版本都保留在这里，需要退回旧版本时可以下载。",
     historyEmpty: "暂无历史版本，当前是第一个版本。",
     historyChecksums: "SHA-256 校验值",
+    copyCommand: "复制",
+    copiedCommand: "已复制",
     webmailNote: "不想安装？",
     webmailLink: "在浏览器里使用网页邮箱",
   },
