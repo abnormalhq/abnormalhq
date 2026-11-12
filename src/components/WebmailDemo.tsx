@@ -74,8 +74,16 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
   const focusField = useRef<"to" | "body">("to");
   const draftOpen = draft !== null;
 
+  /** The button that opened the draft, which gets the focus back when the draft closes (if it is still on the page). */
+  const opener = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
-    if (draftOpen) (focusField.current === "to" ? toRef : bodyRef).current?.focus();
+    if (draftOpen) {
+      (focusField.current === "to" ? toRef : bodyRef).current?.focus();
+    } else if (opener.current?.isConnected) {
+      opener.current.focus();
+      opener.current = null;
+    }
   }, [draftOpen]);
 
   // The notice after "Send" goes by itself; one that asks for a recipient stays while the draft is open.
@@ -174,7 +182,8 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
       >
         <button
           type="button"
-          onClick={() => {
+          onClick={(event) => {
+            opener.current = event.currentTarget;
             setDraft({ to: "", subject: "", body: "" });
             focusField.current = "to";
             setNotice(null);
@@ -377,7 +386,8 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                     <>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(event) => {
+                          opener.current = event.currentTarget;
                           setDraft({
                             to: open.address,
                             subject: open.subject.startsWith(t.replyPrefix)
