@@ -108,6 +108,7 @@ test('decorative labels are English in both languages, as their lang="en" says',
     const labels = [
       copy.hero.eyebrow,
       copy.video.eyebrow,
+      copy.screens.eyebrow,
       copy.features.eyebrow,
       copy.start.eyebrow,
       copy.pricing.eyebrow,

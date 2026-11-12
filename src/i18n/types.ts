@@ -62,6 +62,14 @@ export interface LinkItem {
  * eyebrow, kicker, tagline and tocKicker are decorative English labels: both languages write them in English and components render them with lang="en",
  * so screen readers read them as English; tests/i18n.test.ts checks they contain no Chinese.
  */
+/** One screenshot of the screenshots section: its caption and the picture's text alternative. */
+export interface ScreenCopy {
+  title: string;
+  description: string;
+  /** What the picture shows, for screen readers and when it does not load. */
+  alt: string;
+}
+
 export interface Copy {
   /** <html lang> and hreflang. */
   htmlLang: string;
@@ -152,6 +160,20 @@ export interface Copy {
     /** What a screen reader says for the seek slider's position, such as "0:12 of 0:35". */
     seekTemplate: Template<"current" | "duration">;
     volume: string;
+  };
+  /**
+   * The screenshots section (src/components/Screens.tsx): WebMail as it really looks, one picture per entry, each in the page's
+   * language. The files are in public/screens/ (see the README's "Screenshots" section).
+   */
+  screens: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    /** Says the mail and events in the pictures are samples. */
+    note: string;
+    inbox: ScreenCopy;
+    calendar: ScreenCopy;
+    phone: ScreenCopy;
   };
   /** The "What's inside" section (src/components/Features.tsx): what a mailbox can do, and where it can be used. */
   features: {
