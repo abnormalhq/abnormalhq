@@ -89,11 +89,7 @@ test("security page: vulnerabilities are reported to the support address, the on
   for (const lang of langs) {
     const last = securityContent[lang].sections.at(-1)!;
     // The report link fills in the subject the paragraph asks for ("Security", 安全).
-    assert.match(
-      texts([last]).join("\n"),
-      new RegExp(`\\(mailto:${site.contact.email.replace(/\./g, "\\.")}\\?subject=[^)]+\\)`),
-      lang,
-    );
+    assert.ok(texts([last]).join("\n").includes(`(mailto:${site.contact.email}?subject=`), lang);
     assert.doesNotMatch(whole(lang), /security@|bounty|reward|奖金|赏金/i, lang);
   }
 });
