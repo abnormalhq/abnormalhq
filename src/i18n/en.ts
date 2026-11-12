@@ -106,6 +106,29 @@ export const en: Copy = {
     seekTemplate: "{current} of {duration}",
     volume: "Volume",
   },
+  screens: {
+    eyebrow: "Take a look",
+    title: "What you get once it's set up",
+    description: "This is webmail as it really looks: mail and your calendar, as easy on a phone as on a computer.",
+    note: "The mail and events in the screenshots are samples.",
+    inbox: {
+      title: "Inbox",
+      description:
+        "Primary mail, newsletters and notifications sort themselves, labels stand out, and the sender's history sits beside the message.",
+      alt: "The webmail inbox: folders and labels on the left, mail grouped by day in the middle, and a labelled message open on the right.",
+    },
+    calendar: {
+      title: "Calendar",
+      description:
+        "A calendar built into webmail: answer invitations right in the message, and sync it to your phone and computer.",
+      alt: "The webmail calendar's week view: meetings, a lunch and a flight across the week.",
+    },
+    phone: {
+      title: "On your phone",
+      description: "Just as easy in a phone's browser, and it can go on your home screen to open like an app.",
+      alt: "The webmail inbox on a phone, with Mail, Later, Calendar and Contacts along the bottom.",
+    },
+  },
   features: {
     eyebrow: "What's inside",
     title: "Everything a mailbox should do",

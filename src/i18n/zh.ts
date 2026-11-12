@@ -103,6 +103,27 @@ export const zh: Copy = {
     seekTemplate: "{current}，共 {duration}",
     volume: "音量",
   },
+  screens: {
+    eyebrow: "Take a look",
+    title: "开通后，你看到的就是这样",
+    description: "下面是网页邮箱的真实界面：收发邮件、管理日程，在电脑和手机上都顺手。",
+    note: "截图中的邮件和日程均为示例。",
+    inbox: {
+      title: "收件箱",
+      description: "主要邮件、订阅和通知自动分开，标签一眼可见，阅读区旁边就是发件人的往来记录。",
+      alt: "网页邮箱的收件箱：左侧是文件夹和标签，中间是按日期分组的邮件列表，右侧打开了一封带标签的邮件。",
+    },
+    calendar: {
+      title: "日历",
+      description: "日历内置在网页邮箱里，邮件里的邀请直接回复，还能同步到手机和电脑。",
+      alt: "网页邮箱的日历周视图：一周里的会议、午餐和航班等日程。",
+    },
+    phone: {
+      title: "手机上",
+      description: "在手机浏览器里同样好用，还能添加到主屏幕，像应用一样打开。",
+      alt: "手机上的网页邮箱收件箱，底部是邮件、稍后处理、日历和通讯录的导航。",
+    },
+  },
   features: {
     eyebrow: "What's inside",
     title: "一个邮箱，该有的都有",
