@@ -1,12 +1,16 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { TextLink } from "@/components/ui/text-link";
+import { helpArticles, helpPath } from "@/content/help";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { planViews } from "@/lib/pricing";
 import { pricingStructuredData } from "@/lib/structured-data";
 import { catalogDomains, type ShopCatalog } from "@/storefront/lib/catalog";
 import { AddressCheck } from "./AddressCheck";
+import { HelpLinks } from "./HelpLinks";
 import { Icon } from "./Icon";
 import { Included } from "./Included";
 import { JsonLd } from "./JsonLd";
@@ -22,6 +26,9 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
   const { t, links, path } = useCopy(lang);
   const p = t.pricing;
   const plans = catalog ? planViews(catalog, lang, p, links.shop) : [];
+  const billingArticles = helpArticles(lang)
+    .filter((article) => article.category === "billing")
+    .map(({ slug, title, summary }) => ({ href: path(helpPath(slug)), title, summary }));
   const shopButton = (
     <Button asChild variant="outline" size="lg">
       <a href={links.shop}>
@@ -96,6 +103,20 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
           <div className="mt-16 max-md:mt-12">
             <Included lang={lang} heading="h2" id="pricing-included-title" />
           </div>
+
+          {/* Renewals, codes, team plans and deleting a mailbox are answered in the help center; link them where the question comes up. */}
+          <HelpLinks
+            className="mt-16 max-w-3xl max-md:mt-12"
+            id="pricing-questions-title"
+            title={p.questions.title}
+            entries={billingArticles}
+          >
+            <TextLink asChild className="mt-5">
+              <Link href={path("/help/")}>
+                {p.questions.all} <Icon name="arrow" className="size-4" />
+              </Link>
+            </TextLink>
+          </HelpLinks>
         </Container>
       </section>
     </>

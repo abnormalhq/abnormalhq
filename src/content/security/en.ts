@@ -8,7 +8,8 @@
 import { site } from "../../data/site.ts";
 import type { SecurityContent } from "../help/types.ts";
 
-const support = `[${site.contact.email}](mailto:${site.contact.email})`;
+/** The report address with the subject the paragraph asks for already filled in. */
+const supportReport = `[${site.contact.email}](mailto:${site.contact.email}?subject=Security)`;
 
 export const securityEn: SecurityContent = {
   title: "Security and privacy, plainly",
@@ -112,7 +113,7 @@ export const securityEn: SecurityContent = {
       title: "Report a security problem",
       blocks: [
         {
-          p: `If you believe you have found a security vulnerability in this website, the shop, webmail or the mail service, write to ${support} with “Security” in the subject. Tell us what you found and how to reproduce it.`,
+          p: `If you believe you have found a security vulnerability in this website, the shop, webmail or the mail service, write to ${supportReport} with “Security” in the subject. Tell us what you found and how to reproduce it.`,
         },
         {
           ul: [

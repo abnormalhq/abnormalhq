@@ -264,6 +264,7 @@ export const en: Copy = {
     support: "Support",
   },
   pricing: {
+    questions: { title: "Questions about plans and billing", all: "All help articles" },
     metaTitle: "Pricing — Abnormal",
     metaDescription:
       "Abnormal mailbox plans with live prices: mailboxes included, storage per mailbox, domains, billing period and renewal price, plus what every mailbox gets.",
@@ -460,7 +461,7 @@ export const en: Copy = {
     ],
     priceFallback: "On request",
     consult: "Ask about this",
-    consultAria: (name) => `Ask about: ${name}`,
+    consultAria: (name) => `Ask about this: ${name}`,
     noteQuestion: "Need a hand setting things up, or something else?",
     noteAction: "Talk to us",
     noteFine:
@@ -575,6 +576,7 @@ export const en: Copy = {
       index: "Browse all help articles",
       contact: "Email support",
     },
+    related: "More in {topic}",
   },
   security: {
     metaTitle: "Security and privacy — Abnormal",
@@ -675,6 +677,17 @@ export const en: Copy = {
     historyIntro: "Earlier releases stay available, in case you need to go back to one.",
     historyEmpty: "No previous versions yet: this is the first release.",
     historyChecksums: "SHA-256",
+    copyCommand: "Copy",
+    copiedCommand: "Copied",
+    copyFailed: "Your browser didn't allow copying. Select the command and copy it yourself.",
+    forThisComputer: "For this computer",
+    phone: {
+      title: "On a phone or tablet?",
+      body: "The desktop app runs on computers. On this device, read your mail in webmail, or add the mailbox to the mail app you already have.",
+      webmail: "Open webmail",
+      apps: "Set up a mail app",
+    },
+    historyMore: "Show {count} earlier versions",
     webmailNote: "Rather not install anything?",
     webmailLink: "Use webmail in your browser",
   },

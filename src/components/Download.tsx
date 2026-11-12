@@ -9,7 +9,11 @@ import { TextLink } from "@/components/ui/text-link";
 import { desktopDownloads, type Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { fileLabel, formatSize, linuxDownload, releaseDate, type DesktopReleases } from "@/lib/releases";
+import type { DesktopPlatform } from "@/lib/platform";
+import { fillTemplate } from "@/lib/template";
 import { cn } from "@/lib/utils";
+import { CommandLine } from "./CommandLine";
+import { ForThisComputer, PhoneNote } from "./DownloadHint";
 import { Icon } from "./Icon";
 
 /**
@@ -17,11 +21,15 @@ import { Icon } from "./Icon";
  * releases is read on every request (src/lib/releases.ts); when unavailable, the version number and past releases are hidden and the download buttons still work.
  * The Linux card is shown only when the current release has Linux packages, since it links those files rather than a fixed latest/ address.
  */
+/** Previous versions shown before the fold; the rest open from "Show N earlier versions". */
+const RECENT_RELEASES = 3;
+
 export function Download({ lang, releases }: { lang: Lang; releases?: DesktopReleases }) {
-  const { t, links } = useCopy(lang);
+  const { t, links, path } = useCopy(lang);
   const d = t.download;
   const linux = linuxDownload(releases);
   const platforms: {
+    id: DesktopPlatform;
     name: string;
     requirement: string;
     download: string;
@@ -31,12 +39,14 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
     note: string;
   }[] = [
     {
+      id: "macos",
       ...d.macos,
       href: desktopDownloads.macos,
       command: { label: d.macos.brewLabel, code: desktopDownloads.brew },
       note: d.macos.firstLaunch,
     },
     {
+      id: "windows",
       ...d.windows,
       href: desktopDownloads.windows,
       arm: { label: d.windows.armDownload, href: desktopDownloads.windowsArm },
@@ -45,6 +55,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
     ...(linux
       ? [
           {
+            id: "linux" as const,
             ...d.linux,
             href: linux.file.url,
             arm: linux.arm && { label: d.linux.armDownload, href: linux.arm.url },
@@ -53,6 +64,27 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
         ]
       : []),
   ];
+
+  const renderRelease = (release: DesktopReleases["previous"][number]) => (
+    <li className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-b border-border py-4" key={release.version}>
+      <span className="flex min-w-40 items-baseline gap-3">
+        <span className="font-mono text-base/[1.6] font-semibold">{release.version}</span>
+        <time className="text-sm/[1.6] text-muted-foreground" dateTime={release.releasedAt}>
+          {releaseDate(release)}
+        </time>
+      </span>
+      <span className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+        {release.files.map((file) => (
+          <TextLink className="inline text-sm/[1.6]" download href={file.url} key={file.name}>
+            {fileLabel(file)} <span className="font-normal whitespace-nowrap">({formatSize(file.size)})</span>
+          </TextLink>
+        ))}
+        <TextLink className="text-sm/[1.6]" href={release.manifestUrl}>
+          {d.historyChecksums} <Icon name="up-right" className="size-3.5" />
+        </TextLink>
+      </span>
+    </li>
+  );
 
   return (
     <section aria-labelledby="download-title">
@@ -78,6 +110,8 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
           </p>
         )}
 
+        <PhoneNote copy={d.phone} webmail={links.webmail} apps={path("/help/")} />
+
         {/* Two cards side by side; with the Linux card, three on wide screens and two, then one, as the screen narrows. */}
         <div
           className={cn("mt-10 grid grid-cols-2 gap-4 max-md:grid-cols-1", platforms.length > 2 && "lg:grid-cols-3")}
@@ -94,6 +128,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
                   <Icon name="monitor" className="size-5" />
                 </IconTile>
                 <h2 className="text-xl/[1.4] font-semibold tracking-[-0.01em]">{platform.name}</h2>
+                <ForThisComputer platform={platform.id} label={d.forThisComputer} />
               </span>
               <p className="mt-4 text-base/prose text-muted-foreground">{platform.requirement}</p>
               <div className="mt-6">
@@ -114,12 +149,12 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
                   </p>
                 )}
                 {platform.command && (
-                  <div className="mt-5">
-                    <p className="text-sm/[1.6] text-muted-foreground">{platform.command.label}</p>
-                    <pre className="mt-2 overflow-x-auto rounded-control border border-border bg-control px-3 py-2 font-mono text-sm/[1.6]">
-                      <code>{platform.command.code}</code>
-                    </pre>
-                  </div>
+                  <CommandLine
+                    {...platform.command}
+                    copy={d.copyCommand}
+                    copied={d.copiedCommand}
+                    failed={d.copyFailed}
+                  />
                 )}
                 <p className="mt-5 border-t border-border pt-4 text-sm/[1.6] text-muted-foreground">{platform.note}</p>
               </div>
@@ -145,32 +180,28 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
               {releases.previous.length > 0 ? d.historyIntro : d.historyEmpty}
             </p>
             {releases.previous.length > 0 && (
-              <ul aria-labelledby="previous-versions" className="mt-5 border-t border-border">
-                {releases.previous.map((release) => (
-                  <li
-                    className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-b border-border py-4"
-                    key={release.version}
-                  >
-                    <span className="flex min-w-40 items-baseline gap-3">
-                      <span className="font-mono text-base/[1.6] font-semibold">{release.version}</span>
-                      <time className="text-sm/[1.6] text-muted-foreground" dateTime={release.releasedAt}>
-                        {releaseDate(release)}
-                      </time>
-                    </span>
-                    <span className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-                      {release.files.map((file) => (
-                        <TextLink className="inline text-sm/[1.6]" download href={file.url} key={file.name}>
-                          {fileLabel(file)}{" "}
-                          <span className="font-normal whitespace-nowrap">({formatSize(file.size)})</span>
-                        </TextLink>
-                      ))}
-                      <TextLink className="text-sm/[1.6]" href={release.manifestUrl}>
-                        {d.historyChecksums} <Icon name="up-right" className="size-3.5" />
-                      </TextLink>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul aria-labelledby="previous-versions" className="mt-5 border-t border-border">
+                  {releases.previous.slice(0, RECENT_RELEASES).map(renderRelease)}
+                </ul>
+                {/* The rest fold away: a dozen releases ran to a screen and a half on a phone. Native <details>, no script. */}
+                {releases.previous.length > RECENT_RELEASES && (
+                  <details className="group/history">
+                    <summary className="mt-3 inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm/[1.6] text-foreground underline decoration-border underline-offset-4 hover:decoration-current [&::-webkit-details-marker]:hidden">
+                      {fillTemplate(d.historyMore, { count: String(releases.previous.length - RECENT_RELEASES) }).join(
+                        "",
+                      )}
+                      <Icon
+                        name="plus"
+                        className="size-3.5 transition-transform duration-150 group-open/history:rotate-45"
+                      />
+                    </summary>
+                    <ul aria-labelledby="previous-versions" className="border-t border-border">
+                      {releases.previous.slice(RECENT_RELEASES).map(renderRelease)}
+                    </ul>
+                  </details>
+                )}
+              </>
             )}
           </div>
         )}

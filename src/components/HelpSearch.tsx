@@ -1,13 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useId, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Copy } from "@/i18n/types";
 import { matchesQuery, type HelpSearchEntry } from "@/lib/help-search";
 import { fillTemplate } from "@/lib/template";
 import { Icon } from "./Icon";
+
+/** Fired after the query is written into the address, which replaceState does not announce by itself. */
+const QUERY_EVENT = "abnormal-help-query";
+
+function readQuery(): string {
+  return new URLSearchParams(window.location.search).get("q") ?? "";
+}
+
+function subscribeToQuery(onChange: () => void): () => void {
+  window.addEventListener(QUERY_EVENT, onChange);
+  window.addEventListener("popstate", onChange);
+  return () => {
+    window.removeEventListener(QUERY_EVENT, onChange);
+    window.removeEventListener("popstate", onChange);
+  };
+}
 
 export interface HelpSearchGroup {
   /** The topic's id: language-independent and without spaces, so it can be part of an element id (a title cannot). */
@@ -23,8 +39,17 @@ export interface HelpSearchGroup {
  * with no match is left out together with its heading.
  */
 export function HelpSearch({ copy, groups }: { copy: Copy["help"]["search"]; groups: readonly HelpSearchGroup[] }) {
-  const [query, setQuery] = useState("");
+  // The query lives in the address (?q=), replaced rather than pushed: opening an article and coming back finds the same
+  // narrowed list, and a search can be shared as a link. The page is prerendered without it, so the server snapshot is empty.
+  const query = useSyncExternalStore(subscribeToQuery, readQuery, () => "");
   const id = useId();
+  const setQuery = (value: string) => {
+    const url = new URL(window.location.href);
+    if (value.trim()) url.searchParams.set("q", value);
+    else url.searchParams.delete("q");
+    window.history.replaceState(window.history.state, "", url);
+    window.dispatchEvent(new Event(QUERY_EVENT));
+  };
   const visible = groups
     .map((group) => ({ ...group, entries: group.entries.filter((entry) => matchesQuery(entry, query)) }))
     .filter((group) => group.entries.length > 0);

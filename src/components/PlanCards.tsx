@@ -137,6 +137,10 @@ export function PlanComparison({
   labelledBy: string;
 }) {
   const cell = "border-b border-border px-5 py-3.5 text-left align-top";
+  // The row labels stay put while the plans scroll sideways on a narrow screen, so every value keeps its label in view.
+  // They need a background of their own to cover the cells sliding under them, and a hairline on the right to show the edge.
+  const labelCell =
+    "sticky left-0 z-1 bg-background shadow-[inset_-1px_0_0_var(--border)] max-sm:w-[8.5rem] max-sm:px-4 md:shadow-none";
   const rows = planRowsFor(plans);
   return (
     <div
@@ -150,7 +154,7 @@ export function PlanComparison({
       <table className="w-full min-w-[34rem] border-collapse text-sm/body" aria-labelledby={labelledBy}>
         <thead>
           <tr>
-            <th scope="col" className={cn(cell, "w-[11rem] font-normal text-muted-foreground")}>
+            <th scope="col" className={cn(cell, labelCell, "w-[11rem] font-normal text-muted-foreground")}>
               {copy.compare.feature}
             </th>
             {plans.map((plan) => (
@@ -165,7 +169,12 @@ export function PlanComparison({
             <tr key={row}>
               <th
                 scope="row"
-                className={cn(cell, "font-normal text-muted-foreground", index === rows.length - 1 && "border-b-0")}
+                className={cn(
+                  cell,
+                  labelCell,
+                  "font-normal text-muted-foreground",
+                  index === rows.length - 1 && "border-b-0",
+                )}
               >
                 {copy.compare.rows[row]}
               </th>

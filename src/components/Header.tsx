@@ -51,6 +51,8 @@ export function Header({
     const href = localePath(lang, path ?? `/#${anchor}`);
     return { href, label, wide, current: path !== undefined && isCurrentSection(normalizedPath, href) };
   });
+  // "My account" is a link of its own rather than a nav entry, and is marked the same way on the account page.
+  const onAccount = isCurrentSection(normalizedPath, localePath(lang, "/shop/account/"));
   const other = lang === "zh" ? "en" : "zh";
   const otherHtmlLang = other === "en" ? "en" : "zh-CN";
   // With ?lang=: the Worker stores the choice in the cookie shared by the three sites, so shared links open in this language from then on (src/lib/lang.ts).
@@ -131,8 +133,14 @@ export function Header({
           <ThemePicker copy={themeCopy} onOpen={closeMenu} />
           <span className="mx-2 h-4 w-px bg-border max-md:hidden" aria-hidden="true"></span>
           {/* Narrower tablet widths cannot fit every entry: "My account" and "Log in" give way to the entries in the hero and footer. */}
-          <Button asChild variant="ghost" className="border-0 px-2.5 font-normal max-nav:hidden">
-            <a href={links.account}>{copy.account}</a>
+          <Button
+            asChild
+            variant="ghost"
+            className="border-0 px-2.5 font-normal max-nav:hidden aria-[current=page]:bg-control aria-[current=page]:text-foreground"
+          >
+            <a href={links.account} aria-current={onAccount ? "page" : undefined}>
+              {copy.account}
+            </a>
           </Button>
           <Button asChild variant="ghost" className="mr-1 border-0 px-2.5 font-normal max-nav:hidden">
             <a href={links.webmail}>{copy.login}</a>
@@ -188,7 +196,7 @@ export function Header({
               </a>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <a href={links.account} onClick={closeMenu}>
+              <a href={links.account} onClick={closeMenu} aria-current={onAccount ? "page" : undefined}>
                 {copy.account} <Icon name="up-right" className="size-4" />
               </a>
             </Button>

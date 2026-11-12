@@ -285,6 +285,8 @@ export const shopCopy = {
     ordersTitle: "订单",
     noOrders: "还没有订单。",
     viewOrder: "查看订单",
+    /** On an order still awaiting payment in the account's order list: the way on is paying it, on the order page. */
+    payOrder: "去支付",
     payLdc: "用 LDC 购买",
     payCard: "用银行卡购买",
     cardPrice: (price: string, days: number) =>
@@ -793,6 +795,7 @@ export const shopCopy = {
     ordersTitle: "Orders",
     noOrders: "No orders yet.",
     viewOrder: "View order",
+    payOrder: "Complete payment",
     payLdc: "Buy with LDC",
     payCard: "Pay by card",
     cardPrice: (price: string, days: number) =>

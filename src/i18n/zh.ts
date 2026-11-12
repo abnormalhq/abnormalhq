@@ -15,7 +15,7 @@ export const zh: Copy = {
   },
   skipLink: "跳到主要内容",
   brandLabel: "Abnormal 首页",
-  langToggle: { label: "EN", aria: "Switch to English" },
+  langToggle: { label: "EN", aria: "EN: switch to English" },
   header: {
     navLabel: "主导航",
     mobileNavLabel: "移动端导航",
@@ -247,6 +247,7 @@ export const zh: Copy = {
     support: "客服邮箱",
   },
   pricing: {
+    questions: { title: "关于套餐与账单的问题", all: "全部帮助文章" },
     metaTitle: "套餐与价格 — Abnormal",
     metaDescription:
       "Abnormal 邮箱套餐与实时价格：包含的邮箱数量、每个邮箱的容量、可选域名、计费周期与续费价格，以及每个邮箱都有的功能与限制。",
@@ -541,6 +542,7 @@ export const zh: Copy = {
       index: "浏览全部帮助文章",
       contact: "写信给客服",
     },
+    related: "「{topic}」的其他文章",
   },
   security: {
     metaTitle: "安全与隐私 — Abnormal",
@@ -637,6 +639,17 @@ export const zh: Copy = {
     historyIntro: "以前发布的版本都保留在这里，需要退回旧版本时可以下载。",
     historyEmpty: "暂无历史版本，当前是第一个版本。",
     historyChecksums: "SHA-256 校验值",
+    copyCommand: "复制",
+    copiedCommand: "已复制",
+    copyFailed: "浏览器没有允许复制，请选中命令后自行复制。",
+    forThisComputer: "适合这台电脑",
+    phone: {
+      title: "在用手机或平板？",
+      body: "桌面客户端只能装在电脑上。在这台设备上，可以用网页邮箱收发邮件，或者把邮箱添加到已有的邮件 App。",
+      webmail: "打开网页邮箱",
+      apps: "设置邮件 App",
+    },
+    historyMore: "显示更早的 {count} 个版本",
     webmailNote: "不想安装？",
     webmailLink: "在浏览器里使用网页邮箱",
   },

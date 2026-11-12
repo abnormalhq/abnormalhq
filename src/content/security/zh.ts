@@ -5,7 +5,8 @@
 import { site } from "../../data/site.ts";
 import type { SecurityContent } from "../help/types.ts";
 
-const support = `[${site.contact.email}](mailto:${site.contact.email})`;
+/** The report address with the subject the paragraph asks for already filled in. */
+const supportReport = `[${site.contact.email}](mailto:${site.contact.email}?subject=%E5%AE%89%E5%85%A8)`;
 
 export const securityZh: SecurityContent = {
   title: "把安全与隐私说清楚",
@@ -109,7 +110,7 @@ export const securityZh: SecurityContent = {
       title: "报告安全问题",
       blocks: [
         {
-          p: `如果你认为在官网、商店、网页邮箱或邮件服务中发现了安全漏洞，请写信到 ${support}，并在主题中注明「安全」。请说明发现了什么，以及如何复现。`,
+          p: `如果你认为在官网、商店、网页邮箱或邮件服务中发现了安全漏洞，请写信到 ${supportReport}，并在主题中注明「安全」。请说明发现了什么，以及如何复现。`,
         },
         {
           ul: [

@@ -7,6 +7,7 @@ import { Eyebrow } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { LANG_PATHS, copy, storePath, type GuideBlock, type Lang } from "@/storefront/i18n";
 import { withBase } from "@/storefront/site";
+import { TocSpy } from "@/components/TocSpy";
 import { RichText } from "./RichText";
 
 export function Guide({ lang }: { lang: Lang }) {
@@ -30,28 +31,30 @@ export function Guide({ lang }: { lang: Lang }) {
             {t.lede}
           </p>
         </header>
-        <aside className="sticky top-8 self-start pt-1 [grid-area:contents] max-guide:static max-guide:mb-7 max-guide:rounded-mark max-guide:border max-guide:border-border max-guide:bg-surface max-guide:p-5">
-          <nav aria-label={t.contents}>
-            <p className="flex items-center justify-between gap-3 border-b border-border pr-3 pb-[15px] text-xs/body font-medium tracking-[0.06em] text-muted-foreground uppercase max-guide:pr-0 max-guide:pb-3">
-              {t.contents}
-              <span className="font-normal">{String(t.sections.length).padStart(2, "0")}</span>
-            </p>
-            <ol className="mt-3.5 grid gap-1 max-guide:mt-2.5 max-guide:grid-cols-2 max-guide:gap-x-3 max-guide:gap-y-0.5">
-              {t.sections.map((section, index) => (
-                <li key={section.title}>
-                  <a
-                    className="flex min-h-10 items-baseline gap-3 rounded-control px-2.5 py-[9px] text-base/[1.6] text-muted-foreground transition-colors duration-150 hover:bg-control hover:text-foreground focus-visible:bg-control focus-visible:text-foreground max-guide-lg:gap-2.5 max-guide-lg:px-1.5 max-guide:min-h-11 max-guide:gap-2 max-guide:px-0 max-guide:py-2 max-guide:text-xs/[1.6] max-guide:hover:bg-background max-guide:focus-visible:bg-background"
-                    href={`#guide-section-${index + 1}`}
-                  >
-                    <span className="shrink-0 text-xs/[1.6] tracking-[0.02em]" aria-hidden="true">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    {section.title}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
+        <aside className="sticky top-24 self-start pt-1 [grid-area:contents] max-guide:static max-guide:mb-7 max-guide:rounded-mark max-guide:border max-guide:border-border max-guide:bg-surface max-guide:p-5">
+          <TocSpy>
+            <nav aria-label={t.contents}>
+              <p className="flex items-center justify-between gap-3 border-b border-border pr-3 pb-[15px] text-xs/body font-medium tracking-[0.06em] text-muted-foreground uppercase max-guide:pr-0 max-guide:pb-3">
+                {t.contents}
+                <span className="font-normal">{String(t.sections.length).padStart(2, "0")}</span>
+              </p>
+              <ol className="mt-3.5 grid gap-1 max-guide:mt-2.5 max-guide:grid-cols-2 max-guide:gap-x-3 max-guide:gap-y-0.5">
+                {t.sections.map((section, index) => (
+                  <li key={section.title}>
+                    <a
+                      className="flex min-h-10 items-baseline gap-3 rounded-control px-2.5 py-[9px] text-base/[1.6] text-muted-foreground transition-colors duration-150 hover:bg-control hover:text-foreground aria-[current=location]:bg-control aria-[current=location]:text-foreground focus-visible:bg-control focus-visible:text-foreground max-guide-lg:gap-2.5 max-guide-lg:px-1.5 max-guide:min-h-11 max-guide:gap-2 max-guide:px-0 max-guide:py-2 max-guide:text-xs/[1.6] max-guide:hover:bg-background max-guide:focus-visible:bg-background max-guide:aria-[current=location]:bg-transparent"
+                      href={`#guide-section-${index + 1}`}
+                    >
+                      <span className="shrink-0 text-xs/[1.6] tracking-[0.02em]" aria-hidden="true">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      {section.title}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          </TocSpy>
         </aside>
         <div className="max-w-[740px] min-w-0 [grid-area:body]">
           {t.sections.map((section, index) => (
