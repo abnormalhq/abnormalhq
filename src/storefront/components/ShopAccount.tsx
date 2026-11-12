@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CheckIcon } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
@@ -286,7 +288,12 @@ export function ShopAccount({ lang }: { lang: Lang }) {
         {t.accountDescription}
       </ShopHero>
       {error && <ShopAlert>{error}</ShopAlert>}
-      {notice && <p role="status">{notice}</p>}
+      {notice && (
+        <Alert variant="success" className="my-5">
+          <CheckIcon aria-hidden="true" />
+          <AlertDescription className="text-foreground">{notice}</AlertDescription>
+        </Alert>
+      )}
       {googleReturn ? (
         <ShopGoogleFinish
           lang={lang}
@@ -671,9 +678,10 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     )}
                   </ShopMeta>
                   <ShopActions>
-                    <ShopButton asChild variant="outline">
+                    {/* An order still awaiting payment is paid on its order page, so that is the button that stands out. */}
+                    <ShopButton asChild variant={order.status === "pending" ? "default" : "outline"}>
                       <Link href={`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(order.id)}`}>
-                        {t.viewOrder}
+                        {order.status === "pending" ? t.payOrder : t.viewOrder}
                         <span aria-hidden="true">↗</span>
                       </Link>
                     </ShopButton>
