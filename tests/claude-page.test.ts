@@ -103,7 +103,8 @@ test("claude page and privacy policy: the policy covers the connector, and each 
     assert.ok(text.includes(`](${localePath(lang, "/claude/")})`), `${lang}: the policy links the page`);
     assert.ok(text.includes("console.abnormalhq.com/api/mcp"), lang);
     assert.ok(text.includes("SHA-256") && text.includes("`oauth:`"), lang);
-    assert.ok(text.includes("https://www.anthropic.com/legal/privacy"), lang);
+    // The Markdown link itself, target and all: Anthropic's policy governs what happens to conversations.
+    assert.match(text, /\]\(https:\/\/www\.anthropic\.com\/legal\/privacy\)/, lang);
     assert.ok(
       claudeContent[lang].sections.some((section) =>
         section.blocks.some((block) => blockTexts(block).some((t) => linkTargets(t).includes("privacy/"))),
