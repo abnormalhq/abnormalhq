@@ -62,6 +62,43 @@ export interface LinkItem {
  * eyebrow, kicker, tagline and tocKicker are decorative English labels: both languages write them in English and components render them with lang="en",
  * so screen readers read them as English; tests/i18n.test.ts checks they contain no Chinese.
  */
+/** The interactive WebMail demo (src/components/WebmailDemo.tsx): its sample labels, mail and events. */
+export type DemoLabelId = "work" | "travel" | "family";
+
+export interface DemoLabel {
+  id: DemoLabelId;
+  name: string;
+  color: "blue" | "green" | "orange";
+}
+
+export interface DemoMail {
+  id: string;
+  from: string;
+  address: string;
+  subject: string;
+  /** The message, one paragraph per entry. */
+  body: readonly string[];
+  /** The time shown in the list, as the list shows it. */
+  time: string;
+  day: "today" | "yesterday" | "earlier";
+  category: "primary" | "newsletters" | "notifications";
+  labels: readonly DemoLabelId[];
+  unread: boolean;
+  starred: boolean;
+  /** The name of an attached file, or empty. */
+  attachment: string;
+}
+
+export interface DemoEvent {
+  title: string;
+  /** 0 is Monday. */
+  day: number;
+  /** Whole hours, 8 to 20. */
+  start: number;
+  end: number;
+  location: string;
+}
+
 /** One screenshot of the screenshots section: its caption and the picture's text alternative. */
 export interface ScreenCopy {
   title: string;
@@ -174,6 +211,67 @@ export interface Copy {
     inbox: ScreenCopy;
     calendar: ScreenCopy;
     phone: ScreenCopy;
+  };
+  /**
+   * The "Try it" section (src/components/Demo.tsx, src/components/WebmailDemo.tsx): a small WebMail that runs in the visitor's browser
+   * with sample content. Nothing in it reaches a server; "Send" only files the message under Sent.
+   */
+  demo: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    /** Says the demo runs only in the browser and sends nothing. */
+    note: string;
+    /** Accessible name of the whole demo. */
+    label: string;
+    ui: {
+      compose: string;
+      inbox: string;
+      starred: string;
+      sent: string;
+      calendar: string;
+      labels: string;
+      search: string;
+      categoryAll: string;
+      categoryPrimary: string;
+      categoryNewsletters: string;
+      categoryNotifications: string;
+      /** After the unread count, as "2 unread". */
+      unread: string;
+      today: string;
+      yesterday: string;
+      earlier: string;
+      empty: string;
+      emptySent: string;
+      /** Shown in the reading pane before a message is opened. */
+      pick: string;
+      back: string;
+      reply: string;
+      star: string;
+      unstar: string;
+      markUnread: string;
+      close: string;
+      to: string;
+      subject: string;
+      body: string;
+      send: string;
+      /** Prefix of a reply's subject. */
+      replyPrefix: string;
+      /** Shown after "Send": the message went under Sent and nowhere else. */
+      sentNotice: string;
+      /** Shown when "Send" is pressed with no recipient. */
+      needRecipient: string;
+      /** The time a sent message is listed with. */
+      now: string;
+      me: string;
+      thisWeek: string;
+      /** The calendar's day names, Monday first. */
+      weekdays: readonly [string, string, string, string, string, string, string];
+      attachment: string;
+    };
+    labels: readonly DemoLabel[];
+    mails: readonly DemoMail[];
+    events: readonly DemoEvent[];
   };
   /** The "What's inside" section (src/components/Features.tsx): what a mailbox can do, and where it can be used. */
   features: {
