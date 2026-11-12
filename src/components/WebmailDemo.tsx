@@ -13,7 +13,7 @@ import {
   StarIcon,
   XIcon,
 } from "lucide-react";
-import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { Copy, DemoLabelId, DemoMail } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +68,15 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [eventIndex, setEventIndex] = useState<number | null>(null);
   const searchId = useId();
+  const toRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  /** Which field takes the focus once a draft opens: the recipient for a new message, the message for a reply. */
+  const focusField = useRef<"to" | "body">("to");
+  const draftOpen = draft !== null;
+
+  useEffect(() => {
+    if (draftOpen) (focusField.current === "to" ? toRef : bodyRef).current?.focus();
+  }, [draftOpen]);
 
   // The notice after "Send" goes by itself; one that asks for a recipient stays while the draft is open.
   useEffect(() => {
@@ -83,8 +92,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
   const visible = useMemo(() => {
     const words = query.trim().toLowerCase();
     return mails.filter((mail) => {
-      if (folder === "sent") return mail.outgoing;
-      if (mail.outgoing) return false;
+      if (folder === "sent" ? !mail.outgoing : mail.outgoing) return false;
       if (folder === "starred" && !mail.starred) return false;
       if (label && !mail.labels.includes(label)) return false;
       if (folder === "inbox" && !label && category !== "all" && mail.category !== category) return false;
@@ -168,6 +176,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
           type="button"
           onClick={() => {
             setDraft({ to: "", subject: "", body: "" });
+            focusField.current = "to";
             setNotice(null);
           }}
           className="mb-2 flex items-center justify-center gap-2 rounded-control bg-foreground px-3 py-2 font-medium text-background transition-opacity hover:opacity-90 max-md:mb-0 max-md:shrink-0"
@@ -376,6 +385,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                               : `${t.replyPrefix}${open.subject}`,
                             body: "",
                           });
+                          focusField.current = "body";
                           setNotice(null);
                         }}
                         className="flex items-center gap-1.5 rounded-control bg-foreground px-3 py-1.5 font-medium text-background hover:opacity-90"
@@ -463,6 +473,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
           </div>
           <DraftField label={t.to}>
             <input
+              ref={toRef}
               type="email"
               autoComplete="off"
               value={draft.to}
@@ -480,6 +491,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
           <label className="block px-4 py-2">
             <span className="sr-only">{t.body}</span>
             <textarea
+              ref={bodyRef}
               rows={5}
               value={draft.body}
               onChange={(event) => edit({ body: event.target.value })}
