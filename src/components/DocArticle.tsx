@@ -11,7 +11,7 @@ import {
 import { Container } from "@/components/ui/container";
 import { Prose } from "@/components/ui/prose";
 import { Eyebrow, HeadingMark, sectionSpaceClassName } from "@/components/ui/section-heading";
-import type { DocBlock, DocSection } from "@/content/help/types";
+import type { DevDocBlock, DevDocSection, DocSection } from "@/content/help/types";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { docBase, sectionId } from "@/lib/docs";
@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 import { RichText } from "@/storefront/components/RichText";
 
 /**
- * A page of long-form content written as sections of paragraphs and lists (src/content/): a help article or the security
- * overview. The layout is the legal pages': a header with the title and lead, then a table of contents beside the reading
+ * A page of long-form content written as sections of paragraphs and lists (src/content/): a help article, the security
+ * overview or the developer documentation (which also has code blocks). The layout is the legal pages': a header with the title and lead, then a table of contents beside the reading
  * column, which is the registry's Prose (numbered second-level headings). A breadcrumb says where the page sits.
  * `children` follows the sections in the reading column: what to do next, or who to ask.
  */
@@ -42,7 +42,7 @@ export function DocArticle({
   summary: string;
   /** The pages above this one, nearest last; the home page comes first by itself. Paths without the language prefix. */
   trail: readonly { label: string; path: string }[];
-  sections: readonly DocSection[];
+  sections: readonly (DocSection | DevDocSection)[];
   /** A line under the lead, such as the date the page was last reviewed. */
   meta?: ReactNode;
   /** The page's name in the breadcrumb, when the title is too long for it. */
@@ -126,11 +126,22 @@ export function DocArticle({
   );
 }
 
-function Block({ block, base }: { block: DocBlock; base: string }) {
+function Block({ block, base }: { block: DevDocBlock; base: string }) {
+  if ("code" in block) {
+    // Prose gives every <code> the inline chip; inside a block the panel is the frame, so the chip is taken off again.
+    return (
+      <pre
+        className="overflow-x-auto rounded-panel border border-border p-4 text-sm/[1.65]"
+        data-language={block.language}
+      >
+        <code className="rounded-none! bg-transparent! p-0!">{block.code}</code>
+      </pre>
+    );
+  }
   if ("p" in block) {
     return (
       <p>
-        <RichText text={block.p} base={base} />
+        <RichText text={block.p} base={base} code />
       </p>
     );
   }
@@ -140,7 +151,7 @@ function Block({ block, base }: { block: DocBlock; base: string }) {
     <List>
       {items.map((item, index) => (
         <li key={index}>
-          <RichText text={item} base={base} />
+          <RichText text={item} base={base} code />
         </li>
       ))}
     </List>

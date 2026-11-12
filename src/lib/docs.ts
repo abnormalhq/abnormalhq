@@ -1,12 +1,12 @@
 /**
- * Shared by the help center's articles and the security overview (src/content/): their text as Markdown and as plain text.
+ * Shared by the help center's articles, the security overview and the developer documentation (src/content/): their text as Markdown and as plain text.
  * The content uses the storefront copy's two markup forms, **bold** and [text](link), which are already Markdown; only site
  * links need work, since in the content they are relative to the language root (the page resolves them the same way through
  * RichText). Runs in Node as is: the tests, the Markdown routes and the structured data all use it.
  */
 import { site, type Lang } from "../data/site.ts";
 import { localePath } from "../i18n/paths.ts";
-import type { DocBlock, DocSection } from "../content/help/types.ts";
+import type { DevDocBlock, DevDocSection } from "../content/help/types.ts";
 
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
 const external = (href: string) => /^(https?:|mailto:|#)/.test(href);
@@ -28,25 +28,30 @@ export function withAbsoluteLinks(text: string, lang: Lang): string {
   );
 }
 
-/** The text without its markup, for structured data and search: links keep their label, bold its words. */
+/** The text without its markup, for structured data and search: links keep their label, bold and `code` their words. */
 export function plainText(text: string): string {
-  return text.replace(LINK, "$1").replace(/\*\*([^*]+)\*\*/g, "$1");
+  return text
+    .replace(LINK, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1");
 }
 
-/** Every text of a block, in order. */
-export function blockTexts(block: DocBlock): readonly string[] {
+/** Every text of a block, in order. Code is not text: it has no markup, no links and is the same in every language. */
+export function blockTexts(block: DevDocBlock): readonly string[] {
+  if ("code" in block) return [];
   if ("p" in block) return [block.p];
   return "ol" in block ? block.ol : block.ul;
 }
 
-function blockMarkdown(block: DocBlock, lang: Lang): string {
+function blockMarkdown(block: DevDocBlock, lang: Lang): string {
+  if ("code" in block) return `\`\`\`${block.language}\n${block.code}\n\`\`\``;
   if ("p" in block) return withAbsoluteLinks(block.p, lang);
   if ("ol" in block) return block.ol.map((item, index) => `${index + 1}. ${withAbsoluteLinks(item, lang)}`).join("\n");
   return block.ul.map((item) => `- ${withAbsoluteLinks(item, lang)}`).join("\n");
 }
 
 /** The sections as Markdown parts (second-level headings and their blocks), to join with blank lines. */
-export function sectionsMarkdown(sections: readonly DocSection[], lang: Lang): string[] {
+export function sectionsMarkdown(sections: readonly DevDocSection[], lang: Lang): string[] {
   return sections.flatMap((section) => [
     `## ${section.title}`,
     ...section.blocks.map((block) => blockMarkdown(block, lang)),

@@ -44,12 +44,26 @@ export function linksFor(lang: Lang) {
     help: `${root}help/`,
     /** The security and privacy overview (src/content/security/). */
     security: `${root}security/`,
+    /** The developer documentation: the management API and MCP server (src/content/developers/). */
+    developers: `${root}developers/`,
     webmail: "https://webmail.abnormalhq.com/",
     status: "https://console.abnormalhq.com/status",
   } as const;
 }
 
 export type LinkKey = keyof ReturnType<typeof linksFor>;
+
+/**
+ * The management API of mail's admin console (abnormalhq/mail docs/api.md and mcp.md), as the developer documentation names it.
+ * `openapi` is this site's copy of mail's docs/openapi.json, served from public/ as a static file.
+ */
+export const developerApi = {
+  base: "https://console.abnormalhq.com/api/v1",
+  mcp: "https://console.abnormalhq.com/api/mcp",
+  /** Applying for a workspace (mail's docs/multi-tenancy.md, "Workspace applications"); a platform admin reviews each one. */
+  signup: "https://console.abnormalhq.com/signup",
+  openapi: `${site.url}/developers/openapi.json`,
+} as const;
 
 /**
  * The home page's promo video (the "Watch a short video" section under the hero), one per language, rendered by the video/ directory of

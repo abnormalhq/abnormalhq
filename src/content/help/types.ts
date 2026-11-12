@@ -72,6 +72,28 @@ export interface SecurityContent {
   sections: readonly DocSection[];
 }
 
+/**
+ * A block of code on the developer documentation, shown exactly as written: no markup, no link resolution, never translated.
+ * `language` names the fence in the Markdown version.
+ */
+export type CodeBlock = { code: string; language: "sh" | "js" | "json" };
+/** The developer documentation's blocks: the articles' three, plus code. In its text `inline code` in backticks is allowed too. */
+export type DevDocBlock = DocBlock | CodeBlock;
+
+export interface DevDocSection {
+  title: string;
+  blocks: readonly DevDocBlock[];
+}
+
+/** The developer documentation (/developers/): one document of the security overview's shape, with code blocks. */
+export interface DevelopersContent {
+  title: string;
+  summary: string;
+  /** YYYY-MM-DD: when the statements were last checked against mail's docs/api.md, mcp.md and api-versioning.md. */
+  reviewed: string;
+  sections: readonly DevDocSection[];
+}
+
 /** The page path of an article, without the language prefix. */
 export function helpPath(slug: HelpSlug): `/help/${HelpSlug}/` {
   return `/help/${slug}/`;

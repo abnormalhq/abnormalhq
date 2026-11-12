@@ -185,6 +185,19 @@ The articles are content, not UI copy, so they live apart from `src/i18n`: `src/
 
 The page may only state what a source backs up, and each sentence has one: the privacy policy (HTTPS everywhere, what is stored encrypted or hashed, session digests, payments, admin access and its logging, the providers and transfers abroad, never asking for passwords), and mail's `docs/`: `mail-transport-security.md` and `dane-dnssec.md` (MTA-STS in enforce mode, DANE TLSA with DNSSEC), `webmail-security.md` (two-step verification and app passwords, enforced by the mail server), `mail-safety.md` (message warnings), `antivirus.md` (the scanner and what webmail does with its verdict) and `webmail-user-settings.md` (the image proxy). It says plainly that there is no end-to-end and no zero-access encryption, makes no compliance or certification claim, names no server, port or key, and sends vulnerability reports to the support address, the only public contact. `tests/security-page.test.ts` holds it to that: the two languages block for block, the admin-access and transfer sentences against the policy's own wording, a list of words the page must not use, and the links. When a source changes, re-read the page against it in both languages and update `reviewed` (shown under the lead as "Last reviewed"). Two statements depend on how mail is deployed rather than on its code and should be confirmed with whoever runs it before each review: that the virus scanner is running in production (mail's `antivirus.md` describes the rollout), and that every mailbox domain publishes the MTA-STS policy.
 
+## Developer documentation
+
+`/developers/` (Chinese `/zh/developers/`, linked from the footer's Product column) documents mail's management API and MCP server for people who build on an Abnormal workspace: how to apply for a workspace and create a key, a first request, scopes, the response and error format, rate limits, signed webhooks, MCP, versions, and what is not offered yet. Then it lists every operation of the API, grouped by area, with the scope it needs. The text is content like the security overview (`src/content/developers/en.ts` and `zh.ts`, rendered by `DevelopersOverview` through `DocArticle`), with one addition to the shape: code blocks (`{ code, language }`, the same in both languages) and `inline code` in backticks, which only this page turns on (`RichText`'s `code` prop). It has a Markdown version that carries the whole endpoint list, a sitemap and `llms.txt` entry, and a breadcrumb in its structured data. The API addresses are `developerApi` in `src/data/site.ts`.
+
+The endpoint list comes from mail's OpenAPI document, which mail writes from its code (`docs/openapi.json` there, see its `docs/api-versioning.md`). This repository keeps a byte-for-byte copy in `public/developers/openapi.json`, served as a static file at `https://abnormalhq.com/developers/openapi.json` for download and API tools, and excluded from Prettier so it stays identical. The page does not import that file (several hundred kilobytes in the Worker): `pnpm api-reference` (`scripts/api-reference.ts`, through `src/lib/api-reference.ts`) writes the few fields the page shows into `src/content/developers/reference.ts`. After mail changes its API:
+
+```sh
+cp ../mail/docs/openapi.json public/developers/openapi.json
+pnpm api-reference
+```
+
+`tests/developers-page.test.ts` fails while `reference.ts` differs from the copy, compares the two languages block for block (the same inline code and links, the same code blocks), checks that the scope families the text names are the ones the document uses, and refuses anything that looks like a key in an example. Every sentence has a source in mail's `docs/api.md`, `mcp.md`, `multi-tenancy.md` (applying for a workspace) or `api-versioning.md`; limits that are deployment settings are given as defaults and pointed at `GET /capabilities`. When one of those changes, re-read the page in both languages and update `reviewed`.
+
 ## Working with the other sites
 
 | Entry                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Address                                 | Repository                                 |
@@ -300,6 +313,7 @@ src/
   content/legal/  Privacy policy and terms of service written in MDX, one set each in zh/ and en/
   content/help/   Help center articles, one file per language (see "Help center")
   content/security/  The security and privacy overview, one file per language
+  content/developers/  The developer documentation, one file per language, and reference.ts generated from public/developers/openapi.json
   storefront/     Shop, redeem page, buyer account and guide, and the Worker's API proxy to mail (see "Storefront")
   data/site.ts    Public contact details, buyer-journey addresses (linksFor), promo videos (promoVideos) and desktop client download addresses
   i18n/           Chinese and English copy (zh.ts, en.ts, types.ts) and language path helpers (paths.ts)
@@ -307,7 +321,7 @@ src/
   scripts/        theme-init.js: the theme initialization script inlined into the head
   styles/         abnormal.css and abnormal-fonts.css come from the registry; global.css holds the site's own breakpoints and global rules
 public/           Fonts, social images (og/), promo videos (video/) and other files served directly by the static asset service
-scripts/          og-images.ts: generates the social images in public/og/
+scripts/          og-images.ts: generates the social images in public/og/; api-reference.ts: the developer page's endpoint list
 video/            Remotion project for the promo video, rendered into public/video/ (see "Promo video")
 tests/            Regression tests for inquiry logic, copy structure, page metadata, legal documents, agent entry points, cache and security headers and theme behavior; tests/storefront/ holds the storefront's Vitest suite
 open-next.config.ts  OpenNext configuration: prerendered output lives in read-only static assets

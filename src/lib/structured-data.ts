@@ -6,6 +6,7 @@
 import { helpArticles, helpPath, type HelpArticle } from "../content/help/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { securityContent } from "../content/security/index.ts";
+import { developersContent } from "../content/developers/index.ts";
 import { absoluteUrl, configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
 import { copies } from "../i18n/index.ts";
 import { langs, localePath } from "../i18n/paths.ts";
@@ -273,6 +274,25 @@ export function securityStructuredData(lang: Lang) {
       breadcrumb: breadcrumb([
         { name: site.name, url: absolute(localePath(lang, "/")) },
         { name: t.security.navLabel, url: page.url as string },
+      ]),
+    },
+  ]);
+}
+
+/** The developer documentation: the page, when it was last checked against mail's API documentation, and a breadcrumb. */
+export function developersStructuredData(lang: Lang) {
+  const t = copies[lang];
+  const page = webPage(lang, "/developers/", t.developers.metaTitle, t.developers.metaDescription);
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      dateModified: developersContent[lang].reviewed,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: t.developers.navLabel, url: page.url as string },
       ]),
     },
   ]);

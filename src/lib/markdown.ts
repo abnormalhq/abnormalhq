@@ -7,6 +7,7 @@ import {
   absoluteUrl,
   configuredVideo,
   desktopDownloads,
+  developerApi,
   linksFor,
   site,
   type Lang,
@@ -22,6 +23,7 @@ import {
   type HelpSlug,
 } from "../content/help/index.ts";
 import { securityContent } from "../content/security/index.ts";
+import { apiReference, developersContent } from "../content/developers/index.ts";
 import { copies, langs, localePath } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { sectionsMarkdown } from "./docs.ts";
@@ -99,6 +101,7 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
     `## ${t.footer.contactLabel}`,
     `${t.start.support}: [${email}](mailto:${email})`,
     `[${t.security.navLabel}](${links.security})`,
+    `[${t.developers.navLabel}](${links.developers})`,
     `## ${t.footer.legalLabel}`,
     list(t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`)),
   ])}\n`;
@@ -282,6 +285,37 @@ export function securityMarkdown(lang: Lang): string {
   ])}\n`;
 }
 
+/**
+ * The developer documentation: its sections as written, then every operation of the reference under the last section (the
+ * reference's own heading), each with its scope, and the way on to the specification and the status page.
+ */
+export function developersMarkdown(lang: Lang): string {
+  const t = copies[lang];
+  const d = t.developers;
+  const content = developersContent[lang];
+  const scopes = (scopes: readonly string[]) =>
+    scopes.length > 0 ? scopes.map((scope) => `\`${scope}\``).join(", ") : d.reference.anyKey;
+  return `${paragraphs([
+    `# ${content.title}`,
+    content.summary,
+    `${d.reviewedLabel}${t.legal.colon}${content.reviewed} · ${d.versionLabel}${t.legal.colon}${apiReference.version}`,
+    ...sectionsMarkdown(content.sections, lang),
+    ...apiReference.groups.flatMap((group) => [
+      `### ${group.tag}`,
+      group.description,
+      list(
+        group.operations.map(
+          (operation) =>
+            `\`${operation.method.toUpperCase()} ${operation.path}\`: ${operation.summary} (${scopes(operation.scopes)})${
+              operation.deprecated ? ` · ${d.reference.deprecated}` : ""
+            }`,
+        ),
+      ),
+    ]),
+    list([`[${d.specLink}](${developerApi.openapi})`, `[${d.statusLink}](${linksFor(lang).status})`]),
+  ])}\n`;
+}
+
 /** Legal page paths in the copy are plain strings; this confirms the path really is a page in the list. */
 function toPagePath(path: string) {
   const match = pagePaths.find((pagePath) => pagePath === path);
@@ -328,6 +362,7 @@ function llmsSection(lang: Lang, heading: string): string {
         (article) => `[${article.title}](${absolute(pageFor(lang, helpPath(article.slug)).markdown)})`,
       ),
       `[${t.security.navLabel}](${absolute(pageFor(lang, "/security/").markdown)})`,
+      `[${t.developers.navLabel}](${absolute(pageFor(lang, "/developers/").markdown)})`,
       `[${t.download.title}](${absolute(pageFor(lang, "/download/").markdown)})`,
       ...t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`),
       ...[...t.footer.productLinks, ...t.footer.supportLinks].map((item) => `[${item.label}](${links[item.link]})`),

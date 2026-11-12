@@ -7,6 +7,7 @@ import {
   homeMarkdown,
   legalMarkdown,
   securityMarkdown,
+  developersMarkdown,
   stripFrontmatter,
 } from "@/lib/markdown";
 import { markdownResponse } from "@/lib/markdown-response";
@@ -33,6 +34,7 @@ function render({ lang, path }: Page): string {
   if (isStorePage(path)) return storeMarkdown(lang, path);
   if (path === "/help/") return helpIndexMarkdown(lang);
   if (path === "/security/") return securityMarkdown(lang);
+  if (path === "/developers/") return developersMarkdown(lang);
   const article = helpSlugOf(path);
   if (article) return helpArticleMarkdown(lang, article);
   if (path === "/privacy/" || path === "/terms/")

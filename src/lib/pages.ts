@@ -20,6 +20,8 @@ export const pagePaths = [
   "/help/",
   ...helpSlugs.map(helpPath),
   "/security/",
+  // The developer documentation: the management API and MCP server (src/content/developers/).
+  "/developers/",
   "/download/",
   "/privacy/",
   "/terms/",

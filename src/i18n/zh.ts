@@ -531,6 +531,24 @@ export const zh: Copy = {
     policyLink: "阅读隐私政策",
     helpLink: "前往帮助中心",
   },
+  developers: {
+    metaTitle: "开发者：API 与 MCP — Abnormal",
+    metaDescription:
+      "Abnormal 管理 API 和 MCP 服务器：申请密钥、第一个请求、权限范围、错误、频率限制、签名 Webhook、版本策略，以及每个接口所需的权限范围。",
+    navLabel: "开发者",
+    eyebrow: "Developer docs",
+    reviewedLabel: "最近核对",
+    versionLabel: "API 版本",
+    reference: {
+      operation: "操作",
+      summary: "说明",
+      scope: "权限范围",
+      anyKey: "任意密钥",
+      deprecated: "已弃用",
+    },
+    specLink: "下载 OpenAPI 规范",
+    statusLink: "服务状态",
+  },
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["下一封邮件，", "从这里开始"],
@@ -554,6 +572,7 @@ export const zh: Copy = {
       { link: "redeem", label: "兑换开通" },
       { link: "webmail", label: "网页邮箱" },
       { link: "guide", label: "使用教程" },
+      { link: "developers", label: "开发者" },
     ],
     supportLinks: [
       { link: "help", label: "帮助中心" },

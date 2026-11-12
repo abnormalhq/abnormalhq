@@ -17,6 +17,7 @@
     "cf:deploy": "opennextjs-cloudflare deploy",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "api-reference": "node scripts/api-reference.ts",
     "prepare": "husky"
   },
   "engines": {

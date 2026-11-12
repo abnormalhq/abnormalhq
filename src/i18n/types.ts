@@ -398,6 +398,23 @@ export interface Copy {
     policyLink: string;
     helpLink: string;
   };
+  /** The developer documentation (/developers/): the wording around it. The text is src/content/developers/. */
+  developers: {
+    metaTitle: string;
+    metaDescription: string;
+    /** The entry in the footer and the breadcrumb's own name of the page. */
+    navLabel: string;
+    eyebrow: string;
+    /** Before the date the statements were last checked. */
+    reviewedLabel: string;
+    /** Before the specification's version, beside the reviewed date. */
+    versionLabel: string;
+    /** The endpoint list: column headers, the cell of an operation any valid key may call, and the deprecated badge. */
+    reference: { operation: string; summary: string; scope: string; anyKey: string; deprecated: string };
+    /** At the foot of the page. */
+    specLink: string;
+    statusLink: string;
+  };
   closing: {
     eyebrow: string;
     titleLines: readonly [string, string];

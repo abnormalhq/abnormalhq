@@ -563,6 +563,24 @@ export const en: Copy = {
     policyLink: "Read the Privacy Policy",
     helpLink: "Go to the help center",
   },
+  developers: {
+    metaTitle: "Developers: API and MCP — Abnormal",
+    metaDescription:
+      "The Abnormal management API and MCP server: get a key, make your first request, scopes, errors, rate limits, signed webhooks, versioning, and every endpoint with the scope it needs.",
+    navLabel: "Developers",
+    eyebrow: "Developer docs",
+    reviewedLabel: "Last reviewed",
+    versionLabel: "API version",
+    reference: {
+      operation: "Operation",
+      summary: "What it does",
+      scope: "Scope",
+      anyKey: "Any key",
+      deprecated: "Deprecated",
+    },
+    specLink: "Download the OpenAPI specification",
+    statusLink: "Service status",
+  },
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["Your next email", "starts here"],
@@ -586,6 +604,7 @@ export const en: Copy = {
       { link: "redeem", label: "Redeem" },
       { link: "webmail", label: "Webmail" },
       { link: "guide", label: "Guide" },
+      { link: "developers", label: "Developers" },
     ],
     supportLinks: [
       { link: "help", label: "Help center" },
