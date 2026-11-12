@@ -25,7 +25,7 @@ const cjk = /[㐀-鿿]/;
 const texts = (sections: readonly DocSection[]) =>
   sections.flatMap((section) => [section.title, ...section.blocks.flatMap((block) => blockTexts(block))]);
 const kind = (block: DocBlock) =>
-  "p" in block ? "p" : "ol" in block ? `ol${block.ol.length}` : `ul${block.ul.length}`;
+  "code" in block ? "code" : "p" in block ? "p" : "ol" in block ? `ol${block.ol.length}` : `ul${block.ul.length}`;
 
 test("help: every article exists once in each language, in the order of the slug list, in a known topic", () => {
   for (const lang of langs) {

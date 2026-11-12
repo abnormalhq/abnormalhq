@@ -17,11 +17,12 @@ import { useCopy } from "@/i18n";
 import { docBase, sectionId } from "@/lib/docs";
 import { cn } from "@/lib/utils";
 import { RichText } from "@/storefront/components/RichText";
+import { CommandLine } from "./CommandLine";
 import { TocSpy } from "./TocSpy";
 
 /**
- * A page of long-form content written as sections of paragraphs and lists (src/content/): a help article or the security
- * overview. The layout is the legal pages': a header with the title and lead, then a table of contents beside the reading
+ * A page of long-form content written as sections of paragraphs, lists and commands (src/content/): a help article, the
+ * security overview or the Claude connector page. The layout is the legal pages': a header with the title and lead, then a table of contents beside the reading
  * column, which is the registry's Prose (numbered second-level headings). A breadcrumb says where the page sits.
  * `children` follows the sections in the reading column: what to do next, or who to ask.
  */
@@ -112,12 +113,12 @@ export function DocArticle({
         </aside>
 
         <article className="max-w-[46rem] min-w-0">
-          <Prose className="[&_h2]:scroll-mt-24 [&>section:first-child_h2]:mt-0">
+          <Prose className="[&_h2]:scroll-mt-24 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&>section:first-child_h2]:mt-0">
             {sections.map((section, index) => (
               <section aria-labelledby={sectionId(index)} key={section.title}>
                 <h2 id={sectionId(index)}>{section.title}</h2>
                 {section.blocks.map((block, blockIndex) => (
-                  <Block block={block} base={base} key={blockIndex} />
+                  <Block block={block} base={base} commands={t.download} key={blockIndex} />
                 ))}
               </section>
             ))}
@@ -129,7 +130,27 @@ export function DocArticle({
   );
 }
 
-function Block({ block, base }: { block: DocBlock; base: string }) {
+function Block({
+  block,
+  base,
+  commands,
+}: {
+  block: DocBlock;
+  base: string;
+  /** The copy button's words, the download page's: a command is copied the same way there. */
+  commands: { copyCommand: string; copiedCommand: string; copyFailed: string };
+}) {
+  if ("code" in block) {
+    return (
+      <CommandLine
+        label={block.label}
+        code={block.code}
+        copy={commands.copyCommand}
+        copied={commands.copiedCommand}
+        failed={commands.copyFailed}
+      />
+    );
+  }
   if ("p" in block) {
     return (
       <p>

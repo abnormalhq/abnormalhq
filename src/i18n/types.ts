@@ -522,6 +522,19 @@ export interface Copy {
     policyLink: string;
     helpLink: string;
   };
+  /** The Claude connector page (/claude/): the wording around it. The text itself is in src/content/claude/. */
+  claude: {
+    metaTitle: string;
+    metaDescription: string;
+    /** The entry in the footer and the breadcrumb's own name of the page. */
+    navLabel: string;
+    eyebrow: string;
+    /** Before the date the statements were last checked. */
+    reviewedLabel: string;
+    /** At the foot of the page: on to the privacy policy and to the security overview. */
+    policyLink: string;
+    securityLink: string;
+  };
   closing: {
     eyebrow: string;
     titleLines: readonly [string, string];

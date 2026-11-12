@@ -5,6 +5,7 @@
  */
 import { helpArticles, helpPath, type HelpArticle } from "../content/help/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
+import { claudeContent } from "../content/claude/index.ts";
 import { securityContent } from "../content/security/index.ts";
 import { absoluteUrl, configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
 import { copies } from "../i18n/index.ts";
@@ -273,6 +274,25 @@ export function securityStructuredData(lang: Lang) {
       breadcrumb: breadcrumb([
         { name: site.name, url: absolute(localePath(lang, "/")) },
         { name: t.security.navLabel, url: page.url as string },
+      ]),
+    },
+  ]);
+}
+
+/** The Claude connector page: the page, when its statements were last checked, and a breadcrumb. */
+export function claudeStructuredData(lang: Lang) {
+  const t = copies[lang];
+  const page = webPage(lang, "/claude/", t.claude.metaTitle, t.claude.metaDescription);
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      dateModified: claudeContent[lang].reviewed,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: t.claude.navLabel, url: page.url as string },
       ]),
     },
   ]);

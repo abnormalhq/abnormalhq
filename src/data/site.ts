@@ -44,6 +44,8 @@ export function linksFor(lang: Lang) {
     help: `${root}help/`,
     /** The security and privacy overview (src/content/security/). */
     security: `${root}security/`,
+    /** How to connect Claude to the admin console's MCP server (src/content/claude/). */
+    claude: `${root}claude/`,
     webmail: "https://webmail.abnormalhq.com/",
     status: "https://console.abnormalhq.com/status",
   } as const;
