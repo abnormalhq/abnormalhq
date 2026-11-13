@@ -2,7 +2,7 @@ import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 import { rehypePlugins, remarkPlugins } from "./src/content/legal/mdx.ts";
-import { site } from "./src/data/site.ts";
+import { developersSite, site } from "./src/data/site.ts";
 import { pagePaths, pages, sessionPagePaths } from "./src/lib/pages.ts";
 
 // Paths with an extension (/icon.svg), written the same way as the trailing-slash rule built into Next.js.
@@ -30,6 +30,20 @@ const nextConfig: NextConfig = {
       ]),
       // The storefront's session pages had their English version under /en/ on the old onboard site; links mail built then keep working.
       ...sessionPagePaths.map((path) => ({ source: `/en${path}`, destination: path, statusCode: 301 })),
+      // The developer documentation moved to its own site (abnormalhq/mail apps/developers); every old address leads there.
+      ...[
+        ["/developers/", "/"],
+        ["/en/developers/", "/"],
+        ["/zh/developers/", "/zh/"],
+        ["/md/developers/", "/md/"],
+        ["/md/en/developers/", "/md/"],
+        ["/md/zh/developers/", "/md/zh/"],
+        ["/developers/openapi.json", "/openapi.json"],
+      ].map(([source, destination]) => ({
+        source: source!,
+        destination: `${developersSite}${destination}`,
+        statusCode: 301 as const,
+      })),
     ];
   },
   async headers() {

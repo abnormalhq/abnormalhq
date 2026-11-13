@@ -54,8 +54,8 @@ export function linksFor(lang: Lang) {
     security: `${root}security/`,
     /** How to connect Claude to the admin console's MCP server (src/content/claude/). */
     claude: `${root}claude/`,
-    /** The developer documentation: the management API and MCP server (src/content/developers/). */
-    developers: `${root}developers/`,
+    /** The developer documentation on its own site (developersSite below); this site's /developers/ redirects there. */
+    developers: lang === "en" ? `${developersSite}/` : `${developersSite}/${lang}/`,
     webmail: "https://webmail.abnormalhq.com/",
     status: "https://console.abnormalhq.com/status",
   } as const;
@@ -63,21 +63,8 @@ export function linksFor(lang: Lang) {
 
 export type LinkKey = keyof ReturnType<typeof linksFor>;
 
-/**
- * The management API of mail's admin console (abnormalhq/mail docs/api.md and mcp.md), as the developer documentation names it.
- * `openapi` is this site's copy of mail's docs/openapi.json, served from public/ as a static file.
- */
-export const developerApi = {
-  base: "https://console.abnormalhq.com/api/v1",
-  mcp: "https://console.abnormalhq.com/api/mcp",
-  /** Applying for a workspace (mail's docs/multi-tenancy.md, "Workspace applications"); a platform admin reviews each one. */
-  signup: "https://console.abnormalhq.com/signup",
-  openapi: `${site.url}/developers/openapi.json`,
-  /** The public status page, where the management API is a service of its own (mail's docs/admin-console.md). */
-  status: "https://console.abnormalhq.com/status",
-  /** Database reachability, no sign-in (mail's docs/deployment.md): for a developer's own uptime monitor. */
-  health: "https://console.abnormalhq.com/api/health",
-} as const;
+/** The developer site (abnormalhq/mail apps/developers): the management API and MCP documentation, in both languages. */
+export const developersSite = "https://developers.abnormalhq.com";
 
 /**
  * The home page's promo video (the "Watch a short video" section under the hero), one per language, rendered by the video/ directory of
