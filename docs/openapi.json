@@ -1350,7 +1350,7 @@
       "get": {
         "operationId": "listDomainOnboardings",
         "summary": "List domain onboarding requests",
-        "description": "Requires `domains:read` scope.",
+        "description": "Requires `domains:read` scope.\n\nRequests newest first. Bulk onboarding leaves thousands: pass page and/or perPage to read them a page at a time, with pagination in the response. Without either the response holds every request and no pagination.",
         "tags": [
           "Domain onboarding"
         ],
@@ -1361,6 +1361,29 @@
         ],
         "x-required-scopes": [
           "domains:read"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page through the requests, newest first. Without page and perPage every request is returned at once.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 1
+            }
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -1394,19 +1417,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/DomainOnboarding"
-                      }
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/DomainOnboardingListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -5002,7 +5023,7 @@
       "post": {
         "operationId": "prepareDomainTransportSecurity",
         "summary": "Verify and enable domain transport security",
-        "description": "Requires `domains:write` scope.\n\nVerifies and prepares MTA-STS and TLS-RPT for a bound domain using the server preset; no request body. Publish the DNS records returned by connection first, then call this endpoint; no certificate is requested while the host DNS does not match. A 200 response means the check has finished; only transportSecurity.state=ready means DNS, the HTTPS policy and the certificate are all ready. On certificate_pending or dns_pending, query connection again. The top-level ready field only means mail DNS is ready. Requires the admin role and the domains:write scope.",
+        "description": "Requires `domains:write` scope.\n\nVerifies and prepares MTA-STS and TLS-RPT for a bound domain using the server preset; no request body. Publish the DNS records returned by connection first, then call this endpoint; no certificate is requested while the host DNS does not match. A 200 response means the check has finished; only transportSecurity.state=ready means DNS, the HTTPS policy and the certificate are all ready. A call made before the host DNS matches does nothing: after dns_pending, wait until DNS matches (connection then shows needs_setup) and call this endpoint again; on certificate_pending, query connection again. The top-level ready field only means mail DNS is ready. Requires the admin role and the domains:write scope.",
         "tags": [
           "Domains"
         ],
@@ -18324,6 +18345,49 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Domain"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "perPage": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "page",
+              "perPage",
+              "total",
+              "totalPages"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "DomainOnboardingListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DomainOnboarding"
             }
           },
           "pagination": {
