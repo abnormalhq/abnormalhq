@@ -33,7 +33,8 @@ export const developersZh: DevelopersContent = {
             "**收发邮件**：用你的域名发信、跟踪每封邮件的投递，并以 Webhook 接收邮件（需开通）。",
             "**Agent 邮箱**：一次调用为 AI Agent 建好邮箱，读收件箱、按会话回复，并发一把只能用于这个邮箱的密钥。",
             "**邮件应用**：让邮箱用户通过 OAuth 授权你的应用读取他们的邮件、以他们的身份发信。",
-            "**投递**：抑制列表和邮件追踪。",
+            "**投递**：抑制列表、邮件追踪，以及替你读回的延迟退信和垃圾邮件投诉。",
+            "**客户端与连接器**：TypeScript 和 Python SDK、命令行工具、n8n 和 Zapier，以及飞书、钉钉群机器人（见下方应用目录）。",
             "**批量**：把多项修改放进一个按顺序执行、可安全重试的请求。",
           ],
         },
@@ -44,7 +45,7 @@ export const developersZh: DevelopersContent = {
       blocks: [
         {
           ol: [
-            `**申请工作区。** API 属于管理控制台里的一个工作区。[申请工作区](${developerApi.signup})后会有人工审核，通过后你会作为管理员收到邀请。`,
+            `**申请工作区。** API 属于管理控制台里的一个工作区。[申请工作区](${developerApi.signup})后会有人工审核，通过后你会作为管理员收到邀请。如果申请页提供“开发者工作区”，选它即可在确认邮箱后立即获得一个，用测试密钥试用 API。`,
             "**创建密钥。** 在管理控制台打开 **设置 → API 密钥**，创建一个密钥，只勾选代码需要的权限范围。只有管理员能创建密钥。",
             "**立即保存。** 完整的密钥只在创建时显示一次。把它放在密钥管理工具或环境变量里，不要写进代码仓库、网址或日志。",
           ],
@@ -136,7 +137,8 @@ export const developersZh: DevelopersContent = {
             "在 10 秒内返回 `2xx`，之后再处理业务。",
             "投递至少一次且不保证顺序：用事件的 `id` 去重。",
             "投递失败会以逐渐拉长的间隔重试约 17 小时。连续失败 3 天的 Webhook 会被停用，直到你重新启用。",
-            "`POST /webhooks/{id}/test` 会发送一个测试事件，用来检查接收端。",
+            "`POST /webhooks/{id}/test` 会发送一个测试事件，用来检查接收端。**设置 → 开发者** 会列出所有 Webhook 最近的投递及接收方的回应，并可重新投递；状态页会显示 Webhook 投递是否准时。",
+            '想不写接收端就在群聊里收到事件，创建 Webhook 时设 `"format": "feishu"` 或 `"dingtalk"`，填写群机器人的地址（签名密钥填在 `botSecret`）：每个事件会以一条简短消息到达。',
           ],
         },
       ],
@@ -155,6 +157,9 @@ export const developersZh: DevelopersContent = {
             "`PUT /mailboxes/{id}/inbound` 开启收信路由：邮箱收到的每封邮件都会以 `message.received` 推送，附带纯文本正文；完整邮件和附件用 `GET /mailboxes/{id}/messages/{emailId}` 读取。用别名或 catch-all 可以把多个地址汇入同一个路由邮箱。",
             "如果你的套餐按发信量计费，需先在 **设置 → 开发者 → 计费** 中订阅，否则正式密钥发信会得到 `402 billing_required`。每封交给邮件服务器的邮件计一次，与收件人数量无关。",
             "管理后台的 **设置 → 开发者** 会显示当天的发信额度、最近的 API 调用及其错误码、每封发出的邮件和每个收件人的结果。",
+            "回到域名发信账号的延迟退信和垃圾邮件投诉（反馈环报告）会被读回：收件人变为 `bounced`，或得到 `complainedAt` 和一个 `email.complained` 事件，并被加入抑制列表。",
+            "新开通的工作区会先预热：第一天最多 50 封，此后每天翻倍，直到上限。退信或投诉过多时正式发信会自动暂停（`403 email_api_paused`，并推送 `email.sending_paused` 事件），直到我们核查。",
+            "只能走 SMTP 的软件可以用 `POST /domains/{id}/smtp-credentials` 经域名自己的服务器发信：这个密码只能登录和发信，与 API 密钥分开创建和撤销。",
           ],
         },
       ],
@@ -169,7 +174,7 @@ export const developersZh: DevelopersContent = {
           ul: [
             "`POST /agent-mailboxes` 传入 `domain` 和 `name` 即可创建；`GET /agent-mailboxes/{id}/messages` 读取收件箱，`POST …/send` 发送新邮件，`POST …/messages/{emailId}/reply` 在原会话中回复。",
             "`POST /agent-mailboxes/{id}/keys` 返回一把只对这个邮箱有效的密钥：交给 Agent，它就碰不到工作区里的其他任何东西。",
-            "Agent 收到的邮件同时以 `message.received` 事件推送，无需轮询。",
+            "Agent 收到的邮件同时以 `message.received` 事件推送，无需轮询。`PATCH` 和 `DELETE …/messages/{emailId}` 可把邮件标为已读或删除，`GET …/attachments/{index}` 可下载附件。",
           ],
         },
       ],
@@ -182,9 +187,9 @@ export const developersZh: DevelopersContent = {
         },
         {
           ul: [
-            "用 `POST /mail-apps` 注册应用：名称、回调地址，以及它可以申请的权限 `mail.read` 和 `mail.send`。所有应用都是公开客户端：没有 client secret，必须使用 PKCE（`S256`）。",
+            "用 `POST /mail-apps` 注册应用：名称、回调地址，以及它可以申请的权限 `mail.read`、`mail.send` 和 `mail.modify`。所有应用都是公开客户端：没有 client secret，必须使用 PKCE（`S256`）。",
             "把用户引导到网页邮箱的 `/oauth/authorize`；用户登录后会看到你的应用名称和申请的权限，确认即可。在 `/api/oauth/token` 用授权码换取访问令牌（1 小时）和每次使用都会轮换的刷新令牌。",
-            "带着令牌调用 Mail API：`GET /api/mail/v1/messages` 和 `/messages/{id}` 读取、搜索邮件，`POST /api/mail/v1/send` 以该邮箱发信，并在“已发送”中留存副本。",
+            "带着令牌调用 Mail API：`GET /api/mail/v1/messages` 和 `/messages/{id}` 读取、搜索邮件（`…/attachments/{index}` 下载附件），`POST /api/mail/v1/send` 以该邮箱发信，可带附件并在“已发送”中留存副本；有 `mail.modify` 时应用还能标记、移动和删除邮件。",
             "用户随时可以在网页邮箱设置里撤销授权，修改邮箱密码也会终止全部授权；`DELETE /mail-apps/{id}` 会一次终止你的应用的全部授权。",
           ],
         },
@@ -198,7 +203,25 @@ export const developersZh: DevelopersContent = {
         },
         codeBlock(3),
         {
-          p: "服务器暂不支持 OAuth 登录，所以需要客户端能自定义请求头。（给邮箱用户用的 OAuth 是另一回事，见下文。）",
+          p: "支持 OAuth 登录的客户端（例如 claude.ai、Claude Desktop 和 Claude Code 上的 Claude）只需要这个地址：它们会自行注册，由管理员在授权页上批准权限，令牌会自动续期。不加请求头，客户端就会打开登录页。",
+        },
+      ],
+    },
+    {
+      title: "应用目录",
+      blocks: [
+        {
+          p: "除了自己调用 API，把其他软件接入 Abnormal 的所有方式。管理控制台的 **设置 → 开发者 → 集成** 也列出了同样的内容。",
+        },
+        {
+          ul: [
+            "**Claude 及其他 MCP 客户端**（可用）：上文的 MCP 服务器，支持 OAuth 登录。",
+            "**你自己的应用，面向你的邮箱用户**（可用）：使用 OAuth 的邮件应用，见上文。",
+            "**飞书和钉钉**（可用）：把 Webhook 事件或你的控制台通知推送到群机器人。",
+            "**Slack 和 Telegram**（可用）：把你的控制台通知发到频道或会话。",
+            "**TypeScript SDK、Python SDK 和 `abnormal` 命令行工具**（尚未发布）：带类型的调用、重试、幂等键和 Webhook 校验；命令行工具将可用 `brew install abnormalhq/tap/abnormal` 安装。",
+            "**n8n 和 Zapier**（尚未发布）：n8n 的节点和触发器，以及 Zapier 的触发器、动作和搜索。",
+          ],
         },
       ],
     },
@@ -237,9 +260,9 @@ export const developersZh: DevelopersContent = {
       blocks: [
         {
           ul: [
-            "删除邮件内容；未经邮箱用户授权读取未开启路由的邮箱。",
-            "打开与点击跟踪，以及投诉（反馈环）事件。",
-            "官方 SDK 和命令行工具。",
+            "未经邮箱用户授权读取未开启路由的邮箱。",
+            "打开与点击跟踪：这是有意不做的，它会读取人们怎么处理自己的邮件，我们的网页邮箱也不这样做。",
+            "SDK 包、命令行工具以及 n8n、Zapier 的上架已经做好但尚未发布：发布后本页会给出链接。",
           ],
         },
         {

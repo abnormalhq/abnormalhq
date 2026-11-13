@@ -5,7 +5,7 @@
 import type { ApiReference } from "../../lib/api-reference.ts";
 
 export const apiReference: ApiReference = {
-  version: "1.7.0",
+  version: "1.8.0",
   errors: [
     {
       code: "body_too_large",
@@ -645,10 +645,22 @@ export const apiReference: ApiReference = {
       reserved: false,
     },
     {
+      code: "invalid_webhook_format",
+      statuses: [400],
+      area: "webhooks",
+      meaning:
+        "`format` is not standard, feishu or dingtalk, `botSecret` came without a bot format or is not one, or a PATCH tried to change either (they are set when the webhook is made).",
+      action:
+        "Send one of the formats, and a bot's signing secret only with a bot format; to change the format, make a new webhook.",
+      retry: "no",
+      reserved: false,
+    },
+    {
       code: "invalid_webhook_url",
       statuses: [400],
       area: "webhooks",
-      meaning: "The address is not https on the default port with a public host name.",
+      meaning:
+        "The address is not https on the default port with a public host name, or, for a bot format, not that bot platform's webhook address.",
       action: "Use a public https address without credentials, IP literal or internal name.",
       retry: "no",
       reserved: false,
@@ -791,12 +803,33 @@ export const apiReference: ApiReference = {
       reserved: false,
     },
     {
+      code: "domain_not_sending",
+      statuses: [409],
+      area: "emails",
+      meaning:
+        "The domain does not send through the API, so it has no sending account to make SMTP relay credentials for.",
+      action: "Turn sending on for the domain (`PUT /domains/{id}/sending`) first.",
+      retry: "no",
+      reserved: false,
+    },
+    {
       code: "email_api_not_approved",
       statuses: [403],
       area: "emails",
       meaning: "Sending through the API is not turned on for this workspace: a platform admin has not approved it.",
       action:
         "Ask the platform's operator to approve it (with a daily limit). Test keys can send to the sandbox meanwhile.",
+      retry: "no",
+      reserved: false,
+    },
+    {
+      code: "email_api_paused",
+      statuses: [403],
+      area: "emails",
+      meaning:
+        "Live sending is paused for the workspace: in the last 7 days (or since it was last resumed) too many recipients bounced or complained. `details.reason` says which, `details.pausedAt` since when.",
+      action:
+        "Find out why (a stale list, a missing unsubscribe, a stolen key) and fix it, then ask the platform's operator to resume sending. Test keys still send to the sandbox.",
       retry: "no",
       reserved: false,
     },
@@ -873,8 +906,18 @@ export const apiReference: ApiReference = {
       statuses: [400],
       area: "emails",
       meaning:
-        "A mail app needs a name, 1 to 5 redirect URIs (https on a public host, or http on the loopback) and scopes from mail.read and mail.send.",
+        "A mail app needs a name, 1 to 5 redirect URIs (https on a public host, or http on the loopback) and scopes from mail.read, mail.send and mail.modify.",
       action: "Fix the app.",
+      retry: "no",
+      reserved: false,
+    },
+    {
+      code: "invalid_message_change",
+      statuses: [400],
+      area: "emails",
+      meaning:
+        "A change to an agent mailbox's message needs `read` and/or `flagged`, each true or false, and nothing else.",
+      action: 'Send `{ "read": true }`, `{ "flagged": false }` or both.',
       retry: "no",
       reserved: false,
     },
@@ -885,6 +928,15 @@ export const apiReference: ApiReference = {
       meaning:
         "`to`, `cc`, `bcc` or `replyTo` holds something that is not an address, or the message has no recipient or more than 50.",
       action: "Fix the lists; send to more people in several messages or a batch.",
+      retry: "no",
+      reserved: false,
+    },
+    {
+      code: "invalid_smtp_credential",
+      statuses: [400],
+      area: "emails",
+      meaning: "An SMTP relay credential needs a name: one line of at most 100 characters.",
+      action: "Name what the credential is for (the application that will use it).",
       retry: "no",
       reserved: false,
     },
@@ -940,6 +992,15 @@ export const apiReference: ApiReference = {
       area: "emails",
       meaning: "The message has no Reply-To or From address other than the agent's own.",
       action: "Send a new message with POST /agent-mailboxes/{id}/send instead.",
+      retry: "no",
+      reserved: false,
+    },
+    {
+      code: "smtp_credential_limit",
+      statuses: [409],
+      area: "emails",
+      meaning: "The domain already has 10 SMTP relay credentials in use.",
+      action: "Revoke one you no longer need (`DELETE /domains/{id}/smtp-credentials/{credentialId}`).",
       retry: "no",
       reserved: false,
     },
@@ -1862,6 +1923,33 @@ export const apiReference: ApiReference = {
           scopes: ["emails:write"],
           deprecated: false,
         },
+        {
+          method: "get",
+          path: "/domains/{id}/smtp-credentials",
+          operationId: "listSmtpCredentials",
+          summary: "List a domain's SMTP relay credentials",
+          keyRule: "scopes",
+          scopes: ["emails:read"],
+          deprecated: false,
+        },
+        {
+          method: "post",
+          path: "/domains/{id}/smtp-credentials",
+          operationId: "createSmtpCredential",
+          summary: "Make an SMTP relay credential",
+          keyRule: "scopes",
+          scopes: ["emails:write"],
+          deprecated: false,
+        },
+        {
+          method: "delete",
+          path: "/domains/{id}/smtp-credentials/{credentialId}",
+          operationId: "revokeSmtpCredential",
+          summary: "Revoke an SMTP relay credential",
+          keyRule: "scopes",
+          scopes: ["emails:write"],
+          deprecated: false,
+        },
       ],
     },
     {
@@ -1980,6 +2068,33 @@ export const apiReference: ApiReference = {
           path: "/agent-mailboxes/{id}/messages/{emailId}",
           operationId: "getAgentMessage",
           summary: "Read a message an agent received",
+          keyRule: "scopes",
+          scopes: ["agent_mailboxes:read"],
+          deprecated: false,
+        },
+        {
+          method: "patch",
+          path: "/agent-mailboxes/{id}/messages/{emailId}",
+          operationId: "updateAgentMessage",
+          summary: "Mark a message an agent received read or flagged",
+          keyRule: "scopes",
+          scopes: ["agent_mailboxes:write"],
+          deprecated: false,
+        },
+        {
+          method: "delete",
+          path: "/agent-mailboxes/{id}/messages/{emailId}",
+          operationId: "deleteAgentMessage",
+          summary: "Delete a message an agent received",
+          keyRule: "scopes",
+          scopes: ["agent_mailboxes:write"],
+          deprecated: false,
+        },
+        {
+          method: "get",
+          path: "/agent-mailboxes/{id}/messages/{emailId}/attachments/{index}",
+          operationId: "getAgentAttachment",
+          summary: "Download an attachment of a received message",
           keyRule: "scopes",
           scopes: ["agent_mailboxes:read"],
           deprecated: false,

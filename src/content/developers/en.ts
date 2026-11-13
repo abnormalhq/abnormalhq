@@ -32,7 +32,8 @@ export const developersEn: DevelopersContent = {
             "**Sending and receiving**: send from your domains, follow each message's delivery, and receive mail as webhooks (after approval).",
             "**Agent mailboxes**: a mailbox for an AI agent in one call, with its inbox, threaded replies and a key for that mailbox alone.",
             "**Mail apps**: let your mailbox users authorize your app, with OAuth, to read their mail and send as them.",
-            "**Delivery**: the suppression list and message trace.",
+            "**Delivery**: the suppression list, message trace, and late bounces and spam complaints read back for you.",
+            "**Clients and connectors**: SDKs for TypeScript and Python, a command-line tool, n8n and Zapier, and Feishu and DingTalk group bots (see the app directory below).",
             "**Batches**: many changes in one ordered, idempotent request.",
           ],
         },
@@ -43,7 +44,7 @@ export const developersEn: DevelopersContent = {
       blocks: [
         {
           ol: [
-            `**Get a workspace.** The API belongs to a workspace in the admin console. [Apply for a workspace](${developerApi.signup}); a person reviews each application, and you are invited as its admin once it is approved.`,
+            `**Get a workspace.** The API belongs to a workspace in the admin console. [Apply for a workspace](${developerApi.signup}); a person reviews each application, and you are invited as its admin once it is approved. Where the sign-up page offers a developer workspace, choose it to get one as soon as you confirm your email, to try the API with test keys.`,
             "**Create a key.** In the admin console open **Settings → API keys**, create a key and choose only the scopes your code needs. Only admins can create keys.",
             "**Save it at once.** The full key is shown only when it is created. Keep it in a secret store or an environment variable, never in a repository, a URL or a log.",
           ],
@@ -165,7 +166,8 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
             "Answer `2xx` within 10 seconds and do the work afterwards.",
             "Delivery is at least once and not ordered: drop repeats by the event `id`.",
             "A failed delivery is retried with growing pauses for about 17 hours. A webhook that has failed for 3 days is switched off until you switch it on again.",
-            "`POST /webhooks/{id}/test` sends a test event to check your receiver.",
+            "`POST /webhooks/{id}/test` sends a test event to check your receiver. **Settings → Developers** lists every webhook's latest deliveries with the receiver's answer and can redeliver one; the status page shows whether webhook delivery is on time.",
+            'To get events in a group chat without a receiver of your own, create the webhook with `"format": "feishu"` or `"dingtalk"` and the group bot\'s address (and its signing secret as `botSecret`): each event arrives as a short message.',
           ],
         },
       ],
@@ -184,6 +186,9 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
             "`PUT /mailboxes/{id}/inbound` turns on inbound routing: each message the mailbox receives is POSTed as `message.received`, with its plain text; read the whole message and its attachments with `GET /mailboxes/{id}/messages/{emailId}`. Aliases or a catch-all bring many addresses into one routed mailbox.",
             "If your plan bills sending by volume, subscribe under **Settings → Developers → Billing** first: until then live keys get `402 billing_required`. Each message handed to the mail server counts once, whatever its number of recipients.",
             "**Settings → Developers** in the admin console shows the day's sending allowance, the latest API calls with their error codes, each message sent and every recipient's outcome.",
+            "Late bounces and spam complaints (feedback loop reports) that reach the domain's sending account are read back: the recipient becomes `bounced`, or gets `complainedAt` and an `email.complained` event, and goes on the suppression list.",
+            "A newly approved workspace warms up: 50 messages on its first day, twice as many each day after, up to its limit. Live sending pauses by itself when too many recipients bounce or complain (`403 email_api_paused` and an `email.sending_paused` event) until we look into it.",
+            "Software that only speaks SMTP can send through the domain's own server with `POST /domains/{id}/smtp-credentials`: a password that may only sign in and send, made and revoked apart from API keys.",
           ],
         },
       ],
@@ -198,7 +203,7 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
           ul: [
             "`POST /agent-mailboxes` with a `domain` and a `name` makes one; `GET /agent-mailboxes/{id}/messages` reads its inbox, `POST …/send` sends a new message and `POST …/messages/{emailId}/reply` replies in the thread.",
             "`POST /agent-mailboxes/{id}/keys` returns a key that works for that one mailbox only: give it to the agent, and it cannot touch anything else in the workspace.",
-            "What the agent receives also arrives as `message.received` events, so it need not poll.",
+            "What the agent receives also arrives as `message.received` events, so it need not poll. `PATCH` and `DELETE …/messages/{emailId}` mark a message read or delete it, and `GET …/attachments/{index}` downloads an attachment.",
           ],
         },
       ],
@@ -211,9 +216,9 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
         },
         {
           ul: [
-            "Register the app with `POST /mail-apps`: a name, its redirect URIs, and the scopes it may ask for, `mail.read` and `mail.send`. Every app is a public client: there is no client secret, and PKCE (`S256`) is required.",
+            "Register the app with `POST /mail-apps`: a name, its redirect URIs, and the scopes it may ask for: `mail.read`, `mail.send` and `mail.modify`. Every app is a public client: there is no client secret, and PKCE (`S256`) is required.",
             "Send the user to the webmail's `/oauth/authorize`; they sign in, see your app's name and what it asks for, and approve. Trade the code at `/api/oauth/token` for an access token (one hour) and a refresh token that rotates on every use.",
-            "Call the Mail API with the token: `GET /api/mail/v1/messages` and `/messages/{id}` read and search the mailbox, `POST /api/mail/v1/send` sends as it, with a copy in Sent.",
+            "Call the Mail API with the token: `GET /api/mail/v1/messages` and `/messages/{id}` read and search the mailbox (and `…/attachments/{index}` its attachments), `POST /api/mail/v1/send` sends as it, with attachments and a copy in Sent, and with `mail.modify` the app can mark, move and delete messages.",
             "The user can revoke your app in webmail settings at any time, and changing the mailbox's password ends every authorization; `DELETE /mail-apps/{id}` ends all of your app's at once.",
           ],
         },
@@ -231,7 +236,25 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
   --header "Authorization: Bearer $ABNORMAL_API_KEY"`,
         },
         {
-          p: "The server has no OAuth sign-in yet, so it works with clients that let you set a header. (OAuth for your mailbox users is separate: see below.)",
+          p: "Clients that sign in with OAuth, such as Claude on claude.ai, Claude Desktop and Claude Code, need only the address: they register themselves, an admin approves the scopes on a consent page, and their tokens renew on their own. Leave out the header and the client opens the sign-in page.",
+        },
+      ],
+    },
+    {
+      title: "App directory",
+      blocks: [
+        {
+          p: "Every way to connect other software to Abnormal, besides calling the API yourself. The console lists the same under **Settings → Developers → Integrations**.",
+        },
+        {
+          ul: [
+            "**Claude and other MCP clients** (available): the MCP server above, with OAuth sign-in.",
+            "**Your own app, for your mailbox users** (available): mail apps with OAuth, see above.",
+            "**Feishu / Lark and DingTalk** (available): webhook events, or your console notifications, posted to a group bot.",
+            "**Slack and Telegram** (available): your console notifications in a channel or chat.",
+            "**TypeScript SDK, Python SDK and the `abnormal` CLI** (not published yet): typed calls, retries, idempotency keys and webhook verification; the CLI will install with `brew install abnormalhq/tap/abnormal`.",
+            "**n8n and Zapier** (not published yet): a node and a trigger for n8n, and a trigger, an action and a search for Zapier.",
+          ],
         },
       ],
     },
@@ -270,9 +293,9 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
       blocks: [
         {
           ul: [
-            "Deleting mail content, and reading a mailbox without its user's consent unless it is routed.",
-            "Open and click tracking, and complaint (feedback loop) events.",
-            "Official SDKs and a command-line tool.",
+            "Reading a mailbox without its user's consent, unless it is routed.",
+            "Open and click tracking, on purpose: it reads what people do with their mail, which our webmail does not do either.",
+            "The SDK packages, the CLI and the n8n and Zapier listings are built but not published yet: this page will link each one once it is.",
           ],
         },
         {
