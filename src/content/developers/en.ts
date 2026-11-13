@@ -30,6 +30,8 @@ export const developersEn: DevelopersContent = {
             "**Compliance and reports**: legal holds, inactive mailboxes, storage per domain and top senders.",
             "**Events**: signed webhooks for mailbox, domain, order, bulk job and security events.",
             "**Sending and receiving**: send from your domains, follow each message's delivery, and receive mail as webhooks (after approval).",
+            "**Agent mailboxes**: a mailbox for an AI agent in one call, with its inbox, threaded replies and a key for that mailbox alone.",
+            "**Mail apps**: let your mailbox users authorize your app, with OAuth, to read their mail and send as them.",
             "**Delivery**: the suppression list and message trace.",
             "**Batches**: many changes in one ordered, idempotent request.",
           ],
@@ -84,6 +86,7 @@ curl --fail-with-body "$API_BASE/capabilities" \\
             "`holds:*`, `webhooks:*`, `suppressions:*`, `trace:read`: legal holds, webhooks, the suppression list and message trace.",
             "`agent_tasks:*`: follow-up tasks, the agent that answers mail as a mailbox.",
             "`emails:*`, `inbound:*`: sending through the API and inbound routing (choose them: a new key does not start with them).",
+            "`agent_mailboxes:*`, `mail_apps:*`: agent mailboxes, and the apps your mailbox users can authorize (also chosen, not preset).",
           ],
         },
         {
@@ -179,6 +182,39 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
             "`POST /emails` sends one message (`POST /emails/batch` up to 50); an `Idempotency-Key` makes a retry safe. Recipients on the suppression list are skipped.",
             "`GET /emails/{id}` shows each recipient's outcome: sent, delivered, delivery delayed or bounced. The same changes arrive as `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced` and `email.failed` events.",
             "`PUT /mailboxes/{id}/inbound` turns on inbound routing: each message the mailbox receives is POSTed as `message.received`, with its plain text; read the whole message and its attachments with `GET /mailboxes/{id}/messages/{emailId}`. Aliases or a catch-all bring many addresses into one routed mailbox.",
+            "If your plan bills sending by volume, subscribe under **Settings → Developers → Billing** first: until then live keys get `402 billing_required`. Each message handed to the mail server counts once, whatever its number of recipients.",
+            "**Settings → Developers** in the admin console shows the day's sending allowance, the latest API calls with their error codes, each message sent and every recipient's outcome.",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Agent mailboxes",
+      blocks: [
+        {
+          p: "An agent mailbox is a real mailbox on your domain, made for an AI agent in one call, with inbound routing and sending already on.",
+        },
+        {
+          ul: [
+            "`POST /agent-mailboxes` with a `domain` and a `name` makes one; `GET /agent-mailboxes/{id}/messages` reads its inbox, `POST …/send` sends a new message and `POST …/messages/{emailId}/reply` replies in the thread.",
+            "`POST /agent-mailboxes/{id}/keys` returns a key that works for that one mailbox only: give it to the agent, and it cannot touch anything else in the workspace.",
+            "What the agent receives also arrives as `message.received` events, so it need not poll.",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Apps your mailbox users authorize",
+      blocks: [
+        {
+          p: "Your application can read a mailbox's mail and send as it with that user's consent, without ever seeing their password: OAuth 2.0's authorization code flow with PKCE, on Abnormal's webmail.",
+        },
+        {
+          ul: [
+            "Register the app with `POST /mail-apps`: a name, its redirect URIs, and the scopes it may ask for, `mail.read` and `mail.send`. Every app is a public client: there is no client secret, and PKCE (`S256`) is required.",
+            "Send the user to the webmail's `/oauth/authorize`; they sign in, see your app's name and what it asks for, and approve. Trade the code at `/api/oauth/token` for an access token (one hour) and a refresh token that rotates on every use.",
+            "Call the Mail API with the token: `GET /api/mail/v1/messages` and `/messages/{id}` read and search the mailbox, `POST /api/mail/v1/send` sends as it, with a copy in Sent.",
+            "The user can revoke your app in webmail settings at any time, and changing the mailbox's password ends every authorization; `DELETE /mail-apps/{id}` ends all of your app's at once.",
           ],
         },
       ],
@@ -195,7 +231,7 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
   --header "Authorization: Bearer $ABNORMAL_API_KEY"`,
         },
         {
-          p: "The server has no OAuth sign-in yet, so it works with clients that let you set a header.",
+          p: "The server has no OAuth sign-in yet, so it works with clients that let you set a header. (OAuth for your mailbox users is separate: see below.)",
         },
       ],
     },
@@ -223,7 +259,7 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
             "Domains must end with your workspace's zone, `<slug>.test` (for example `shop.acme.test`); `GET /capabilities` reports it as `sandbox.domainZone`. Their ownership check passes without DNS.",
             "Mailboxes, aliases, lists, forwarding, legal holds, batches and the suppression list work as in your workspace, and webhooks are delivered for real.",
             "Sending works without approval: every recipient is delivered at once except a local part starting with `bounce`, which bounces, and mail to a routed sandbox mailbox arrives as `message.received`.",
-            "Message trace, follow-up tasks, transport security and reading received messages need real mail, so a test key gets `403 test_mode_unsupported` for them.",
+            "Message trace, follow-up tasks, transport security, reading received messages (an agent mailbox's included) and mail apps need real mail, so a test key gets `403 test_mode_unsupported` for them.",
             "A sandbox holds at most 5 domains and 100 mailboxes.",
           ],
         },
@@ -234,7 +270,7 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
       blocks: [
         {
           ul: [
-            "Searching or deleting mail content, and reading mail outside routed mailboxes.",
+            "Deleting mail content, and reading a mailbox without its user's consent unless it is routed.",
             "Open and click tracking, and complaint (feedback loop) events.",
             "Official SDKs and a command-line tool.",
           ],

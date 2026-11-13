@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MailHQ API",
-    "version": "1.4.0",
+    "version": "1.7.0",
     "description": "## Domain onboarding guide\n\nSend and receive mail with your own domain. The domain can stay at its current registrar. An admin requests onboarding and verifies domain ownership; once DNS is configured with the records shown in the admin, you can use your own email addresses.\n\n[Start domain onboarding](/settings#domain-connection) · [Admin](/settings) · [Webmail](/webmail)\n\n### 01 · Request onboarding\n\nPrepare a domain whose DNS you control. In **Settings → External domain onboarding**, an admin selects a Stalwart mail service subscription, enters the domain (for example `example.com`) and clicks **Generate verification record**.\n\nOnly admins can request, verify and view onboarding settings. Domains and mailboxes are currently managed centrally by admins; domain owners never need to hand over registrar accounts or DNS keys to this service.\n\nAdmin tip: once provisioned, the domain joins the existing mailbox management and redemption rules. Generic redemption codes or products without a domain restriction will include the new domain; before hosting an external domain, review and restrict the allowed domains.\n\n### 02 · Add a TXT record to verify ownership\n\n1. In the admin, open the domain's onboarding details and copy the name and value of the **Domain ownership** TXT record.\n2. At the DNS provider the domain currently uses, add that TXT record. Whether the host field needs the full domain depends on your provider; avoid appending the domain suffix twice.\n3. Wait for DNS to propagate, then click **Verify ownership and connect** in the admin. Once verified, the domain is provisioned on the mail server and added to the managed list.\n\nPending verification records are valid for 7 days; after that, click **Refresh verification record**, update the value in DNS and verify again. Ownership of an already provisioned domain does not expire because of this. You can keep the verification TXT for auditing; removing it does not disable a provisioned domain. No MX change is needed at this stage, so existing mailboxes keep receiving mail.\n\nIf the page shows **Confirming provisioning**, use **Check again** to read the result; if it shows **Needs manual review**, an admin should check the domain on the server first to avoid creating it twice.\n\n### 03 · Prepare mailboxes, then migrate mail\n\nProvisioning status and mail DNS checks are shown separately. Once ownership verification and server provisioning are done, you can create mailboxes on the domain, such as `you@example.com`, without switching mail routing first.\n\nIf the domain already has mailboxes, create the matching accounts and confirm passwords and forwarding rules before migrating any old mail you want to keep. Creating a mailbox does not copy historical mail from the old provider.\n\nMove on only once the new mailboxes are ready. For a while after switching MX, some senders may still use the old records, so keep the old service and check mail on both sides.\n\n### 04 · Configure mail DNS from the admin, switch MX last\n\nIn **Settings → Domains**, click the domain's **DNS settings / check**, or open its details from the onboarding request list. The admin shows the exact names, values, MX priorities and check results this domain needs. Use those records; the table below explains what each kind is for.\n\n| Record | Purpose | Notes |\n| --- | --- | --- |\n| MX | Delivers new mail to this service | Use the target and priority shown in the admin; switch it last, once mailboxes and migration are ready. |\n| TXT · SPF | Authorizes servers to send for the domain | A domain can have only one SPF record. If one exists, merge the authorizations and keep other sending services still in use. |\n| TXT · DKIM | Verifies mail signatures | Copy each selector and public key exactly as shown in the admin. Do not use signing records from other domains or servers. |\n| TXT · DMARC | Declares the mail authentication policy | Optional and recommended; start with `p=none`. If a policy exists, review it first and do not overwrite existing quarantine or reject policies. |\n\nSet mail-related records to **DNS only**; do not enable web proxying. Unless an admin says otherwise, there is no need to create `mail.your-domain` or get a certificate for it; mail clients use the server name shown in the admin.\n\nBefore switching MX, review the domain settings at the old provider. Some providers may still deliver mail sent within their own platform to their old mailboxes, so the old provider's delivery mode may also need adjusting.\n\n### 05 · Check again and start using it\n\nAfter saving DNS, click **Check again** in the domain details. The page shows the records currently found and why any are missing, conflicting or failed to resolve. DNS caches take time to update; if records don't match yet, confirm the names and values, then wait for the old records' caches to expire.\n\n| Item | Setting |\n| --- | --- |\n| Incoming mail | IMAP · 993 · SSL/TLS |\n| Outgoing mail | SMTP · 465 · SSL/TLS |\n| Server | The server name shown on the admin page |\n| Sign-in | Full email address + mailbox password |\n\nUse [Webmail](/webmail) or your own mail client. Whether webmail is available depends on the domain being provisioned and the settings an admin has enabled.\n\nTest receiving and sending separately from an independent external mailbox, and check the spam folder. Passing DNS checks and SPF / DKIM / DMARC does not guarantee delivery to the inbox at Gmail or other services.\n\nThe live settings on the admin page are authoritative for each domain's records. [Manage domain onboarding](/settings#domain-connection).\n\n## API access\n\n### Creating keys and authenticating\n\nFirst generate an API key in [Settings → API keys](/settings/api-keys), choosing the permissions and expiry you need (it can be set to never expire), then enter the full key under Authorize.\n\nAll `/api/v1` endpoints accept only `Authorization: Bearer <API_KEY>`. A browser sign-in cookie cannot replace a Bearer key, and each operation also requires the matching scope. Granting only a write scope does not grant read access. After a key is revoked, further requests with it are rejected.\n\n### Scope\n\nThis API manages the Stalwart mail service connected to MailHQ.\n\nIt currently covers the server list, domain verification and provisioning, importing existing domains, enabling/disabling domains, mailboxes, passwords, status, storage quota, daily sending limits, notes, regular aliases, distribution lists, forwarding, a per-domain catch-all, alias domains and domain connection details, with batch operations. It does not offer reading/searching/deleting mail content, sending mail, autoresponders, spam policies or reseller management.\n\nBelow, each operation's scope, parameters, responses and examples are listed by group. The API base URL is `/api/v1` on this site.\n\n### Regular aliases and domain management\n\nRegular aliases use the `aliases:read` / `aliases:write` scopes. The target must be an existing managed user mailbox on the same domain; aliases can be created, renamed, enabled/disabled, re-described and deleted, but the target mailbox cannot be changed. Special or read-only aliases must be managed in Stalwart. Aliases are neither external forwarding nor catch-all.\n\n`GET /domains/{id}/catch-all` reads and `PUT /domains/{id}/catch-all` sets the mailbox that receives mail for addresses of the domain nobody holds: `{ \"destination\": \"postmaster@example.com\" }` (an existing managed mailbox of the same domain), or `{ \"destination\": null }` to reject such mail, the default. A catch-all accepts every guessed or mistyped address, so it attracts spam.\n\n`PUT /domains/{id}/status` accepts `{ \"enabled\": true }` or `false` and enables or disables the domain on Stalwart. `DELETE /domains/{id}` still only removes the local record and cannot delete the remote domain. Writes to domains and aliases require the admin role and the matching write scope.\n\n### Alias domains\n\nAn alias domain is an additional domain name whose addresses deliver to the mailboxes of a primary domain: mail for `user@alias.example` goes to the mailbox of `user@primary.example`, and the primary domain's aliases, lists and catch-all apply too. `POST /domains/{id}/domain-aliases` with `{ \"domain\": \"alias.example\" }` records the request and returns the ownership TXT record; after publishing it, `POST /domains/{id}/domain-aliases/{aliasId}/verify` adds the name on the mail server, and `GET` on the alias lists the MX record it needs to receive mail. An alias domain is for receiving: mail sent from its addresses is signed with the primary domain's DKIM key. Onboard a domain of its own when it has to send under its own name.\n\n### Distribution lists\n\nDistribution lists use the `lists:read` / `lists:write` scopes. A list is an address of a domain that delivers a copy of every message to all of its members; it has no mailbox, cannot sign in and does not count towards the workspace's mailbox limit. `GET /lists?domainId=…` lists a domain's lists with their members, `POST /lists` creates one, and `PATCH /lists/{listId}` renames it, changes its description and adds or removes members. Members that are not mailboxes managed by the workspace are refused unless the request sets `allowExternal: true`: the mail server then forwards everything sent to the list, spam included, to those outside addresses. The list's address must be free among mailboxes (pending and deleted ones included), aliases, forwarding addresses and other lists.\n\n### Legal holds\n\nLegal holds use the `holds:read` / `holds:write` scopes (admin keys only). `POST /holds` places a hold on one mailbox (`mailboxId`) or on every mailbox of a domain (`domain`) with a `name`, a `reason` and an optional `endsAt`; `POST /holds/{id}/release` releases it with a `reason`. While a hold is active the mailbox cannot be deleted permanently or purged from the recycle bin (`409 legal_hold`); deleting it into the recycle bin still works. A hold preserves the mailbox, not individual messages: the mailbox's user can still delete their own mail, and this is not a certified archive.\n\n### Reports\n\n`GET /reports/inactive-mailboxes`, `GET /reports/storage` and `GET /reports/top-senders` are read-only reports under `mailboxes:read`: mailboxes with no WebMail sign-in and no mail for 30, 60 or 90 days, mailbox usage per domain from daily samples, and today's top senders by daily sending-limit usage. They are computed from records MailHQ keeps, not from the mail server's own counters: sign-ins and sends of mail apps over IMAP / SMTP are not seen.\n\n### Batch requests and verifying results\n\n`POST /batch` accepts `{ \"operations\": [...] }` with 1–25 operations and a body of at most 16 KiB, and requires an `Idempotency-Key` of 8–128 letters, digits, hyphens or underscores. Each operation has a unique `id`, an `operation` and an `input`. The whole request's format, base fields and required scopes are validated before the first write, then operations run in order; resource existence, domain ownership and remote state are checked as each one runs.\n\nReturns 200 when everything succeeds and 207 when any operation failed, is uncertain or was not executed. Each `outcome` is `succeeded`, `failed`, `uncertain` or `skipped`. Execution continues after ordinary failures and stops when a result is unclear; completed operations are not rolled back or retried automatically, and responses never include passwords.\n\nThe same API key, idempotency key and normalized operations replay the saved result; different content returns 409. After a timeout, first query `GET /batch/{requestId}` with the original key: it returns only the `running` / `completed` / `uncertain` state and timestamps, not the operations or results. `running` and `uncertain` never expire or re-run automatically. Even when it reports `completed`, still check every outcome in the original batch result; it does not mean every operation succeeded.\n\n### Interactive requests and documentation security\n\nAll examples use fictional data. The documentation never reads instance configuration, connected domains, mailbox passwords or API keys.\n\nInteractive requests go directly from your browser to this site, without a public request proxy. Keys are not kept after a page refresh; do not enter API keys on shared devices, and never put keys in URLs, code repositories or logs."
   },
   "servers": [
@@ -951,6 +951,17 @@
       "reserved": false
     },
     {
+      "code": "billing_required",
+      "statuses": [
+        402
+      ],
+      "area": "emails",
+      "meaning": "The workspace's plan bills sending through the API, and the workspace has no subscription that may send (none, canceled, unpaid).",
+      "action": "An admin subscribes, or fixes the payment, under Settings → Developers → Billing. `details.status` is the subscription's Stripe status.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
       "code": "email_api_not_approved",
       "statuses": [
         403
@@ -980,6 +991,17 @@
       "area": "emails",
       "meaning": "The From address is not on a domain of this workspace that sends through the API.",
       "action": "Turn sending on for the domain (`PUT /domains/{id}/sending`), or send from a domain that has it. `details.index` names the message in a batch.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_agent_name",
+      "statuses": [
+        400
+      ],
+      "area": "emails",
+      "meaning": "An agent mailbox's `name` is not a single line of at most 200 characters without quotes or angle brackets.",
+      "action": "Fix it.",
       "retry": "no",
       "reserved": false
     },
@@ -1028,6 +1050,17 @@
       "reserved": false
     },
     {
+      "code": "invalid_mail_app",
+      "statuses": [
+        400
+      ],
+      "area": "emails",
+      "meaning": "A mail app needs a name, 1 to 5 redirect URIs (https on a public host, or http on the loopback) and scopes from mail.read and mail.send.",
+      "action": "Fix the app.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
       "code": "invalid_recipients",
       "statuses": [
         400
@@ -1061,6 +1094,28 @@
       "reserved": false
     },
     {
+      "code": "key_mailbox_restricted",
+      "statuses": [
+        403
+      ],
+      "area": "emails",
+      "meaning": "A key restricted to one agent mailbox called something other than that mailbox's own paths.",
+      "action": "Use the key only for `/agent-mailboxes/{its id}` and the paths under it (not `/keys`, not DELETE); use another key for the rest.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "mail_app_limit",
+      "statuses": [
+        409
+      ],
+      "area": "emails",
+      "meaning": "The workspace already has 20 mail apps that are not revoked.",
+      "action": "Revoke one first (DELETE /mail-apps/{id}).",
+      "retry": "no",
+      "reserved": false
+    },
+    {
       "code": "mailbox_unreadable",
       "statuses": [
         409
@@ -1068,6 +1123,17 @@
       "area": "emails",
       "meaning": "The mailbox cannot be read for inbound routing: it is not active, or has no stored password.",
       "action": "Use an active mailbox with a stored password (created through the console or the API).",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "nothing_to_reply_to",
+      "statuses": [
+        422
+      ],
+      "area": "emails",
+      "meaning": "The message has no Reply-To or From address other than the agent's own.",
+      "action": "Send a new message with POST /agent-mailboxes/{id}/send instead.",
       "retry": "no",
       "reserved": false
     },
@@ -1181,6 +1247,14 @@
     {
       "name": "Inbound",
       "description": "Inbound routing: mail that chosen mailboxes receive is POSTed to webhooks as message.received, and can be read through the API."
+    },
+    {
+      "name": "Agent mailboxes",
+      "description": "A mailbox an AI agent reads and sends from, made in one call, and a key restricted to just that mailbox for the agent itself."
+    },
+    {
+      "name": "Mail apps",
+      "description": "Third-party apps a workspace registers so its mailbox users can authorize them, with OAuth on WebMail, to read their mail or send as them through WebMail's Mail API."
     },
     {
       "name": "Suppressions",
@@ -18386,6 +18460,16 @@
               }
             }
           },
+          "402": {
+            "description": "The workspace's plan bills sending through the API, and it has no subscription that may send (error.code billing_required).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "The API key lacks the scope required for this operation.",
             "content": {
@@ -18621,6 +18705,16 @@
           },
           "401": {
             "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "The workspace's plan bills sending through the API, and it has no subscription that may send (error.code billing_required).",
             "content": {
               "application/json": {
                 "schema": {
@@ -19282,7 +19376,7 @@
       "put": {
         "operationId": "enableDomainSending",
         "summary": "Turn sending on for a domain",
-        "description": "Requires `domains:write`, `emails:write` scope.\n\nCreates the domain's sending account on its own mail server (api-sender-<random>@<domain>; its password is generated and never shown). Mail goes out from the domain's own mail server, signed with the domain's DKIM key: the envelope sender is the domain's sending account (so bounces return to it), the From header the address you give. Idempotent: 200 when the domain already sends. A live key needs the workspace's approval (403 email_api_not_approved). The domain cannot be removed while it sends.",
+        "description": "Requires `emails:write` scope.\n\nCreates the domain's sending account on its own mail server (api-sender-<random>@<domain>; its password is generated and never shown). Mail goes out from the domain's own mail server, signed with the domain's DKIM key: the envelope sender is the domain's sending account (so bounces return to it), the From header the address you give. Idempotent: 200 when the domain already sends. A live key needs the workspace's approval (403 email_api_not_approved). The domain cannot be removed while it sends.",
         "tags": [
           "Emails"
         ],
@@ -19292,7 +19386,6 @@
           }
         ],
         "x-required-scopes": [
-          "domains:write",
           "emails:write"
         ],
         "responses": {
@@ -19497,7 +19590,7 @@
       "delete": {
         "operationId": "disableDomainSending",
         "summary": "Turn sending off for a domain",
-        "description": "Requires `domains:write`, `emails:write` scope.\n\nDeletes the domain's sending account. Messages not yet handed to the server fail (email.failed).",
+        "description": "Requires `emails:write` scope.\n\nDeletes the domain's sending account. Messages not yet handed to the server fail (email.failed).",
         "tags": [
           "Emails"
         ],
@@ -19507,7 +19600,6 @@
           }
         ],
         "x-required-scopes": [
-          "domains:write",
           "emails:write"
         ],
         "responses": {
@@ -20801,6 +20893,2670 @@
           },
           "502": {
             "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-mailboxes": {
+      "get": {
+        "operationId": "listAgentMailboxes",
+        "summary": "List agent mailboxes",
+        "description": "Requires `agent_mailboxes:read` scope.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AgentMailbox"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "mbx4k2p9x7q1w3z",
+                      "address": "agent-k3x9qa7m@app.example.com",
+                      "name": "Support agent",
+                      "status": "active",
+                      "inbound": {
+                        "enabled": true,
+                        "lastReceived": null,
+                        "lastError": null
+                      },
+                      "sending": true,
+                      "created": "2026-11-13T09:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAgentMailbox",
+        "summary": "Create an agent mailbox",
+        "description": "Requires `agent_mailboxes:write` scope.\n\nMakes a mailbox for an AI agent in one call: a generated password the console keeps (never returned), inbound routing on (what it receives is POSTed as message.received), and its domain's sending turned on when the workspace may send through the API. A username is made up (`agent-…`) when none is given. When routing or sending could not be turned on now, the mailbox is still made and says so (`inbound.enabled`, `sending`).",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:write"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgentMailboxInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AgentMailbox"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": {
+                    "id": "mbx4k2p9x7q1w3z",
+                    "address": "agent-k3x9qa7m@app.example.com",
+                    "name": "Support agent",
+                    "status": "active",
+                    "inbound": {
+                      "enabled": true,
+                      "lastReceived": null,
+                      "lastError": null
+                    },
+                    "sending": true,
+                    "created": "2026-11-13T09:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body exceeds 16 KiB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body must use Content-Type: application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Field validation failed or the operation does not apply to this resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-mailboxes/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Agent mailbox (mailbox) ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getAgentMailbox",
+        "summary": "Get an agent mailbox",
+        "description": "Requires `agent_mailboxes:read` scope.\n\nA key restricted to this agent mailbox (POST /agent-mailboxes/{id}/keys) may call it; such a key gets `403 key_mailbox_restricted` anywhere else.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AgentMailbox"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": {
+                    "id": "mbx4k2p9x7q1w3z",
+                    "address": "agent-k3x9qa7m@app.example.com",
+                    "name": "Support agent",
+                    "status": "active",
+                    "inbound": {
+                      "enabled": true,
+                      "lastReceived": null,
+                      "lastError": null
+                    },
+                    "sending": true,
+                    "created": "2026-11-13T09:00:00.000Z"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAgentMailbox",
+        "summary": "Delete an agent mailbox",
+        "description": "Requires `agent_mailboxes:write` scope.\n\nDeletes the mailbox for good (a legal hold refuses it) and revokes the keys restricted to it. Not available to a restricted key.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:write"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9]{15}$",
+                          "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+                        },
+                        "deleted": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "deleted"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": {
+                    "id": "mbx4k2p9x7q1w3z",
+                    "deleted": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-mailboxes/{id}/messages": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Agent mailbox ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listAgentMessages",
+        "summary": "List an agent's inbox",
+        "description": "Requires `agent_mailboxes:read` scope.\n\nThe inbox, newest first. A key restricted to this agent mailbox (POST /agent-mailboxes/{id}/keys) may call it; such a key gets `403 key_mailbox_restricted` anywhere else. Not available to test keys.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:read"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "Only messages received before this time: the oldest `receivedAt` of a page asks for the next.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AgentMessage"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "Mabc123",
+                      "messageId": "<CAF1234@mail.example.net>",
+                      "threadId": "Tabc",
+                      "from": {
+                        "name": "Ada",
+                        "email": "ada@example.net"
+                      },
+                      "to": [
+                        "agent-k3x9qa7m@app.example.com"
+                      ],
+                      "subject": "Where is my order?",
+                      "preview": "Hi, I ordered on Monday and…",
+                      "receivedAt": "2026-11-13T09:12:00Z",
+                      "unread": true,
+                      "hasAttachment": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-mailboxes/{id}/messages/{emailId}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Agent mailbox ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        },
+        {
+          "name": "emailId",
+          "in": "path",
+          "required": true,
+          "description": "The message's id in the mailbox, from the inbox list or a message.received event.",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getAgentMessage",
+        "summary": "Read a message an agent received",
+        "description": "Requires `agent_mailboxes:read` scope.\n\nThe whole message: addresses, subject, date, text, sanitized HTML and attachment metadata. A key restricted to this agent mailbox (POST /agent-mailboxes/{id}/keys) may call it; such a key gets `403 key_mailbox_restricted` anywhere else. Not available to test keys.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ReceivedMessage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-mailboxes/{id}/messages/{emailId}/reply": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Agent mailbox ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        },
+        {
+          "name": "emailId",
+          "in": "path",
+          "required": true,
+          "description": "The message's id in the mailbox, from the inbox list or a message.received event.",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        }
+      ],
+      "post": {
+        "operationId": "replyAsAgent",
+        "summary": "Reply to a message as the agent",
+        "description": "Requires `agent_mailboxes:write` scope.\n\nAnswers the message in its thread: to its Reply-To (or From), \"Re: \" before the subject, In-Reply-To and References set; `replyAll` adds its other recipients as cc. Sent like POST /emails (approval, allowance, delivery status, events). A key restricted to this agent mailbox (POST /agent-mailboxes/{id}/keys) may call it; such a key gets `403 key_mailbox_restricted` anywhere else. Not available to test keys.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:write"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "As for POST /emails: the same key with the same body returns the message it sent (200).",
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentReplyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Email"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "The workspace's plan bills sending through the API, and it has no subscription that may send (error.code billing_required).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body exceeds 16 KiB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body must use Content-Type: application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Field validation failed or the operation does not apply to this resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-mailboxes/{id}/send": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Agent mailbox ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        }
+      ],
+      "post": {
+        "operationId": "sendAsAgent",
+        "summary": "Send a message as the agent",
+        "description": "Requires `agent_mailboxes:write` scope.\n\nA new message from the agent's own address and name: POST /emails' body without `from`. A key restricted to this agent mailbox (POST /agent-mailboxes/{id}/keys) may call it; such a key gets `403 key_mailbox_restricted` anywhere else.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:write"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "As for POST /emails: the same key with the same body returns the message it sent (200).",
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9_-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSendInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Email"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "The workspace's plan bills sending through the API, and it has no subscription that may send (error.code billing_required).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body exceeds 16 KiB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body must use Content-Type: application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Field validation failed or the operation does not apply to this resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-mailboxes/{id}/keys": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Agent mailbox ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        }
+      ],
+      "post": {
+        "operationId": "createAgentKey",
+        "summary": "Create a key for one agent mailbox",
+        "description": "Requires `agent_mailboxes:write` scope.\n\nA key for the agent itself, restricted to this mailbox: it reads the mailbox's mail and sends from it, and nothing else. The token is in this response only. Made by the calling key's owner (an admin), counted against their 20 keys and listed under Settings → API keys. Not available to a restricted key.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:write"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "expiresInDays": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  }
+                },
+                "required": []
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AgentKey"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body exceeds 16 KiB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body must use Content-Type: application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Field validation failed or the operation does not apply to this resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mail-apps": {
+      "get": {
+        "operationId": "listMailApps",
+        "summary": "List mail apps",
+        "description": "Requires `mail_apps:read` scope.\n\nThe apps mailbox users of this workspace can authorize, newest first, with how many mailboxes have.",
+        "tags": [
+          "Mail apps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "mail_apps:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MailApp"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "app4k2p9x7q1w3z",
+                      "clientId": "mhq_mapp_app4k2p9x7q1w3z",
+                      "name": "Acme CRM",
+                      "redirectUris": [
+                        "https://crm.example.com/oauth/callback"
+                      ],
+                      "scopes": [
+                        "mail.read",
+                        "mail.send"
+                      ],
+                      "grants": 3,
+                      "created": "2026-11-13T09:00:00.000Z",
+                      "revoked": null
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createMailApp",
+        "summary": "Register a mail app",
+        "description": "Requires `mail_apps:write` scope.\n\nRegisters an app mailbox users can authorize on WebMail's consent page (`/oauth/authorize`) to read their mail (`mail.read`) and/or send as them (`mail.send`). The answer's `clientId` is what the app sends; it is a public client (no secret), with PKCE (S256) required. Its tokens are used with WebMail's Mail API (`/api/mail/v1`). At most 20 per workspace. Not available to test keys.",
+        "tags": [
+          "Mail apps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "mail_apps:write"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMailAppInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MailApp"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": {
+                    "id": "app4k2p9x7q1w3z",
+                    "clientId": "mhq_mapp_app4k2p9x7q1w3z",
+                    "name": "Acme CRM",
+                    "redirectUris": [
+                      "https://crm.example.com/oauth/callback"
+                    ],
+                    "scopes": [
+                      "mail.read",
+                      "mail.send"
+                    ],
+                    "grants": 0,
+                    "created": "2026-11-13T09:00:00.000Z",
+                    "revoked": null
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body exceeds 16 KiB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body must use Content-Type: application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mail-apps/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Mail app ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getMailApp",
+        "summary": "Get a mail app",
+        "description": "Requires `mail_apps:read` scope.",
+        "tags": [
+          "Mail apps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "mail_apps:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MailApp"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": {
+                    "id": "app4k2p9x7q1w3z",
+                    "clientId": "mhq_mapp_app4k2p9x7q1w3z",
+                    "name": "Acme CRM",
+                    "redirectUris": [
+                      "https://crm.example.com/oauth/callback"
+                    ],
+                    "scopes": [
+                      "mail.read",
+                      "mail.send"
+                    ],
+                    "grants": 3,
+                    "created": "2026-11-13T09:00:00.000Z",
+                    "revoked": null
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "revokeMailApp",
+        "summary": "Revoke a mail app",
+        "description": "Requires `mail_apps:write` scope.\n\nRevokes the app and every mailbox's authorization of it: its tokens stop working at once.",
+        "tags": [
+          "Mail apps"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "mail_apps:write"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9]{15}$",
+                          "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+                        },
+                        "revoked": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "revoked"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": {
+                    "id": "app4k2p9x7q1w3z",
+                    "revoked": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -25307,6 +28063,18 @@
               }
             }
           },
+          "inReplyTo": {
+            "type": "string",
+            "description": "The Message-ID (`<id@domain>`) this message answers: replies stay in their thread."
+          },
+          "references": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string"
+            },
+            "description": "The thread's earlier Message-IDs, oldest first."
+          },
           "tags": {
             "type": "object",
             "maxProperties": 10,
@@ -25581,6 +28349,454 @@
         "required": [
           "name",
           "email"
+        ]
+      },
+      "AgentMailbox": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          },
+          "address": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string",
+            "description": "The From name of what it sends."
+          },
+          "status": {
+            "type": "string",
+            "description": "The mailbox's status."
+          },
+          "inbound": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "lastReceived": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "lastError": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "enabled",
+              "lastReceived",
+              "lastError"
+            ]
+          },
+          "sending": {
+            "type": "boolean",
+            "description": "Whether its domain sends through the API."
+          },
+          "created": {
+            "type": "string",
+            "description": "UTC timestamp string."
+          }
+        },
+        "required": [
+          "id",
+          "address",
+          "name",
+          "status",
+          "inbound",
+          "sending",
+          "created"
+        ],
+        "example": {
+          "id": "mbx4k2p9x7q1w3z",
+          "address": "agent-k3x9qa7m@app.example.com",
+          "name": "Support agent",
+          "status": "active",
+          "inbound": {
+            "enabled": true,
+            "lastReceived": null,
+            "lastError": null
+          },
+          "sending": true,
+          "created": "2026-11-13T09:00:00.000Z"
+        }
+      },
+      "CreateAgentMailboxInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "A domain of the workspace (with sending turned on, or turned on by this call when approved)."
+          },
+          "username": {
+            "type": "string",
+            "description": "The local part; made up (`agent-…`) when absent."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "What the agent is called: the From name."
+          },
+          "quotaMb": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "AgentMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "messageId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "threadId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "from": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MailAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subject": {
+            "type": "string"
+          },
+          "preview": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unread": {
+            "type": "boolean"
+          },
+          "hasAttachment": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "messageId",
+          "threadId",
+          "from",
+          "to",
+          "subject",
+          "preview",
+          "receivedAt",
+          "unread",
+          "hasAttachment"
+        ]
+      },
+      "AgentSendInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "to",
+          "subject"
+        ],
+        "properties": {
+          "to": {
+            "description": "Recipients: an address or a list (`Name <address>` allowed)."
+          },
+          "cc": {
+            "description": "Copy recipients."
+          },
+          "bcc": {
+            "description": "Blind copy recipients."
+          },
+          "replyTo": {
+            "description": "Reply-To addresses."
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "text": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "inReplyTo": {
+            "type": "string"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentReplyInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "html": {
+            "type": "string"
+          },
+          "replyAll": {
+            "type": "boolean",
+            "default": false
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AgentKey": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          },
+          "name": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "live",
+              "test"
+            ]
+          },
+          "mailboxId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expires": {
+            "type": "string",
+            "description": "ISO timestamp, or empty for a key that never expires."
+          },
+          "revoked": {
+            "type": "string"
+          },
+          "lastUsed": {
+            "type": "string"
+          },
+          "created": {
+            "type": "string",
+            "description": "UTC timestamp string."
+          },
+          "state": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string",
+            "description": "The key, shown only in this response."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mode",
+          "mailboxId",
+          "scopes",
+          "expires",
+          "revoked",
+          "lastUsed",
+          "created",
+          "state",
+          "token"
+        ]
+      },
+      "MailApp": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          },
+          "clientId": {
+            "type": "string",
+            "description": "The OAuth client_id: mhq_mapp_<id>."
+          },
+          "name": {
+            "type": "string",
+            "description": "Shown to mailbox users on the consent page."
+          },
+          "redirectUris": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "mail.read",
+                "mail.send"
+              ]
+            }
+          },
+          "grants": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Mailboxes with a working authorization."
+          },
+          "created": {
+            "type": "string",
+            "description": "UTC timestamp string."
+          },
+          "revoked": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When it was revoked."
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "name",
+          "redirectUris",
+          "scopes",
+          "grants",
+          "created",
+          "revoked"
+        ],
+        "example": {
+          "id": "app4k2p9x7q1w3z",
+          "clientId": "mhq_mapp_app4k2p9x7q1w3z",
+          "name": "Acme CRM",
+          "redirectUris": [
+            "https://crm.example.com/oauth/callback"
+          ],
+          "scopes": [
+            "mail.read",
+            "mail.send"
+          ],
+          "grants": 3,
+          "created": "2026-11-13T09:00:00.000Z",
+          "revoked": null
+        }
+      },
+      "CreateMailAppInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "redirectUris": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "https on a public host, or http on the loopback (127.0.0.1, localhost) for a native or command-line app."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "mail.read",
+                "mail.send"
+              ]
+            },
+            "default": [
+              "mail.read"
+            ],
+            "description": "What the app may ask for."
+          }
+        },
+        "required": [
+          "name",
+          "redirectUris"
         ]
       },
       "TraceStep": {
@@ -26376,7 +29592,11 @@
                 "emails:read",
                 "emails:write",
                 "inbound:read",
-                "inbound:write"
+                "inbound:write",
+                "agent_mailboxes:read",
+                "agent_mailboxes:write",
+                "mail_apps:read",
+                "mail_apps:write"
               ]
             }
           },

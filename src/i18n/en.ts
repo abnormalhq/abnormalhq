@@ -800,7 +800,7 @@ export const en: Copy = {
         compliance: "Legal holds and suppressions",
         trace: "Message trace",
         agent_tasks: "Follow-up tasks",
-        emails: "Sending and inbound routing",
+        emails: "Sending, inbound routing, agent mailboxes and mail apps",
         test_mode: "Test mode",
         upstream: "Mail server and service availability",
       },

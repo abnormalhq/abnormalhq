@@ -31,6 +31,8 @@ export const developersZh: DevelopersContent = {
             "**合规与报表**：法律保留、不活跃邮箱、各域名的存储用量和发信最多的邮箱。",
             "**事件**：邮箱、域名、订单、批量任务和安全事件的签名 Webhook。",
             "**收发邮件**：用你的域名发信、跟踪每封邮件的投递，并以 Webhook 接收邮件（需开通）。",
+            "**Agent 邮箱**：一次调用为 AI Agent 建好邮箱，读收件箱、按会话回复，并发一把只能用于这个邮箱的密钥。",
+            "**邮件应用**：让邮箱用户通过 OAuth 授权你的应用读取他们的邮件、以他们的身份发信。",
             "**投递**：抑制列表和邮件追踪。",
             "**批量**：把多项修改放进一个按顺序执行、可安全重试的请求。",
           ],
@@ -78,6 +80,7 @@ export const developersZh: DevelopersContent = {
             "`holds:*`、`webhooks:*`、`suppressions:*`、`trace:read`：法律保留、Webhook、抑制列表和邮件追踪。",
             "`agent_tasks:*`：跟进任务，即以某个邮箱身份回复邮件的 Agent。",
             "`emails:*`、`inbound:*`：API 发信与收信路由（需手动勾选，新密钥默认不含）。",
+            "`agent_mailboxes:*`、`mail_apps:*`：Agent 邮箱，以及邮箱用户可以授权的应用（同样需手动勾选）。",
           ],
         },
         {
@@ -150,6 +153,39 @@ export const developersZh: DevelopersContent = {
             "`POST /emails` 发送一封邮件（`POST /emails/batch` 一次最多 50 封）；带上 `Idempotency-Key` 即可安全重试。抑制列表中的收件人会被跳过。",
             "`GET /emails/{id}` 给出每个收件人的结果：已发出、已送达、投递延迟或退信。同样的变化也会以 `email.sent`、`email.delivered`、`email.delivery_delayed`、`email.bounced` 和 `email.failed` 事件推送。",
             "`PUT /mailboxes/{id}/inbound` 开启收信路由：邮箱收到的每封邮件都会以 `message.received` 推送，附带纯文本正文；完整邮件和附件用 `GET /mailboxes/{id}/messages/{emailId}` 读取。用别名或 catch-all 可以把多个地址汇入同一个路由邮箱。",
+            "如果你的套餐按发信量计费，需先在 **设置 → 开发者 → 计费** 中订阅，否则正式密钥发信会得到 `402 billing_required`。每封交给邮件服务器的邮件计一次，与收件人数量无关。",
+            "管理后台的 **设置 → 开发者** 会显示当天的发信额度、最近的 API 调用及其错误码、每封发出的邮件和每个收件人的结果。",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Agent 邮箱",
+      blocks: [
+        {
+          p: "Agent 邮箱是你域名下一个真正的邮箱，一次调用就为 AI Agent 建好，收信路由和发信都已开启。",
+        },
+        {
+          ul: [
+            "`POST /agent-mailboxes` 传入 `domain` 和 `name` 即可创建；`GET /agent-mailboxes/{id}/messages` 读取收件箱，`POST …/send` 发送新邮件，`POST …/messages/{emailId}/reply` 在原会话中回复。",
+            "`POST /agent-mailboxes/{id}/keys` 返回一把只对这个邮箱有效的密钥：交给 Agent，它就碰不到工作区里的其他任何东西。",
+            "Agent 收到的邮件同时以 `message.received` 事件推送，无需轮询。",
+          ],
+        },
+      ],
+    },
+    {
+      title: "由邮箱用户授权的应用",
+      blocks: [
+        {
+          p: "你的应用可以在邮箱用户同意后读取其邮件、以其身份发信，全程看不到用户的密码：在 Abnormal 网页邮箱上使用 OAuth 2.0 授权码流程加 PKCE。",
+        },
+        {
+          ul: [
+            "用 `POST /mail-apps` 注册应用：名称、回调地址，以及它可以申请的权限 `mail.read` 和 `mail.send`。所有应用都是公开客户端：没有 client secret，必须使用 PKCE（`S256`）。",
+            "把用户引导到网页邮箱的 `/oauth/authorize`；用户登录后会看到你的应用名称和申请的权限，确认即可。在 `/api/oauth/token` 用授权码换取访问令牌（1 小时）和每次使用都会轮换的刷新令牌。",
+            "带着令牌调用 Mail API：`GET /api/mail/v1/messages` 和 `/messages/{id}` 读取、搜索邮件，`POST /api/mail/v1/send` 以该邮箱发信，并在“已发送”中留存副本。",
+            "用户随时可以在网页邮箱设置里撤销授权，修改邮箱密码也会终止全部授权；`DELETE /mail-apps/{id}` 会一次终止你的应用的全部授权。",
           ],
         },
       ],
@@ -162,7 +198,7 @@ export const developersZh: DevelopersContent = {
         },
         codeBlock(3),
         {
-          p: "服务器暂不支持 OAuth 登录，所以需要客户端能自定义请求头。",
+          p: "服务器暂不支持 OAuth 登录，所以需要客户端能自定义请求头。（给邮箱用户用的 OAuth 是另一回事，见下文。）",
         },
       ],
     },
@@ -190,7 +226,7 @@ export const developersZh: DevelopersContent = {
             "域名必须以工作区的专属区域 `<slug>.test` 结尾（例如 `shop.acme.test`），`GET /capabilities` 会在 `sandbox.domainZone` 里给出它。所有权验证无需 DNS 即可通过。",
             "邮箱、别名、邮件列表、转发、法律保留、批量操作和抑制列表都和正式工作区一样可用，Webhook 也会真实投递。",
             "发信无需开通：除本地部分以 `bounce` 开头的地址会退信外，所有收件人都会立即“送达”；发到开启收信路由的沙箱邮箱的邮件会以 `message.received` 推送。",
-            "邮件追踪、跟进任务、传输安全和读取收到的邮件需要真实的邮件，测试密钥调用它们会得到 `403 test_mode_unsupported`。",
+            "邮件追踪、跟进任务、传输安全、读取收到的邮件（包括 Agent 邮箱的）和邮件应用需要真实的邮件，测试密钥调用它们会得到 `403 test_mode_unsupported`。",
             "每个沙箱最多 5 个域名、100 个邮箱。",
           ],
         },
@@ -201,7 +237,7 @@ export const developersZh: DevelopersContent = {
       blocks: [
         {
           ul: [
-            "搜索或删除邮件内容，以及读取路由邮箱以外的邮件。",
+            "删除邮件内容；未经邮箱用户授权读取未开启路由的邮箱。",
             "打开与点击跟踪，以及投诉（反馈环）事件。",
             "官方 SDK 和命令行工具。",
           ],
