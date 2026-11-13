@@ -766,6 +766,16 @@ export const en: Copy = {
     policyLink: "Read the Privacy Policy",
     helpLink: "Go to the help center",
   },
+  claude: {
+    metaTitle: "Abnormal Mail connector for Claude — Abnormal",
+    metaDescription:
+      "Connect Claude to the Abnormal admin console: requirements, how to connect in Claude and Claude Code, the access you approve, the tools by resource, how to disconnect, security and data, and troubleshooting.",
+    navLabel: "Claude connector",
+    eyebrow: "Claude connector",
+    reviewedLabel: "Last updated",
+    policyLink: "Read the Privacy Policy",
+    securityLink: "Security and privacy overview",
+  },
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["Your next email", "starts here"],
@@ -796,6 +806,7 @@ export const en: Copy = {
       { link: "register", label: "Create an account" },
       { link: "status", label: "Service status" },
       { link: "security", label: "Security and privacy" },
+      { link: "claude", label: "Claude connector" },
     ],
     faq: "FAQ",
     emailAria: (email) => `Support email: ${email}`,

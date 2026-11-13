@@ -1,5 +1,5 @@
 /**
- * Markdown for agents: the home page is generated from the UI copy, the pricing page from the copy and the live catalog, the help center from its articles (src/content/help/), the legal pages use the MDX body, the storefront pages (redeem, guide, shop)
+ * Markdown for agents: the home page is generated from the UI copy, the pricing page from the copy and the live catalog, the help center from its articles (src/content/help/), the security overview and the Claude connector page from src/content/security/ and src/content/claude/, the legal pages use the MDX body, the storefront pages (redeem, guide, shop)
  * come from src/storefront/lib/markdown.ts, and llms.txt is the index of all of them.
  * The copy exists only once, in src/i18n; change the UI copy and this follows.
  */
@@ -21,6 +21,7 @@ import {
   helpPath,
   type HelpSlug,
 } from "../content/help/index.ts";
+import { claudeContent } from "../content/claude/index.ts";
 import { securityContent } from "../content/security/index.ts";
 import { copies, langs, localePath } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
@@ -99,6 +100,7 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
     `## ${t.footer.contactLabel}`,
     `${t.start.support}: [${email}](mailto:${email})`,
     `[${t.security.navLabel}](${links.security})`,
+    `[${t.claude.navLabel}](${links.claude})`,
     `## ${t.footer.legalLabel}`,
     list(t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`)),
   ])}\n`;
@@ -282,6 +284,22 @@ export function securityMarkdown(lang: Lang): string {
   ])}\n`;
 }
 
+/** The Claude connector page: its sections as written, the date they were last checked, and the way on to the policy. */
+export function claudeMarkdown(lang: Lang): string {
+  const t = copies[lang];
+  const content = claudeContent[lang];
+  return `${paragraphs([
+    `# ${content.title}`,
+    content.summary,
+    `${t.claude.reviewedLabel}${t.legal.colon}${content.reviewed}`,
+    ...sectionsMarkdown(content.sections, lang),
+    list([
+      `[${t.claude.policyLink}](${absolute(pageFor(lang, "/privacy/").markdown)})`,
+      `[${t.claude.securityLink}](${absolute(pageFor(lang, "/security/").markdown)})`,
+    ]),
+  ])}\n`;
+}
+
 /** Legal page paths in the copy are plain strings; this confirms the path really is a page in the list. */
 function toPagePath(path: string) {
   const match = pagePaths.find((pagePath) => pagePath === path);
@@ -328,6 +346,7 @@ function llmsSection(lang: Lang, heading: string): string {
         (article) => `[${article.title}](${absolute(pageFor(lang, helpPath(article.slug)).markdown)})`,
       ),
       `[${t.security.navLabel}](${absolute(pageFor(lang, "/security/").markdown)})`,
+      `[${t.claude.navLabel}](${absolute(pageFor(lang, "/claude/").markdown)})`,
       `[${t.download.title}](${absolute(pageFor(lang, "/download/").markdown)})`,
       ...t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`),
       ...[...t.footer.productLinks, ...t.footer.supportLinks].map((item) => `[${item.label}](${links[item.link]})`),

@@ -34,7 +34,12 @@ export type HelpSlug = (typeof helpSlugs)[number];
 export const helpCategoryIds = ["start", "apps", "security", "mail", "billing", "privacy"] as const;
 export type HelpCategoryId = (typeof helpCategoryIds)[number];
 
-export type DocBlock = { p: string } | { ol: readonly string[] } | { ul: readonly string[] };
+/**
+ * A paragraph, a numbered or bulleted list, or a command to type, shown with a copy button (`label` says where to type it).
+ * The help articles use only the first three; the Claude connector page (/claude/) also has commands.
+ */
+export type DocBlock =
+  { p: string } | { ol: readonly string[] } | { ul: readonly string[] } | { code: string; label: string };
 
 export interface DocSection {
   title: string;
@@ -65,6 +70,18 @@ export interface HelpContent {
 
 /** The security and privacy overview: one document of the same shape as an article. */
 export interface SecurityContent {
+  title: string;
+  summary: string;
+  /** YYYY-MM-DD: when the statements were last checked against mail's documentation and the privacy policy. */
+  reviewed: string;
+  sections: readonly DocSection[];
+}
+
+/**
+ * The Claude connector page (/claude/): how to connect Claude to the admin console's MCP server, written from mail's
+ * docs/mcp.md and docs/api.md and the privacy policy. The same shape as the security overview.
+ */
+export interface ConnectorContent {
   title: string;
   summary: string;
   /** YYYY-MM-DD: when the statements were last checked against mail's documentation and the privacy policy. */

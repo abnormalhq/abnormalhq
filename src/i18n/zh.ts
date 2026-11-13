@@ -722,6 +722,16 @@ export const zh: Copy = {
     policyLink: "阅读隐私政策",
     helpLink: "前往帮助中心",
   },
+  claude: {
+    metaTitle: "Claude 连接器：Abnormal Mail — Abnormal",
+    metaDescription:
+      "把 Claude 连接到 Abnormal 管理控制台：需要什么、在 Claude 和 Claude Code 中怎么连接、授权时选择的权限、按资源分组的工具、怎么断开、安全与数据说明，以及常见问题。",
+    navLabel: "Claude 连接器",
+    eyebrow: "Claude connector",
+    reviewedLabel: "最后更新",
+    policyLink: "阅读隐私政策",
+    securityLink: "安全与隐私概览",
+  },
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["下一封邮件，", "从这里开始"],
@@ -752,6 +762,7 @@ export const zh: Copy = {
       { link: "register", label: "注册账户" },
       { link: "status", label: "服务状态" },
       { link: "security", label: "安全与隐私" },
+      { link: "claude", label: "Claude 连接器" },
     ],
     faq: "常见问题",
     emailAria: (email) => `客服邮箱：${email}`,

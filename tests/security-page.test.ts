@@ -15,7 +15,7 @@ const texts = (sections: readonly DocSection[]) =>
 const whole = (lang: "en" | "zh") =>
   [securityContent[lang].title, securityContent[lang].summary, ...texts(securityContent[lang].sections)].join("\n");
 const kind = (block: DocBlock) =>
-  "p" in block ? "p" : "ol" in block ? `ol${block.ol.length}` : `ul${block.ul.length}`;
+  "code" in block ? "code" : "p" in block ? "p" : "ol" in block ? `ol${block.ol.length}` : `ul${block.ul.length}`;
 
 test("security page: both languages say the same things, block for block, with the same links", () => {
   const { en, zh } = securityContent;

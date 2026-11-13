@@ -20,6 +20,7 @@ export const pagePaths = [
   "/help/",
   ...helpSlugs.map(helpPath),
   "/security/",
+  "/claude/",
   "/download/",
   "/privacy/",
   "/terms/",

@@ -1,5 +1,5 @@
 /**
- * Shared by the help center's articles and the security overview (src/content/): their text as Markdown and as plain text.
+ * Shared by the help center's articles, the security overview and the Claude connector page (src/content/): their text as Markdown and as plain text.
  * The content uses the storefront copy's two markup forms, **bold** and [text](link), which are already Markdown; only site
  * links need work, since in the content they are relative to the language root (the page resolves them the same way through
  * RichText). Runs in Node as is: the tests, the Markdown routes and the structured data all use it.
@@ -33,13 +33,15 @@ export function plainText(text: string): string {
   return text.replace(LINK, "$1").replace(/\*\*([^*]+)\*\*/g, "$1");
 }
 
-/** Every text of a block, in order. */
+/** Every text of a block, in order. A command is not prose: its label is the block's text. */
 export function blockTexts(block: DocBlock): readonly string[] {
+  if ("code" in block) return [block.label];
   if ("p" in block) return [block.p];
   return "ol" in block ? block.ol : block.ul;
 }
 
 function blockMarkdown(block: DocBlock, lang: Lang): string {
+  if ("code" in block) return `${withAbsoluteLinks(block.label, lang)}\n\n\`\`\`sh\n${block.code}\n\`\`\``;
   if ("p" in block) return withAbsoluteLinks(block.p, lang);
   if ("ol" in block) return block.ol.map((item, index) => `${index + 1}. ${withAbsoluteLinks(item, lang)}`).join("\n");
   return block.ul.map((item) => `- ${withAbsoluteLinks(item, lang)}`).join("\n");
