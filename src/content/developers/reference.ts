@@ -572,6 +572,16 @@ export const apiReference: ApiReference = {
       reserved: false,
     },
     {
+      code: "invalid_batch",
+      statuses: [400],
+      area: "batch",
+      meaning:
+        "The batch body is invalid: not 1–25 operations, duplicate item IDs, an unknown operation or bad input; for `POST /emails/batch`, `emails` is not a list of 1 to 50 messages.",
+      action: "Fix the batch; nothing in it was run or sent.",
+      retry: "no",
+      reserved: false,
+    },
+    {
       code: "invalid_idempotency_key",
       statuses: [400],
       area: "batch",
@@ -806,15 +816,6 @@ export const apiReference: ApiReference = {
       meaning:
         "An attachment is malformed: no filename, content that is not base64, a bad content type, or more than 10 attachments.",
       action: "Fix the attachments.",
-      retry: "no",
-      reserved: false,
-    },
-    {
-      code: "invalid_batch",
-      statuses: [400],
-      area: "emails",
-      meaning: "`emails` is not a list of 1 to 50 messages.",
-      action: "Fix the batch; nothing in it was sent.",
       retry: "no",
       reserved: false,
     },

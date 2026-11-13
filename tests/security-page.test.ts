@@ -15,7 +15,7 @@ const texts = (sections: readonly DocSection[]) =>
 const whole = (lang: "en" | "zh") =>
   [securityContent[lang].title, securityContent[lang].summary, ...texts(securityContent[lang].sections)].join("\n");
 const kind = (block: DocBlock) =>
-  "p" in block ? "p" : "ol" in block ? `ol${block.ol.length}` : `ul${block.ul.length}`;
+  "code" in block ? "code" : "p" in block ? "p" : "ol" in block ? `ol${block.ol.length}` : `ul${block.ul.length}`;
 
 test("security page: both languages say the same things, block for block, with the same links", () => {
   const { en, zh } = securityContent;
@@ -23,8 +23,12 @@ test("security page: both languages say the same things, block for block, with t
     en.sections.map((section) => section.blocks.map(kind)),
     zh.sections.map((section) => section.blocks.map(kind)),
   );
+  // A mailto link's subject is wording in each language ("Security", 安全); where it goes is the address.
+  const destination = (target: string) => target.replace(/^(mailto:[^?]+)\?.*$/, "$1");
   const targets = (sections: readonly DocSection[]) =>
-    sections.map((section) => section.blocks.map((block) => blockTexts(block).map((text) => linkTargets(text).sort())));
+    sections.map((section) =>
+      section.blocks.map((block) => blockTexts(block).map((text) => linkTargets(text).map(destination).sort())),
+    );
   assert.deepEqual(targets(en.sections), targets(zh.sections));
   assert.equal(en.reviewed, zh.reviewed);
   assert.match(en.reviewed, /^\d{4}-\d{2}-\d{2}$/);
@@ -84,7 +88,8 @@ test("security page: no compliance, certification or marketing claims, and no de
 test("security page: vulnerabilities are reported to the support address, the only public contact the site has", () => {
   for (const lang of langs) {
     const last = securityContent[lang].sections.at(-1)!;
-    assert.ok(texts([last]).join("\n").includes(`(mailto:${site.contact.email})`), lang);
+    // The report link fills in the subject the paragraph asks for ("Security", 安全).
+    assert.ok(texts([last]).join("\n").includes(`(mailto:${site.contact.email}?subject=`), lang);
     assert.doesNotMatch(whole(lang), /security@|bounty|reward|奖金|赏金/i, lang);
   }
 });

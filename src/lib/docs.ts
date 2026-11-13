@@ -1,5 +1,6 @@
 /**
- * Shared by the help center's articles, the security overview and the developer documentation (src/content/): their text as Markdown and as plain text.
+ * Shared by the help center's articles, the security overview, the Claude connector page and the developer documentation
+ * (src/content/): their text as Markdown and as plain text.
  * The content uses the storefront copy's two markup forms, **bold** and [text](link), which are already Markdown; only site
  * links need work, since in the content they are relative to the language root (the page resolves them the same way through
  * RichText). Runs in Node as is: the tests, the Markdown routes and the structured data all use it.
@@ -36,15 +37,20 @@ export function plainText(text: string): string {
     .replace(/`([^`]+)`/g, "$1");
 }
 
-/** Every text of a block, in order. Code is not text: it has no markup, no links and is the same in every language. */
+/**
+ * Every text of a block, in order. Code is not text: it has no markup, no links and is the same in every language. A command
+ * is not prose either: its label is the block's text.
+ */
 export function blockTexts(block: DevDocBlock): readonly string[] {
-  if ("code" in block) return [];
+  if ("language" in block) return [];
+  if ("code" in block) return [block.label];
   if ("p" in block) return [block.p];
   return "ol" in block ? block.ol : block.ul;
 }
 
 function blockMarkdown(block: DevDocBlock, lang: Lang): string {
-  if ("code" in block) return `\`\`\`${block.language}\n${block.code}\n\`\`\``;
+  if ("language" in block) return `\`\`\`${block.language}\n${block.code}\n\`\`\``;
+  if ("code" in block) return `${withAbsoluteLinks(block.label, lang)}\n\n\`\`\`sh\n${block.code}\n\`\`\``;
   if ("p" in block) return withAbsoluteLinks(block.p, lang);
   if ("ol" in block) return block.ol.map((item, index) => `${index + 1}. ${withAbsoluteLinks(item, lang)}`).join("\n");
   return block.ul.map((item) => `- ${withAbsoluteLinks(item, lang)}`).join("\n");

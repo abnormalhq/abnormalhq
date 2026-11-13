@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import type { DevDocBlock, DevDocSection } from "../src/content/help/types.ts";
+import type { CodeBlock, DevDocBlock, DevDocSection } from "../src/content/help/types.ts";
 import { apiReference, developersContent } from "../src/content/developers/index.ts";
 import { developerApi, linksFor, site } from "../src/data/site.ts";
 import { copies, langs, localePath } from "../src/i18n/index.ts";
@@ -27,15 +27,19 @@ const whole = (lang: "en" | "zh") =>
     "\n",
   );
 const kind = (block: DevDocBlock) =>
-  "code" in block
+  "language" in block
     ? `code:${block.language}`
-    : "p" in block
-      ? "p"
-      : "ol" in block
-        ? `ol${block.ol.length}`
-        : `ul${block.ul.length}`;
+    : "code" in block
+      ? "command"
+      : "p" in block
+        ? "p"
+        : "ol" in block
+          ? `ol${block.ol.length}`
+          : `ul${block.ul.length}`;
 const codeBlocks = (lang: "en" | "zh") =>
-  developersContent[lang].sections.flatMap((section) => section.blocks.filter((block) => "code" in block));
+  developersContent[lang].sections.flatMap((section) =>
+    section.blocks.filter((block): block is CodeBlock => "language" in block),
+  );
 
 test("developers page: the reference and the published document are what the copy of mail's says (run `pnpm api-reference`)", () => {
   const document = JSON.parse(spec);

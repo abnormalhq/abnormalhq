@@ -6,6 +6,7 @@ import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { homeStructuredData } from "@/lib/structured-data";
+import { Demo } from "./Demo";
 import { Faq } from "./Faq";
 import { Features } from "./Features";
 import { Hero } from "./Hero";
@@ -15,6 +16,7 @@ import { JsonLd } from "./JsonLd";
 import { PricingSection } from "./PricingSection";
 import { Process } from "./Process";
 import { PromoVideo } from "./PromoVideo";
+import { Screens } from "./Screens";
 import { ScrollReveal } from "./ScrollReveal";
 import { Start } from "./Start";
 import { Subscriptions } from "./Subscriptions";
@@ -42,6 +44,8 @@ export function Home({ lang }: { lang: Lang }) {
         </div>
       </Container>
       <PromoVideo lang={lang} />
+      <Screens lang={lang} />
+      <Demo lang={lang} />
       <Features lang={lang} />
       <Start lang={lang} />
       <PricingSection lang={lang} />

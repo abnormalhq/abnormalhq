@@ -108,6 +108,8 @@ test('decorative labels are English in both languages, as their lang="en" says',
     const labels = [
       copy.hero.eyebrow,
       copy.video.eyebrow,
+      copy.screens.eyebrow,
+      copy.demo.eyebrow,
       copy.features.eyebrow,
       copy.start.eyebrow,
       copy.pricing.eyebrow,
@@ -122,6 +124,7 @@ test('decorative labels are English in both languages, as their lang="en" says',
       copy.help.eyebrow,
       copy.help.articleEyebrow,
       copy.security.eyebrow,
+      copy.claude.eyebrow,
     ];
     for (const label of labels) assert.doesNotMatch(label, cjk, `${copy.htmlLang}: ${label}`);
   }
@@ -199,6 +202,8 @@ const templateSlots = {
   "pricing.check.taken": { email: true } satisfies Record<TemplateSlot<Copy["pricing"]["check"]["taken"]>, true>,
   // The help center's search renders in the browser too.
   "help.search.results": { count: true } satisfies Record<TemplateSlot<Copy["help"]["search"]["results"]>, true>,
+  "help.related": { topic: true } satisfies Record<TemplateSlot<Copy["help"]["related"]>, true>,
+  "download.historyMore": { count: true } satisfies Record<TemplateSlot<Copy["download"]["historyMore"]>, true>,
 };
 
 /** Each string in the copy that has {name} slots, by its path, with the names it uses. */

@@ -17,10 +17,13 @@ import { useCopy } from "@/i18n";
 import { docBase, sectionId } from "@/lib/docs";
 import { cn } from "@/lib/utils";
 import { RichText } from "@/storefront/components/RichText";
+import { CommandLine } from "./CommandLine";
+import { TocSpy } from "./TocSpy";
 
 /**
- * A page of long-form content written as sections of paragraphs and lists (src/content/): a help article, the security
- * overview or the developer documentation (which also has code blocks). The layout is the legal pages': a header with the title and lead, then a table of contents beside the reading
+ * A page of long-form content written as sections of paragraphs, lists and commands (src/content/): a help article, the
+ * security overview, the Claude connector page or the developer documentation (which also has multi-line code blocks). The
+ * layout is the legal pages': a header with the title and lead, then a table of contents beside the reading
  * column, which is the registry's Prose (numbered second-level headings). A breadcrumb says where the page sits.
  * `children` follows the sections in the reading column: what to do next, or who to ask.
  */
@@ -91,33 +94,35 @@ export function DocArticle({
 
       <Container className={cn(sectionSpaceClassName, "grid gap-10 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-20")}>
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <nav aria-label={h.tocLabel}>
-            <p className="text-sm/body font-medium text-foreground">{h.tocLabel}</p>
-            <ol className="mt-4 flex flex-wrap gap-2 lg:grid lg:gap-0 lg:border-t lg:border-border">
-              {sections.map((section, index) => (
-                <li className="lg:border-b lg:border-border" key={section.title}>
-                  <a
-                    className="inline-flex items-baseline gap-[0.65rem] rounded-control border border-input bg-control px-[0.85rem] py-[0.6rem] text-sm/[1.6] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground lg:w-full lg:rounded-none lg:border-0 lg:bg-transparent lg:px-[0.2rem] lg:py-[0.85rem] lg:hover:bg-accent"
-                    href={`#${sectionId(index)}`}
-                  >
-                    <span className="shrink-0 text-[11px] text-muted-foreground" aria-hidden="true">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    {section.title}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
+          <TocSpy>
+            <nav aria-label={h.tocLabel}>
+              <p className="text-sm/body font-medium text-foreground">{h.tocLabel}</p>
+              <ol className="mt-4 flex flex-wrap gap-2 lg:grid lg:gap-0 lg:border-t lg:border-border">
+                {sections.map((section, index) => (
+                  <li className="lg:border-b lg:border-border" key={section.title}>
+                    <a
+                      className="inline-flex items-baseline gap-[0.65rem] rounded-control border border-input bg-control px-[0.85rem] py-[0.6rem] text-sm/[1.6] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground aria-[current=location]:text-foreground lg:w-full lg:rounded-none lg:border-0 lg:bg-transparent lg:px-[0.2rem] lg:py-[0.85rem] lg:hover:bg-accent lg:aria-[current=location]:font-medium lg:aria-[current=location]:shadow-[inset_2px_0_0_var(--signal)] lg:aria-[current=location]:pl-[0.7rem]"
+                      href={`#${sectionId(index)}`}
+                    >
+                      <span className="shrink-0 text-[11px] text-muted-foreground" aria-hidden="true">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      {section.title}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          </TocSpy>
         </aside>
 
         <article className="max-w-[46rem] min-w-0">
-          <Prose className="[&_h2]:scroll-mt-24 [&>section:first-child_h2]:mt-0">
+          <Prose className="[&_h2]:scroll-mt-24 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&>section:first-child_h2]:mt-0">
             {sections.map((section, index) => (
               <section aria-labelledby={sectionId(index)} key={section.title}>
                 <h2 id={sectionId(index)}>{section.title}</h2>
                 {section.blocks.map((block, blockIndex) => (
-                  <Block block={block} base={base} key={blockIndex} />
+                  <Block block={block} base={base} commands={t.download} key={blockIndex} />
                 ))}
                 {"slot" in section && section.slot ? slots?.[section.slot] : null}
               </section>
@@ -130,9 +135,19 @@ export function DocArticle({
   );
 }
 
-function Block({ block, base }: { block: DevDocBlock; base: string }) {
-  if ("code" in block) {
-    // Prose gives every <code> the inline chip; inside a block the panel is the frame, so the chip is taken off again.
+function Block({
+  block,
+  base,
+  commands,
+}: {
+  block: DevDocBlock;
+  base: string;
+  /** The copy button's words, the download page's: a command is copied the same way there. */
+  commands: { copyCommand: string; copiedCommand: string; copyFailed: string };
+}) {
+  if ("language" in block) {
+    // Multi-line code (the developer documentation). Prose gives every <code> the inline chip; inside a block the panel is
+    // the frame, so the chip is taken off again.
     return (
       <pre
         className="overflow-x-auto rounded-panel border border-border p-4 text-sm/[1.65]"
@@ -140,6 +155,17 @@ function Block({ block, base }: { block: DevDocBlock; base: string }) {
       >
         <code className="rounded-none! bg-transparent! p-0!">{block.code}</code>
       </pre>
+    );
+  }
+  if ("code" in block) {
+    return (
+      <CommandLine
+        label={block.label}
+        code={block.code}
+        copy={commands.copyCommand}
+        copied={commands.copiedCommand}
+        failed={commands.copyFailed}
+      />
     );
   }
   if ("p" in block) {

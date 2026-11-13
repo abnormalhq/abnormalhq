@@ -62,6 +62,51 @@ export interface LinkItem {
  * eyebrow, kicker, tagline and tocKicker are decorative English labels: both languages write them in English and components render them with lang="en",
  * so screen readers read them as English; tests/i18n.test.ts checks they contain no Chinese.
  */
+/** The interactive WebMail demo (src/components/WebmailDemo.tsx): its sample labels, mail and events. */
+export type DemoLabelId = "work" | "travel" | "family";
+
+export interface DemoLabel {
+  id: DemoLabelId;
+  name: string;
+  color: "blue" | "green" | "orange";
+}
+
+export interface DemoMail {
+  id: string;
+  from: string;
+  address: string;
+  subject: string;
+  /** The message, one paragraph per entry. */
+  body: readonly string[];
+  /** The time shown in the list, as the list shows it. */
+  time: string;
+  day: "today" | "yesterday" | "earlier";
+  category: "primary" | "newsletters" | "notifications";
+  labels: readonly DemoLabelId[];
+  unread: boolean;
+  starred: boolean;
+  /** The name of an attached file, or empty. */
+  attachment: string;
+}
+
+export interface DemoEvent {
+  title: string;
+  /** 0 is Monday. */
+  day: number;
+  /** Whole hours, 8 to 20. */
+  start: number;
+  end: number;
+  location: string;
+}
+
+/** One screenshot of the screenshots section: its caption and the picture's text alternative. */
+export interface ScreenCopy {
+  title: string;
+  description: string;
+  /** What the picture shows, for screen readers and when it does not load. */
+  alt: string;
+}
+
 export interface Copy {
   /** <html lang> and hreflang. */
   htmlLang: string;
@@ -153,6 +198,81 @@ export interface Copy {
     seekTemplate: Template<"current" | "duration">;
     volume: string;
   };
+  /**
+   * The screenshots section (src/components/Screens.tsx): WebMail as it really looks, one picture per entry, each in the page's
+   * language. The files are in public/screens/ (see the README's "Screenshots" section).
+   */
+  screens: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    /** Says the mail and events in the pictures are samples. */
+    note: string;
+    inbox: ScreenCopy;
+    calendar: ScreenCopy;
+    phone: ScreenCopy;
+  };
+  /**
+   * The "Try it" section (src/components/Demo.tsx, src/components/WebmailDemo.tsx): a small WebMail that runs in the visitor's browser
+   * with sample content. Nothing in it reaches a server; "Send" only files the message under Sent.
+   */
+  demo: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    /** Says the demo runs only in the browser and sends nothing. */
+    note: string;
+    /** Accessible name of the whole demo. */
+    label: string;
+    ui: {
+      compose: string;
+      inbox: string;
+      starred: string;
+      sent: string;
+      calendar: string;
+      labels: string;
+      search: string;
+      categoryAll: string;
+      categoryPrimary: string;
+      categoryNewsletters: string;
+      categoryNotifications: string;
+      /** After the unread count, as "2 unread". */
+      unread: string;
+      today: string;
+      yesterday: string;
+      earlier: string;
+      empty: string;
+      emptySent: string;
+      /** Shown in the reading pane before a message is opened. */
+      pick: string;
+      back: string;
+      reply: string;
+      star: string;
+      unstar: string;
+      markUnread: string;
+      close: string;
+      to: string;
+      subject: string;
+      body: string;
+      send: string;
+      /** Prefix of a reply's subject. */
+      replyPrefix: string;
+      /** Shown after "Send": the message went under Sent and nowhere else. */
+      sentNotice: string;
+      /** Shown when "Send" is pressed with no recipient. */
+      needRecipient: string;
+      /** The time a sent message is listed with. */
+      now: string;
+      me: string;
+      thisWeek: string;
+      /** The calendar's day names, Monday first. */
+      weekdays: readonly [string, string, string, string, string, string, string];
+      attachment: string;
+    };
+    labels: readonly DemoLabel[];
+    mails: readonly DemoMail[];
+    events: readonly DemoEvent[];
+  };
   /** The "What's inside" section (src/components/Features.tsx): what a mailbox can do, and where it can be used. */
   features: {
     eyebrow: string;
@@ -193,6 +313,8 @@ export interface Copy {
    * template rather than a function.
    */
   pricing: {
+    /** At the foot of the pricing page: the help center's plans and billing articles, then a link on to all of them. */
+    questions: { title: string; all: string };
     metaTitle: string;
     metaDescription: string;
     eyebrow: string;
@@ -384,6 +506,8 @@ export interface Copy {
     ask: { title: string; body: string };
     /** At the foot of every article: back to the index, or on to support. */
     wrong: { title: string; body: string; index: string; contact: string };
+    /** Above that, the other articles of the same topic, named by the topic. */
+    related: Template<"topic">;
   };
   /** The security and privacy overview (/security/): the wording around it. The text itself is in src/content/security/. */
   security: {
@@ -438,6 +562,19 @@ export interface Copy {
     /** At the foot of the page. */
     specLink: string;
     statusLink: string;
+  };
+  /** The Claude connector page (/claude/): the wording around it. The text itself is in src/content/claude/. */
+  claude: {
+    metaTitle: string;
+    metaDescription: string;
+    /** The entry in the footer and the breadcrumb's own name of the page. */
+    navLabel: string;
+    eyebrow: string;
+    /** Before the date the statements were last checked. */
+    reviewedLabel: string;
+    /** At the foot of the page: on to the privacy policy and to the security overview. */
+    policyLink: string;
+    securityLink: string;
   };
   closing: {
     eyebrow: string;
@@ -517,6 +654,16 @@ export interface Copy {
     historyEmpty: string;
     /** At the end of each past release row, linking to that version's latest.json. */
     historyChecksums: string;
+    /** The button beside an install command (Homebrew, apt), and what it says for a moment after copying. */
+    copyCommand: string;
+    copiedCommand: string;
+    copyFailed: string;
+    /** Badge on the card that fits the visitor's computer, which the browser works out after the page loads. */
+    forThisComputer: string;
+    /** Shown instead, above the cards, to a visitor on a phone or tablet: the desktop app does not run there. */
+    phone: { title: string; body: string; webmail: string; apps: string };
+    /** Under the latest few previous versions: opens the rest. */
+    historyMore: Template<"count">;
     webmailNote: string;
     webmailLink: string;
   };

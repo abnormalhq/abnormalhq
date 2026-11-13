@@ -14,6 +14,7 @@ import { legalStructuredData } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 import { JsonLd } from "./JsonLd";
+import { TocSpy } from "./TocSpy";
 
 export function LegalDocument({
   lang,
@@ -73,29 +74,31 @@ export function LegalDocument({
 
       <Container className={cn(sectionSpaceClassName, "grid gap-10 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-20")}>
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <nav aria-label={l.tocLabel}>
-            <p className="flex items-center justify-between gap-4 text-sm/body font-medium text-foreground">
-              {l.tocHint}{" "}
-              <span className="text-[11px] font-normal tracking-[0.06em] text-muted-foreground uppercase" lang="en">
-                {l.tocKicker}
-              </span>
-            </p>
-            <ol className="mt-4 flex flex-wrap gap-2 lg:grid lg:gap-0 lg:border-t lg:border-border">
-              {sections.map(({ slug, text }, index) => (
-                <li className="lg:border-b lg:border-border" key={slug}>
-                  <a
-                    className="inline-flex items-baseline gap-[0.65rem] rounded-control border border-input bg-control px-[0.85rem] py-[0.6rem] text-sm/[1.6] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground lg:w-full lg:rounded-none lg:border-0 lg:bg-transparent lg:px-[0.2rem] lg:py-[0.85rem] lg:hover:bg-accent"
-                    href={`#${slug}`}
-                  >
-                    <span className="shrink-0 text-[11px] text-muted-foreground">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    {text}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </nav>
+          <TocSpy>
+            <nav aria-label={l.tocLabel}>
+              <p className="flex items-center justify-between gap-4 text-sm/body font-medium text-foreground">
+                {l.tocHint}{" "}
+                <span className="text-[11px] font-normal tracking-[0.06em] text-muted-foreground uppercase" lang="en">
+                  {l.tocKicker}
+                </span>
+              </p>
+              <ol className="mt-4 flex flex-wrap gap-2 lg:grid lg:gap-0 lg:border-t lg:border-border">
+                {sections.map(({ slug, text }, index) => (
+                  <li className="lg:border-b lg:border-border" key={slug}>
+                    <a
+                      className="inline-flex items-baseline gap-[0.65rem] rounded-control border border-input bg-control px-[0.85rem] py-[0.6rem] text-sm/[1.6] text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground aria-[current=location]:text-foreground lg:w-full lg:rounded-none lg:border-0 lg:bg-transparent lg:px-[0.2rem] lg:py-[0.85rem] lg:hover:bg-accent lg:aria-[current=location]:font-medium lg:aria-[current=location]:shadow-[inset_2px_0_0_var(--signal)] lg:aria-[current=location]:pl-[0.7rem]"
+                      href={`#${slug}`}
+                    >
+                      <span className="shrink-0 text-[11px] text-muted-foreground">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      {text}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          </TocSpy>
         </aside>
 
         <article className="min-w-0">

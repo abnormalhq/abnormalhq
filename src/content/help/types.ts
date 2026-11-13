@@ -34,7 +34,12 @@ export type HelpSlug = (typeof helpSlugs)[number];
 export const helpCategoryIds = ["start", "apps", "security", "mail", "billing", "privacy"] as const;
 export type HelpCategoryId = (typeof helpCategoryIds)[number];
 
-export type DocBlock = { p: string } | { ol: readonly string[] } | { ul: readonly string[] };
+/**
+ * A paragraph, a numbered or bulleted list, or a command to type, shown with a copy button (`label` says where to type it).
+ * The help articles use only the first three; the Claude connector page (/claude/) also has commands.
+ */
+export type DocBlock =
+  { p: string } | { ol: readonly string[] } | { ul: readonly string[] } | { code: string; label: string };
 
 export interface DocSection {
   title: string;
@@ -73,11 +78,26 @@ export interface SecurityContent {
 }
 
 /**
+ * The Claude connector page (/claude/): how to connect Claude to the admin console's MCP server, written from mail's
+ * docs/mcp.md and docs/api.md and the privacy policy. The same shape as the security overview.
+ */
+export interface ConnectorContent {
+  title: string;
+  summary: string;
+  /** YYYY-MM-DD: when the statements were last checked against mail's documentation and the privacy policy. */
+  reviewed: string;
+  sections: readonly DocSection[];
+}
+
+/**
  * A block of code on the developer documentation, shown exactly as written: no markup, no link resolution, never translated.
  * `language` names the fence in the Markdown version.
  */
 export type CodeBlock = { code: string; language: "sh" | "js" | "json" };
-/** The developer documentation's blocks: the articles' three, plus code. In its text `inline code` in backticks is allowed too. */
+/**
+ * The developer documentation's blocks: the articles' (one-line commands included), plus multi-line code, told apart from a
+ * command by `language`. In its text `inline code` in backticks is allowed too.
+ */
 export type DevDocBlock = DocBlock | CodeBlock;
 
 export interface DevDocSection {
