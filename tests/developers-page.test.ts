@@ -174,12 +174,16 @@ test("developers page: it names the real addresses, says what is not offered, an
       lang,
     );
   }
-  assert.match(whole("en"), /Sending mail through the API or SMTP/);
+  // Sending and inbound routing exist (mail's docs/api-email.md): explained, approval included, and no longer listed as missing.
+  assert.doesNotMatch(whole("en"), /Sending mail through the API or SMTP/);
+  assert.match(whole("en"), /Sending is off until we approve your workspace/);
+  assert.ok(whole("en").includes("`message.received`"));
   // Test keys exist (mail's docs/api-test-mode.md): the page explains them and no longer lists them as missing.
   assert.match(whole("en"), /Its token starts with `mhq_test_`/);
   assert.doesNotMatch(whole("en"), /Test keys and a sandbox/);
   assert.ok(whole("en").includes("`403 test_mode_unsupported`"));
-  assert.match(whole("zh"), /通过 API 或 SMTP 为你的应用发信/);
+  assert.doesNotMatch(whole("zh"), /通过 API 或 SMTP 为你的应用发信/);
+  assert.match(whole("zh"), /发信功能默认关闭/);
   assert.match(whole("zh"), /令牌以 `mhq_test_` 开头/);
   assert.doesNotMatch(whole("zh"), /测试密钥和沙箱/);
 });

@@ -597,6 +597,7 @@ export const en: Copy = {
         compliance: "Legal holds and suppressions",
         trace: "Message trace",
         agent_tasks: "Follow-up tasks",
+        emails: "Sending and inbound routing",
         test_mode: "Test mode",
         upstream: "Mail server and service availability",
       },

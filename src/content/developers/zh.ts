@@ -30,6 +30,7 @@ export const developersZh: DevelopersContent = {
             "**地址**：转发规则、普通别名和邮件列表。",
             "**合规与报表**：法律保留、不活跃邮箱、各域名的存储用量和发信最多的邮箱。",
             "**事件**：邮箱、域名、订单、批量任务和安全事件的签名 Webhook。",
+            "**收发邮件**：用你的域名发信、跟踪每封邮件的投递，并以 Webhook 接收邮件（需开通）。",
             "**投递**：抑制列表和邮件追踪。",
             "**批量**：把多项修改放进一个按顺序执行、可安全重试的请求。",
           ],
@@ -76,6 +77,7 @@ export const developersZh: DevelopersContent = {
             "`forwarders:*`、`aliases:*`、`lists:*`：转发规则、普通别名和邮件列表。",
             "`holds:*`、`webhooks:*`、`suppressions:*`、`trace:read`：法律保留、Webhook、抑制列表和邮件追踪。",
             "`agent_tasks:*`：跟进任务，即以某个邮箱身份回复邮件的 Agent。",
+            "`emails:*`、`inbound:*`：API 发信与收信路由（需手动勾选，新密钥默认不含）。",
           ],
         },
         {
@@ -137,6 +139,22 @@ export const developersZh: DevelopersContent = {
       ],
     },
     {
+      title: "收发邮件",
+      blocks: [
+        {
+          p: "用你自己的域名、通过域名自己的邮件服务器发信，跟踪每封邮件的投递结果，并把指定邮箱收到的邮件推送到 Webhook。发信功能默认关闭，需由我们为你的工作区开通并设定每日上限，请来信申请。测试密钥可以直接向沙箱发信。",
+        },
+        {
+          ul: [
+            "`PUT /domains/{id}/sending` 为域名创建发信账号：邮件以该域名的 DKIM 密钥签名发出，退信回到这个账号，From 可以是该域名下的任意地址。",
+            "`POST /emails` 发送一封邮件（`POST /emails/batch` 一次最多 50 封）；带上 `Idempotency-Key` 即可安全重试。抑制列表中的收件人会被跳过。",
+            "`GET /emails/{id}` 给出每个收件人的结果：已发出、已送达、投递延迟或退信。同样的变化也会以 `email.sent`、`email.delivered`、`email.delivery_delayed`、`email.bounced` 和 `email.failed` 事件推送。",
+            "`PUT /mailboxes/{id}/inbound` 开启收信路由：邮箱收到的每封邮件都会以 `message.received` 推送，附带纯文本正文；完整邮件和附件用 `GET /mailboxes/{id}/messages/{emailId}` 读取。用别名或 catch-all 可以把多个地址汇入同一个路由邮箱。",
+          ],
+        },
+      ],
+    },
+    {
       title: "给 AI Agent 用的 MCP",
       blocks: [
         {
@@ -171,7 +189,8 @@ export const developersZh: DevelopersContent = {
           ul: [
             "域名必须以工作区的专属区域 `<slug>.test` 结尾（例如 `shop.acme.test`），`GET /capabilities` 会在 `sandbox.domainZone` 里给出它。所有权验证无需 DNS 即可通过。",
             "邮箱、别名、邮件列表、转发、法律保留、批量操作和抑制列表都和正式工作区一样可用，Webhook 也会真实投递。",
-            "邮件追踪、跟进任务和传输安全需要真实的邮件，测试密钥调用它们会得到 `403 test_mode_unsupported`。",
+            "发信无需开通：除本地部分以 `bounce` 开头的地址会退信外，所有收件人都会立即“送达”；发到开启收信路由的沙箱邮箱的邮件会以 `message.received` 推送。",
+            "邮件追踪、跟进任务、传输安全和读取收到的邮件需要真实的邮件，测试密钥调用它们会得到 `403 test_mode_unsupported`。",
             "每个沙箱最多 5 个域名、100 个邮箱。",
           ],
         },
@@ -182,8 +201,8 @@ export const developersZh: DevelopersContent = {
       blocks: [
         {
           ul: [
-            "通过 API 或 SMTP 为你的应用发信，以及针对每封新邮件的 Webhook。",
-            "读取、搜索或删除邮件内容。",
+            "搜索或删除邮件内容，以及读取路由邮箱以外的邮件。",
+            "打开与点击跟踪，以及投诉（反馈环）事件。",
             "官方 SDK 和命令行工具。",
           ],
         },

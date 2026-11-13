@@ -29,6 +29,7 @@ export const developersEn: DevelopersContent = {
             "**Addresses**: forwarding rules, plain aliases and distribution lists.",
             "**Compliance and reports**: legal holds, inactive mailboxes, storage per domain and top senders.",
             "**Events**: signed webhooks for mailbox, domain, order, bulk job and security events.",
+            "**Sending and receiving**: send from your domains, follow each message's delivery, and receive mail as webhooks (after approval).",
             "**Delivery**: the suppression list and message trace.",
             "**Batches**: many changes in one ordered, idempotent request.",
           ],
@@ -82,6 +83,7 @@ curl --fail-with-body "$API_BASE/capabilities" \\
             "`forwarders:*`, `aliases:*`, `lists:*`: forwarding rules, plain aliases and distribution lists.",
             "`holds:*`, `webhooks:*`, `suppressions:*`, `trace:read`: legal holds, webhooks, the suppression list and message trace.",
             "`agent_tasks:*`: follow-up tasks, the agent that answers mail as a mailbox.",
+            "`emails:*`, `inbound:*`: sending through the API and inbound routing (choose them: a new key does not start with them).",
           ],
         },
         {
@@ -166,6 +168,22 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
       ],
     },
     {
+      title: "Sending and receiving mail",
+      blocks: [
+        {
+          p: "Send mail from your own domains through their own mail server, follow each message's delivery, and receive what chosen mailboxes get as webhooks. Sending is off until we approve your workspace with a daily limit; write to us to ask. Test keys can send to the sandbox right away.",
+        },
+        {
+          ul: [
+            "`PUT /domains/{id}/sending` creates the domain's sending account: mail goes out signed with the domain's DKIM key, its bounces return to that account, and From can be any address on the domain.",
+            "`POST /emails` sends one message (`POST /emails/batch` up to 50); an `Idempotency-Key` makes a retry safe. Recipients on the suppression list are skipped.",
+            "`GET /emails/{id}` shows each recipient's outcome: sent, delivered, delivery delayed or bounced. The same changes arrive as `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.bounced` and `email.failed` events.",
+            "`PUT /mailboxes/{id}/inbound` turns on inbound routing: each message the mailbox receives is POSTed as `message.received`, with its plain text; read the whole message and its attachments with `GET /mailboxes/{id}/messages/{emailId}`. Aliases or a catch-all bring many addresses into one routed mailbox.",
+          ],
+        },
+      ],
+    },
+    {
       title: "MCP for AI agents",
       blocks: [
         {
@@ -204,7 +222,8 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
           ul: [
             "Domains must end with your workspace's zone, `<slug>.test` (for example `shop.acme.test`); `GET /capabilities` reports it as `sandbox.domainZone`. Their ownership check passes without DNS.",
             "Mailboxes, aliases, lists, forwarding, legal holds, batches and the suppression list work as in your workspace, and webhooks are delivered for real.",
-            "Message trace, follow-up tasks and transport security need real mail, so a test key gets `403 test_mode_unsupported` for them.",
+            "Sending works without approval: every recipient is delivered at once except a local part starting with `bounce`, which bounces, and mail to a routed sandbox mailbox arrives as `message.received`.",
+            "Message trace, follow-up tasks, transport security and reading received messages need real mail, so a test key gets `403 test_mode_unsupported` for them.",
             "A sandbox holds at most 5 domains and 100 mailboxes.",
           ],
         },
@@ -215,8 +234,8 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
       blocks: [
         {
           ul: [
-            "Sending mail through the API or SMTP for your application, and webhooks for individual incoming messages.",
-            "Reading, searching or deleting mail content.",
+            "Searching or deleting mail content, and reading mail outside routed mailboxes.",
+            "Open and click tracking, and complaint (feedback loop) events.",
             "Official SDKs and a command-line tool.",
           ],
         },

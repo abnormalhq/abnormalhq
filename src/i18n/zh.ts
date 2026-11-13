@@ -565,6 +565,7 @@ export const zh: Copy = {
         compliance: "法律保留与抑制列表",
         trace: "邮件追踪",
         agent_tasks: "跟进任务",
+        emails: "发信与收信路由",
         test_mode: "测试模式",
         upstream: "邮件服务器与服务可用性",
       },
