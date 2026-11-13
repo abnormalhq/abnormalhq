@@ -194,13 +194,28 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
       ],
     },
     {
+      title: "Test mode",
+      blocks: [
+        {
+          p: "Create a key with **Test key** turned on to build an integration without touching your real domains and mailboxes. Its token starts with `mhq_test_`, and every call it makes happens in your workspace's sandbox, whose mail server is simulated: nothing is delivered and no DNS is looked up.",
+        },
+        {
+          ul: [
+            "Domains must end with your workspace's zone, `<slug>.test` (for example `shop.acme.test`); `GET /capabilities` reports it as `sandbox.domainZone`. Their ownership check passes without DNS.",
+            "Mailboxes, aliases, lists, forwarding, legal holds, batches and the suppression list work as in your workspace, and webhooks are delivered for real.",
+            "Message trace, follow-up tasks and transport security need real mail, so a test key gets `403 test_mode_unsupported` for them.",
+            "A sandbox holds at most 5 domains and 100 mailboxes.",
+          ],
+        },
+      ],
+    },
+    {
       title: "Not offered yet",
       blocks: [
         {
           ul: [
             "Sending mail through the API or SMTP for your application, and webhooks for individual incoming messages.",
             "Reading, searching or deleting mail content.",
-            "Test keys and a sandbox: every key acts on your real workspace, so try changes on a domain you can afford to break.",
             "Official SDKs and a command-line tool.",
           ],
         },
@@ -210,7 +225,24 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
       ],
     },
     {
+      title: "Error codes",
+      slot: "errors",
+      blocks: [
+        {
+          p: "Every error has a stable `code`. The table lists them all, with the statuses they come with, what they mean, what to do and whether sending the same request again can succeed. Codes may be added within `v1`, so handle one you do not know by its HTTP status.",
+        },
+        {
+          ul: [
+            "**No**: the same request fails the same way until you change it.",
+            "**Later**: nothing happened; it may succeed after a wait. Honour `Retry-After` when there is one.",
+            "**After checking**: the outcome is unknown or the state moved. Read the current state first, because a blind repeat could do the work twice.",
+          ],
+        },
+      ],
+    },
+    {
       title: "API reference",
+      slot: "reference",
       blocks: [
         {
           p: "Every operation of `v1`, grouped by area, with the scope it needs. Paths are relative to the API base; the request and response schemas are in the specification.",

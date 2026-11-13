@@ -83,6 +83,8 @@ export type DevDocBlock = DocBlock | CodeBlock;
 export interface DevDocSection {
   title: string;
   blocks: readonly DevDocBlock[];
+  /** Generated content shown at the end of the section, after its blocks: the error code table or the endpoint list. */
+  slot?: "errors" | "reference";
 }
 
 /** The developer documentation (/developers/): one document of the security overview's shape, with code blocks. */

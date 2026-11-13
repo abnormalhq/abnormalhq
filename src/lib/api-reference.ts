@@ -43,10 +43,26 @@ export interface ApiGroup {
   operations: readonly ApiOperation[];
 }
 
+/** One error code of the document's x-error-codes (mail's apps/console/src/lib/api/error-codes.ts). */
+export type ApiErrorRetry = "no" | "after_wait" | "after_checking";
+export interface ApiErrorEntry {
+  code: string;
+  statuses: readonly number[];
+  /** The registry's area key, such as "domains"; the page names it in the reader's language. */
+  area: string;
+  meaning: string;
+  action: string;
+  retry: ApiErrorRetry;
+  /** Named by the versioning policy, not answered yet. */
+  reserved: boolean;
+}
+
 export interface ApiReference {
   /** The document's info.version. */
   version: string;
   groups: readonly ApiGroup[];
+  /** Every error code, in the document's order (by area, then code). */
+  errors: readonly ApiErrorEntry[];
 }
 
 interface OpenApiOperation {
@@ -63,6 +79,7 @@ interface OpenApiOperation {
 
 export interface OpenApiDocument {
   info: { version: string };
+  "x-error-codes"?: unknown;
   servers?: { url: string; description?: string }[];
   tags?: { name: string; description?: string }[];
   paths: Record<string, Partial<Record<HttpMethod, OpenApiOperation>> & Record<string, unknown>>;
@@ -108,10 +125,42 @@ export function buildApiReference(document: OpenApiDocument): ApiReference {
   }
   return {
     version: document.info.version,
+    errors: errorEntries(document["x-error-codes"]),
     groups: tags
       .map((tag) => ({ tag: tag.name, description: tag.description ?? "", operations: groups.get(tag.name)! }))
       .filter((group) => group.operations.length > 0),
   };
+}
+
+const RETRIES: readonly ApiErrorRetry[] = ["no", "after_wait", "after_checking"];
+
+/** The document's x-error-codes, checked entry by entry: the page shows exactly these, so a malformed one throws. */
+function errorEntries(value: unknown): ApiErrorEntry[] {
+  if (!Array.isArray(value) || !value.length) throw new Error("the document has no x-error-codes");
+  return value.map((raw, index) => {
+    const entry = raw as Partial<ApiErrorEntry>;
+    if (
+      typeof entry.code !== "string" ||
+      !/^[a-z][a-z0-9_]*$/.test(entry.code) ||
+      !Array.isArray(entry.statuses) ||
+      !entry.statuses.every((status) => Number.isInteger(status) && status >= 400 && status < 600) ||
+      typeof entry.area !== "string" ||
+      typeof entry.meaning !== "string" ||
+      typeof entry.action !== "string" ||
+      !RETRIES.includes(entry.retry as ApiErrorRetry) ||
+      typeof entry.reserved !== "boolean"
+    )
+      throw new Error(`x-error-codes[${index}] is malformed`);
+    return {
+      code: entry.code,
+      statuses: entry.statuses,
+      area: entry.area,
+      meaning: entry.meaning,
+      action: entry.action,
+      retry: entry.retry as ApiErrorRetry,
+      reserved: entry.reserved,
+    };
+  });
 }
 
 /** The document as published on this site: the same contract, with `apiBase` (the production API) as its only server. */

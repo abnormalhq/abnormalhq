@@ -2,13 +2,986 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MailHQ API",
-    "version": "1.1.0",
+    "version": "1.3.0",
     "description": "## Domain onboarding guide\n\nSend and receive mail with your own domain. The domain can stay at its current registrar. An admin requests onboarding and verifies domain ownership; once DNS is configured with the records shown in the admin, you can use your own email addresses.\n\n[Start domain onboarding](/settings#domain-connection) · [Admin](/settings) · [Webmail](/webmail)\n\n### 01 · Request onboarding\n\nPrepare a domain whose DNS you control. In **Settings → External domain onboarding**, an admin selects a Stalwart mail service subscription, enters the domain (for example `example.com`) and clicks **Generate verification record**.\n\nOnly admins can request, verify and view onboarding settings. Domains and mailboxes are currently managed centrally by admins; domain owners never need to hand over registrar accounts or DNS keys to this service.\n\nAdmin tip: once provisioned, the domain joins the existing mailbox management and redemption rules. Generic redemption codes or products without a domain restriction will include the new domain; before hosting an external domain, review and restrict the allowed domains.\n\n### 02 · Add a TXT record to verify ownership\n\n1. In the admin, open the domain's onboarding details and copy the name and value of the **Domain ownership** TXT record.\n2. At the DNS provider the domain currently uses, add that TXT record. Whether the host field needs the full domain depends on your provider; avoid appending the domain suffix twice.\n3. Wait for DNS to propagate, then click **Verify ownership and connect** in the admin. Once verified, the domain is provisioned on the mail server and added to the managed list.\n\nPending verification records are valid for 7 days; after that, click **Refresh verification record**, update the value in DNS and verify again. Ownership of an already provisioned domain does not expire because of this. You can keep the verification TXT for auditing; removing it does not disable a provisioned domain. No MX change is needed at this stage, so existing mailboxes keep receiving mail.\n\nIf the page shows **Confirming provisioning**, use **Check again** to read the result; if it shows **Needs manual review**, an admin should check the domain on the server first to avoid creating it twice.\n\n### 03 · Prepare mailboxes, then migrate mail\n\nProvisioning status and mail DNS checks are shown separately. Once ownership verification and server provisioning are done, you can create mailboxes on the domain, such as `you@example.com`, without switching mail routing first.\n\nIf the domain already has mailboxes, create the matching accounts and confirm passwords and forwarding rules before migrating any old mail you want to keep. Creating a mailbox does not copy historical mail from the old provider.\n\nMove on only once the new mailboxes are ready. For a while after switching MX, some senders may still use the old records, so keep the old service and check mail on both sides.\n\n### 04 · Configure mail DNS from the admin, switch MX last\n\nIn **Settings → Domains**, click the domain's **DNS settings / check**, or open its details from the onboarding request list. The admin shows the exact names, values, MX priorities and check results this domain needs. Use those records; the table below explains what each kind is for.\n\n| Record | Purpose | Notes |\n| --- | --- | --- |\n| MX | Delivers new mail to this service | Use the target and priority shown in the admin; switch it last, once mailboxes and migration are ready. |\n| TXT · SPF | Authorizes servers to send for the domain | A domain can have only one SPF record. If one exists, merge the authorizations and keep other sending services still in use. |\n| TXT · DKIM | Verifies mail signatures | Copy each selector and public key exactly as shown in the admin. Do not use signing records from other domains or servers. |\n| TXT · DMARC | Declares the mail authentication policy | Optional and recommended; start with `p=none`. If a policy exists, review it first and do not overwrite existing quarantine or reject policies. |\n\nSet mail-related records to **DNS only**; do not enable web proxying. Unless an admin says otherwise, there is no need to create `mail.your-domain` or get a certificate for it; mail clients use the server name shown in the admin.\n\nBefore switching MX, review the domain settings at the old provider. Some providers may still deliver mail sent within their own platform to their old mailboxes, so the old provider's delivery mode may also need adjusting.\n\n### 05 · Check again and start using it\n\nAfter saving DNS, click **Check again** in the domain details. The page shows the records currently found and why any are missing, conflicting or failed to resolve. DNS caches take time to update; if records don't match yet, confirm the names and values, then wait for the old records' caches to expire.\n\n| Item | Setting |\n| --- | --- |\n| Incoming mail | IMAP · 993 · SSL/TLS |\n| Outgoing mail | SMTP · 465 · SSL/TLS |\n| Server | The server name shown on the admin page |\n| Sign-in | Full email address + mailbox password |\n\nUse [Webmail](/webmail) or your own mail client. Whether webmail is available depends on the domain being provisioned and the settings an admin has enabled.\n\nTest receiving and sending separately from an independent external mailbox, and check the spam folder. Passing DNS checks and SPF / DKIM / DMARC does not guarantee delivery to the inbox at Gmail or other services.\n\nThe live settings on the admin page are authoritative for each domain's records. [Manage domain onboarding](/settings#domain-connection).\n\n## API access\n\n### Creating keys and authenticating\n\nFirst generate an API key in [Settings → API keys](/settings/api-keys), choosing the permissions and expiry you need (it can be set to never expire), then enter the full key under Authorize.\n\nAll `/api/v1` endpoints accept only `Authorization: Bearer <API_KEY>`. A browser sign-in cookie cannot replace a Bearer key, and each operation also requires the matching scope. Granting only a write scope does not grant read access. After a key is revoked, further requests with it are rejected.\n\n### Scope\n\nThis API manages the Stalwart mail service connected to MailHQ.\n\nIt currently covers the server list, domain verification and provisioning, importing existing domains, enabling/disabling domains, mailboxes, passwords, status, storage quota, daily sending limits, notes, regular aliases, distribution lists, forwarding, a per-domain catch-all, alias domains and domain connection details, with batch operations. It does not offer reading/searching/deleting mail content, sending mail, autoresponders, spam policies or reseller management.\n\nBelow, each operation's scope, parameters, responses and examples are listed by group. The API base URL is `/api/v1` on this site.\n\n### Regular aliases and domain management\n\nRegular aliases use the `aliases:read` / `aliases:write` scopes. The target must be an existing managed user mailbox on the same domain; aliases can be created, renamed, enabled/disabled, re-described and deleted, but the target mailbox cannot be changed. Special or read-only aliases must be managed in Stalwart. Aliases are neither external forwarding nor catch-all.\n\n`GET /domains/{id}/catch-all` reads and `PUT /domains/{id}/catch-all` sets the mailbox that receives mail for addresses of the domain nobody holds: `{ \"destination\": \"postmaster@example.com\" }` (an existing managed mailbox of the same domain), or `{ \"destination\": null }` to reject such mail, the default. A catch-all accepts every guessed or mistyped address, so it attracts spam.\n\n`PUT /domains/{id}/status` accepts `{ \"enabled\": true }` or `false` and enables or disables the domain on Stalwart. `DELETE /domains/{id}` still only removes the local record and cannot delete the remote domain. Writes to domains and aliases require the admin role and the matching write scope.\n\n### Alias domains\n\nAn alias domain is an additional domain name whose addresses deliver to the mailboxes of a primary domain: mail for `user@alias.example` goes to the mailbox of `user@primary.example`, and the primary domain's aliases, lists and catch-all apply too. `POST /domains/{id}/domain-aliases` with `{ \"domain\": \"alias.example\" }` records the request and returns the ownership TXT record; after publishing it, `POST /domains/{id}/domain-aliases/{aliasId}/verify` adds the name on the mail server, and `GET` on the alias lists the MX record it needs to receive mail. An alias domain is for receiving: mail sent from its addresses is signed with the primary domain's DKIM key. Onboard a domain of its own when it has to send under its own name.\n\n### Distribution lists\n\nDistribution lists use the `lists:read` / `lists:write` scopes. A list is an address of a domain that delivers a copy of every message to all of its members; it has no mailbox, cannot sign in and does not count towards the workspace's mailbox limit. `GET /lists?domainId=…` lists a domain's lists with their members, `POST /lists` creates one, and `PATCH /lists/{listId}` renames it, changes its description and adds or removes members. Members that are not mailboxes managed by the workspace are refused unless the request sets `allowExternal: true`: the mail server then forwards everything sent to the list, spam included, to those outside addresses. The list's address must be free among mailboxes (pending and deleted ones included), aliases, forwarding addresses and other lists.\n\n### Legal holds\n\nLegal holds use the `holds:read` / `holds:write` scopes (admin keys only). `POST /holds` places a hold on one mailbox (`mailboxId`) or on every mailbox of a domain (`domain`) with a `name`, a `reason` and an optional `endsAt`; `POST /holds/{id}/release` releases it with a `reason`. While a hold is active the mailbox cannot be deleted permanently or purged from the recycle bin (`409 legal_hold`); deleting it into the recycle bin still works. A hold preserves the mailbox, not individual messages: the mailbox's user can still delete their own mail, and this is not a certified archive.\n\n### Reports\n\n`GET /reports/inactive-mailboxes`, `GET /reports/storage` and `GET /reports/top-senders` are read-only reports under `mailboxes:read`: mailboxes with no WebMail sign-in and no mail for 30, 60 or 90 days, mailbox usage per domain from daily samples, and today's top senders by daily sending-limit usage. They are computed from records MailHQ keeps, not from the mail server's own counters: sign-ins and sends of mail apps over IMAP / SMTP are not seen.\n\n### Batch requests and verifying results\n\n`POST /batch` accepts `{ \"operations\": [...] }` with 1–25 operations and a body of at most 16 KiB, and requires an `Idempotency-Key` of 8–128 letters, digits, hyphens or underscores. Each operation has a unique `id`, an `operation` and an `input`. The whole request's format, base fields and required scopes are validated before the first write, then operations run in order; resource existence, domain ownership and remote state are checked as each one runs.\n\nReturns 200 when everything succeeds and 207 when any operation failed, is uncertain or was not executed. Each `outcome` is `succeeded`, `failed`, `uncertain` or `skipped`. Execution continues after ordinary failures and stops when a result is unclear; completed operations are not rolled back or retried automatically, and responses never include passwords.\n\nThe same API key, idempotency key and normalized operations replay the saved result; different content returns 409. After a timeout, first query `GET /batch/{requestId}` with the original key: it returns only the `running` / `completed` / `uncertain` state and timestamps, not the operations or results. `running` and `uncertain` never expire or re-run automatically. Even when it reports `completed`, still check every outcome in the original batch result; it does not mean every operation succeeded.\n\n### Interactive requests and documentation security\n\nAll examples use fictional data. The documentation never reads instance configuration, connected domains, mailbox passwords or API keys.\n\nInteractive requests go directly from your browser to this site, without a public request proxy. Keys are not kept after a page refresh; do not enter API keys on shared devices, and never put keys in URLs, code repositories or logs."
   },
   "servers": [
     {
       "url": "/api/v1",
       "description": "Current MailHQ instance"
+    }
+  ],
+  "x-error-codes": [
+    {
+      "code": "body_too_large",
+      "statuses": [
+        413
+      ],
+      "area": "request",
+      "meaning": "The request body is over 16 KiB.",
+      "action": "Send less per request; use several requests or a batch.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "endpoint_retired",
+      "statuses": [
+        410
+      ],
+      "area": "request",
+      "meaning": "The operation was retired after its announced sunset date.",
+      "action": "Use the replacement in `details.replacement`; see the API changelog.",
+      "retry": "no",
+      "reserved": true
+    },
+    {
+      "code": "field_retired",
+      "statuses": [
+        422
+      ],
+      "area": "request",
+      "meaning": "The request sent a field, query parameter or enum value retired after its sunset date.",
+      "action": "Drop it or use `details.replacement`; `details.field` names it.",
+      "retry": "no",
+      "reserved": true
+    },
+    {
+      "code": "forbidden",
+      "statuses": [
+        403
+      ],
+      "area": "request",
+      "meaning": "The key lacks a scope the operation needs, or its owner's current role no longer allows it.",
+      "action": "Create a key with the scope listed for the operation in the reference, owned by an account whose role allows it.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_arguments",
+      "statuses": [
+        400
+      ],
+      "area": "request",
+      "meaning": "An MCP tool was called with arguments that are not a JSON object of the tool's own fields.",
+      "action": "Pass exactly the fields in the tool's input schema.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_id",
+      "statuses": [
+        400
+      ],
+      "area": "request",
+      "meaning": "An ID in the path or body is not in the format of a record ID.",
+      "action": "Use the IDs the API returns.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_json",
+      "statuses": [
+        400
+      ],
+      "area": "request",
+      "meaning": "The body is not valid JSON, or not a JSON object.",
+      "action": "Send a JSON object.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_query",
+      "statuses": [
+        400,
+        422
+      ],
+      "area": "request",
+      "meaning": "A query parameter is unknown, malformed or out of range.",
+      "action": "Fix the parameter `details` names; the reference lists each operation's parameters and their ranges.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "method_not_allowed",
+      "statuses": [
+        405
+      ],
+      "area": "request",
+      "meaning": "The path exists but not with this HTTP method.",
+      "action": "Use one of the methods in the `Allow` header.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "not_found",
+      "statuses": [
+        404
+      ],
+      "area": "request",
+      "meaning": "The record in the path does not exist in this workspace (or is in the recycle bin, for mailboxes).",
+      "action": "Check the ID: paths take the record IDs the API returns, not addresses or domain names.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "rate_limited",
+      "statuses": [
+        429
+      ],
+      "area": "request",
+      "meaning": "The key's (or the address's) rate limit is used up for this window; nothing was done.",
+      "action": "Wait `Retry-After` seconds, then send the same request again. Use batches for bulk changes.",
+      "retry": "after_wait",
+      "reserved": false
+    },
+    {
+      "code": "unauthorized",
+      "statuses": [
+        401
+      ],
+      "area": "request",
+      "meaning": "No Bearer key was sent, or the key is unknown, expired, revoked or no longer valid for its owner.",
+      "action": "Send a working key in `Authorization: Bearer`. Repeated invalid keys get the sending address rate-limited.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "unknown_field",
+      "statuses": [
+        400
+      ],
+      "area": "request",
+      "meaning": "The body has a field the operation does not take.",
+      "action": "Remove it; `details` names it.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "unsupported_media_type",
+      "statuses": [
+        415
+      ],
+      "area": "request",
+      "meaning": "A request body was sent without `Content-Type: application/json`.",
+      "action": "Send JSON with that content type.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "alias_changed",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The alias domain changed while the request ran.",
+      "action": "Read it again, then decide whether to repeat the request.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "alias_limit",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain already has the most alias domains allowed.",
+      "action": "Remove one before adding another.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "already_exists",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain, alias domain or address already exists (here, or claimed by another workspace).",
+      "action": "Use the existing record, or choose another name.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "dns_lookup_failed",
+      "statuses": [
+        502
+      ],
+      "area": "domains",
+      "meaning": "The DNS lookup for the ownership check failed; nothing was changed.",
+      "action": "Try again later.",
+      "retry": "after_wait",
+      "reserved": false
+    },
+    {
+      "code": "domain_binding_conflict",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain's server binding is ambiguous or changed while the request ran.",
+      "action": "Have an admin review the domain's binding, then try again.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "domain_changed",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain's binding changed while the request ran.",
+      "action": "Read the domain again, then decide whether to repeat the request.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "domain_has_aliases",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain still has alias domains.",
+      "action": "Remove its alias domains first.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "domain_not_empty",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain still has local mailboxes, so its record cannot be removed.",
+      "action": "Delete or move its mailboxes first.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "domain_not_provisioned",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain to import is not on the chosen server.",
+      "action": "Create it on that server first, or onboard it with `/domain-onboardings`.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "domain_onboarding_conflict",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain's onboarding has not finished, or its state does not allow this step.",
+      "action": "Read the onboarding's state and DNS status; never submit the remote provisioning twice.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "domain_ownership_required",
+      "statuses": [
+        403
+      ],
+      "area": "domains",
+      "meaning": "The domain cannot be imported without a verified ownership onboarding in this workspace.",
+      "action": "Onboard it with `/domain-onboardings` instead.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "domain_unbound",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The domain is not bound to a valid mail server, so nothing on it can be changed remotely.",
+      "action": "Bind the domain to a server in the admin console.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_domain",
+      "statuses": [
+        400
+      ],
+      "area": "domains",
+      "meaning": "The domain name is missing or not a valid name.",
+      "action": "Send a lowercase domain name such as example.com.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_domain_update",
+      "statuses": [
+        400
+      ],
+      "area": "domains",
+      "meaning": "The status change does not say whether to enable or disable the domain.",
+      "action": "Send `{ \"enabled\": true }` or `{ \"enabled\": false }`.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "ownership_unverified",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The ownership TXT record was not found with the expected value.",
+      "action": "Publish the record the connection details show, wait for DNS, then verify again.",
+      "retry": "after_wait",
+      "reserved": false
+    },
+    {
+      "code": "remote_domain_delete_unavailable",
+      "statuses": [
+        422
+      ],
+      "area": "domains",
+      "meaning": "Deleting a domain on the mail server is not offered.",
+      "action": "Disable the domain, then remove only the local record; the server keeps the domain and its data.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "subscription_not_found",
+      "statuses": [
+        404
+      ],
+      "area": "domains",
+      "meaning": "The mail server in `subscriptionId` does not exist or is not available to this workspace.",
+      "action": "Use an ID from `GET /servers`.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "subscription_required",
+      "statuses": [
+        400
+      ],
+      "area": "domains",
+      "meaning": "Several mail servers are configured and the request does not say which one to use.",
+      "action": "Send `subscriptionId` (one of `GET /servers`).",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "verification_expired",
+      "statuses": [
+        409
+      ],
+      "area": "domains",
+      "meaning": "The alias domain's ownership value expired before it was verified.",
+      "action": "Remove the alias domain, add it again and publish the new value.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_daily_limit",
+      "statuses": [
+        400
+      ],
+      "area": "mailboxes",
+      "meaning": "The daily sending limit is not an integer in range.",
+      "action": "Send an integer from 0 to 1000000.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_mailbox",
+      "statuses": [
+        422
+      ],
+      "area": "mailboxes",
+      "meaning": "The mailbox fields failed validation.",
+      "action": "Fix the fields listed in `details.fields`.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_mailbox_ids",
+      "statuses": [
+        400
+      ],
+      "area": "mailboxes",
+      "meaning": "The bulk sending-limit request does not name 1–100 distinct mailbox IDs.",
+      "action": "Send between 1 and 100 distinct mailbox record IDs.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_note",
+      "statuses": [
+        400,
+        422
+      ],
+      "area": "mailboxes",
+      "meaning": "The note (of a mailbox or a suppression) is too long or not text.",
+      "action": "Send at most the documented number of characters.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_password",
+      "statuses": [
+        400
+      ],
+      "area": "mailboxes",
+      "meaning": "The password is not 8–128 characters without whitespace.",
+      "action": "Send a password that meets the rule.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_quota",
+      "statuses": [
+        400
+      ],
+      "area": "mailboxes",
+      "meaning": "The quota is not a whole number of MB in range.",
+      "action": "Send an integer from 0 (no limit) to the documented maximum.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_status",
+      "statuses": [
+        400
+      ],
+      "area": "mailboxes",
+      "meaning": "The status is not one of `active`, `disabled` or `pending`.",
+      "action": "Send one of those values.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_username",
+      "statuses": [
+        400
+      ],
+      "area": "mailboxes",
+      "meaning": "The username (the part before @) is not valid.",
+      "action": "Use 1–64 lowercase letters, digits, `.`, `_` or `-`, starting and ending with a letter or digit.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "provisioning_uncertain",
+      "statuses": [
+        409
+      ],
+      "area": "mailboxes",
+      "meaning": "The mailbox write was sent to the server but its result is not confirmed; a pending record was kept.",
+      "action": "Look the mailbox up with `details.mailboxId` and verify it; do not create it again.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "sending_limit_unavailable",
+      "statuses": [
+        422
+      ],
+      "area": "mailboxes",
+      "meaning": "A sending limit cannot be set for this mailbox (not created on the server yet, or not supported).",
+      "action": "Create the mailbox first, or leave the limit to the server's default.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "sending_limit_uncertain",
+      "statuses": [
+        409
+      ],
+      "area": "mailboxes",
+      "meaning": "The sending-limit write may or may not have been applied.",
+      "action": "Read the limit back (GET); repeat only the same target value, never a different one, if it is not set.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "address_taken",
+      "statuses": [
+        409
+      ],
+      "area": "addresses",
+      "meaning": "The address is already used by a mailbox, service mailbox, alias, list, forwarder or a mailbox in the recycle bin.",
+      "action": "Choose another address.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "external_member",
+      "statuses": [
+        422
+      ],
+      "area": "addresses",
+      "meaning": "The list has members outside the workspace's domains, which this workspace does not allow.",
+      "action": "Remove the outside addresses, or ask an admin to allow external members.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "forwarding_loop",
+      "statuses": [
+        409
+      ],
+      "area": "addresses",
+      "meaning": "The rule forwards to itself or would close a loop with existing forwarding.",
+      "action": "Choose a different destination.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_alias",
+      "statuses": [
+        400
+      ],
+      "area": "addresses",
+      "meaning": "The alias fields are invalid.",
+      "action": "Fix the username, target or description.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_alias_target",
+      "statuses": [
+        409
+      ],
+      "area": "addresses",
+      "meaning": "The alias target is not an existing managed mailbox of the same domain.",
+      "action": "Point the alias at a mailbox of its own domain.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_catch_all",
+      "statuses": [
+        400
+      ],
+      "area": "addresses",
+      "meaning": "The catch-all setting is invalid.",
+      "action": "Send a mailbox address of the domain, or null to reject mail to unknown addresses.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_catch_all_destination",
+      "statuses": [
+        409
+      ],
+      "area": "addresses",
+      "meaning": "The catch-all destination is not an existing managed mailbox of this domain.",
+      "action": "Use one of the domain's own mailboxes.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_forwarder",
+      "statuses": [
+        400
+      ],
+      "area": "addresses",
+      "meaning": "The forwarding rule's source or destination is invalid.",
+      "action": "Send one source address of the domain and one destination address.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_list",
+      "statuses": [
+        400
+      ],
+      "area": "addresses",
+      "meaning": "The distribution list fields are invalid.",
+      "action": "Fix the username, description or members.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "list_limit",
+      "statuses": [
+        409
+      ],
+      "area": "addresses",
+      "meaning": "The domain already has the most distribution lists allowed.",
+      "action": "Delete a list before creating another.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "readonly_alias",
+      "statuses": [
+        409
+      ],
+      "area": "addresses",
+      "meaning": "This alias is a special one managed on the mail server (or a user's masked address) and cannot be changed here.",
+      "action": "Leave it as it is.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "readonly_forwarder",
+      "statuses": [
+        409
+      ],
+      "area": "addresses",
+      "meaning": "This rule is not managed here (a list, alias, catch-all or custom Sieve rule).",
+      "action": "Change it where it is managed.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "readonly_list",
+      "statuses": [
+        409
+      ],
+      "area": "addresses",
+      "meaning": "This list is managed on the mail server and cannot be changed here.",
+      "action": "Leave it as it is.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "unsupported",
+      "statuses": [
+        422
+      ],
+      "area": "addresses",
+      "meaning": "The domain's mail server does not support this kind of address management.",
+      "action": "Use a Stalwart 1.0 or later server for the domain.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "batch_stopped",
+      "statuses": [
+        424
+      ],
+      "area": "batch",
+      "meaning": "An item of a batch that was not run because an earlier item's outcome is unconfirmed (item `error.code`).",
+      "action": "Verify the earlier item, then send this one again in a new batch.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "idempotency_conflict",
+      "statuses": [
+        409
+      ],
+      "area": "batch",
+      "meaning": "This idempotency key was already used, with this key, for a different batch (or follow-up task).",
+      "action": "Use a new idempotency key for different content.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "idempotency_running",
+      "statuses": [
+        409
+      ],
+      "area": "batch",
+      "meaning": "A batch with this idempotency key is still running.",
+      "action": "Read its state with `GET /batch/{requestId}`; do not resend under another key.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "idempotency_uncertain",
+      "statuses": [
+        409
+      ],
+      "area": "batch",
+      "meaning": "A batch with this idempotency key stopped with an unconfirmed write.",
+      "action": "Verify the affected records, then send only what is confirmed missing, in a new batch with a new key.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "invalid_batch",
+      "statuses": [
+        400
+      ],
+      "area": "batch",
+      "meaning": "The batch body is invalid: not 1–25 operations, duplicate item IDs, an unknown operation or bad input.",
+      "action": "Fix the batch; nothing in it was run.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_idempotency_key",
+      "statuses": [
+        400
+      ],
+      "area": "batch",
+      "meaning": "The `Idempotency-Key` header is missing or not 8–128 letters, digits, `-` or `_`.",
+      "action": "Send a valid key, unique per batch.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "request_budget_exceeded",
+      "statuses": [
+        422
+      ],
+      "area": "batch",
+      "meaning": "The batch reached its request budget on the mail server and the remaining operations were stopped.",
+      "action": "Check the results, then send the rest in smaller batches.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "delivery_in_progress",
+      "statuses": [
+        409
+      ],
+      "area": "webhooks",
+      "meaning": "The delivery is still waiting for its own retry.",
+      "action": "Only a delivered or dead-lettered delivery can be sent again; wait for it to settle.",
+      "retry": "after_wait",
+      "reserved": false
+    },
+    {
+      "code": "invalid_description",
+      "statuses": [
+        400
+      ],
+      "area": "webhooks",
+      "meaning": "The description is longer than 200 characters.",
+      "action": "Shorten it.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_enabled",
+      "statuses": [
+        400
+      ],
+      "area": "webhooks",
+      "meaning": "`enabled` is not a boolean.",
+      "action": "Send true or false.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_events",
+      "statuses": [
+        400
+      ],
+      "area": "webhooks",
+      "meaning": "The events list names an unknown event type.",
+      "action": "Use the event types in the reference, or `[\"*\"]`.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_webhook",
+      "statuses": [
+        400
+      ],
+      "area": "webhooks",
+      "meaning": "A webhook update changes nothing.",
+      "action": "Send at least one of `url`, `description`, `events` and `enabled`.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_webhook_url",
+      "statuses": [
+        400
+      ],
+      "area": "webhooks",
+      "meaning": "The address is not https on the default port with a public host name.",
+      "action": "Use a public https address without credentials, IP literal or internal name.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "webhook_limit",
+      "statuses": [
+        409
+      ],
+      "area": "webhooks",
+      "meaning": "The workspace already has the most webhooks allowed (10).",
+      "action": "Delete one before creating another.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "hold_not_active",
+      "statuses": [
+        409
+      ],
+      "area": "compliance",
+      "meaning": "The legal hold was already released or has ended.",
+      "action": "Nothing to release; place a new hold if needed.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_address",
+      "statuses": [
+        422
+      ],
+      "area": "compliance",
+      "meaning": "The suppression list address is not a valid email address.",
+      "action": "Send one valid address.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_ends_at",
+      "statuses": [
+        400
+      ],
+      "area": "compliance",
+      "meaning": "The hold's end date is not a future ISO 8601 time.",
+      "action": "Send a future date, or none.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_reason",
+      "statuses": [
+        400
+      ],
+      "area": "compliance",
+      "meaning": "The required reason is missing or too long.",
+      "action": "Send a reason.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "missing_criteria",
+      "statuses": [
+        400
+      ],
+      "area": "trace",
+      "meaning": "A trace search names none of sender, recipient, Message-ID or queue ID.",
+      "action": "Give at least one of them.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "trace_unavailable",
+      "statuses": [
+        409
+      ],
+      "area": "trace",
+      "meaning": "No mail server whose logs can be read is configured.",
+      "action": "Ask an admin to connect a mail server.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "already_decided",
+      "statuses": [
+        409
+      ],
+      "area": "agent_tasks",
+      "meaning": "This email awaiting approval was already approved or rejected.",
+      "action": "Read the task's approvals again.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "auto_send_disabled",
+      "statuses": [
+        409
+      ],
+      "area": "agent_tasks",
+      "meaning": "An admin switched automatic sending off, so every email of a task needs approval.",
+      "action": "Create the task with approval required, or ask an admin.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_agent_task",
+      "statuses": [
+        400,
+        422
+      ],
+      "area": "agent_tasks",
+      "meaning": "The follow-up task's fields are invalid.",
+      "action": "Fix what the message describes.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_state",
+      "statuses": [
+        409
+      ],
+      "area": "agent_tasks",
+      "meaning": "The task is not in a state that allows this (only a running task can be paused, a paused one resumed).",
+      "action": "Read the task's state first.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "mailbox_unavailable",
+      "statuses": [
+        409
+      ],
+      "area": "agent_tasks",
+      "meaning": "The task's mailbox cannot be used (disabled, no stored password, or its domain has no mail server).",
+      "action": "Fix the mailbox, or use another one.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "task_finished",
+      "statuses": [
+        409
+      ],
+      "area": "agent_tasks",
+      "meaning": "The task has already ended.",
+      "action": "Create a new task if more follow-up is needed.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "sandbox_domain_zone",
+      "statuses": [
+        422
+      ],
+      "area": "test_mode",
+      "meaning": "A test key asked for a domain outside its sandbox's zone (<workspace slug>.test).",
+      "action": "Use a name under the zone `GET /capabilities` reports in `sandbox.domainZone`.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "test_mode_unsupported",
+      "statuses": [
+        403
+      ],
+      "area": "test_mode",
+      "meaning": "A test key called an endpoint that needs real mail (message trace, follow-up tasks, transport security).",
+      "action": "Use a live key for it. `GET /capabilities` lists these paths under `sandbox.unsupportedPaths`.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "service_unavailable",
+      "statuses": [
+        503
+      ],
+      "area": "upstream",
+      "meaning": "The service or its mail server configuration is unavailable.",
+      "action": "Try again later; read the current state before repeating a write.",
+      "retry": "after_checking",
+      "reserved": false
+    },
+    {
+      "code": "upstream_error",
+      "statuses": [
+        502
+      ],
+      "area": "upstream",
+      "meaning": "The mail server refused or failed the request.",
+      "action": "Read the current state before repeating a write; try reads again later.",
+      "retry": "after_checking",
+      "reserved": false
     }
   ],
   "security": [
@@ -19319,11 +20292,11 @@
         "properties": {
           "code": {
             "type": "string",
-            "description": "Stable machine-readable error code."
+            "description": "Stable machine-readable error code. Every code, with its statuses, meaning, what to do and whether a retry is safe, is in the document's x-error-codes. New codes may be added: treat an unknown one by its HTTP status."
           },
           "message": {
             "type": "string",
-            "description": "Error description."
+            "description": "Error description for people, in the request's language; never branch on it."
           },
           "details": {}
         },
@@ -21649,6 +22622,43 @@
           "compatibility": {
             "type": "string",
             "const": "MailHQ REST API v1"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "live",
+              "test"
+            ],
+            "description": "live: the key acts in its workspace. test: it acts in the workspace's sandbox, whose mail server is simulated: nothing is delivered and no DNS is looked up."
+          },
+          "sandbox": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "domainZone": {
+                    "type": "string",
+                    "description": "Every domain of the sandbox must end with this name (for example example.acme.test); its ownership check passes without DNS."
+                  },
+                  "unsupportedPaths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Path templates a test key is refused with 403 test_mode_unsupported."
+                    }
+                  }
+                },
+                "required": [
+                  "domainZone",
+                  "unsupportedPaths"
+                ]
+              }
+            ],
+            "description": "Set for a test key only."
           }
         },
         "required": [
@@ -21658,7 +22668,9 @@
           "scopes",
           "operations",
           "limits",
-          "compatibility"
+          "compatibility",
+          "mode",
+          "sandbox"
         ],
         "description": "Stalwart backend and current API boundaries."
       }

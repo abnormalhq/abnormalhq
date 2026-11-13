@@ -8,6 +8,7 @@ import { developersStructuredData } from "@/lib/structured-data";
 import { DocArticle } from "./DocArticle";
 import { Icon } from "./Icon";
 import { JsonLd } from "./JsonLd";
+import { RichText } from "@/storefront/components/RichText";
 
 /**
  * The developer documentation (/developers/, /zh/developers/): how to get a key and call the management API, in the help
@@ -33,6 +34,49 @@ export function DevelopersOverview({ lang }: { lang: Lang }) {
         trail={[]}
         crumb={d.navLabel}
         sections={content.sections}
+        slots={{
+          errors: <ErrorTable copy={d.errors} />,
+          reference: (
+            <div className="mt-8 grid gap-10 text-base/body">
+              {apiReference.groups.map((group) => (
+                <section className="min-w-0" aria-labelledby={groupId(group.tag)} key={group.tag}>
+                  <h3
+                    className="scroll-mt-24 text-lg/[1.4] font-medium text-foreground"
+                    id={groupId(group.tag)}
+                    lang="en"
+                  >
+                    {group.tag}
+                  </h3>
+                  <p className="mt-2 text-sm/body text-muted-foreground" lang="en">
+                    {group.description}
+                  </p>
+                  <div className="mt-4 overflow-x-auto rounded-panel border border-border">
+                    <table className="w-full min-w-[34rem] border-collapse text-left text-sm/[1.55]">
+                      <thead className="text-muted-foreground">
+                        <tr className="border-b border-border">
+                          <th className="px-4 py-2.5 font-medium whitespace-nowrap" scope="col">
+                            {d.reference.operation}
+                          </th>
+                          <th className="px-4 py-2.5 font-medium whitespace-nowrap" scope="col">
+                            {d.reference.summary}
+                          </th>
+                          <th className="px-4 py-2.5 font-medium whitespace-nowrap" scope="col">
+                            {d.reference.scope}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.operations.map((operation) => (
+                          <OperationRow key={operation.operationId} operation={operation} copy={d.reference} />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              ))}
+            </div>
+          ),
+        }}
         meta={
           <>
             {d.reviewedLabel}
@@ -45,41 +89,6 @@ export function DevelopersOverview({ lang }: { lang: Lang }) {
           </>
         }
       >
-        <div className="mt-8 grid gap-10">
-          {apiReference.groups.map((group) => (
-            <section className="min-w-0" aria-labelledby={groupId(group.tag)} key={group.tag}>
-              <h3 className="scroll-mt-24 text-lg/[1.4] font-medium text-foreground" id={groupId(group.tag)} lang="en">
-                {group.tag}
-              </h3>
-              <p className="mt-2 text-sm/body text-muted-foreground" lang="en">
-                {group.description}
-              </p>
-              <div className="mt-4 overflow-x-auto rounded-panel border border-border">
-                <table className="w-full min-w-[34rem] border-collapse text-left text-sm/[1.55]">
-                  <thead className="text-muted-foreground">
-                    <tr className="border-b border-border">
-                      <th className="px-4 py-2.5 font-medium" scope="col">
-                        {d.reference.operation}
-                      </th>
-                      <th className="px-4 py-2.5 font-medium" scope="col">
-                        {d.reference.summary}
-                      </th>
-                      <th className="px-4 py-2.5 font-medium" scope="col">
-                        {d.reference.scope}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.operations.map((operation) => (
-                      <OperationRow key={operation.operationId} operation={operation} copy={d.reference} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ))}
-        </div>
-
         <nav
           className="mt-12 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-border pt-7"
           aria-label={t.legal.relatedLabel}
@@ -148,5 +157,91 @@ function OperationRow({
         )}
       </td>
     </tr>
+  );
+}
+
+/**
+ * Every error code of the API (the document's x-error-codes), one table per area in the document's order. Meanings and
+ * actions are the document's English, like the operation summaries.
+ */
+function ErrorTable({ copy }: { copy: ReturnType<typeof useCopy>["t"]["developers"]["errors"] }) {
+  const areas = [...new Set(apiReference.errors.map((entry) => entry.area))];
+  return (
+    <div className="mt-8 grid gap-10 text-base/body">
+      {areas.map((area) => (
+        <section className="min-w-0" aria-labelledby={`errors-${area}`} key={area}>
+          <h3 className="scroll-mt-24 text-lg/[1.4] font-medium text-foreground" id={`errors-${area}`}>
+            {copy.areas[area] ?? area}
+          </h3>
+          <div className="mt-4 overflow-x-auto rounded-panel border border-border">
+            <table className="w-full min-w-[44rem] border-collapse text-left text-sm/[1.55]">
+              <thead className="text-muted-foreground">
+                <tr className="border-b border-border">
+                  <th className="px-4 py-2.5 font-medium whitespace-nowrap" scope="col">
+                    {copy.code}
+                  </th>
+                  <th className="px-4 py-2.5 font-medium whitespace-nowrap" scope="col">
+                    {copy.status}
+                  </th>
+                  <th className="px-4 py-2.5 font-medium whitespace-nowrap" scope="col">
+                    {copy.meaning}
+                  </th>
+                  <th className="px-4 py-2.5 font-medium whitespace-nowrap" scope="col">
+                    {copy.action}
+                  </th>
+                  <th className="px-4 py-2.5 font-medium whitespace-nowrap" scope="col">
+                    {copy.retry}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {apiReference.errors
+                  .filter((entry) => entry.area === area)
+                  .map((entry) => (
+                    <tr
+                      className="border-b border-border align-top last:border-b-0"
+                      id={`error-${entry.code}`}
+                      key={entry.code}
+                    >
+                      <td className="px-4 py-3 font-mono text-[13px] text-foreground">
+                        <span>
+                          {/* A long code breaks after an underscore, never inside a word. */}
+                          {entry.code.split("_").map((part, index) => (
+                            <Fragment key={index}>
+                              {index > 0 && (
+                                <>
+                                  _<wbr />
+                                </>
+                              )}
+                              {part}
+                            </Fragment>
+                          ))}
+                        </span>
+                        {entry.reserved && (
+                          <span className="ml-2 rounded-chip border border-border px-1.5 font-sans text-[11px] text-muted-foreground">
+                            {copy.reserved}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[13px] whitespace-nowrap text-muted-foreground">
+                        {entry.statuses.join(", ")}
+                      </td>
+                      <td className="px-4 py-3 text-foreground" lang="en">
+                        <RichText text={entry.meaning} code />
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground" lang="en">
+                        <RichText text={entry.action} code />
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                        {copy.retryValues[entry.retry]}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }

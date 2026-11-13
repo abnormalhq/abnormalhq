@@ -64,6 +64,9 @@ test("developers page: an operation without a scope is never shown as open to an
   const document = JSON.parse(spec);
   const withRule = (rule: Record<string, unknown>) => ({
     info: { version: "1.0.0" },
+    "x-error-codes": [
+      { code: "x", statuses: [400], area: "request", meaning: "X.", action: "Y.", retry: "no", reserved: false },
+    ],
     tags: [{ name: "Batch" }],
     paths: { "/x": { get: { operationId: "x", summary: "X", tags: ["Batch"], "x-required-scopes": [], ...rule } } },
   });
@@ -159,20 +162,26 @@ test("developers page: it names the real addresses, says what is not offered, an
     assert.ok(body.includes(`(${developerApi.openapi})`), lang);
     // A key is read from hidden input or the environment, never written into an example.
     assert.doesNotMatch(`${body}\n${code}`, /Bearer [A-Za-z0-9_-]{12,}|whsec_[A-Za-z0-9]{8,}|sk_(live|test)_/, lang);
-    // The last prose section before the reference says what the API does not do; the reference is last.
+    // The prose ends with what the API does not do (and who to ask); then the error codes and the endpoint list, each
+    // filled by its slot.
     const sections = developersContent[lang].sections;
     assert.equal(sections.length, developersContent.en.sections.length);
+    assert.deepEqual(sections.map((section) => section.slot ?? null).slice(-3), [null, "errors", "reference"]);
     assert.ok(
-      texts([sections.at(-2)!])
+      texts([sections.at(-3)!])
         .join("\n")
         .includes(`(mailto:${site.contact.email})`),
       lang,
     );
   }
   assert.match(whole("en"), /Sending mail through the API or SMTP/);
-  assert.match(whole("en"), /Test keys and a sandbox/);
+  // Test keys exist (mail's docs/api-test-mode.md): the page explains them and no longer lists them as missing.
+  assert.match(whole("en"), /Its token starts with `mhq_test_`/);
+  assert.doesNotMatch(whole("en"), /Test keys and a sandbox/);
+  assert.ok(whole("en").includes("`403 test_mode_unsupported`"));
   assert.match(whole("zh"), /通过 API 或 SMTP 为你的应用发信/);
-  assert.match(whole("zh"), /测试密钥和沙箱/);
+  assert.match(whole("zh"), /令牌以 `mhq_test_` 开头/);
+  assert.doesNotMatch(whole("zh"), /测试密钥和沙箱/);
 });
 
 test("developers page: its links resolve, and it is a page of both languages with a footer entry", () => {
@@ -221,3 +230,42 @@ for (const lang of langs) {
     );
   });
 }
+
+test("developers page: every error code of the document is in the table, named in both languages", () => {
+  const document = JSON.parse(spec) as { "x-error-codes": { code: string; area: string; retry: string }[] };
+  assert.deepEqual(
+    apiReference.errors.map((entry) => entry.code),
+    document["x-error-codes"].map((entry) => entry.code),
+  );
+  assert.ok(apiReference.errors.length >= 80, `${apiReference.errors.length} codes`);
+  for (const code of [
+    "unauthorized",
+    "rate_limited",
+    "provisioning_uncertain",
+    "test_mode_unsupported",
+    "sandbox_domain_zone",
+  ])
+    assert.ok(
+      apiReference.errors.some((entry) => entry.code === code),
+      code,
+    );
+  // Every area and retry answer the document uses has a name in each language.
+  for (const lang of langs) {
+    const copy = copies[lang].developers.errors;
+    for (const entry of apiReference.errors) {
+      assert.ok(copy.areas[entry.area], `${lang}: area ${entry.area}`);
+      assert.ok(copy.retryValues[entry.retry as keyof typeof copy.retryValues], `${lang}: retry ${entry.retry}`);
+    }
+    const markdown = developersMarkdown(lang);
+    for (const entry of apiReference.errors)
+      assert.ok(markdown.includes(`\`${entry.code}\` (`), `${lang}: ${entry.code}`);
+    // The error codes follow their own section, before the endpoint list.
+    const errorsTitle = developersContent[lang].sections.find((section) => section.slot === "errors")!.title;
+    const referenceTitle = developersContent[lang].sections.find((section) => section.slot === "reference")!.title;
+    const at = (text: string) => markdown.indexOf(text);
+    assert.ok(
+      at(`## ${errorsTitle}`) < at("`unauthorized` (") && at("`unauthorized` (") < at(`## ${referenceTitle}`),
+      lang,
+    );
+  }
+});

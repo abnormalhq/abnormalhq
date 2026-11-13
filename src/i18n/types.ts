@@ -421,6 +421,20 @@ export interface Copy {
       perOperation: string;
       originalKey: string;
     };
+    /**
+     * The error code table: column headers, the three retry answers, the mark of a reserved code, and the names of the
+     * areas codes are grouped by (keys are the x-error-codes areas of mail's error registry).
+     */
+    errors: {
+      code: string;
+      status: string;
+      meaning: string;
+      action: string;
+      retry: string;
+      retryValues: { no: string; after_wait: string; after_checking: string };
+      reserved: string;
+      areas: Readonly<Record<string, string>>;
+    };
     /** At the foot of the page. */
     specLink: string;
     statusLink: string;

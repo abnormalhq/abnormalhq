@@ -33,6 +33,7 @@ export function DocArticle({
   sections,
   meta,
   crumb,
+  slots,
   children,
 }: {
   lang: Lang;
@@ -47,6 +48,8 @@ export function DocArticle({
   meta?: ReactNode;
   /** The page's name in the breadcrumb, when the title is too long for it. */
   crumb?: string;
+  /** Generated content for the sections that name a slot (DevDocSection.slot), shown after their blocks. */
+  slots?: Readonly<Partial<Record<NonNullable<DevDocSection["slot"]>, ReactNode>>>;
   children?: ReactNode;
 }) {
   const { t, path } = useCopy(lang);
@@ -116,6 +119,7 @@ export function DocArticle({
                 {section.blocks.map((block, blockIndex) => (
                   <Block block={block} base={base} key={blockIndex} />
                 ))}
+                {"slot" in section && section.slot ? slots?.[section.slot] : null}
               </section>
             ))}
           </Prose>

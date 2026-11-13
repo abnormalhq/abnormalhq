@@ -299,22 +299,39 @@ export function developersMarkdown(lang: Lang): string {
     const list = scopes.map((scope) => `\`${scope}\``).join(", ");
     return keyRule === "per-operation" ? `${d.reference.perOperation}${t.legal.colon}${list}` : list;
   };
+  const reference = apiReference.groups.flatMap((group) => [
+    `### ${group.tag}`,
+    group.description,
+    list(
+      group.operations.map(
+        (operation) =>
+          `\`${operation.method.toUpperCase()} ${operation.path}\`: ${operation.summary} (${access(operation)})${
+            operation.deprecated ? ` · ${d.reference.deprecated}` : ""
+          }`,
+      ),
+    ),
+  ]);
+  // One list per area, each code with its statuses, meaning, action and retry answer (x-error-codes of the document).
+  const errors = [...new Set(apiReference.errors.map((entry) => entry.area))].flatMap((area) => [
+    `### ${d.errors.areas[area] ?? area}`,
+    list(
+      apiReference.errors
+        .filter((entry) => entry.area === area)
+        .map(
+          (entry) =>
+            `\`${entry.code}\` (${entry.statuses.join(", ")}${entry.reserved ? `, ${d.errors.reserved}` : ""}): ${entry.meaning} ${d.errors.action}${t.legal.colon}${entry.action} ${d.errors.retry}${t.legal.colon}${d.errors.retryValues[entry.retry]}.`,
+        ),
+    ),
+  ]);
+  const slots = { errors, reference };
   return `${paragraphs([
     `# ${content.title}`,
     content.summary,
     `${d.reviewedLabel}${t.legal.colon}${content.reviewed} · ${d.versionLabel}${t.legal.colon}${apiReference.version}`,
-    ...sectionsMarkdown(content.sections, lang),
-    ...apiReference.groups.flatMap((group) => [
-      `### ${group.tag}`,
-      group.description,
-      list(
-        group.operations.map(
-          (operation) =>
-            `\`${operation.method.toUpperCase()} ${operation.path}\`: ${operation.summary} (${access(operation)})${
-              operation.deprecated ? ` · ${d.reference.deprecated}` : ""
-            }`,
-        ),
-      ),
+    // Each section as written, followed by the generated content of its slot (the error codes, the endpoint list).
+    ...content.sections.flatMap((section) => [
+      ...sectionsMarkdown([section], lang),
+      ...(section.slot ? slots[section.slot] : []),
     ]),
     list([`[${d.specLink}](${developerApi.openapi})`, `[${d.statusLink}](${linksFor(lang).status})`]),
   ])}\n`;
