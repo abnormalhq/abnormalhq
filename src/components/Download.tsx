@@ -11,10 +11,12 @@ import { useCopy } from "@/i18n";
 import { fileLabel, formatSize, linuxDownload, releaseDate, type DesktopReleases } from "@/lib/releases";
 import type { DesktopPlatform } from "@/lib/platform";
 import { fillTemplate } from "@/lib/template";
+import { downloadStructuredData } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 import { CommandLine } from "./CommandLine";
 import { ForThisComputer, PhoneNote } from "./DownloadHint";
 import { Icon } from "./Icon";
+import { JsonLd } from "./JsonLd";
 
 /**
  * Desktop client download page: current version number, one card per platform, sign-in notes, past releases and checksums.
@@ -88,6 +90,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
 
   return (
     <section aria-labelledby="download-title">
+      <JsonLd data={downloadStructuredData(lang, releases)} />
       <Container className={sectionSpaceClassName}>
         <Eyebrow lang="en">{d.eyebrow}</Eyebrow>
         <SectionTitle asChild>

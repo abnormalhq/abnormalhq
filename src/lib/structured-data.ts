@@ -7,12 +7,24 @@ import { helpArticles, helpPath, type HelpArticle } from "../content/help/index.
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { claudeContent } from "../content/claude/index.ts";
 import { securityContent } from "../content/security/index.ts";
-import { absoluteUrl, configuredVideo, site, type Lang, type PromoVideo } from "../data/site.ts";
+import {
+  absoluteUrl,
+  configuredVideo,
+  desktopAppName,
+  desktopDownloads,
+  site,
+  type Lang,
+  type PromoVideo,
+} from "../data/site.ts";
 import { copies } from "../i18n/index.ts";
 import { langs, localePath } from "../i18n/paths.ts";
 import { plainText, sectionId } from "./docs.ts";
 import { socialImage } from "./metadata.ts";
 import type { PlanView } from "./pricing.ts";
+import { linuxDownload, releaseDate, type DesktopReleases } from "./releases.ts";
+import { copy as storeCopy } from "../storefront/i18n.ts";
+import { shopCopy } from "../storefront/lib/shop-copy.ts";
+import { storeTitle, type StoreMarkdownPath } from "../storefront/lib/markdown.ts";
 
 type Node = Record<string, unknown>;
 
@@ -25,7 +37,9 @@ function organization(): Node {
     "@type": "Organization",
     "@id": organizationId,
     name: site.name,
+    alternateName: site.alternateNames,
     url: `${site.url}/`,
+    sameAs: site.sameAs,
     logo: { "@type": "ImageObject", url: absolute("/icon.png"), width: 512, height: 512 },
     email: site.contact.email,
     contactPoint: {
@@ -295,6 +309,107 @@ export function claudeStructuredData(lang: Lang) {
         { name: t.claude.navLabel, url: page.url as string },
       ]),
     },
+  ]);
+}
+
+/**
+ * The download page: the page with a breadcrumb, and the desktop app as a SoftwareApplication with the systems and installers the
+ * page offers. The version and its date come from the release list read at this render; without it they are left out, as on the
+ * page. Linux is listed only when the current release has Linux packages. No price or rating is claimed.
+ */
+export function downloadStructuredData(lang: Lang, releases: DesktopReleases | undefined) {
+  const t = copies[lang];
+  const d = t.download;
+  const page = webPage(lang, "/download/", d.metaTitle, d.metaDescription);
+  const url = page.url as string;
+  const linux = linuxDownload(releases);
+  const app: Node = {
+    "@type": "SoftwareApplication",
+    "@id": `${url}#app`,
+    name: desktopAppName,
+    description: d.metaDescription,
+    applicationCategory: "CommunicationApplication",
+    operatingSystem: [d.macos.name, d.windows.name, ...(linux ? [d.linux.name] : [])].join(", "),
+    downloadUrl: [
+      desktopDownloads.macos,
+      desktopDownloads.windows,
+      desktopDownloads.windowsArm,
+      ...(linux ? [linux.file.url, ...(linux.arm ? [linux.arm.url] : [])] : []),
+    ],
+    ...(releases && { softwareVersion: releases.current.version, datePublished: releaseDate(releases.current) }),
+    inLanguage: langs.map((lang) => copies[lang].htmlLang),
+    publisher: { "@id": organizationId },
+  };
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: d.navLabel, url },
+      ]),
+      mainEntity: { "@id": app["@id"] },
+    },
+    app,
+  ]);
+}
+
+/** The storefront pages' title and description, the same as their metadata (src/storefront/metadata.ts). */
+function storePage(lang: Lang, path: StoreMarkdownPath): { title: string; description: string } {
+  if (path === "/guide/") return storeCopy[lang].guide;
+  if (path === "/shop/") return { title: storeTitle(lang, path), description: shopCopy[lang].description };
+  return storeCopy[lang];
+}
+
+/**
+ * The numbered steps a storefront page shows, as plain text: the redeem form's four steps (label and hint, as the form shows them)
+ * and the shop's three steps from paying to a mailbox. The guide is a set of topics rather than one procedure, and gets none.
+ */
+function storeSteps(lang: Lang, path: StoreMarkdownPath): { name: string; steps: string[] } | undefined {
+  if (path === "/redeem/") {
+    const { ui, steps } = storeCopy[lang];
+    return {
+      name: ui.formTitle,
+      steps: [steps.code, steps.options, steps.accounts, steps.notify].map((step) => `${step.label}: ${step.hint}`),
+    };
+  }
+  if (path === "/shop/") return { name: shopCopy[lang].processTitle, steps: [...shopCopy[lang].steps] };
+  return undefined;
+}
+
+/**
+ * A storefront page (redeem, guide, shop): the page with a "Home > page" breadcrumb, and where the page walks through numbered
+ * steps, those steps as a HowTo. Plans and prices are on the pricing page's own structured data, read from the live catalog;
+ * the shop page is prerendered and claims none.
+ */
+export function storeStructuredData(lang: Lang, path: StoreMarkdownPath) {
+  const t = copies[lang];
+  const { title, description } = storePage(lang, path);
+  const page = webPage(lang, path, title, description);
+  const url = page.url as string;
+  const procedure = storeSteps(lang, path);
+  const howTo: Node | undefined = procedure && {
+    "@type": "HowTo",
+    "@id": `${url}#steps`,
+    name: procedure.name,
+    inLanguage: t.htmlLang,
+    step: procedure.steps.map((text, index) => ({ "@type": "HowToStep", position: index + 1, text })),
+  };
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: title.replace(` · ${site.name}`, ""), url },
+      ]),
+      ...(howTo && { mainEntity: { "@id": howTo["@id"] } }),
+    },
+    ...(howTo ? [howTo] : []),
   ]);
 }
 

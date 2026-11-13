@@ -12,7 +12,15 @@ export interface Contact {
 export const site = {
   /** Brand name: og:site_name and the organization and website names in the structured data. */
   name: "Abnormal",
+  /**
+   * Other names the brand goes by, for the organization in the structured data. "Abnormal" alone is shared with an unrelated
+   * email security company, so search engines and AI answers get the names that are this service's only: the desktop app's
+   * and the domain's.
+   */
+  alternateNames: ["Abnormal Mail", "abnormalhq"],
   url: "https://abnormalhq.com",
+  /** The brand's own profiles elsewhere (schema.org sameAs): the GitHub organization the website, mail and the desktop app are built in. */
+  sameAs: ["https://github.com/abnormalhq"],
   /** Only redirects to the main domain; see the redirects in next.config.ts. */
   wwwHost: "www.abnormalhq.com",
   contact: {
@@ -100,6 +108,9 @@ export function videoMimeType(src: string): string | undefined {
  * releases.json lists every version; the download page's current and past releases are generated from it (see src/lib/releases.ts).
  */
 const downloadsOrigin = "https://downloads.abnormalhq.com";
+
+/** Name of the desktop client, as its installers and Homebrew cask call it; the download page's structured data names the app with it. */
+export const desktopAppName = "Abnormal Mail";
 
 export const desktopDownloads = {
   macos: `${downloadsOrigin}/desktop/latest/Abnormal-Mail-macos-universal.dmg`,

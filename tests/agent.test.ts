@@ -8,6 +8,7 @@ import {
   downloadMarkdown,
   homeMarkdown,
   legalMarkdown,
+  llmsFullTxt,
   llmsTxt,
   pricingMarkdown,
   stripFrontmatter,
@@ -219,6 +220,27 @@ test("llms.txt follows the format and lists every page and linked site in both l
   for (const lang of ["zh", "en"] as const) {
     for (const url of Object.values(linksFor(lang))) assert.ok(text.includes(`(${absoluteUrl(url)})`), url);
   }
+});
+
+test("llms.txt points at llms-full.txt", () => {
+  assert.ok(llmsTxt().includes(`(${site.url}/llms-full.txt)`));
+});
+
+test("llms-full.txt carries every page's Markdown in the order of llms.txt, each with its address", () => {
+  const text = llmsFullTxt((page) => `# Page ${page.markdown}\n\nBody of ${page.url}.\n`);
+  assert.match(text, /^# Abnormal\n\n> /);
+  assert.ok(text.includes(`(${site.url}/llms.txt)`));
+  let at = 0;
+  for (const page of pages) {
+    const next = text.indexOf(
+      `# Page ${page.markdown}\n\nBody of ${page.url}.\n\nSource: ${site.url}${page.url}\n`,
+      at,
+    );
+    assert.ok(next > at, page.url);
+    at = next;
+  }
+  assert.equal(text.split("\n\n---\n\n").length, pages.length + 1);
+  assert.ok(text.endsWith(`Source: ${site.url}${pages.at(-1)!.url}\n`));
 });
 
 for (const lang of ["zh", "en"] as const) {

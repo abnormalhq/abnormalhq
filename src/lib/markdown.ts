@@ -36,7 +36,7 @@ import {
   releaseDate,
   type DesktopReleases,
 } from "./releases.ts";
-import { pageFor, pagePaths } from "./pages.ts";
+import { pageFor, pagePaths, pages } from "./pages.ts";
 import { planRowsFor, planViews } from "./pricing.ts";
 import type { ShopCatalog } from "../storefront/lib/catalog.ts";
 import { storeMarkdownPaths, storeTitle } from "../storefront/lib/markdown.ts";
@@ -357,11 +357,29 @@ function llmsSection(lang: Lang, heading: string): string {
 /** Heading of each language's section in llms.txt, in that language's own name. */
 const languageNames: Record<Lang, string> = { en: "English", zh: "中文" };
 
+/** Where llms-full.txt is served (src/app/llms-full.txt/route.ts). */
+export const llmsFullPath = "/llms-full.txt";
+
+/** The opening of llms.txt and llms-full.txt: the brand, then each language's description. */
+const llmsIntro = () => ["# Abnormal", ...langs.map((lang) => `> ${copies[lang].meta.description}`)];
+
 /** Format per https://llmstxt.org/. Languages are listed in the order of langs, default language (English) first. */
 export function llmsTxt(): string {
   return `${paragraphs([
-    "# Abnormal",
-    ...langs.map((lang) => `> ${copies[lang].meta.description}`),
+    ...llmsIntro(),
+    `The full text of every page below, in one file: [llms-full.txt](${absolute(llmsFullPath)})`,
     ...langs.map((lang) => llmsSection(lang, languageNames[lang])),
   ])}\n`;
+}
+
+/**
+ * llms-full.txt: every page's Markdown in one file, in the order of llms.txt's sections (pages in the order of src/lib/pages.ts,
+ * default language first), so an agent can read the whole site in one request. Each page keeps its own headings and ends with the
+ * address of its HTML page. `markdownOf` gives a page's Markdown (src/lib/page-markdown.ts, with the live catalog and release list).
+ */
+export function llmsFullTxt(markdownOf: (page: (typeof pages)[number]) => string): string {
+  return `${[
+    paragraphs([...llmsIntro(), `The index of these pages is [llms.txt](${absolute("/llms.txt")}).`]),
+    ...pages.map((page) => `${markdownOf(page).trimEnd()}\n\nSource: ${absolute(page.url)}`),
+  ].join("\n\n---\n\n")}\n`;
 }
