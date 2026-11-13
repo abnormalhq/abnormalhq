@@ -9,7 +9,6 @@ import { helpSlugOf } from "@/content/help";
 import type { Lang } from "@/data/site";
 import {
   claudeMarkdown,
-  developersMarkdown,
   downloadMarkdown,
   helpArticleMarkdown,
   helpIndexMarkdown,
@@ -41,7 +40,6 @@ export function pageMarkdown({ lang, path }: Page, live?: LiveData): string {
   if (path === "/help/") return helpIndexMarkdown(lang);
   if (path === "/security/") return securityMarkdown(lang);
   if (path === "/claude/") return claudeMarkdown(lang);
-  if (path === "/developers/") return developersMarkdown(lang);
   const article = helpSlugOf(path);
   if (article) return helpArticleMarkdown(lang, article);
   if (path === "/privacy/" || path === "/terms/")
