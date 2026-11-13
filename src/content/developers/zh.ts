@@ -159,7 +159,7 @@ export const developersZh: DevelopersContent = {
             "管理后台的 **设置 → 开发者** 会显示当天的发信额度、最近的 API 调用及其错误码、每封发出的邮件和每个收件人的结果。",
             "回到域名发信账号的延迟退信和垃圾邮件投诉（反馈环报告）会被读回：收件人变为 `bounced`，或得到 `complainedAt` 和一个 `email.complained` 事件，并被加入抑制列表。",
             "新开通的工作区会先预热：第一天最多 50 封，此后每天翻倍，直到上限。退信或投诉过多时正式发信会自动暂停（`403 email_api_paused`，并推送 `email.sending_paused` 事件），直到我们核查。",
-            "只能走 SMTP 的软件可以用 `POST /domains/{id}/smtp-credentials` 经域名自己的服务器发信：这个密码只能登录和发信，与 API 密钥分开创建和撤销。",
+            "只能走 SMTP 的软件可以用 `POST /domains/{id}/smtp-credentials` 经域名自己的服务器发信：这个密码只能登录和发信，与 API 密钥分开创建和撤销。这样发出的邮件不是 API 邮件：没有 `GET /emails` 记录，也没有投递事件，计入的是发信账户在服务器上自己的每日限额，而不是工作区的发信额度。",
           ],
         },
       ],

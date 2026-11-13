@@ -22841,10 +22841,8 @@
                     "type": "boolean"
                   }
                 },
-                "required": [
-                  "read",
-                  "flagged"
-                ]
+                "required": [],
+                "minProperties": 1
               }
             }
           }
@@ -22899,9 +22897,7 @@
                         }
                       },
                       "required": [
-                        "id",
-                        "read",
-                        "flagged"
+                        "id"
                       ]
                     }
                   },

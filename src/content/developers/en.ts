@@ -188,7 +188,7 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
             "**Settings → Developers** in the admin console shows the day's sending allowance, the latest API calls with their error codes, each message sent and every recipient's outcome.",
             "Late bounces and spam complaints (feedback loop reports) that reach the domain's sending account are read back: the recipient becomes `bounced`, or gets `complainedAt` and an `email.complained` event, and goes on the suppression list.",
             "A newly approved workspace warms up: 50 messages on its first day, twice as many each day after, up to its limit. Live sending pauses by itself when too many recipients bounce or complain (`403 email_api_paused` and an `email.sending_paused` event) until we look into it.",
-            "Software that only speaks SMTP can send through the domain's own server with `POST /domains/{id}/smtp-credentials`: a password that may only sign in and send, made and revoked apart from API keys.",
+            "Software that only speaks SMTP can send through the domain's own server with `POST /domains/{id}/smtp-credentials`: a password that may only sign in and send, made and revoked apart from API keys. That mail is not an API message: it has no `GET /emails` record and no delivery events, and it counts against the sending account's own daily limit on the server, not the workspace's allowance.",
           ],
         },
       ],
