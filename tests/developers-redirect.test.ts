@@ -11,8 +11,10 @@ test("the developer documentation lives on its own site: every old address redir
   const target = (source: string) => redirects.find((redirect) => redirect.source === source);
   for (const [source, destination] of [
     ["/developers/", "/"],
+    ["/en/developers/", "/"],
     ["/zh/developers/", "/zh/"],
     ["/md/developers/", "/md/"],
+    ["/md/en/developers/", "/md/"],
     ["/md/zh/developers/", "/md/zh/"],
     ["/developers/openapi.json", "/openapi.json"],
   ]) {
