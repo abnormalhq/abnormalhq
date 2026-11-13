@@ -189,6 +189,7 @@ export function verifyMailhqWebhook(secret, rawBody, header, toleranceMs = 5 * 6
             "The version is in the path: `/api/v1`. Within it, changes only add things: new endpoints, new optional fields, new response fields, new enum values and new event types. Your code should accept fields and values it does not know.",
             "Removing or changing something in `v1` is announced first, marked deprecated in the specification and signalled with `Deprecation` and `Sunset` headers on every response: at least 6 months ahead for anything your code sends, 3 months for a field or value it only reads.",
             `The OpenAPI 3.1 specification behind the reference below can be [downloaded as JSON](${developerApi.openapi}) for code generators and API tools.`,
+            `The [status page](${developerApi.status}) shows the management API's availability over the last 30 days, checked every minute, with outages and maintenance. Your own monitors can poll \`GET ${developerApi.health}\`, which needs no key.`,
           ],
         },
       ],

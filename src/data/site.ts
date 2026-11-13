@@ -63,6 +63,10 @@ export const developerApi = {
   /** Applying for a workspace (mail's docs/multi-tenancy.md, "Workspace applications"); a platform admin reviews each one. */
   signup: "https://console.abnormalhq.com/signup",
   openapi: `${site.url}/developers/openapi.json`,
+  /** The public status page, where the management API is a service of its own (mail's docs/admin-console.md). */
+  status: "https://console.abnormalhq.com/status",
+  /** Database reachability, no sign-in (mail's docs/deployment.md): for a developer's own uptime monitor. */
+  health: "https://console.abnormalhq.com/api/health",
 } as const;
 
 /**

@@ -156,6 +156,7 @@ export const developersZh: DevelopersContent = {
             "版本写在路径里：`/api/v1`。在同一版本内只做新增：新接口、新的可选字段、新的响应字段、新的枚举值和新的事件类型。你的代码应当能接受不认识的字段和值。",
             "在 `v1` 里删除或修改任何东西都会先公告，在规范里标为弃用，并在每个响应里带上 `Deprecation` 和 `Sunset` 头：代码会发送的内容至少提前 6 个月，只会读取的字段或值至少提前 3 个月。",
             `下方接口列表所依据的 OpenAPI 3.1 规范可以[下载 JSON 文件](${developerApi.openapi})，供代码生成器和 API 工具使用。`,
+            `[服务状态页](${developerApi.status})会显示管理 API 近 30 天的可用率（每分钟检测一次），以及故障和维护。你自己的监控可以轮询 \`GET ${developerApi.health}\`，无需密钥。`,
           ],
         },
       ],
