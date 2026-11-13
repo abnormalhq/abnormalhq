@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MailHQ API",
-    "version": "1.7.0",
+    "version": "1.8.0",
     "description": "## Domain onboarding guide\n\nSend and receive mail with your own domain. The domain can stay at its current registrar. An admin requests onboarding and verifies domain ownership; once DNS is configured with the records shown in the admin, you can use your own email addresses.\n\n[Start domain onboarding](/settings#domain-connection) · [Admin](/settings) · [Webmail](/webmail)\n\n### 01 · Request onboarding\n\nPrepare a domain whose DNS you control. In **Settings → External domain onboarding**, an admin selects a Stalwart mail service subscription, enters the domain (for example `example.com`) and clicks **Generate verification record**.\n\nOnly admins can request, verify and view onboarding settings. Domains and mailboxes are currently managed centrally by admins; domain owners never need to hand over registrar accounts or DNS keys to this service.\n\nAdmin tip: once provisioned, the domain joins the existing mailbox management and redemption rules. Generic redemption codes or products without a domain restriction will include the new domain; before hosting an external domain, review and restrict the allowed domains.\n\n### 02 · Add a TXT record to verify ownership\n\n1. In the admin, open the domain's onboarding details and copy the name and value of the **Domain ownership** TXT record.\n2. At the DNS provider the domain currently uses, add that TXT record. Whether the host field needs the full domain depends on your provider; avoid appending the domain suffix twice.\n3. Wait for DNS to propagate, then click **Verify ownership and connect** in the admin. Once verified, the domain is provisioned on the mail server and added to the managed list.\n\nPending verification records are valid for 7 days; after that, click **Refresh verification record**, update the value in DNS and verify again. Ownership of an already provisioned domain does not expire because of this. You can keep the verification TXT for auditing; removing it does not disable a provisioned domain. No MX change is needed at this stage, so existing mailboxes keep receiving mail.\n\nIf the page shows **Confirming provisioning**, use **Check again** to read the result; if it shows **Needs manual review**, an admin should check the domain on the server first to avoid creating it twice.\n\n### 03 · Prepare mailboxes, then migrate mail\n\nProvisioning status and mail DNS checks are shown separately. Once ownership verification and server provisioning are done, you can create mailboxes on the domain, such as `you@example.com`, without switching mail routing first.\n\nIf the domain already has mailboxes, create the matching accounts and confirm passwords and forwarding rules before migrating any old mail you want to keep. Creating a mailbox does not copy historical mail from the old provider.\n\nMove on only once the new mailboxes are ready. For a while after switching MX, some senders may still use the old records, so keep the old service and check mail on both sides.\n\n### 04 · Configure mail DNS from the admin, switch MX last\n\nIn **Settings → Domains**, click the domain's **DNS settings / check**, or open its details from the onboarding request list. The admin shows the exact names, values, MX priorities and check results this domain needs. Use those records; the table below explains what each kind is for.\n\n| Record | Purpose | Notes |\n| --- | --- | --- |\n| MX | Delivers new mail to this service | Use the target and priority shown in the admin; switch it last, once mailboxes and migration are ready. |\n| TXT · SPF | Authorizes servers to send for the domain | A domain can have only one SPF record. If one exists, merge the authorizations and keep other sending services still in use. |\n| TXT · DKIM | Verifies mail signatures | Copy each selector and public key exactly as shown in the admin. Do not use signing records from other domains or servers. |\n| TXT · DMARC | Declares the mail authentication policy | Optional and recommended; start with `p=none`. If a policy exists, review it first and do not overwrite existing quarantine or reject policies. |\n\nSet mail-related records to **DNS only**; do not enable web proxying. Unless an admin says otherwise, there is no need to create `mail.your-domain` or get a certificate for it; mail clients use the server name shown in the admin.\n\nBefore switching MX, review the domain settings at the old provider. Some providers may still deliver mail sent within their own platform to their old mailboxes, so the old provider's delivery mode may also need adjusting.\n\n### 05 · Check again and start using it\n\nAfter saving DNS, click **Check again** in the domain details. The page shows the records currently found and why any are missing, conflicting or failed to resolve. DNS caches take time to update; if records don't match yet, confirm the names and values, then wait for the old records' caches to expire.\n\n| Item | Setting |\n| --- | --- |\n| Incoming mail | IMAP · 993 · SSL/TLS |\n| Outgoing mail | SMTP · 465 · SSL/TLS |\n| Server | The server name shown on the admin page |\n| Sign-in | Full email address + mailbox password |\n\nUse [Webmail](/webmail) or your own mail client. Whether webmail is available depends on the domain being provisioned and the settings an admin has enabled.\n\nTest receiving and sending separately from an independent external mailbox, and check the spam folder. Passing DNS checks and SPF / DKIM / DMARC does not guarantee delivery to the inbox at Gmail or other services.\n\nThe live settings on the admin page are authoritative for each domain's records. [Manage domain onboarding](/settings#domain-connection).\n\n## API access\n\n### Creating keys and authenticating\n\nFirst generate an API key in [Settings → API keys](/settings/api-keys), choosing the permissions and expiry you need (it can be set to never expire), then enter the full key under Authorize.\n\nAll `/api/v1` endpoints accept only `Authorization: Bearer <API_KEY>`. A browser sign-in cookie cannot replace a Bearer key, and each operation also requires the matching scope. Granting only a write scope does not grant read access. After a key is revoked, further requests with it are rejected.\n\n### Scope\n\nThis API manages the Stalwart mail service connected to MailHQ.\n\nIt currently covers the server list, domain verification and provisioning, importing existing domains, enabling/disabling domains, mailboxes, passwords, status, storage quota, daily sending limits, notes, regular aliases, distribution lists, forwarding, a per-domain catch-all, alias domains and domain connection details, with batch operations. It does not offer reading/searching/deleting mail content, sending mail, autoresponders, spam policies or reseller management.\n\nBelow, each operation's scope, parameters, responses and examples are listed by group. The API base URL is `/api/v1` on this site.\n\n### Regular aliases and domain management\n\nRegular aliases use the `aliases:read` / `aliases:write` scopes. The target must be an existing managed user mailbox on the same domain; aliases can be created, renamed, enabled/disabled, re-described and deleted, but the target mailbox cannot be changed. Special or read-only aliases must be managed in Stalwart. Aliases are neither external forwarding nor catch-all.\n\n`GET /domains/{id}/catch-all` reads and `PUT /domains/{id}/catch-all` sets the mailbox that receives mail for addresses of the domain nobody holds: `{ \"destination\": \"postmaster@example.com\" }` (an existing managed mailbox of the same domain), or `{ \"destination\": null }` to reject such mail, the default. A catch-all accepts every guessed or mistyped address, so it attracts spam.\n\n`PUT /domains/{id}/status` accepts `{ \"enabled\": true }` or `false` and enables or disables the domain on Stalwart. `DELETE /domains/{id}` still only removes the local record and cannot delete the remote domain. Writes to domains and aliases require the admin role and the matching write scope.\n\n### Alias domains\n\nAn alias domain is an additional domain name whose addresses deliver to the mailboxes of a primary domain: mail for `user@alias.example` goes to the mailbox of `user@primary.example`, and the primary domain's aliases, lists and catch-all apply too. `POST /domains/{id}/domain-aliases` with `{ \"domain\": \"alias.example\" }` records the request and returns the ownership TXT record; after publishing it, `POST /domains/{id}/domain-aliases/{aliasId}/verify` adds the name on the mail server, and `GET` on the alias lists the MX record it needs to receive mail. An alias domain is for receiving: mail sent from its addresses is signed with the primary domain's DKIM key. Onboard a domain of its own when it has to send under its own name.\n\n### Distribution lists\n\nDistribution lists use the `lists:read` / `lists:write` scopes. A list is an address of a domain that delivers a copy of every message to all of its members; it has no mailbox, cannot sign in and does not count towards the workspace's mailbox limit. `GET /lists?domainId=…` lists a domain's lists with their members, `POST /lists` creates one, and `PATCH /lists/{listId}` renames it, changes its description and adds or removes members. Members that are not mailboxes managed by the workspace are refused unless the request sets `allowExternal: true`: the mail server then forwards everything sent to the list, spam included, to those outside addresses. The list's address must be free among mailboxes (pending and deleted ones included), aliases, forwarding addresses and other lists.\n\n### Legal holds\n\nLegal holds use the `holds:read` / `holds:write` scopes (admin keys only). `POST /holds` places a hold on one mailbox (`mailboxId`) or on every mailbox of a domain (`domain`) with a `name`, a `reason` and an optional `endsAt`; `POST /holds/{id}/release` releases it with a `reason`. While a hold is active the mailbox cannot be deleted permanently or purged from the recycle bin (`409 legal_hold`); deleting it into the recycle bin still works. A hold preserves the mailbox, not individual messages: the mailbox's user can still delete their own mail, and this is not a certified archive.\n\n### Reports\n\n`GET /reports/inactive-mailboxes`, `GET /reports/storage` and `GET /reports/top-senders` are read-only reports under `mailboxes:read`: mailboxes with no WebMail sign-in and no mail for 30, 60 or 90 days, mailbox usage per domain from daily samples, and today's top senders by daily sending-limit usage. They are computed from records MailHQ keeps, not from the mail server's own counters: sign-ins and sends of mail apps over IMAP / SMTP are not seen.\n\n### Batch requests and verifying results\n\n`POST /batch` accepts `{ \"operations\": [...] }` with 1–25 operations and a body of at most 16 KiB, and requires an `Idempotency-Key` of 8–128 letters, digits, hyphens or underscores. Each operation has a unique `id`, an `operation` and an `input`. The whole request's format, base fields and required scopes are validated before the first write, then operations run in order; resource existence, domain ownership and remote state are checked as each one runs.\n\nReturns 200 when everything succeeds and 207 when any operation failed, is uncertain or was not executed. Each `outcome` is `succeeded`, `failed`, `uncertain` or `skipped`. Execution continues after ordinary failures and stops when a result is unclear; completed operations are not rolled back or retried automatically, and responses never include passwords.\n\nThe same API key, idempotency key and normalized operations replay the saved result; different content returns 409. After a timeout, first query `GET /batch/{requestId}` with the original key: it returns only the `running` / `completed` / `uncertain` state and timestamps, not the operations or results. `running` and `uncertain` never expire or re-run automatically. Even when it reports `completed`, still check every outcome in the original batch result; it does not mean every operation succeeded.\n\n### Interactive requests and documentation security\n\nAll examples use fictional data. The documentation never reads instance configuration, connected domains, mailbox passwords or API keys.\n\nInteractive requests go directly from your browser to this site, without a public request proxy. Keys are not kept after a page refresh; do not enter API keys on shared devices, and never put keys in URLs, code repositories or logs."
   },
   "servers": [
@@ -785,12 +785,23 @@
       "reserved": false
     },
     {
+      "code": "invalid_webhook_format",
+      "statuses": [
+        400
+      ],
+      "area": "webhooks",
+      "meaning": "`format` is not standard, feishu or dingtalk, `botSecret` came without a bot format or is not one, or a PATCH tried to change either (they are set when the webhook is made).",
+      "action": "Send one of the formats, and a bot's signing secret only with a bot format; to change the format, make a new webhook.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
       "code": "invalid_webhook_url",
       "statuses": [
         400
       ],
       "area": "webhooks",
-      "meaning": "The address is not https on the default port with a public host name.",
+      "meaning": "The address is not https on the default port with a public host name, or, for a bot format, not that bot platform's webhook address.",
       "action": "Use a public https address without credentials, IP literal or internal name.",
       "retry": "no",
       "reserved": false
@@ -962,6 +973,17 @@
       "reserved": false
     },
     {
+      "code": "domain_not_sending",
+      "statuses": [
+        409
+      ],
+      "area": "emails",
+      "meaning": "The domain does not send through the API, so it has no sending account to make SMTP relay credentials for.",
+      "action": "Turn sending on for the domain (`PUT /domains/{id}/sending`) first.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
       "code": "email_api_not_approved",
       "statuses": [
         403
@@ -969,6 +991,17 @@
       "area": "emails",
       "meaning": "Sending through the API is not turned on for this workspace: a platform admin has not approved it.",
       "action": "Ask the platform's operator to approve it (with a daily limit). Test keys can send to the sandbox meanwhile.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "email_api_paused",
+      "statuses": [
+        403
+      ],
+      "area": "emails",
+      "meaning": "Live sending is paused for the workspace: in the last 7 days (or since it was last resumed) too many recipients bounced or complained. `details.reason` says which, `details.pausedAt` since when.",
+      "action": "Find out why (a stale list, a missing unsubscribe, a stolen key) and fix it, then ask the platform's operator to resume sending. Test keys still send to the sandbox.",
       "retry": "no",
       "reserved": false
     },
@@ -1055,8 +1088,19 @@
         400
       ],
       "area": "emails",
-      "meaning": "A mail app needs a name, 1 to 5 redirect URIs (https on a public host, or http on the loopback) and scopes from mail.read and mail.send.",
+      "meaning": "A mail app needs a name, 1 to 5 redirect URIs (https on a public host, or http on the loopback) and scopes from mail.read, mail.send and mail.modify.",
       "action": "Fix the app.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_message_change",
+      "statuses": [
+        400
+      ],
+      "area": "emails",
+      "meaning": "A change to an agent mailbox's message needs `read` and/or `flagged`, each true or false, and nothing else.",
+      "action": "Send `{ \"read\": true }`, `{ \"flagged\": false }` or both.",
       "retry": "no",
       "reserved": false
     },
@@ -1068,6 +1112,17 @@
       "area": "emails",
       "meaning": "`to`, `cc`, `bcc` or `replyTo` holds something that is not an address, or the message has no recipient or more than 50.",
       "action": "Fix the lists; send to more people in several messages or a batch.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "invalid_smtp_credential",
+      "statuses": [
+        400
+      ],
+      "area": "emails",
+      "meaning": "An SMTP relay credential needs a name: one line of at most 100 characters.",
+      "action": "Name what the credential is for (the application that will use it).",
       "retry": "no",
       "reserved": false
     },
@@ -1134,6 +1189,17 @@
       "area": "emails",
       "meaning": "The message has no Reply-To or From address other than the agent's own.",
       "action": "Send a new message with POST /agent-mailboxes/{id}/send instead.",
+      "retry": "no",
+      "reserved": false
+    },
+    {
+      "code": "smtp_credential_limit",
+      "statuses": [
+        409
+      ],
+      "area": "emails",
+      "meaning": "The domain already has 10 SMTP relay credentials in use.",
+      "action": "Revoke one you no longer need (`DELETE /domains/{id}/smtp-credentials/{credentialId}`).",
       "retry": "no",
       "reserved": false
     },
@@ -15553,6 +15619,7 @@
                     {
                       "id": "webhookexample1",
                       "url": "https://hooks.example.com/mailhq",
+                      "format": "standard",
                       "description": "Provisioning sync",
                       "events": [
                         "mailbox.created",
@@ -15719,6 +15786,7 @@
                   "data": {
                     "id": "webhookexample1",
                     "url": "https://hooks.example.com/mailhq",
+                    "format": "standard",
                     "description": "Provisioning sync",
                     "events": [
                       "mailbox.created",
@@ -15930,6 +15998,7 @@
                   "data": {
                     "id": "webhookexample1",
                     "url": "https://hooks.example.com/mailhq",
+                    "format": "standard",
                     "description": "Provisioning sync",
                     "events": [
                       "mailbox.created",
@@ -16115,6 +16184,7 @@
                   "data": {
                     "id": "webhookexample1",
                     "url": "https://hooks.example.com/mailhq",
+                    "format": "standard",
                     "description": "Provisioning sync",
                     "events": [
                       "mailbox.created",
@@ -17034,6 +17104,7 @@
               "type": "string",
               "enum": [
                 "hard_bounce",
+                "complaint",
                 "manual",
                 "import"
               ]
@@ -18176,7 +18247,8 @@
                           "status": "delivered",
                           "code": 250,
                           "detail": "250 2.0.0 OK",
-                          "at": "2026-11-13T09:00:04.000Z"
+                          "at": "2026-11-13T09:00:04.000Z",
+                          "complainedAt": null
                         }
                       ],
                       "tags": {
@@ -18353,7 +18425,8 @@
                         "status": "delivered",
                         "code": 250,
                         "detail": "250 2.0.0 OK",
-                        "at": "2026-11-13T09:00:04.000Z"
+                        "at": "2026-11-13T09:00:04.000Z",
+                        "complainedAt": null
                       }
                     ],
                     "tags": {
@@ -18425,7 +18498,8 @@
                         "status": "queued",
                         "code": null,
                         "detail": null,
-                        "at": null
+                        "at": null,
+                        "complainedAt": null
                       }
                     ],
                     "tags": {
@@ -18677,7 +18751,8 @@
                           "status": "delivered",
                           "code": 250,
                           "detail": "250 2.0.0 OK",
-                          "at": "2026-11-13T09:00:04.000Z"
+                          "at": "2026-11-13T09:00:04.000Z",
+                          "complainedAt": null
                         }
                       ],
                       "tags": {
@@ -18915,7 +18990,8 @@
                         "status": "delivered",
                         "code": 250,
                         "detail": "250 2.0.0 OK",
-                        "at": "2026-11-13T09:00:04.000Z"
+                        "at": "2026-11-13T09:00:04.000Z",
+                        "complainedAt": null
                       }
                     ],
                     "tags": {
@@ -19102,6 +19178,10 @@
                   "data": {
                     "approved": true,
                     "dailyLimit": 1000,
+                    "approvedLimit": 1000,
+                    "planCap": null,
+                    "warmupUntil": null,
+                    "paused": null,
                     "sentToday": 12,
                     "day": "2026-11-13",
                     "domains": [
@@ -19700,6 +19780,619 @@
           },
           "409": {
             "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains/{id}/smtp-credentials": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Domain ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listSmtpCredentials",
+        "summary": "List a domain's SMTP relay credentials",
+        "description": "Requires `emails:read` scope.",
+        "tags": [
+          "Emails"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "emails:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SmtpCredential"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "smtp1a2b3c4d5e6",
+                      "domainId": "dom1a2b3c4d5e6f",
+                      "name": "Billing system",
+                      "username": "api-sender-k3x9qa@example.com",
+                      "created": "2026-11-13T09:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSmtpCredential",
+        "summary": "Make an SMTP relay credential",
+        "description": "Requires `emails:write` scope.\n\nFor software that can only send over SMTP: a password to sign in to the domain's own submission service (host, port and security in the answer) as the domain's sending account (username). It may only sign in and send. The password is in this answer only. What is sent this way is not an API message: no GET /emails record and no delivery events, and it counts against the sending account's own limit on the server, not the workspace's allowance. Needs the workspace's approval, unpaused; a pause or a withdrawn approval revokes every relay credential. At most 10 per domain. Not available to test keys.",
+        "tags": [
+          "Emails"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "emails:write"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "What the credential is for, at most 100 characters."
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/NewSmtpCredential"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": {
+                    "id": "smtp1a2b3c4d5e6",
+                    "domainId": "dom1a2b3c4d5e6f",
+                    "name": "Billing system",
+                    "username": "api-sender-k3x9qa@example.com",
+                    "created": "2026-11-13T09:00:00.000Z",
+                    "password": "app_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                    "host": "mail.example.com",
+                    "port": 465,
+                    "security": "tls"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body exceeds 16 KiB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains/{id}/smtp-credentials/{credentialId}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Domain ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        },
+        {
+          "name": "credentialId",
+          "in": "path",
+          "required": true,
+          "description": "SMTP relay credential ID.",
+          "schema": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ],
+      "delete": {
+        "operationId": "revokeSmtpCredential",
+        "summary": "Revoke an SMTP relay credential",
+        "description": "Requires `emails:write` scope.\n\nRevokes the password on the mail server at once.",
+        "tags": [
+          "Emails"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "emails:write"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9]{15}$",
+                          "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+                        },
+                        "revoked": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "revoked"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": {
+                    "id": "smtp1a2b3c4d5e6",
+                    "revoked": true
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
             "content": {
               "application/json": {
                 "schema": {
@@ -22117,6 +22810,615 @@
             }
           }
         }
+      },
+      "patch": {
+        "operationId": "updateAgentMessage",
+        "summary": "Mark a message an agent received read or flagged",
+        "description": "Requires `agent_mailboxes:write` scope.\n\n`read` and/or `flagged`, each true or false. A key restricted to this agent mailbox (POST /agent-mailboxes/{id}/keys) may call it; such a key gets `403 key_mailbox_restricted` anywhere else. Not available to test keys.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:write"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "read": {
+                    "type": "boolean"
+                  },
+                  "flagged": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [],
+                "minProperties": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "read": {
+                          "type": "boolean"
+                        },
+                        "flagged": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body exceeds 16 KiB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body must use Content-Type: application/json.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAgentMessage",
+        "summary": "Delete a message an agent received",
+        "description": "Requires `agent_mailboxes:write` scope.\n\nMoves it to the agent's Trash; a message already in Trash is deleted for good (`deleted` says which). A key restricted to this agent mailbox (POST /agent-mailboxes/{id}/keys) may call it; such a key gets `403 key_mailbox_restricted` anywhere else. Not available to test keys.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:write"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "deleted": {
+                          "type": "string",
+                          "enum": [
+                            "trash",
+                            "permanently"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "deleted"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent-mailboxes/{id}/messages/{emailId}/attachments/{index}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Agent mailbox ID.",
+          "schema": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          }
+        },
+        {
+          "name": "emailId",
+          "in": "path",
+          "required": true,
+          "description": "The message's id in the mailbox, from the inbox list or a message.received event.",
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "index",
+          "in": "path",
+          "required": true,
+          "description": "The attachment's `index` from the message.",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getAgentAttachment",
+        "summary": "Download an attachment of a received message",
+        "description": "Requires `agent_mailboxes:read` scope.\n\nThe attachment's bytes as application/octet-stream (the sender's content type is not trusted), with its filename in Content-Disposition. Not available to test keys.",
+        "tags": [
+          "Agent mailboxes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "agent_mailboxes:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "The attachment's bytes.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=…",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked Bearer API key. A browser sign-in cookie cannot replace an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the scope required for this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target resource does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Resource conflict, or the target's state does not allow this operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "A count or rate limit was exceeded; try again later. A rate-limited request has error.code rate_limited and a Retry-After header.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests allowed per window for this API key.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the current window ends.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Policy": {
+                "description": "The limit and its window in seconds, as `<limit>;w=<seconds>`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before trying again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The upstream mail server call failed. If the write result is unclear, check the state first instead of repeating the write.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service or the upstream mail server configuration is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/agent-mailboxes/{id}/messages/{emailId}/reply": {
@@ -23014,7 +24316,7 @@
       "post": {
         "operationId": "createMailApp",
         "summary": "Register a mail app",
-        "description": "Requires `mail_apps:write` scope.\n\nRegisters an app mailbox users can authorize on WebMail's consent page (`/oauth/authorize`) to read their mail (`mail.read`) and/or send as them (`mail.send`). The answer's `clientId` is what the app sends; it is a public client (no secret), with PKCE (S256) required. Its tokens are used with WebMail's Mail API (`/api/mail/v1`). At most 20 per workspace. Not available to test keys.",
+        "description": "Requires `mail_apps:write` scope.\n\nRegisters an app mailbox users can authorize on WebMail's consent page (`/oauth/authorize`) to read their mail (`mail.read`), send as them (`mail.send`) and/or organize it (`mail.modify`). The answer's `clientId` is what the app sends; it is a public client (no secret), with PKCE (S256) required. Its tokens are used with WebMail's Mail API (`/api/mail/v1`). At most 20 per workspace. Not available to test keys.",
         "tags": [
           "Mail apps"
         ],
@@ -26908,6 +28210,15 @@
             "maxLength": 2000,
             "description": "The https address events are POSTed to: default port, a public host name (no IP literal, no internal or single-label name), no user name or password. Redirects are not followed."
           },
+          "format": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "feishu",
+              "dingtalk"
+            ],
+            "description": "standard: the signed JSON. feishu, dingtalk: each event is posted to that group bot as a short message (its type and fields), unsigned by this service but signed with the bot's own secret when botSecret is given; url is then the bot's webhook address. Set when the webhook is made."
+          },
           "description": {
             "type": "string",
             "maxLength": 200,
@@ -26932,7 +28243,9 @@
                 "email.delivered",
                 "email.delivery_delayed",
                 "email.bounced",
+                "email.complained",
                 "email.failed",
+                "email.sending_paused",
                 "message.received"
               ]
             },
@@ -27000,6 +28313,7 @@
         "required": [
           "id",
           "url",
+          "format",
           "description",
           "events",
           "enabled",
@@ -27015,6 +28329,7 @@
         "example": {
           "id": "webhookexample1",
           "url": "https://hooks.example.com/mailhq",
+          "format": "standard",
           "description": "Provisioning sync",
           "events": [
             "mailbox.created",
@@ -27046,6 +28361,15 @@
             "maxLength": 2000,
             "description": "The https address events are POSTed to: default port, a public host name (no IP literal, no internal or single-label name), no user name or password. Redirects are not followed."
           },
+          "format": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "feishu",
+              "dingtalk"
+            ],
+            "description": "standard: the signed JSON. feishu, dingtalk: each event is posted to that group bot as a short message (its type and fields), unsigned by this service but signed with the bot's own secret when botSecret is given; url is then the bot's webhook address. Set when the webhook is made."
+          },
           "description": {
             "type": "string",
             "maxLength": 200,
@@ -27070,7 +28394,9 @@
                 "email.delivered",
                 "email.delivery_delayed",
                 "email.bounced",
+                "email.complained",
                 "email.failed",
+                "email.sending_paused",
                 "message.received"
               ]
             },
@@ -27142,6 +28468,7 @@
         "required": [
           "id",
           "url",
+          "format",
           "description",
           "events",
           "enabled",
@@ -27165,6 +28492,19 @@
             "format": "uri",
             "maxLength": 2000,
             "description": "The https address events are POSTed to: default port, a public host name (no IP literal, no internal or single-label name), no user name or password. Redirects are not followed."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "feishu",
+              "dingtalk"
+            ],
+            "description": "standard: the signed JSON. feishu, dingtalk: each event is posted to that group bot as a short message (its type and fields), unsigned by this service but signed with the bot's own secret when botSecret is given; url is then the bot's webhook address. Set when the webhook is made."
+          },
+          "botSecret": {
+            "type": "string",
+            "description": "The bot's own signing secret, for a bot format whose bot has signing on; never returned."
           },
           "description": {
             "type": "string",
@@ -27190,7 +28530,9 @@
                 "email.delivered",
                 "email.delivery_delayed",
                 "email.bounced",
+                "email.complained",
                 "email.failed",
+                "email.sending_paused",
                 "message.received"
               ]
             },
@@ -27237,7 +28579,9 @@
                 "email.delivered",
                 "email.delivery_delayed",
                 "email.bounced",
+                "email.complained",
                 "email.failed",
+                "email.sending_paused",
                 "message.received"
               ]
             },
@@ -27367,10 +28711,11 @@
             "type": "string",
             "enum": [
               "hard_bounce",
+              "complaint",
               "manual",
               "import"
             ],
-            "description": "hard_bounce: added by the bounce reader after repeated hard bounces; manual: added in the console or through this API; import: from a CSV."
+            "description": "hard_bounce: added by the bounce reader after repeated hard bounces, or at once for a late hard bounce of mail sent through the API; complaint: the recipient marked mail sent through the API as spam (a feedback loop report); manual: added in the console or through this API; import: from a CSV."
           },
           "note": {
             "type": "string",
@@ -27537,6 +28882,13 @@
               "null"
             ],
             "description": "When the status last changed."
+          },
+          "complainedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When a feedback loop report said this recipient marked the message as spam (email.complained); null when none did."
           }
         },
         "required": [
@@ -27545,7 +28897,8 @@
           "status",
           "code",
           "detail",
-          "at"
+          "at",
+          "complainedAt"
         ]
       },
       "Email": {
@@ -27639,6 +28992,13 @@
                     "null"
                   ],
                   "description": "When the status last changed."
+                },
+                "complainedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "When a feedback loop report said this recipient marked the message as spam (email.complained); null when none did."
                 }
               },
               "required": [
@@ -27647,7 +29007,8 @@
                 "status",
                 "code",
                 "detail",
-                "at"
+                "at",
+                "complainedAt"
               ]
             }
           },
@@ -27709,7 +29070,8 @@
               "status": "delivered",
               "code": 250,
               "detail": "250 2.0.0 OK",
-              "at": "2026-11-13T09:00:04.000Z"
+              "at": "2026-11-13T09:00:04.000Z",
+              "complainedAt": null
             }
           ],
           "tags": {
@@ -27812,6 +29174,13 @@
                     "null"
                   ],
                   "description": "When the status last changed."
+                },
+                "complainedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "When a feedback loop report said this recipient marked the message as spam (email.complained); null when none did."
                 }
               },
               "required": [
@@ -27820,7 +29189,8 @@
                 "status",
                 "code",
                 "detail",
-                "at"
+                "at",
+                "complainedAt"
               ]
             }
           },
@@ -27866,6 +29236,7 @@
                     "email.delivered",
                     "email.delivery_delayed",
                     "email.bounced",
+                    "email.complained",
                     "email.failed"
                   ]
                 },
@@ -28157,7 +29528,45 @@
           "dailyLimit": {
             "type": "integer",
             "minimum": 0,
-            "description": "Messages a day (UTC); 0 when not approved."
+            "description": "What may be sent today (UTC): the least of approvedLimit, planCap and the warm-up limit; 0 when not approved."
+          },
+          "approvedLimit": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The daily limit a platform admin approved."
+          },
+          "planCap": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The plan's cap on API sending a day; null when it has none."
+          },
+          "warmupUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "While a newly approved workspace warms up (50 a day, doubling each day), when dailyLimit reaches approvedLimit."
+          },
+          "paused": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Set while live sending is paused for its bounce or complaint rate (403 email_api_paused).",
+            "properties": {
+              "at": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "at",
+              "reason"
+            ]
           },
           "sentToday": {
             "type": "integer",
@@ -28177,9 +29586,111 @@
         "required": [
           "approved",
           "dailyLimit",
+          "approvedLimit",
+          "planCap",
+          "warmupUntil",
+          "paused",
           "sentToday",
           "day",
           "domains"
+        ]
+      },
+      "SmtpCredential": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          },
+          "domainId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          },
+          "name": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string",
+            "format": "email",
+            "description": "The SMTP user name: the domain's sending account."
+          },
+          "created": {
+            "type": "string",
+            "description": "UTC timestamp string."
+          }
+        },
+        "required": [
+          "id",
+          "domainId",
+          "name",
+          "username",
+          "created"
+        ]
+      },
+      "NewSmtpCredential": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          },
+          "domainId": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{15}$",
+            "description": "MailHQ record ID: 15 lowercase letters or digits; not a domain, email address or upstream server ID."
+          },
+          "name": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string",
+            "format": "email"
+          },
+          "created": {
+            "type": "string",
+            "description": "UTC timestamp string."
+          },
+          "password": {
+            "type": "string",
+            "description": "The SMTP password, shown in this answer only."
+          },
+          "host": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The domain's submission server."
+          },
+          "port": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Its port."
+          },
+          "security": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "tls (implicit, usually 465) or starttls (usually 587)."
+          }
+        },
+        "required": [
+          "id",
+          "domainId",
+          "name",
+          "username",
+          "created",
+          "password",
+          "host",
+          "port",
+          "security"
         ]
       },
       "InboundRoute": {
@@ -28713,7 +30224,8 @@
               "type": "string",
               "enum": [
                 "mail.read",
-                "mail.send"
+                "mail.send",
+                "mail.modify"
               ]
             }
           },
@@ -28785,7 +30297,8 @@
               "type": "string",
               "enum": [
                 "mail.read",
-                "mail.send"
+                "mail.send",
+                "mail.modify"
               ]
             },
             "default": [
