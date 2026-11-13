@@ -11,7 +11,7 @@ import {
 import { Container } from "@/components/ui/container";
 import { Prose } from "@/components/ui/prose";
 import { Eyebrow, HeadingMark, sectionSpaceClassName } from "@/components/ui/section-heading";
-import type { DocBlock, DocSection } from "@/content/help/types";
+import type { DevDocBlock, DevDocSection, DocSection } from "@/content/help/types";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { docBase, sectionId } from "@/lib/docs";
@@ -22,7 +22,8 @@ import { TocSpy } from "./TocSpy";
 
 /**
  * A page of long-form content written as sections of paragraphs, lists and commands (src/content/): a help article, the
- * security overview or the Claude connector page. The layout is the legal pages': a header with the title and lead, then a table of contents beside the reading
+ * security overview, the Claude connector page or the developer documentation (which also has multi-line code blocks). The
+ * layout is the legal pages': a header with the title and lead, then a table of contents beside the reading
  * column, which is the registry's Prose (numbered second-level headings). A breadcrumb says where the page sits.
  * `children` follows the sections in the reading column: what to do next, or who to ask.
  */
@@ -35,6 +36,7 @@ export function DocArticle({
   sections,
   meta,
   crumb,
+  slots,
   children,
 }: {
   lang: Lang;
@@ -44,11 +46,13 @@ export function DocArticle({
   summary: string;
   /** The pages above this one, nearest last; the home page comes first by itself. Paths without the language prefix. */
   trail: readonly { label: string; path: string }[];
-  sections: readonly DocSection[];
+  sections: readonly (DocSection | DevDocSection)[];
   /** A line under the lead, such as the date the page was last reviewed. */
   meta?: ReactNode;
   /** The page's name in the breadcrumb, when the title is too long for it. */
   crumb?: string;
+  /** Generated content for the sections that name a slot (DevDocSection.slot), shown after their blocks. */
+  slots?: Readonly<Partial<Record<NonNullable<DevDocSection["slot"]>, ReactNode>>>;
   children?: ReactNode;
 }) {
   const { t, path } = useCopy(lang);
@@ -120,6 +124,7 @@ export function DocArticle({
                 {section.blocks.map((block, blockIndex) => (
                   <Block block={block} base={base} commands={t.download} key={blockIndex} />
                 ))}
+                {"slot" in section && section.slot ? slots?.[section.slot] : null}
               </section>
             ))}
           </Prose>
@@ -135,11 +140,23 @@ function Block({
   base,
   commands,
 }: {
-  block: DocBlock;
+  block: DevDocBlock;
   base: string;
   /** The copy button's words, the download page's: a command is copied the same way there. */
   commands: { copyCommand: string; copiedCommand: string; copyFailed: string };
 }) {
+  if ("language" in block) {
+    // Multi-line code (the developer documentation). Prose gives every <code> the inline chip; inside a block the panel is
+    // the frame, so the chip is taken off again.
+    return (
+      <pre
+        className="overflow-x-auto rounded-panel border border-border p-4 text-sm/[1.65]"
+        data-language={block.language}
+      >
+        <code className="rounded-none! bg-transparent! p-0!">{block.code}</code>
+      </pre>
+    );
+  }
   if ("code" in block) {
     return (
       <CommandLine
@@ -154,7 +171,7 @@ function Block({
   if ("p" in block) {
     return (
       <p>
-        <RichText text={block.p} base={base} />
+        <RichText text={block.p} base={base} code />
       </p>
     );
   }
@@ -164,7 +181,7 @@ function Block({
     <List>
       {items.map((item, index) => (
         <li key={index}>
-          <RichText text={item} base={base} />
+          <RichText text={item} base={base} code />
         </li>
       ))}
     </List>

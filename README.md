@@ -192,6 +192,24 @@ The page may only state what a source backs up, and each sentence has one: the p
 
 Every statement comes from mail: `docs/mcp.md` (tools generated from the API, reads `readOnlyHint`, every write `destructiveHint`, the shared rate limit), `docs/api.md` (scopes, operations, no message bodies except what follow-up tasks hold, message trace off for workspaces until a platform admin turns it on, failure handling) and the OAuth design (`packages/core/src/lib/api/oauth.ts`: one-hour access tokens, 30-day rotating refresh tokens, SHA-256 hashes, a grant ends with a password or email change and with the role or membership). `tests/claude-page.test.ts` compares the two languages block for block, checks the URL, the commands and those limits, and that the page and the policy point at each other. When mail changes the tools, the scopes, the consent page or the token rules, re-read the page and the policy section in both languages and update `reviewed`. The names of the console's "Connected apps" pages and of the connector in Claude's directory ("Abnormal Mail") follow the OAuth work in mail; check them once it ships.
 
+## Developer documentation
+
+`/developers/` (Chinese `/zh/developers/`, linked from the footer's Product column) documents mail's management API and MCP server for people who build on an Abnormal workspace: how to apply for a workspace and create a key, a first request, scopes, the response and error format, rate limits, signed webhooks, MCP, versions, and what is not offered yet. Then it lists every operation of the API, grouped by area, with the scope it needs. The text is content like the security overview (`src/content/developers/en.ts` and `zh.ts`, rendered by `DevelopersOverview` through `DocArticle`), with one addition to the shape: code blocks (`{ code, language }`, the same in both languages) and `inline code` in backticks, which only this page turns on (`RichText`'s `code` prop). After the text it lists every error code of the API (the document's `x-error-codes`, generated from mail's error code registry) by area, with its statuses, meaning, what to do and whether a retry is safe, and every operation; content sections name where each goes with `slot`. It has a Markdown version that carries both lists, a sitemap and `llms.txt` entry, and a breadcrumb in its structured data. The API addresses are `developerApi` in `src/data/site.ts`.
+
+The endpoint list comes from mail's OpenAPI document, which mail writes from its code (`docs/openapi.json` there, see its `docs/api-versioning.md`). This repository keeps a byte-for-byte copy in `docs/openapi.json`, like the onboard contract, excluded from Prettier so it stays identical. `pnpm api-reference` (`scripts/api-reference.ts`, through `src/lib/api-reference.ts`) writes two files from it:
+
+- `src/content/developers/reference.ts`: the few fields the page shows. The page does not import the document, which would put several hundred kilobytes into the Worker.
+- `public/developers/openapi.json`: the document for download and API tools, served as a static file at `https://abnormalhq.com/developers/openapi.json`. It is mail's document with one change: its server is the production API (`developerApi.base`) instead of the relative `/api/v1`, which a tool would otherwise resolve against this site.
+
+Every operation shows which key may call it: its scope, or for the two operations no single scope grants, the rule mail's document states (`x-operation-required-scopes` on `POST /batch`, `x-required-key: "original"` on `GET /batch/{requestId}`). The generator refuses an operation with none of these rather than show it as open to any key. After mail changes its API:
+
+```sh
+cp ../mail/docs/openapi.json docs/openapi.json
+pnpm api-reference
+```
+
+`tests/developers-page.test.ts` fails while either generated file differs from the copy, compares the two languages block for block (the same inline code and links, the same code blocks), checks that the scope families the text names are the ones the document uses, and refuses anything that looks like a key in an example. Every sentence has a source in mail's `docs/api.md`, `mcp.md`, `multi-tenancy.md` (applying for a workspace) or `api-versioning.md`; limits that are deployment settings are given as defaults and pointed at `GET /capabilities`. When one of those changes, re-read the page in both languages and update `reviewed`.
+
 ## Working with the other sites
 
 | Entry                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Address                                 | Repository                                 |
@@ -314,6 +332,7 @@ src/
   content/help/   Help center articles, one file per language (see "Help center")
   content/security/  The security and privacy overview, one file per language
   content/claude/  The Claude connector page, one file per language, and the connector URL and commands (commands.ts)
+  content/developers/  The developer documentation, one file per language, and reference.ts generated from docs/openapi.json
   storefront/     Shop, redeem page, buyer account and guide, and the Worker's API proxy to mail (see "Storefront")
   data/site.ts    Public contact details, buyer-journey addresses (linksFor), promo videos (promoVideos) and desktop client download addresses
   i18n/           Chinese and English copy (zh.ts, en.ts, types.ts) and language path helpers (paths.ts)
@@ -321,7 +340,7 @@ src/
   scripts/        theme-init.js: the theme initialization script inlined into the head
   styles/         abnormal.css and abnormal-fonts.css come from the registry; global.css holds the site's own breakpoints and global rules
 public/           Fonts, social images (og/), promo videos (video/) and other files served directly by the static asset service
-scripts/          og-images.ts: generates the social images in public/og/
+scripts/          og-images.ts: generates the social images in public/og/; api-reference.ts: the developer page's endpoint list
 video/            Remotion project for the promo video, rendered into public/video/ (see "Promo video")
 tests/            Regression tests for inquiry logic, copy structure, page metadata, legal documents, agent entry points, cache and security headers and theme behavior; tests/storefront/ holds the storefront's Vitest suite
 open-next.config.ts  OpenNext configuration: prerendered output lives in read-only static assets

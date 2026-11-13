@@ -522,6 +522,47 @@ export interface Copy {
     policyLink: string;
     helpLink: string;
   };
+  /** The developer documentation (/developers/): the wording around it. The text is src/content/developers/. */
+  developers: {
+    metaTitle: string;
+    metaDescription: string;
+    /** The entry in the footer and the breadcrumb's own name of the page. */
+    navLabel: string;
+    eyebrow: string;
+    /** Before the date the statements were last checked. */
+    reviewedLabel: string;
+    /** Before the specification's version, beside the reviewed date. */
+    versionLabel: string;
+    /**
+     * The endpoint list: column headers, the deprecated badge, and the scope cell of the two operations no single scope
+     * grants: `perOperation` before the scopes POST /batch checks item by item, `originalKey` for GET /batch/{requestId}.
+     */
+    reference: {
+      operation: string;
+      summary: string;
+      scope: string;
+      deprecated: string;
+      perOperation: string;
+      originalKey: string;
+    };
+    /**
+     * The error code table: column headers, the three retry answers, the mark of a reserved code, and the names of the
+     * areas codes are grouped by (keys are the x-error-codes areas of mail's error registry).
+     */
+    errors: {
+      code: string;
+      status: string;
+      meaning: string;
+      action: string;
+      retry: string;
+      retryValues: { no: string; after_wait: string; after_checking: string };
+      reserved: string;
+      areas: Readonly<Record<string, string>>;
+    };
+    /** At the foot of the page. */
+    specLink: string;
+    statusLink: string;
+  };
   /** The Claude connector page (/claude/): the wording around it. The text itself is in src/content/claude/. */
   claude: {
     metaTitle: string;

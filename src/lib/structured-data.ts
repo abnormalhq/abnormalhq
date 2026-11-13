@@ -7,6 +7,7 @@ import { helpArticles, helpPath, type HelpArticle } from "../content/help/index.
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { claudeContent } from "../content/claude/index.ts";
 import { securityContent } from "../content/security/index.ts";
+import { developersContent } from "../content/developers/index.ts";
 import {
   absoluteUrl,
   configuredVideo,
@@ -307,6 +308,25 @@ export function claudeStructuredData(lang: Lang) {
       breadcrumb: breadcrumb([
         { name: site.name, url: absolute(localePath(lang, "/")) },
         { name: t.claude.navLabel, url: page.url as string },
+      ]),
+    },
+  ]);
+}
+
+/** The developer documentation: the page, when it was last checked against mail's API documentation, and a breadcrumb. */
+export function developersStructuredData(lang: Lang) {
+  const t = copies[lang];
+  const page = webPage(lang, "/developers/", t.developers.metaTitle, t.developers.metaDescription);
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      dateModified: developersContent[lang].reviewed,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: t.developers.navLabel, url: page.url as string },
       ]),
     },
   ]);
