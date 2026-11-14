@@ -350,11 +350,16 @@ export const en: ShopCopy = {
   seatTooManyUsdt: "That many mailboxes cost more than one USDT order can charge. Pay another way, or choose fewer.",
   couponPriceUsdt: (price: string) => price,
   couponNotForUsdt: "This code can't be used when paying with USDT.",
-  orderDescriptionUsdt: "Check your plan details, then pay with USDT (TRC-20) below.",
+  orderDescriptionUsdt: "Check your plan details, then pay with USDT below.",
   usdtTitle: "Pay with USDT",
   usdtNote:
-    "Send exactly the amount below in USDT to this address. The address belongs to this order alone. Once the transfer is confirmed on chain (usually about a minute), your code appears here.",
-  usdtNetwork: "TRON · TRC-20",
+    "Send exactly the amount below in USDT to this address, on the network shown. The address belongs to this order alone. Once the transfer is final on chain (about a minute on TRON and BNB Smart Chain, about 15 minutes on Ethereum), your code appears here.",
+  usdtNetwork: (name: string, standard: string) => `${name} · ${standard}`,
+  usdtChoose: "Choose the network you send from",
+  usdtChooseHint:
+    "Pick the network your wallet or exchange sends USDT on. The address you get is for that network only, and the choice can't be changed afterwards.",
+  usdtChainOption: (name: string, standard: string) => `${name} (${standard})`,
+  usdtEthereumFees: "Network fees on Ethereum are usually several dollars.",
   usdtAmount: "Amount to send",
   usdtAddress: "Address",
   usdtCopyAmount: "Copy amount",
@@ -364,8 +369,8 @@ export const en: ShopCopy = {
   usdtCopyFailed: "Couldn't copy. Select it and copy it by hand.",
   usdtQr: (address: string) => `QR code of the address ${address}`,
   usdtQrHint: "The QR code holds the address only. Enter the amount in your wallet.",
-  usdtWarning: (amount: string) =>
-    `Send USDT on the TRON network (TRC-20) only. Other tokens or networks are lost. Exchanges that deduct a withdrawal fee from the amount: make sure the amount that arrives is at least ${amount}.`,
+  usdtWarning: (amount: string, network: string) =>
+    `Send USDT on the ${network} network only. Other tokens or networks are lost. Exchanges that deduct a withdrawal fee from the amount: make sure the amount that arrives is at least ${amount}.`,
   usdtStatus: "Payment status",
   usdtWaiting: "Waiting for your transfer. This page updates by itself once it is confirmed on chain.",
   usdtConfirming: "Payment detected, waiting for confirmation…",

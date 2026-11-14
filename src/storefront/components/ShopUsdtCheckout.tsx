@@ -1,8 +1,10 @@
 "use client";
 
 /**
- * A USDT order paid on the order page itself: mail's pay/usdt gives the TRON address that belongs to this order alone and the exact
- * amount to send (USDT, TRC-20), and every call has mail look at the chain. This component shows both with copy buttons and a QR
+ * A USDT order paid on the order page itself: mail's pay/usdt gives the address that belongs to this order alone, on the chain the
+ * buyer chose (TRON, BNB Smart Chain or Ethereum), and the exact amount to send, and every call has mail look at the chain. Before
+ * the order has an address, a shop that offers more than one chain lets the buyer choose first (the catalog's
+ * `payment.usdt.chains`): the address is for that chain alone, and the choice is the order's for good. This component shows both with copy buttons and a QR
  * code of the address (wallets scan an address; amounts in payment URIs are not the same across wallets), warns about the network,
  * and asks pay/usdt again every POLL_MS while the tab is visible (and at once when the buyer comes back to it), for up to
  * POLL_LIMIT_MS; then, after one last look made while the tab is visible, it stops and offers "Check again".
@@ -16,7 +18,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import type { Lang } from "@/storefront/i18n";
-import { ShopApiError, startUsdtPayment, usdtDecimal, usdtUnits, type UsdtPaymentStart } from "@/storefront/lib/shop";
+import {
+  getShopCatalog,
+  ShopApiError,
+  startUsdtPayment,
+  usdtDecimal,
+  usdtUnits,
+  type UsdtChain,
+  type UsdtChainOption,
+  type UsdtPaymentStart,
+} from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
 import { copyText } from "./onboard/clipboard";
@@ -40,6 +51,16 @@ export const USDT_POLL_LIMIT_MS = 2 * 60 * 60 * 1000;
 
 type Open = Extract<UsdtPaymentStart, { status: "open" }>;
 
+/** The chains' names, for an answer whose chain the catalog did not list (an address handed out before it stopped). */
+const CHAIN_NAMES: Record<UsdtChain, string> = { tron: "TRON", bsc: "BNB Smart Chain", ethereum: "Ethereum" };
+
+/**
+ * Which chain pay/usdt is asked for: `ready` once known (the order's own, the only one offered, or the one the buyer chose;
+ * `chain` undefined lets mail pick its first); until then `options` are the chains to choose from, empty while the catalog
+ * is being read.
+ */
+type Choice = { ready: true; chain?: UsdtChain } | { ready: false; options: UsdtChainOption[] };
+
 type Phase =
   /** Asking mail for the address the first time. */
   | "loading"
@@ -53,11 +74,17 @@ type Phase =
 export function ShopUsdtCheckout({
   orderId,
   lang,
+  chain,
   onPaid,
   onWatching,
 }: {
   orderId: string;
   lang: Lang;
+  /**
+   * The chain the order already has its address on (the order's `usdtChain`); null when it has none yet, so the buyer may
+   * choose; undefined on a mail that offers TRON only.
+   */
+  chain?: UsdtChain | null;
   /** mail answered `paid`: read the order again (the code appears as for any other way of paying). */
   onPaid: () => void | Promise<void>;
   /** Whether the page is asking mail by itself right now: the order's status badge beats while it is. */
@@ -73,17 +100,40 @@ export function ShopUsdtCheckout({
   // The round that ran out of time without a payment (or stopped on an answer that asking again will not change).
   const [stopped, setStopped] = useState(-1);
   const [copyNotice, setCopyNotice] = useState("");
+  const [choice, setChoice] = useState<Choice>(() =>
+    chain === null ? { ready: false, options: [] } : { ready: true, ...(chain ? { chain } : {}) },
+  );
   const callbacks = useRef({ onPaid, onWatching });
   useEffect(() => {
     callbacks.current = { onPaid, onWatching };
   });
-  const polling = phase !== "paid" && stopped !== round;
+  const polling = choice.ready && phase !== "paid" && stopped !== round;
   useEffect(() => {
     callbacks.current.onWatching?.(polling);
   }, [polling]);
   useEffect(() => () => callbacks.current.onWatching?.(false), []);
 
+  // No address yet: the chains to choose from. With one (or a catalog that cannot be read) there is nothing to choose:
+  // mail gives the address on its first chain.
+  const choosing = !choice.ready;
   useEffect(() => {
+    if (!choosing) return;
+    const controller = new AbortController();
+    getShopCatalog(controller.signal, lang)
+      .then((catalog) => {
+        if (controller.signal.aborted) return;
+        const options = catalog.payment.usdt?.chains ?? [];
+        setChoice(options.length > 1 ? { ready: false, options } : { ready: true, chain: options[0]?.chain });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setChoice({ ready: true });
+      });
+    return () => controller.abort();
+  }, [choosing, lang]);
+  const chosen = choice.ready ? choice.chain : undefined;
+
+  useEffect(() => {
+    if (!choice.ready) return;
     const controller = new AbortController();
     const started = Date.now();
     let timer = 0;
@@ -113,7 +163,7 @@ export function ShopUsdtCheckout({
       if (visible) {
         busy = true;
         try {
-          const answer = await startUsdtPayment(orderId, lang, controller.signal);
+          const answer = await startUsdtPayment(orderId, lang, controller.signal, chosen);
           if (controller.signal.aborted) return;
           if (answer.status === "paid") {
             done = true;
@@ -176,7 +226,7 @@ export function ShopUsdtCheckout({
       window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", resume);
     };
-  }, [orderId, lang, round, t]);
+  }, [orderId, lang, round, t, choice.ready, chosen]);
 
   function checkAgain() {
     setError("");
@@ -188,6 +238,30 @@ export function ShopUsdtCheckout({
     const copied = await copyText(value);
     setCopyNotice(copied ? done : t.usdtCopyFailed);
     return copied;
+  }
+
+  if (!choice.ready && choice.options.length > 1) {
+    return (
+      <div className="mt-6">
+        <h3 className="text-sm/body font-semibold">{t.usdtChoose}</h3>
+        <p className={shopTextClass}>{t.usdtChooseHint}</p>
+        <ShopActions>
+          {choice.options.map((option) => (
+            <ShopButton
+              key={option.chain}
+              variant="outline"
+              type="button"
+              onClick={() => setChoice({ ready: true, chain: option.chain })}
+            >
+              {t.usdtChainOption(option.name, option.standard)}
+            </ShopButton>
+          ))}
+        </ShopActions>
+        {choice.options.some((option) => option.chain === "ethereum") && (
+          <p className={`${shopTextClass} text-muted-foreground`}>{t.usdtEthereumFees}</p>
+        )}
+      </div>
+    );
   }
 
   if (phase === "loading") {
@@ -224,6 +298,7 @@ export function ShopUsdtCheckout({
   const received = usdtUnits(payment.received) ?? 0;
   const confirming = usdtUnits(payment.confirming) ?? 0;
   const amountText = `${payment.amount} USDT`;
+  const chainName = CHAIN_NAMES[payment.chain];
   // What is on its way counts too: an amount still confirming is never asked for a second time.
   const counted = received + confirming;
   const partial = counted > 0 && counted < amount;
@@ -231,7 +306,7 @@ export function ShopUsdtCheckout({
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge className="h-auto w-auto py-[3px] text-xs/body">{t.usdtNetwork}</Badge>
+        <Badge className="h-auto w-auto py-[3px] text-xs/body">{t.usdtNetwork(chainName, payment.standard)}</Badge>
         {payment.network === "nile" && <ShopTestnetBadge>{t.usdtTestnet}</ShopTestnetBadge>}
       </div>
       <div className="mt-5 flex flex-wrap items-start gap-x-7 gap-y-5">
@@ -264,7 +339,9 @@ export function ShopUsdtCheckout({
       {/* Read in its place, not announced: it is there from the start and does not change. */}
       <Alert role="note" className="my-5 px-[18px]">
         <TriangleAlertIcon />
-        <AlertDescription className="text-sm/[1.7] text-foreground">{t.usdtWarning(amountText)}</AlertDescription>
+        <AlertDescription className="text-sm/[1.7] text-foreground">
+          {t.usdtWarning(amountText, `${chainName} (${payment.standard})`)}
+        </AlertDescription>
       </Alert>
       <div className="text-sm/[1.7]" role="status" aria-label={t.usdtStatus}>
         {phase === "paid" ? (

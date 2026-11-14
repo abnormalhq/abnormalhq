@@ -11,7 +11,7 @@
  * Like mail since contract version 3 (docs/onboard-contract.json), POST quote says what an order would cost before it exists,
  * a seat plan says its range and the prices of one seat outright, and the refusals about a quantity, a discount code, a plan
  * or a buyer's domain carry a stable code and their text in both languages. Like mail with USDT (`shop.usdt`), the plans have a
- * USDT price on TRON's testnet, a USDT order is paid to an address of its own through pay/usdt (the demo sees the transfer on
+ * USDT price on TRON's testnet (the one chain mail offers there), a USDT order is paid to an address of its own through pay/usdt (the demo sees the transfer on
  * the third look and confirms it on the fourth), and a USDT subscription renews and adds seats with USDT.
  */
 import { createHash, randomBytes } from "node:crypto";
@@ -660,7 +660,17 @@ export class MockShopStore {
           ldc: true,
           stripe: { currency: "usd" },
           // Like mail with USDT on: the network and the token contract (TRON's testnet here, so the pages show the badge).
-          ...(this.usdt ? { usdt: { currency: "usdt", network: "nile", contract: MOCK_USDT_CONTRACT } } : {}),
+          // TRON only: mail offers BNB Smart Chain and Ethereum on mainnet only, and the demo is on Nile.
+          ...(this.usdt
+            ? {
+                usdt: {
+                  currency: "usdt",
+                  network: "nile",
+                  contract: MOCK_USDT_CONTRACT,
+                  chains: [{ chain: "tron", name: "TRON", standard: "TRC-20", contract: MOCK_USDT_CONTRACT }],
+                },
+              }
+            : {}),
         },
         products: PRODUCTS.map((product) => ({
           ...structuredClone(product),
@@ -1299,6 +1309,8 @@ export class MockShopStore {
         this.subscriptions.get(stored.order.subscriptionId ?? "")?.end !== stored.addsSeats.pricedTo
       )
         return failure(409, say("该订单暂时无法支付。", "This order cannot be paid right now."));
+      if (body.chain !== undefined && body.chain !== "tron" && !stored.usdtChecks)
+        return failure(409, say("该订单暂时无法支付。", "This order cannot be paid right now."));
       stored.usdtChecks = (stored.usdtChecks ?? 0) + 1;
       if (stored.usdtChecks > MOCK_USDT_SEEN_AT) {
         stored.order.status = "paid";
@@ -1309,6 +1321,8 @@ export class MockShopStore {
       const amount = (stored.order.priceCents / 100).toFixed(2);
       return json({
         status: "open",
+        chain: "tron",
+        standard: "TRC-20",
         network: "nile",
         token: "USDT",
         contract: MOCK_USDT_CONTRACT,
@@ -1936,6 +1950,8 @@ export class MockShopStore {
       code: paid && !renewal ? DEMO_CODE : null,
       codeStatus: paid && !renewal ? "available" : null,
       onboardUrl,
+      // Like mail: the chain a USDT order has its address on, once pay/usdt gave it one.
+      usdtChain: order.provider === "usdt" && stored.usdtChecks ? "tron" : null,
       subscription: subscription
         ? {
             currentPeriodEnd: new Date(subscription.end).toISOString(),

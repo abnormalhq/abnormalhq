@@ -435,7 +435,12 @@ test("dev shop: card orders are recorded as Stripe orders at the fiat price, the
   expect(catalog.payment).toStrictEqual({
     ldc: true,
     stripe: { currency: "usd" },
-    usdt: { currency: "usdt", network: "nile", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" },
+    usdt: {
+      currency: "usdt",
+      network: "nile",
+      contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+      chains: [{ chain: "tron", name: "TRON", standard: "TRC-20", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" }],
+    },
   });
   const bought = await store.fetch(
     "checkout",

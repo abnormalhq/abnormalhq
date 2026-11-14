@@ -158,8 +158,33 @@ export const accountResponse = {
   ],
 };
 
-/** The catalog's `payment.usdt` while USDT is on (`shop.usdt.catalogFields`): TRON's testnet and its USDT contract. */
-export const usdtCatalogPayment = { currency: "usdt", network: "nile", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" };
+/**
+ * The catalog's `payment.usdt` while USDT is on (`shop.usdt.catalogFields`): TRON's testnet and its USDT contract, TRON being
+ * the one chain mail offers there (`shop.usdt.catalogChainFields`).
+ */
+export const usdtCatalogPayment = {
+  currency: "usdt",
+  network: "nile",
+  contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+  chains: [{ chain: "tron", name: "TRON", standard: "TRC-20", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" }],
+};
+
+/** The same on mainnet with BNB Smart Chain and Ethereum offered too. */
+export const usdtCatalogChains = {
+  currency: "usdt",
+  network: "mainnet",
+  contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+  chains: [
+    { chain: "tron", name: "TRON", standard: "TRC-20", contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" },
+    {
+      chain: "bsc",
+      name: "BNB Smart Chain",
+      standard: "BEP-20",
+      contract: "0x55d398326f99059fF775485246999027B3197955",
+    },
+    { chain: "ethereum", name: "Ethereum", standard: "ERC-20", contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7" },
+  ],
+};
 
 /**
  * POST /api/shop/pay/usdt for an unpaid USDT order (`shop.usdt.payFields`): the order's own address, the amount to send as a
@@ -167,6 +192,8 @@ export const usdtCatalogPayment = { currency: "usdt", network: "nile", contract:
  */
 export const usdtPayResponse = {
   status: "open",
+  chain: "tron",
+  standard: "TRC-20",
   network: "nile",
   token: "USDT",
   contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",

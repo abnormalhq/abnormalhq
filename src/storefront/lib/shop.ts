@@ -19,11 +19,13 @@ import {
   record,
   request,
   ShopApiError,
-  TRON_ADDRESS,
+  isUsdtAddress,
+  USDT_CHAINS,
   USDT_NETWORKS,
   type ShopPaymentProvider,
   type ShopProduct,
   type SubscriptionState,
+  type UsdtChain,
   type UsdtNetwork,
 } from "./catalog.ts";
 
@@ -57,6 +59,8 @@ export {
   type ShopPaymentProvider,
   type ShopProduct,
   type SubscriptionState,
+  type UsdtChain,
+  type UsdtChainOption,
   type UsdtNetwork,
   type UsdtPayment,
 } from "./catalog.ts";
@@ -89,6 +93,11 @@ export interface PublicShopOrder {
   code: string | null;
   codeStatus: CodeStatus | null;
   onboardUrl: string;
+  /**
+   * The chain a USDT order already has its address on (`shop.usdt.orderAnswerFields`): null before its first pay/usdt call,
+   * and for other orders. Absent on a mail before more chains than TRON, whose orders are all TRON's.
+   */
+  usdtChain?: UsdtChain | null;
   /**
    * Paid subscription purchase and renewal orders: the subscription's current expiry and the renewal link token. The token can be null (same rule as the account page:
    * Stripe subscriptions, renewal price beyond the payable range), in which case no renewal link is shown; current mail still always issues a token.
@@ -438,10 +447,22 @@ export async function getShopOrder(orderId: string, signal?: AbortSignal, lang?:
     subscription === undefined ||
     !isNullableString(body.code) ||
     !isNullableCodeStatus(body.codeStatus) ||
-    !isString(body.onboardUrl)
+    !isString(body.onboardUrl) ||
+    !(
+      body.usdtChain === undefined ||
+      body.usdtChain === null ||
+      (USDT_CHAINS as readonly unknown[]).includes(body.usdtChain)
+    )
   )
     throw new ShopApiError("");
-  return { order, code: body.code, codeStatus: body.codeStatus, onboardUrl: body.onboardUrl, subscription };
+  return {
+    order,
+    code: body.code,
+    codeStatus: body.codeStatus,
+    onboardUrl: body.onboardUrl,
+    ...(body.usdtChain === undefined ? {} : { usdtChain: body.usdtChain as UsdtChain | null }),
+    subscription,
+  };
 }
 
 function parseUpgradePlans(value: unknown): TrialUpgradePlan[] | undefined {
@@ -988,8 +1009,9 @@ export async function startStripePayment(orderId: string, lang?: Lang): Promise<
 }
 
 /**
- * Paying a USDT order on the order page (mail's pay/usdt, `shop.usdt` in docs/onboard-contract.json):
- * - open: the order is waiting for USDT on TRON (TRC-20). `address` belongs to this order alone, `amount` is exactly what to send
+ * Paying a USDT order on the order page (mail's pay/usdt, `shop.usdt` in docs/onboard-contract.json). `chain` is the chain the
+ * buyer chose, sent on the first call (mail gives the address on it then and ignores it later; absent: mail's first chain):
+ * - open: the order is waiting for USDT on `chain` (`standard`: TRC-20, BEP-20, ERC-20). `address` belongs to this order alone, `amount` is exactly what to send
  *   (a decimal string, what the buyer copies; `amountMinor` the same in hundredths of a USDT), `received` what has been confirmed
  *   on chain to the address so far and `confirming` what has been seen there but is not confirmed yet (decimal strings, up to six
  *   decimals). The order is paid once the confirmed total reaches the amount, so a buyer who sent too little sends the rest.
@@ -1002,6 +1024,8 @@ export async function startStripePayment(orderId: string, lang?: Lang): Promise<
 export type UsdtPaymentStart =
   | {
       status: "open";
+      chain: UsdtChain;
+      standard: string;
       network: UsdtNetwork;
       token: "USDT";
       contract: string;
@@ -1036,19 +1060,28 @@ export function usdtDecimal(units: number): string {
   return `${whole}.${fraction}`;
 }
 
-export async function startUsdtPayment(orderId: string, lang?: Lang, signal?: AbortSignal): Promise<UsdtPaymentStart> {
-  const body = await request("pay/usdt", { orderId }, signal, lang);
+export async function startUsdtPayment(
+  orderId: string,
+  lang?: Lang,
+  signal?: AbortSignal,
+  chain?: UsdtChain,
+): Promise<UsdtPaymentStart> {
+  const body = await request("pay/usdt", chain ? { orderId, chain } : { orderId }, signal, lang);
   if (!record(body)) throw new ShopApiError("");
   if (body.status === "paid") return { status: "paid" };
   const amount = usdtUnits(body.amount);
+  // A mail before more chains than TRON says neither: its orders are TRON's (TRC-20).
+  const paidOn = body.chain === undefined ? "tron" : body.chain;
+  const standard = body.standard === undefined && body.chain === undefined ? "TRC-20" : body.standard;
   if (
     body.status !== "open" ||
+    !(USDT_CHAINS as readonly unknown[]).includes(paidOn) ||
+    !isString(standard) ||
+    !/^[A-Z]{2,5}-[0-9]{2,4}$/.test(standard) ||
     !(USDT_NETWORKS as readonly unknown[]).includes(body.network) ||
     body.token !== "USDT" ||
-    !isString(body.contract) ||
-    !TRON_ADDRESS.test(body.contract) ||
-    !isString(body.address) ||
-    !TRON_ADDRESS.test(body.address) ||
+    !isUsdtAddress(paidOn as UsdtChain, body.contract) ||
+    !isUsdtAddress(paidOn as UsdtChain, body.address) ||
     amount === null ||
     !isCount(body.amountMinor) ||
     body.amountMinor < 1 ||
@@ -1060,6 +1093,8 @@ export async function startUsdtPayment(orderId: string, lang?: Lang, signal?: Ab
     throw new ShopApiError("");
   return {
     status: "open",
+    chain: paidOn as UsdtChain,
+    standard,
     network: body.network as UsdtNetwork,
     token: "USDT",
     contract: body.contract,
