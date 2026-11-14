@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import type { Copy } from "@/i18n/types";
 import { fillText } from "@/lib/pricing";
 import { formatUptime, watchStatus, type StatusSummary } from "@/lib/status";
+import { StatusLabel } from "@/components/ui/status-label";
 import { cn } from "@/lib/utils";
 
-const DOT = { up: "bg-success", down: "bg-destructive", maintenance: "bg-badge-ink" } as const;
+const TONE = { up: "success", down: "destructive", maintenance: "pending" } as const;
 
 /**
  * The live service status, as one link to the status page: a dot, the state ("All systems operational") and, when there is one,
@@ -49,10 +50,10 @@ export function ServiceStatus({
       href={href}
     >
       <span className="sr-only">{copy.label}</span>
-      <span className="inline-flex items-center gap-2">
-        <span className={cn("size-2 shrink-0 rounded-full", DOT[summary.status])} aria-hidden="true" />
+      {/* The link sets the size and color, and brightens on hover; the label follows it. */}
+      <StatusLabel variant="dot" tone={TONE[summary.status]} className="gap-2 text-[length:inherit] text-inherit">
         {state}
-      </span>
+      </StatusLabel>
       {uptime && (
         <>
           <span aria-hidden="true">·</span>

@@ -2,7 +2,16 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DescriptionDetails,
+  DescriptionItem,
+  DescriptionList,
+  DescriptionTerm,
+} from "@/components/ui/description-list";
+import { EmptyState, EmptyStateActions, EmptyStateDescription, EmptyStateTitle } from "@/components/ui/empty-state";
 import { IconTile } from "@/components/ui/icon-tile";
+import { PricingPrice } from "@/components/ui/pricing-card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Copy } from "@/i18n/types";
 import { planRows, planRowsFor, type PlanRow, type PlanView } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -53,25 +62,18 @@ export function PlanCards({
               )}
             </div>
             <div className="flex flex-col pt-6">
-              <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <strong className="text-[2.5rem] leading-[1.1] font-semibold tracking-[-0.03em]">{plan.amount}</strong>
-                <span className="text-xs/body text-muted-foreground">{plan.unit}</span>
-              </p>
-              {plan.discount && (
-                <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-xs/body text-muted-foreground">
-                  <Badge variant="brand" className="h-auto border-0 py-[3px] text-xs/body font-semibold">
-                    {plan.discount.label}
-                  </Badge>
-                  <span>
-                    <span className="sr-only">{copy.plan.originalPrice} </span>
-                    <s>{plan.discount.original}</s>
-                  </span>
-                </p>
-              )}
+              <PricingPrice
+                price={plan.amount}
+                period={plan.unit}
+                discount={plan.discount?.label}
+                {...(plan.discount
+                  ? { originalPrice: plan.discount.original, originalPriceLabel: copy.plan.originalPrice }
+                  : { originalPrice: undefined })}
+              />
               {plan.card && <p className="mt-auto pt-3 text-sm/body text-muted-foreground">{plan.card}</p>}
               {plan.note && <p className="pt-3 text-xs/[1.7] text-muted-foreground">{plan.note}</p>}
             </div>
-            <dl className="mt-6 border-t border-border pt-5 text-sm/body">
+            <DescriptionList variant="spread" className="mt-6 border-t border-border text-sm/body">
               {cardRows
                 // "Your own domain" is listed on the plans that include it; the table says which do not.
                 .filter((row) => row !== "ownDomains" || plan.customDomains > 0)
@@ -80,7 +82,7 @@ export function PlanCards({
                     {plan.rows[row]}
                   </Fact>
                 ))}
-            </dl>
+            </DescriptionList>
             <div className="text-sm/body">
               <p className="text-muted-foreground">{copy.compare.rows.domains}</p>
               <ul className="mt-2.5 flex flex-wrap gap-2 wrap-anywhere">
@@ -113,18 +115,19 @@ export function PlanCards({
   );
 }
 
+/** A fact of the plan: a receipt row whose value, when it wraps under its name, still keeps to the right. */
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="mb-3.5 flex justify-between gap-3.5">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
+    <DescriptionItem>
+      <DescriptionTerm>{label}</DescriptionTerm>
+      <DescriptionDetails className="ml-auto text-right">{children}</DescriptionDetails>
+    </DescriptionItem>
   );
 }
 
 /**
- * The same values side by side: one column per plan, one row per fact. The table scrolls sideways inside its own frame on narrow
- * screens, and the frame is focusable so a keyboard can scroll it.
+ * The same values side by side: one column per plan, one row per fact. The registry's Table scrolls sideways inside its own
+ * frame on narrow screens, and takes keyboard focus as a region named by the heading while it does.
  */
 export function PlanComparison({
   plans,
@@ -136,68 +139,70 @@ export function PlanComparison({
   /** id of the heading that names the table. */
   labelledBy: string;
 }) {
-  const cell = "border-b border-border px-5 py-3.5 text-left align-top";
+  // Table's cells are dense and do not wrap; these keep the comparison's roomier cells, wrapping long values.
+  const cell = "h-auto px-5 py-3.5 text-left align-top whitespace-normal";
   // The row labels stay put while the plans scroll sideways on a narrow screen, so every value keeps its label in view.
-  // They need a background of their own to cover the cells sliding under them, and a hairline on the right to show the edge.
+  // Table pins columns on the right only, so this one is pinned here: a background of its own to cover the cells sliding
+  // under it, and a hairline on the right to show the edge.
   const labelCell =
     "sticky left-0 z-1 bg-background shadow-[inset_-1px_0_0_var(--border)] max-sm:w-[8.5rem] max-sm:px-4 md:shadow-none";
   const rows = planRowsFor(plans);
   return (
-    <div
-      // relative: the cells' sr-only text is absolutely positioned, and without a positioned frame it escapes the scroll clip
-      // and makes the whole page scroll sideways on a phone.
-      className="relative overflow-x-auto rounded-panel border border-border focus-visible:outline-2 focus-visible:outline-ring"
-      role="region"
-      aria-labelledby={labelledBy}
-      tabIndex={0}
-    >
-      <table className="w-full min-w-[34rem] border-collapse text-sm/body" aria-labelledby={labelledBy}>
-        <thead>
-          <tr>
-            <th scope="col" className={cn(cell, labelCell, "w-[11rem] font-normal text-muted-foreground")}>
+    <div className="overflow-hidden rounded-panel border border-border">
+      <Table className="min-w-[34rem] text-sm/body" aria-labelledby={labelledBy}>
+        {/* No header tint and no row hover: the comparison is read, not acted on, and the pinned labels keep one background. */}
+        <TableHeader className="bg-transparent">
+          <TableRow className="hover:bg-transparent">
+            <TableHead
+              scope="col"
+              className={cn(cell, labelCell, "w-[11rem] text-sm/body font-normal text-muted-foreground")}
+            >
               {copy.compare.feature}
-            </th>
+            </TableHead>
             {plans.map((plan) => (
-              <th scope="col" className={cn(cell, "text-base font-semibold wrap-anywhere")} key={plan.id}>
-                {plan.name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={row}>
-              <th
-                scope="row"
-                className={cn(
-                  cell,
-                  labelCell,
-                  "font-normal text-muted-foreground",
-                  index === rows.length - 1 && "border-b-0",
-                )}
+              <TableHead
+                scope="col"
+                className={cn(cell, "text-base font-semibold wrap-anywhere text-foreground")}
+                key={plan.id}
               >
+                {plan.name}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow className="hover:bg-transparent" key={row}>
+              <TableHead scope="row" className={cn(cell, labelCell, "text-sm/body font-normal text-muted-foreground")}>
                 {copy.compare.rows[row]}
-              </th>
+              </TableHead>
               {plans.map((plan) => (
-                <td className={cn(cell, "wrap-anywhere", index === rows.length - 1 && "border-b-0")} key={plan.id}>
-                  {plan.rows[row]}
-                  {row === "price" && plan.discount && (
-                    <span className="mt-1 block text-xs/body text-muted-foreground">
-                      {plan.discount.label} · <span className="sr-only">{copy.plan.originalPrice} </span>
-                      <s>{plan.discount.original}</s>
-                    </span>
+                <TableCell className={cn(cell, "wrap-anywhere")} key={plan.id}>
+                  {/* The LDC price as the cards write it, smaller; a plan without one says so in words. */}
+                  {row === "price" && plan.rows.price !== copy.compare.none ? (
+                    <PricingPrice
+                      size="sm"
+                      price={plan.amount}
+                      period={plan.unit}
+                      discount={plan.discount?.label}
+                      {...(plan.discount
+                        ? { originalPrice: plan.discount.original, originalPriceLabel: copy.plan.originalPrice }
+                        : { originalPrice: undefined })}
+                    />
+                  ) : (
+                    plan.rows[row]
                   )}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
 
-/** The panel shown instead of plans: loading, shop closed, or catalog unreadable. */
+/** Shown instead of plans: loading, shop closed, or catalog unreadable. The registry's EmptyState, at the pricing page's size. */
 export function PlanNotice({
   title,
   children,
@@ -210,10 +215,12 @@ export function PlanNotice({
   role?: "status" | "alert";
 }) {
   return (
-    <Card className="block px-7 py-12 text-center" role={role}>
-      {title && <p className="text-xl/[1.4] font-semibold">{title}</p>}
-      <p className={cn("mx-auto max-w-xl text-base/prose text-muted-foreground", title && "mt-2.5")}>{children}</p>
-      {actions && <div className="mt-6 flex flex-wrap justify-center gap-3">{actions}</div>}
-    </Card>
+    <EmptyState className="gap-0 bg-card px-7 py-12" role={role}>
+      {title && <EmptyStateTitle className="text-xl/[1.4]">{title}</EmptyStateTitle>}
+      <EmptyStateDescription className={cn("max-w-xl text-base/prose", title && "mt-2.5")}>
+        {children}
+      </EmptyStateDescription>
+      {actions && <EmptyStateActions className="mt-6 gap-3">{actions}</EmptyStateActions>}
+    </EmptyState>
   );
 }

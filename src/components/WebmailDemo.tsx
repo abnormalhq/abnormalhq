@@ -8,12 +8,15 @@ import {
   PaperclipIcon,
   PencilIcon,
   ReplyIcon,
-  SearchIcon,
   SendIcon,
   StarIcon,
   XIcon,
 } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { Copy, DemoLabelId, DemoMail } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +39,11 @@ const labelTone = {
   orange: "bg-orange-500/12 text-orange-700 dark:text-orange-300",
 } as const;
 const labelDot = { blue: "bg-sky-500", green: "bg-emerald-500", orange: "bg-orange-500" } as const;
+
+/** A folder or label in the column: a ghost Button laid out as a row; the current one takes the highlight. */
+const folderClass = "justify-start gap-2.5 px-3 text-left text-sm font-normal max-md:shrink-0";
+const folderCurrentClass =
+  "bg-highlight font-medium text-highlight-foreground hover:bg-highlight hover:text-highlight-foreground";
 
 const CATEGORIES: readonly Category[] = ["all", "primary", "newsletters", "notifications"];
 const categoryCopy = {
@@ -180,7 +188,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
         role="group"
         aria-label={t.inbox}
       >
-        <button
+        <Button
           type="button"
           onClick={(event) => {
             opener.current = event.currentTarget;
@@ -188,46 +196,42 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
             focusField.current = "to";
             setNotice(null);
           }}
-          className="mb-2 flex items-center justify-center gap-2 rounded-control bg-foreground px-3 py-2 font-medium text-background transition-opacity hover:opacity-90 max-md:mb-0 max-md:shrink-0"
+          className="mb-2 h-9 gap-2 text-sm max-md:mb-0"
         >
-          <PencilIcon className="size-4" />
+          <PencilIcon />
           {t.compose}
-        </button>
+        </Button>
         {nav.map((entry) => (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             key={entry.id}
             aria-current={folder === entry.id && !label ? "page" : undefined}
             onClick={() => go(entry.id)}
             className={cn(
-              "flex items-center gap-2.5 rounded-control px-3 py-2 text-left transition-colors max-md:shrink-0",
-              folder === entry.id && !label
-                ? "bg-highlight font-medium text-highlight-foreground"
-                : "text-muted-foreground hover:bg-background hover:text-foreground",
+              folderClass,
+              "h-9",
+              folder === entry.id && !label ? folderCurrentClass : "hover:bg-background",
             )}
           >
             {entry.icon}
             <span className="flex-1">{entry.name}</span>
             {entry.count ? <span className="text-xs tabular-nums">{entry.count}</span> : null}
-          </button>
+          </Button>
         ))}
         <p className="mt-4 px-3 text-xs text-muted-foreground max-md:hidden">{t.labels}</p>
         {copy.labels.map((entry) => (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             key={entry.id}
             aria-current={label === entry.id ? "page" : undefined}
             onClick={() => go("inbox", entry.id)}
-            className={cn(
-              "flex items-center gap-2.5 rounded-control px-3 py-1.5 text-left transition-colors max-md:shrink-0",
-              label === entry.id
-                ? "bg-highlight font-medium text-highlight-foreground"
-                : "text-muted-foreground hover:bg-background hover:text-foreground",
-            )}
+            className={cn(folderClass, label === entry.id ? folderCurrentClass : "hover:bg-background")}
           >
             <span className={cn("size-2 rounded-full", labelDot[entry.color])} aria-hidden="true" />
             {entry.name}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -255,40 +259,39 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
               <label htmlFor={searchId} className="sr-only">
                 {t.search}
               </label>
-              <div className="mt-3 flex items-center gap-2 rounded-control bg-surface px-3 py-2">
-                <SearchIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                <input
-                  id={searchId}
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={t.search}
-                  className="w-full min-w-0 bg-transparent outline-none placeholder:text-muted-foreground"
-                />
-              </div>
+              <SearchInput
+                id={searchId}
+                className="mt-3"
+                inputClassName="h-9 border-transparent bg-surface text-sm"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t.search}
+                clearLabel={t.clearSearch}
+              />
               {folder === "inbox" && !label && (
-                <div className="mt-3 flex gap-1.5 overflow-x-auto" role="group" aria-label={t.inbox}>
+                <ToggleGroup
+                  type="single"
+                  size="sm"
+                  // One category is always chosen: pressing the chosen one again keeps it.
+                  value={category}
+                  onValueChange={(value) => value && setCategory(value as Category)}
+                  className="mt-3 w-full gap-1.5 overflow-x-auto"
+                  aria-label={t.inbox}
+                >
                   {CATEGORIES.map((entry) => {
                     const count = entry === "all" ? 0 : unreadIn(received.filter((mail) => mail.category === entry));
                     return (
-                      <button
-                        type="button"
+                      <ToggleGroupItem
                         key={entry}
-                        aria-pressed={category === entry}
-                        onClick={() => setCategory(entry)}
-                        className={cn(
-                          "shrink-0 rounded-full border px-3 py-1 text-xs transition-colors",
-                          category === entry
-                            ? "border-foreground bg-foreground text-background"
-                            : "border-border text-muted-foreground hover:text-foreground",
-                        )}
+                        value={entry}
+                        className="h-7 flex-none rounded-full border-border px-3 text-xs font-normal first:rounded-full last:rounded-full data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:text-background data-[state=on]:hover:bg-foreground"
                       >
                         {t[categoryCopy[entry]]}
-                        {count ? <span className="ml-1.5 tabular-nums">{count}</span> : null}
-                      </button>
+                        {count ? <span className="ml-0.5 tabular-nums">{count}</span> : null}
+                      </ToggleGroupItem>
                     );
                   })}
-                </div>
+                </ToggleGroup>
               )}
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -328,12 +331,9 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                                 {mail.labels.map((id) => {
                                   const entry = labelsById.get(id);
                                   return entry ? (
-                                    <span
-                                      key={id}
-                                      className={cn("shrink-0 rounded-chip px-1.5 text-[11px]", labelTone[entry.color])}
-                                    >
+                                    <Badge size="sm" key={id} className={cn("font-normal", labelTone[entry.color])}>
                                       {entry.name}
-                                    </span>
+                                    </Badge>
                                   ) : null;
                                 })}
                                 <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
@@ -384,8 +384,9 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                   </IconButton>
                   {!open.outgoing && (
                     <>
-                      <button
+                      <Button
                         type="button"
+                        size="sm"
                         onClick={(event) => {
                           opener.current = event.currentTarget;
                           setDraft({
@@ -398,11 +399,11 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                           focusField.current = "body";
                           setNotice(null);
                         }}
-                        className="flex items-center gap-1.5 rounded-control bg-foreground px-3 py-1.5 font-medium text-background hover:opacity-90"
+                        className="h-8 text-sm [&_svg:not([class*='size-'])]:size-4"
                       >
-                        <ReplyIcon className="size-4" />
+                        <ReplyIcon />
                         {t.reply}
-                      </button>
+                      </Button>
                       <StarButton
                         starred={open.starred}
                         copy={t}
@@ -430,9 +431,9 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                       {open.labels.map((id) => {
                         const entry = labelsById.get(id);
                         return entry ? (
-                          <span key={id} className={cn("rounded-chip px-1.5 text-xs", labelTone[entry.color])}>
+                          <Badge size="sm" key={id} className={cn("text-xs font-normal", labelTone[entry.color])}>
                             {entry.name}
-                          </span>
+                          </Badge>
                         ) : null;
                       })}
                     </div>
@@ -472,14 +473,17 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
         >
           <div className="flex items-center justify-between bg-foreground px-4 py-2 text-background">
             <span className="font-medium">{draft.subject || t.compose}</span>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               aria-label={t.close}
+              title={t.close}
               onClick={() => setDraft(null)}
-              className="rounded-control p-1 hover:opacity-80"
+              className="-mr-1.5 text-background hover:bg-background/15 hover:text-background"
             >
               <XIcon className="size-4" />
-            </button>
+            </Button>
           </div>
           <DraftField label={t.to}>
             <input
@@ -509,13 +513,10 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
             />
           </label>
           <div className="flex items-center gap-3 border-t border-border px-4 py-2">
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 rounded-control bg-foreground px-3 py-1.5 font-medium text-background hover:opacity-90"
-            >
-              <SendIcon className="size-4" />
+            <Button type="submit" size="sm" className="h-8 text-sm [&_svg:not([class*='size-'])]:size-4">
+              <SendIcon />
               {t.send}
-            </button>
+            </Button>
             {notice && (
               <span className="text-xs text-muted-foreground" role="status">
                 {notice}
@@ -530,9 +531,17 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
           className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-control bg-foreground px-4 py-2 text-background shadow-lg max-md:w-[calc(100%-1rem)] max-md:text-center"
         >
           {notice}
-          <button type="button" aria-label={t.close} onClick={() => setNotice(null)} className="ml-3 align-middle">
-            <XIcon className="inline size-3.5" />
-          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={t.close}
+            title={t.close}
+            onClick={() => setNotice(null)}
+            className="ml-2 align-middle text-background hover:bg-background/15 hover:text-background"
+          >
+            <XIcon />
+          </Button>
         </p>
       )}
     </div>
@@ -560,18 +569,17 @@ function IconButton({
   children: ReactNode;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={cn(
-        "grid size-8 place-items-center rounded-control text-muted-foreground hover:bg-surface hover:text-foreground",
-        className,
-      )}
+      className={cn("hover:bg-surface", className)}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 

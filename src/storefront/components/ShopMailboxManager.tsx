@@ -2,10 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { ChevronRightIcon } from "lucide-react";
+import { TextLink } from "@/components/ui/text-link";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupButton, InputGroupInput, InputGroupSuffix } from "@/components/ui/input-group";
 import { NativeSelect } from "@/components/ui/native-select";
+import { PasswordInput } from "@/components/ui/password-input";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import { forgetAddress, recallAddress } from "@/storefront/lib/address";
 import { generatePassword, normalizeUsername, passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
@@ -24,7 +29,7 @@ import { describeShopError } from "@/storefront/lib/shop-error";
 import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
 import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
-import { CopyButton, inputActionClass } from "./onboard/CopyButton";
+import { inputActionClass } from "./onboard/AccountRow";
 import {
   ShopActions,
   ShopAlert,
@@ -171,9 +176,9 @@ export function ShopMailboxManager({
       ) : data.groups.length === 0 ? (
         <p className={shopTextClass}>
           {t.mailboxesEmpty}{" "}
-          <Link className="text-foreground underline underline-offset-4" href={`/${LANG_PATHS[lang]}shop/`}>
-            {t.mailboxesGoShop}
-          </Link>
+          <TextLink variant="inline" asChild>
+            <Link href={`/${LANG_PATHS[lang]}shop/`}>{t.mailboxesGoShop}</Link>
+          </TextLink>
         </p>
       ) : (
         <div className="mt-6">
@@ -303,7 +308,16 @@ function MailboxGroup({
           <p className="text-sm/[1.7]">{t.mailboxCreated(created.email)}</p>
           <InputGroup size="lg" className="mt-3 max-w-[420px]">
             <InputGroupInput readOnly value={created.password} aria-label={t.mailboxCreatedPassword} />
-            <CopyButton text={created.password} label={t.mailboxCopy} copiedLabel={t.mailboxCopied} />
+            <CopyButton
+              size="sm"
+              className={cn(inputActionClass, "mr-1")}
+              text={created.password}
+              label={t.mailboxCopy}
+              copiedLabel={t.mailboxCopied}
+              failedLabel={t.copyFailedShort}
+            >
+              {t.mailboxCopy}
+            </CopyButton>
           </InputGroup>
           <p className="mt-2 text-xs/[1.6] text-muted-foreground">{t.mailboxCreatedOnce}</p>
         </div>
@@ -416,33 +430,36 @@ function MailboxRow({
             hintId={`${id}-password-hint`}
             invalid={problem !== ""}
           >
-            <InputGroup size="lg" className="max-w-[420px]">
-              <InputGroupInput
-                ref={passwordInput}
-                id={`${id}-password`}
-                type={show ? "text" : "password"}
-                autoComplete="new-password"
-                required
-                maxLength={128}
-                aria-invalid={problem ? true : undefined}
-                aria-describedby={`${id}-password-hint`}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                disabled={busy}
-              />
-              <InputGroupButton className={inputActionClass} aria-pressed={show} onClick={() => setShow(!show)}>
-                {show ? t.mailboxHide : t.mailboxShow}
-              </InputGroupButton>
-              <InputGroupButton
-                className={inputActionClass}
-                onClick={() => {
-                  setPassword(generatePassword());
-                  setShow(true);
-                }}
-              >
-                {t.mailboxGenerate}
-              </InputGroupButton>
-            </InputGroup>
+            <PasswordInput
+              size="lg"
+              className="max-w-[420px]"
+              toggle="text"
+              showLabel={t.mailboxShow}
+              hideLabel={t.mailboxHide}
+              visible={show}
+              onVisibleChange={setShow}
+              actions={
+                <InputGroupButton
+                  className={inputActionClass}
+                  onClick={() => {
+                    setPassword(generatePassword());
+                    setShow(true);
+                  }}
+                >
+                  {t.mailboxGenerate}
+                </InputGroupButton>
+              }
+              ref={passwordInput}
+              id={`${id}-password`}
+              autoComplete="new-password"
+              required
+              maxLength={128}
+              aria-invalid={problem ? true : undefined}
+              aria-describedby={`${id}-password-hint`}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={busy}
+            />
           </ShopField>
           <p className="text-xs/[1.6] text-muted-foreground">{t.mailboxPasswordEffect}</p>
           <ShopActions>
@@ -594,27 +611,30 @@ function CreateMailboxForm({
         hintId="mailbox-create-password-hint"
         invalid={problem?.field === "password"}
       >
-        <InputGroup size="lg" className="max-w-[420px]">
-          <InputGroupInput
-            ref={passwordInput}
-            id="mailbox-create-password"
-            type={show ? "text" : "password"}
-            autoComplete="new-password"
-            required
-            maxLength={128}
-            aria-invalid={problem?.field === "password" ? true : undefined}
-            aria-describedby="mailbox-create-password-hint"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            disabled={busy}
-          />
-          <InputGroupButton className={inputActionClass} aria-pressed={show} onClick={() => setShow(!show)}>
-            {show ? t.mailboxHide : t.mailboxShow}
-          </InputGroupButton>
-          <InputGroupButton className={inputActionClass} onClick={() => setPassword(generatePassword())}>
-            {t.mailboxGenerate}
-          </InputGroupButton>
-        </InputGroup>
+        <PasswordInput
+          size="lg"
+          className="max-w-[420px]"
+          toggle="text"
+          showLabel={t.mailboxShow}
+          hideLabel={t.mailboxHide}
+          visible={show}
+          onVisibleChange={setShow}
+          actions={
+            <InputGroupButton className={inputActionClass} onClick={() => setPassword(generatePassword())}>
+              {t.mailboxGenerate}
+            </InputGroupButton>
+          }
+          ref={passwordInput}
+          id="mailbox-create-password"
+          autoComplete="new-password"
+          required
+          maxLength={128}
+          aria-invalid={problem?.field === "password" ? true : undefined}
+          aria-describedby="mailbox-create-password-hint"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={busy}
+        />
       </ShopField>
       <ShopActions>
         <ShopButton type="submit" disabled={busy}>
@@ -635,21 +655,29 @@ function MailServers({ servers }: { servers: AccountMailboxes["servers"] }) {
   if (entries.length === 0) return null;
   const security = (value: string) => (value === "tls" ? "SSL/TLS" : value === "starttls" ? "STARTTLS" : value);
   return (
-    <details className="mt-6 border-t border-border pt-5">
-      <summary className="cursor-pointer text-sm/[1.7]">{t.mailServersTitle}</summary>
-      {entries.map(([domain, { imap, smtp }]) => (
-        <ShopMeta key={domain}>
-          <ShopMetaRow label={domain}>
-            {imap && (
-              <span className="block">{t.mailServerLine("IMAP", imap.host, imap.port, security(imap.security))}</span>
-            )}
-            {smtp && (
-              <span className="block">{t.mailServerLine("SMTP", smtp.host, smtp.port, security(smtp.security))}</span>
-            )}
-          </ShopMetaRow>
-        </ShopMeta>
-      ))}
-      <p className={shopTextClass}>{t.mailServersHint}</p>
-    </details>
+    <Collapsible className="group/servers mt-6 border-t border-border pt-5">
+      <CollapsibleTrigger className="inline-flex cursor-pointer items-center gap-1.5 text-sm/[1.7]">
+        <ChevronRightIcon
+          className="size-3.5 transition-transform duration-150 group-data-[state=open]/servers:rotate-90"
+          aria-hidden="true"
+        />
+        {t.mailServersTitle}
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {entries.map(([domain, { imap, smtp }]) => (
+          <ShopMeta key={domain}>
+            <ShopMetaRow label={domain}>
+              {imap && (
+                <span className="block">{t.mailServerLine("IMAP", imap.host, imap.port, security(imap.security))}</span>
+              )}
+              {smtp && (
+                <span className="block">{t.mailServerLine("SMTP", smtp.host, smtp.port, security(smtp.security))}</span>
+              )}
+            </ShopMetaRow>
+          </ShopMeta>
+        ))}
+        <p className={shopTextClass}>{t.mailServersHint}</p>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

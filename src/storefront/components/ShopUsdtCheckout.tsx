@@ -11,11 +11,19 @@
  * When mail answers `paid` it tells the parent, which reads the order again and shows the code as for any other way of paying.
  * Nothing here holds a key or signs anything: the buyer pays from their own wallet.
  */
-import { CheckIcon, CopyIcon, TriangleAlertIcon } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { encode } from "uqr";
+import { CheckIcon, TriangleAlertIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { CopyButton } from "@/components/ui/copy-button";
+import {
+  DescriptionDetails,
+  DescriptionItem,
+  DescriptionList,
+  DescriptionTerm,
+} from "@/components/ui/description-list";
+import { Skeleton } from "@/components/ui/skeleton";
+import { QrCode } from "@/components/ui/qr-code";
 import { Spinner } from "@/components/ui/spinner";
 import type { Lang } from "@/storefront/i18n";
 import {
@@ -30,16 +38,7 @@ import {
 } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
-import { copyText } from "./onboard/clipboard";
-import {
-  ShopActions,
-  ShopAlert,
-  ShopButton,
-  ShopSkeleton,
-  ShopTestnetBadge,
-  shopArriveClass,
-  shopTextClass,
-} from "./ShopParts";
+import { ShopActions, ShopAlert, ShopButton, ShopTestnetBadge, shopArriveClass, shopTextClass } from "./ShopParts";
 
 /** How often pay/usdt is asked while the page is visible: mail expects about this and throttles its own look at the chain. */
 export const USDT_POLL_MS = 5_000;
@@ -104,7 +103,7 @@ export function ShopUsdtCheckout({
   const [round, setRound] = useState(0);
   // The round that ran out of time without a payment (or stopped on an answer that asking again will not change).
   const [stopped, setStopped] = useState(-1);
-  const [copyNotice, setCopyNotice] = useState("");
+  const chooseId = useId();
   const [choice, setChoice] = useState<Choice>(() =>
     chain === null ? { ready: false, options: [] } : { ready: true, ...(chain ? { chain } : {}) },
   );
@@ -239,29 +238,29 @@ export function ShopUsdtCheckout({
     setRound((value) => value + 1);
   }
 
-  async function copy(value: string, done: string): Promise<boolean> {
-    const copied = await copyText(value);
-    setCopyNotice(copied ? done : t.usdtCopyFailed);
-    return copied;
-  }
-
   if (!choice.ready && choice.options.length > 1) {
     return (
       <div className="mt-6">
-        <h3 className="text-sm/body font-semibold">{t.usdtChoose}</h3>
+        <h3 className="text-sm/body font-semibold" id={`${chooseId}-title`}>
+          {t.usdtChoose}
+        </h3>
         <p className={shopTextClass}>{t.usdtChooseHint}</p>
-        <ShopActions>
-          {choice.options.map((option) => (
-            <ShopButton
-              key={option.chain}
-              variant="outline"
-              type="button"
-              onClick={() => setChoice({ ready: true, chain: option.chain })}
-            >
-              {t.usdtChainOption(option.name, option.standard)}
-            </ShopButton>
-          ))}
-        </ShopActions>
+        {/* Registry Buttons, not a toggle-group or radio-group: each one is an action that settles the order's chain for good,
+            there is no selected state to hold. The group names them by the heading above. */}
+        <div role="group" aria-labelledby={`${chooseId}-title`}>
+          <ShopActions>
+            {choice.options.map((option) => (
+              <ShopButton
+                key={option.chain}
+                variant="outline"
+                type="button"
+                onClick={() => setChoice({ ready: true, chain: option.chain })}
+              >
+                {t.usdtChainOption(option.name, option.standard)}
+              </ShopButton>
+            ))}
+          </ShopActions>
+        </div>
         {choice.options.some((option) => option.chain === "ethereum") && (
           <p className={`${shopTextClass} text-muted-foreground`}>{t.usdtEthereumFees}</p>
         )}
@@ -274,12 +273,12 @@ export function ShopUsdtCheckout({
       <div className="mt-6" role="status" aria-busy="true">
         <span className="sr-only">{t.usdtLoading}</span>
         <div className="flex flex-wrap gap-6">
-          <ShopSkeleton className="size-[176px]" />
+          <Skeleton className="size-[176px]" />
           <div className="min-w-[220px] flex-1">
-            <ShopSkeleton className="h-4 w-1/3" />
-            <ShopSkeleton className="mt-2 h-8 w-1/2" />
-            <ShopSkeleton className="mt-6 h-4 w-1/3" />
-            <ShopSkeleton className="mt-2 h-6 w-full" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="mt-2 h-8 w-1/2" />
+            <Skeleton className="mt-6 h-4 w-1/3" />
+            <Skeleton className="mt-2 h-6 w-full" />
           </div>
         </div>
       </div>
@@ -316,15 +315,16 @@ export function ShopUsdtCheckout({
       </div>
       <div className="mt-5 flex flex-wrap items-start gap-x-7 gap-y-5">
         <figure className="shrink-0">
-          <UsdtQr address={payment.address} label={t.usdtQr(payment.address)} />
+          <QrCode value={payment.address} label={t.usdtQr(payment.address)} className="size-[176px]" />
           <figcaption className="mt-2 max-w-[176px] text-xs/[1.6] text-muted-foreground">{t.usdtQrHint}</figcaption>
         </figure>
-        <dl className="grid min-w-0 flex-1 basis-[260px] gap-5">
+        <DescriptionList variant="stacked" className="min-w-0 flex-1 basis-[260px] gap-y-5">
           <CopyRow
             label={t.usdtAmount}
             copyLabel={t.usdtCopyAmount}
-            copiedLabel={t.copiedShort}
-            onCopy={() => copy(payment.amount, t.usdtAmountCopied)}
+            copiedLabel={t.usdtAmountCopied}
+            failedLabel={t.usdtCopyFailed}
+            value={payment.amount}
           >
             <span className="text-[28px] leading-[1.2] font-semibold tracking-[-0.02em] tabular-nums">
               {payment.amount}
@@ -334,12 +334,13 @@ export function ShopUsdtCheckout({
           <CopyRow
             label={t.usdtAddress}
             copyLabel={t.usdtCopyAddress}
-            copiedLabel={t.copiedShort}
-            onCopy={() => copy(payment.address, t.usdtAddressCopied)}
+            copiedLabel={t.usdtAddressCopied}
+            failedLabel={t.usdtCopyFailed}
+            value={payment.address}
           >
             <code className="font-mono text-sm/[1.6] break-all select-all">{payment.address}</code>
           </CopyRow>
-        </dl>
+        </DescriptionList>
       </div>
       {/* Read in its place, not announced: it is there from the start and does not change. */}
       <Alert role="note" className="my-5 px-[18px]">
@@ -387,86 +388,47 @@ export function ShopUsdtCheckout({
           </ShopButton>
         </ShopActions>
       )}
-      <p className={shopTextClass} role="status">
-        {copyNotice}
-      </p>
     </div>
   );
 }
 
-/** One fact to copy: its label, the value, and a button that says "Copied" for a moment. */
+/** One fact to copy: its label, the value, and a button that copies it and shows how that went. */
 function CopyRow({
   label,
   copyLabel,
   copiedLabel,
-  onCopy,
+  failedLabel,
+  value,
   children,
 }: {
   label: string;
   copyLabel: string;
   copiedLabel: string;
-  onCopy: () => Promise<boolean>;
+  failedLabel: string;
+  value: string;
   children: ReactNode;
 }) {
-  const [copied, setCopied] = useState(false);
   const id = useId();
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
   return (
-    <div className="grid gap-1.5">
-      <dt className="text-xs/body text-muted-foreground" id={id}>
+    <DescriptionItem>
+      <DescriptionTerm className="text-xs/body" id={id}>
         {label}
-      </dt>
-      <dd className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      </DescriptionTerm>
+      <DescriptionDetails className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
         <span className="min-w-0">{children}</span>
-        <ShopButton
+        <CopyButton
           variant="outline"
           size="sm"
-          type="button"
-          className="min-h-9"
+          className="h-auto min-h-9 gap-3 py-2 whitespace-normal"
+          text={value}
+          label={copyLabel}
+          copiedLabel={copiedLabel}
+          failedLabel={failedLabel}
           aria-describedby={id}
-          onClick={async () => setCopied(await onCopy())}
         >
-          {copied ? (
-            <CheckIcon className="animate-pop text-success" aria-hidden="true" />
-          ) : (
-            <CopyIcon aria-hidden="true" />
-          )}
-          {copied ? copiedLabel : copyLabel}
-        </ShopButton>
-      </dd>
-    </div>
-  );
-}
-
-/**
- * The address as a QR code, drawn as inline SVG from uqr's module matrix: dark modules on white with the four-module quiet zone
- * scanners need, on white in the dark theme too (a light-on-dark code is not read by every wallet).
- */
-function UsdtQr({ address, label }: { address: string; label: string }) {
-  const { size, path } = useMemo(() => {
-    const qr = encode(address, { ecc: "M", border: 4 });
-    let d = "";
-    qr.data.forEach((row, y) =>
-      row.forEach((dark, x) => {
-        if (dark) d += `M${x} ${y}h1v1h-1z`;
-      }),
-    );
-    return { size: qr.size, path: d };
-  }, [address]);
-  return (
-    <svg
-      viewBox={`0 0 ${size} ${size}`}
-      className="block size-[176px] rounded-control border border-border"
-      role="img"
-      aria-label={label}
-      shapeRendering="crispEdges"
-    >
-      <rect width={size} height={size} fill="#ffffff" />
-      <path d={path} fill="#000000" />
-    </svg>
+          {copyLabel}
+        </CopyButton>
+      </DescriptionDetails>
+    </DescriptionItem>
   );
 }

@@ -70,6 +70,7 @@ export const zh: Copy = {
     submitting: "开通中…",
     copy: "复制",
     copied: "已复制",
+    copyFailed: "复制失败",
     copyAll: "复制全部",
     openWebmail: "打开网页邮箱",
   },

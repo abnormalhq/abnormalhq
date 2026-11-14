@@ -62,9 +62,9 @@ export function PricingSection({ lang }: { lang: Lang }) {
         {/* Without JavaScript the plans above never load; the pricing page renders them on the server. */}
         <noscript>
           <p className="mt-4 text-base/prose text-muted-foreground">
-            <a className="underline underline-offset-4" href={links.pricing}>
+            <TextLink variant="inline" href={links.pricing}>
               {p.compareLink}
-            </a>
+            </TextLink>
           </p>
         </noscript>
         <div className="mt-14 max-md:mt-11" {...reveal()}>

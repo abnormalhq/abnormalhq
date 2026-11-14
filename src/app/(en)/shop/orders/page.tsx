@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { ShopOrder } from "@/storefront/components/ShopOrder";
-import { shopPageClass } from "@/storefront/components/ShopParts";
+import { ShopPageLoading } from "@/storefront/components/ShopParts";
 import { StorePage } from "@/storefront/components/StorePage";
 import { shopMetadata } from "@/storefront/metadata";
 
@@ -10,13 +10,7 @@ export const metadata = shopMetadata("en", "orders");
 export default function EnOrdersPage() {
   return (
     <StorePage>
-      <Suspense
-        fallback={
-          <div className={shopPageClass}>
-            <p role="status">Loading your order…</p>
-          </div>
-        }
-      >
+      <Suspense fallback={<ShopPageLoading>Loading your order…</ShopPageLoading>}>
         <ShopOrder lang="en" />
       </Suspense>
     </StorePage>

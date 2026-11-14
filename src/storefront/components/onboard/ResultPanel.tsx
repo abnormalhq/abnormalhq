@@ -1,24 +1,30 @@
 "use client";
 
+import { CheckIcon } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { REDEEM_PATH, type Copy } from "@/storefront/i18n";
 import type { ServerEndpoint } from "@/storefront/lib/api";
 import { cn } from "@/lib/utils";
-import { RichText, inlineLinkClass } from "@/storefront/components/RichText";
+import { RichText } from "@/storefront/components/RichText";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/copy-button";
+import {
+  DescriptionDetails,
+  DescriptionItem,
+  DescriptionList,
+  DescriptionTerm,
+} from "@/components/ui/description-list";
 import { InputGroupButton } from "@/components/ui/input-group";
 import { Eyebrow } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
-import { CopyButton, inputActionClass } from "./CopyButton";
+import { inputActionClass } from "./AccountRow";
 import { Msg } from "./Msg";
 import { NO_NOTE, note, type Issued, type Outcome } from "./reducer";
 
 const MASK = "••••••••••••";
 
 const noteClass = "mt-5 text-sm/[1.7] text-pretty text-muted-foreground";
-const credsRowClass =
-  "grid grid-cols-[110px_minmax(0,1fr)] items-center gap-5 border-b border-border py-[15px] max-narrow:grid-cols-[1fr] max-narrow:gap-1.5";
 const credsLabelClass = "text-sm/body text-muted-foreground";
 const credsValueClass = "min-w-0 text-base/body wrap-anywhere";
 const issuedRowClass = "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 wrap-anywhere";
@@ -70,19 +76,7 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
           className="grid size-[46px] shrink-0 place-items-center rounded-full bg-[color-mix(in_oklab,var(--success)_10%,var(--card))] text-success max-narrow:size-9"
           aria-hidden="true"
         >
-          <svg
-            className="max-narrow:size-[22px]"
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m5 12 4 4L19 6" />
-          </svg>
+          <CheckIcon className="size-7 max-narrow:size-[22px]" />
         </span>
         <div className="min-w-0">
           <Eyebrow className="text-success before:hidden">{t.result.eyebrow}</Eyebrow>
@@ -104,10 +98,14 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
       </ul>
       <p className="mt-2" hidden={issued.length < 2}>
         <CopyButton
+          size="sm"
           label={t.buttons.copyAll}
           copiedLabel={t.buttons.copied}
-          text={() => issued.map((item) => `${item.email}\t${item.password}`).join("\n")}
-        />
+          failedLabel={t.buttons.copyFailed}
+          text={issued.map((item) => `${item.email}\t${item.password}`).join("\n")}
+        >
+          {t.buttons.copyAll}
+        </CopyButton>
       </p>
       <Msg
         className="mt-5"
@@ -123,16 +121,17 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
             : NO_NOTE
         }
       />
-      <dl className="mt-6 border-t border-border">
-        <div className={credsRowClass}>
-          <dt className={credsLabelClass}>{t.result.login}</dt>
-          <dd className={credsValueClass}>
+      {/* The registry's lined list: values in one column with a hairline between rows, under their names on a phone. */}
+      <DescriptionList variant="lined" className="mt-6 gap-x-5 border-y border-border">
+        <DescriptionItem>
+          <DescriptionTerm className={credsLabelClass}>{t.result.login}</DescriptionTerm>
+          <DescriptionDetails className={credsValueClass}>
             <small className="text-xs/body text-muted-foreground">{t.result.loginNote}</small>
-          </dd>
-        </div>
+          </DescriptionDetails>
+        </DescriptionItem>
         <Endpoint t={t} label={t.result.imap} endpoint={outcome?.imap ?? null} />
         <Endpoint t={t} label={t.result.smtp} endpoint={outcome?.smtp ?? null} />
-      </dl>
+      </DescriptionList>
       <Button asChild size="lg" className="mt-6 h-auto min-h-10 py-2 whitespace-normal">
         <a href={webmail ?? "#"} target="_blank" rel="noopener noreferrer" hidden={!webmail}>
           {t.buttons.openWebmail}
@@ -140,13 +139,13 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
       </Button>
       <p className={noteClass}>
         {t.result.note[0]}
-        <a className={inlineLinkClass} href={`mailto:${supportEmail}`}>
+        <TextLink variant="inline" href={`mailto:${supportEmail}`}>
           {supportEmail}
-        </a>
+        </TextLink>
         {t.result.note[1]}
       </p>
       <p className={noteClass}>
-        <RichText text={t.result.next} base={homePath} linkClassName={inlineLinkClass} />
+        <RichText text={t.result.next} base={homePath} inlineLinks />
       </p>
       <p>
         <TextLink
@@ -165,16 +164,16 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
 
 function Endpoint({ t, label, endpoint }: { t: Copy; label: string; endpoint: ServerEndpoint | null }) {
   return (
-    <div className={credsRowClass} hidden={!endpoint}>
-      <dt className={credsLabelClass}>{label}</dt>
-      <dd className={credsValueClass}>
+    <DescriptionItem hidden={!endpoint}>
+      <DescriptionTerm className={credsLabelClass}>{label}</DescriptionTerm>
+      <DescriptionDetails className={credsValueClass}>
         <span>
           {endpoint
             ? `${endpoint.host} · ${t.result.port} ${endpoint.port} · ${t.result.security[endpoint.security]}`
             : null}
         </span>
-      </dd>
-    </div>
+      </DescriptionDetails>
+    </DescriptionItem>
   );
 }
 
@@ -186,11 +185,15 @@ function IssuedItem({ t, item }: { t: Copy; item: Issued }) {
       <span className={cn(issuedRowClass, "text-md/body font-medium max-narrow:text-base/body")}>
         <span className="min-w-0 wrap-anywhere">{item.email}</span>
         <CopyButton
+          size="sm"
           className={issuedActionClass}
           label={t.buttons.copy}
           copiedLabel={t.buttons.copied}
+          failedLabel={t.buttons.copyFailed}
           text={item.email}
-        />
+        >
+          {t.buttons.copy}
+        </CopyButton>
       </span>
       <span
         className={cn(
@@ -212,11 +215,15 @@ function IssuedItem({ t, item }: { t: Copy; item: Issued }) {
           {masked ? t.buttons.show : t.buttons.hide}
         </InputGroupButton>
         <CopyButton
+          size="sm"
           className={issuedActionClass}
           label={t.buttons.copy}
           copiedLabel={t.buttons.copied}
+          failedLabel={t.buttons.copyFailed}
           text={item.password}
-        />
+        >
+          {t.buttons.copy}
+        </CopyButton>
       </span>
     </li>
   );

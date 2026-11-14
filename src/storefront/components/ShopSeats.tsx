@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import {
   addSeats,
@@ -323,17 +324,13 @@ export function ShopSeats({
                 {mailboxes.map((mailbox) => (
                   <li key={mailbox.id}>
                     <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm/[1.5]">
-                      <input
-                        type="checkbox"
-                        className="size-4 shrink-0 accent-foreground"
+                      <Checkbox
                         checked={chosen.includes(mailbox.id)}
                         disabled={busy !== null}
-                        onChange={(event) => {
+                        onCheckedChange={(checked) => {
                           setError("");
                           setChosen((current) =>
-                            event.target.checked
-                              ? [...current, mailbox.id]
-                              : current.filter((item) => item !== mailbox.id),
+                            checked === true ? [...current, mailbox.id] : current.filter((item) => item !== mailbox.id),
                           );
                         }}
                       />

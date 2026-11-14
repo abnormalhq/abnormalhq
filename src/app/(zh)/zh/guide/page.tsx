@@ -1,5 +1,5 @@
 import { Guide } from "@/storefront/components/Guide";
-import { JsonLd } from "@/components/JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 import { storeStructuredData } from "@/lib/structured-data";
 import { StorePage } from "@/storefront/components/StorePage";
 import { storeMetadata } from "@/storefront/metadata";

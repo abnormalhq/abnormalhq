@@ -3,11 +3,14 @@
 import { useId } from "react";
 import { InputGroup, InputGroupButton, InputGroupInput, InputGroupSuffix } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import type { Copy } from "@/storefront/i18n";
 import { cn } from "@/lib/utils";
-import { inputActionClass } from "./CopyButton";
 import { Msg } from "./Msg";
 import type { Row } from "./reducer";
+
+/** The text button inside an input is tightened a little more on phones. */
+export const inputActionClass = "max-narrow:px-1.5 max-narrow:text-xs/body";
 
 /** Small field label, also used by the options on the redeem page. */
 export const fieldLabelClass = "mb-1.5 block text-sm/body text-muted-foreground";
@@ -92,35 +95,33 @@ export function AccountRow({
           <Label className={fieldLabelClass} htmlFor={passwordId}>
             {t.ui.password}
           </Label>
-          <InputGroup size="lg">
-            <InputGroupInput
-              className={row.showPassword ? undefined : "max-narrow:placeholder:text-[12px]"}
-              id={passwordId}
-              type={row.showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder={t.ui.passwordPlaceholder}
-              maxLength={128}
-              aria-label={t.steps.accounts.passwordLabel(ordinal)}
-              aria-describedby={passwordNoteId}
-              aria-invalid={row.passwordInvalid || undefined}
-              value={row.password}
-              onChange={(event) => onPasswordInput(row.id, event.currentTarget.value)}
-              ref={(input) => register(row.id, "password", input)}
-            />
-            <InputGroupButton
-              className={inputActionClass}
-              aria-pressed={row.showPassword}
-              onClick={() => onTogglePassword(row.id)}
-            >
-              {row.showPassword ? t.buttons.hide : t.buttons.show}
-            </InputGroupButton>
-            <InputGroupButton
-              className={cn(inputActionClass, "max-narrow:in-data-[slot=input-group]:last:mr-0.5")}
-              onClick={() => onGeneratePassword(row.id)}
-            >
-              {t.buttons.generate}
-            </InputGroupButton>
-          </InputGroup>
+          <PasswordInput
+            size="lg"
+            toggle="text"
+            showLabel={t.buttons.show}
+            hideLabel={t.buttons.hide}
+            visible={row.showPassword}
+            onVisibleChange={() => onTogglePassword(row.id)}
+            actions={
+              <InputGroupButton
+                className={cn(inputActionClass, "max-narrow:in-data-[slot=input-group]:last:mr-0.5")}
+                onClick={() => onGeneratePassword(row.id)}
+              >
+                {t.buttons.generate}
+              </InputGroupButton>
+            }
+            inputClassName={row.showPassword ? undefined : "max-narrow:placeholder:text-[12px]"}
+            id={passwordId}
+            autoComplete="new-password"
+            placeholder={t.ui.passwordPlaceholder}
+            maxLength={128}
+            aria-label={t.steps.accounts.passwordLabel(ordinal)}
+            aria-describedby={passwordNoteId}
+            aria-invalid={row.passwordInvalid || undefined}
+            value={row.password}
+            onChange={(event) => onPasswordInput(row.id, event.currentTarget.value)}
+            ref={(input) => register(row.id, "password", input)}
+          />
           <Msg className="empty:hidden" id={passwordNoteId} note={row.passwordNote} />
         </div>
       </div>

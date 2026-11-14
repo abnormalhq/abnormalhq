@@ -365,6 +365,9 @@
   --animate-pop: pop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   /* An indeterminate progress bar: a third-width bar sweeping across. */
   --animate-progress-sweep: progress-sweep 1.4s ease-in-out infinite;
+  /* A collapsible or accordion panel opening to the height Radix measured, and closing from it. */
+  --animate-expand: expand 0.18s ease-out;
+  --animate-collapse: collapse 0.14s ease-in;
 
   @keyframes arrive {
     from {
@@ -448,6 +451,22 @@
     }
     to {
       transform: translateY(100%);
+    }
+  }
+  @keyframes expand {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-collapsible-content-height);
+    }
+  }
+  @keyframes collapse {
+    from {
+      height: var(--radix-collapsible-content-height);
+    }
+    to {
+      height: 0;
     }
   }
   @keyframes progress-sweep {

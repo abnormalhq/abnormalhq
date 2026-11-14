@@ -1,5 +1,4 @@
 import * as React from "react";
-import { CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -82,7 +81,21 @@ function StepperIndicator({ className, children, ...props }: React.ComponentProp
       {...props}
     >
       <span className="group-data-[status=complete]/step:hidden">{children}</span>
-      <CheckIcon strokeWidth={2.5} className="hidden size-3.5 group-data-[status=complete]/step:block" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="hidden size-3.5 group-data-[status=complete]/step:block"
+      >
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
     </span>
   );
 }

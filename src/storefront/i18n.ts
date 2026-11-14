@@ -93,6 +93,8 @@ export interface Copy {
     submitting: string;
     copy: string;
     copied: string;
+    /** Said when the browser refuses the clipboard. */
+    copyFailed: string;
     copyAll: string;
     openWebmail: string;
   };

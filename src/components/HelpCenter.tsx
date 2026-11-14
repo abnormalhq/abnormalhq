@@ -7,7 +7,7 @@ import { useCopy } from "@/i18n";
 import { helpIndexStructuredData } from "@/lib/structured-data";
 import { HelpSearch } from "./HelpSearch";
 import { Icon } from "./Icon";
-import { JsonLd } from "./JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 
 /**
  * The help center's index (/help/, /zh/help/): every article by topic, with search-as-you-type. The list is prerendered whole

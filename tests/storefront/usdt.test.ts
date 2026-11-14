@@ -561,9 +561,12 @@ test("order page: pay/usdt is asked every 5 seconds while visible, for up to two
   const panel = readFileSync("src/storefront/components/ShopUsdtCheckout.tsx", "utf8");
   // Only while the tab is shown, and the QR code is the library's matrix drawn as inline SVG of the address alone.
   expect(panel).toMatch(/document\.visibilityState === "visible"/);
-  expect(panel).toMatch(/encode\(address, \{/);
-  expect(panel).not.toMatch(/dangerouslySetInnerHTML/);
-  expect(panel).toMatch(/role="img"/);
+  // The QR code is the registry's QrCode: drawn from uqr's matrix as an image named by the label, never injected markup.
+  expect(panel).toMatch(/<QrCode value=\{payment\.address\} label=\{t\.usdtQr\(payment\.address\)\}/);
+  const qr = readFileSync("src/components/ui/qr-code.tsx", "utf8");
+  expect(qr).toMatch(/encode\(value, \{/);
+  expect(qr).not.toMatch(/dangerouslySetInnerHTML/);
+  expect(qr).toMatch(/role="img"/);
   // The order page hands a USDT order to the panel, re-reads the order on `paid`, and leaves its own polling to it.
   const page = readFileSync("src/storefront/components/ShopOrder.tsx", "utf8");
   expect(page).toMatch(/<ShopUsdtCheckout\s+orderId=\{order\.id\}/);

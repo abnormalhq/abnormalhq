@@ -1,4 +1,10 @@
 import { Badge } from "@/components/ui/badge";
+import {
+  DescriptionDetails,
+  DescriptionItem,
+  DescriptionList,
+  DescriptionTerm,
+} from "@/components/ui/description-list";
 import type { Lang } from "@/storefront/i18n";
 import { useShopCopy } from "./copy/context";
 import type { ReactNode } from "react";
@@ -45,7 +51,7 @@ export function ShopDetails({
             : `${item.quotaMb} MB`;
   const renewCents = item.renewPriceCents || item.priceCents;
   return (
-    <dl className="border-t border-border pt-5 text-sm/body">
+    <DescriptionList variant="spread" className="border-t border-border text-sm/body">
       <Row label={t.count}>
         {seatRange ? t.seatCountValue(seatRange.min, seatRange.max) : t.quantity(item.mailboxCount)}
       </Row>
@@ -84,9 +90,9 @@ export function ShopDetails({
       )}
       <Row label={t.expiry}>{item.codeExpiresDays ? t.days(item.codeExpiresDays) : t.unlimited}</Row>
       {item.customDomains ? <Row label={t.ownDomains}>{t.ownDomainsValue(item.customDomains)}</Row> : null}
-      <div>
-        <dt className="text-muted-foreground">{t.domains}</dt>
-        <dd className="mt-2.5 flex flex-wrap gap-2 wrap-anywhere">
+      <div className="py-2">
+        <DescriptionTerm>{t.domains}</DescriptionTerm>
+        <DescriptionDetails className="mt-2.5 flex flex-wrap gap-2">
           {item.domains.map((domain) => (
             <Badge
               className="h-auto w-auto shrink border-0 py-1 text-xs/body font-normal whitespace-normal text-foreground"
@@ -95,17 +101,18 @@ export function ShopDetails({
               @{domain}
             </Badge>
           ))}
-        </dd>
+        </DescriptionDetails>
       </div>
-    </dl>
+    </DescriptionList>
   );
 }
 
+/** A fact of the plan: a receipt row whose value, when it wraps under its name, still keeps to the right. */
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="mb-3.5 flex justify-between gap-3.5">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
+    <DescriptionItem>
+      <DescriptionTerm>{label}</DescriptionTerm>
+      <DescriptionDetails className="ml-auto text-right">{children}</DescriptionDetails>
+    </DescriptionItem>
   );
 }

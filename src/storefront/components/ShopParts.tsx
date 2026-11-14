@@ -5,8 +5,12 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FieldMessage } from "@/components/ui/field-message";
 import { Label } from "@/components/ui/label";
+import { DescriptionItem, DescriptionList } from "@/components/ui/description-list";
 import { Eyebrow } from "@/components/ui/section-heading";
+import { Spinner } from "@/components/ui/spinner";
+import { StatusLabel } from "@/components/ui/status-label";
 import { Stepper, StepperContent, StepperIndicator, StepperItem, StepperTitle } from "@/components/ui/stepper";
 import { TextLink } from "@/components/ui/text-link";
 import { cn } from "@/lib/utils";
@@ -21,7 +25,11 @@ export const shopHeadingRowClass = "flex flex-wrap items-center justify-between 
 export const shopPriceLineClass = "flex flex-wrap items-baseline gap-2.5";
 export const shopPriceAmountClass = "text-[40px] leading-[1.1] font-semibold tracking-[-0.03em]";
 export const shopPriceUnitClass = "text-xs/body text-muted-foreground";
+/** A panel standing in for content that is loading. */
 export const shopEmptyClass = "block px-7 py-12 text-center";
+/** The registry's EmptyState where the shop has nothing to show (closed, or a page that could not load), at the shop's spacing. */
+export const shopEmptyStateClass = "gap-0 bg-card px-7 py-12";
+export const shopEmptyTextClass = "mt-2.5 max-w-none text-sm/[1.7]";
 /** One subscription or order block on the account page; from the second block on there is a thin line above. */
 export const shopAccountItemClass = "[&+&]:mt-5 [&+&]:border-t [&+&]:border-border [&+&]:pt-5";
 
@@ -83,16 +91,21 @@ export function ShopActions({ children }: { children: ReactNode }) {
   return <div className="mt-6 flex flex-wrap items-center gap-4 max-narrow:gap-3">{children}</div>;
 }
 
-/** Order and subscription status: small grey badge whose text turns the success colour once paid or active. */
+/** Order, subscription, mailbox and domain status: the registry's status label, in the success tone once paid, active or live. */
 export function ShopStatus({ active, children }: { active?: boolean; children: ReactNode }) {
   return (
-    <Badge
-      className={cn("h-auto w-auto shrink border-0 py-[3px] text-xs/body whitespace-normal", active && "text-success")}
+    <StatusLabel
+      tone={active ? "success" : "muted"}
+      // Long statuses wrap on a phone rather than push the heading beside them.
+      className="h-auto min-h-6 shrink py-[3px] text-xs/body whitespace-normal"
     >
       {children}
-    </Badge>
+    </StatusLabel>
   );
 }
+
+/** A small grey chip beside a heading that is not a status, or that draws its own indicator. */
+export const shopChipClass = "h-auto w-auto shrink border-0 py-[3px] text-xs/body whitespace-normal";
 
 /**
  * "Testnet (Nile)" beside a USDT price or payment panel while the shop takes USDT on TRON's test network: what is sent there is
@@ -109,17 +122,17 @@ export function ShopTestnetBadge({ children }: { children: ReactNode }) {
   );
 }
 
+/** An order's or a subscription's facts: the registry's receipt-style DescriptionList, each value at the end of its row. */
 export function ShopMeta({ children }: { children: ReactNode }) {
-  return <dl className="mt-6 border-t border-border pt-[18px] text-xs/body">{children}</dl>;
+  return (
+    <DescriptionList variant="spread" className="mt-6 border-t border-border text-xs/body">
+      {children}
+    </DescriptionList>
+  );
 }
 
 export function ShopMetaRow({ label, children }: { label: ReactNode; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-5 gap-y-2 py-[5px]">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
+  return <DescriptionItem label={label}>{children}</DescriptionItem>;
 }
 
 /** Order number and redeem code: one click selects all. */
@@ -140,8 +153,9 @@ export function ShopMailboxes({ mailboxes }: { mailboxes: string[] }) {
 }
 
 /**
- * A labelled field with a hint below. hintId goes on the hint so the control can point at it with aria-describedby; with invalid the hint is the field's error:
- * it turns the error colour and is inserted anew as an alert, so it is read out even when the wording is the rule that was already shown.
+ * A labelled field with a hint below: the registry's Label and FieldMessage. hintId goes on the hint so the control can point at it
+ * with aria-describedby; with invalid the hint is the field's error: it takes the error tone and is inserted anew as an assertive
+ * alert, so it is read out even when the wording is the rule that was already shown.
  */
 export function ShopField({
   htmlFor,
@@ -165,22 +179,34 @@ export function ShopField({
       </Label>
       {children}
       {hint !== undefined && (
-        <p
+        <FieldMessage
           key={invalid ? "error" : "hint"}
-          className={cn("max-w-[560px] text-xs/[1.6]", invalid ? "text-destructive" : "text-muted-foreground")}
+          className="mt-0 max-w-[560px]"
+          tone={invalid ? "error" : "default"}
           id={hintId}
           role={invalid ? "alert" : undefined}
+          aria-live={invalid ? "assertive" : "polite"}
         >
           {hint}
-        </p>
+        </FieldMessage>
       )}
     </div>
   );
 }
 
-/** A grey block standing in for content that is loading; it breathes, and holds still under reduced motion. */
-export function ShopSkeleton({ className }: { className?: string }) {
-  return <span className={cn("block animate-pulse rounded-control bg-control", className)} aria-hidden="true" />;
+/**
+ * What a session page shows until it hydrates (it reads the query string in the browser): the sentence with a spinner, which turns
+ * without JavaScript, so the prerendered page is seen to be waiting.
+ */
+export function ShopPageLoading({ children }: { children: ReactNode }) {
+  return (
+    <div className={shopPageClass}>
+      <p role="status" className="flex items-center gap-2.5">
+        <Spinner />
+        {children}
+      </p>
+    </div>
+  );
 }
 
 /**

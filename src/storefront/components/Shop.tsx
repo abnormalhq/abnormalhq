@@ -41,20 +41,23 @@ import {
   withoutAddress,
 } from "@/storefront/lib/address";
 import { cn } from "@/lib/utils";
+import { EmptyState, EmptyStateActions, EmptyStateDescription, EmptyStateTitle } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { IconTile } from "@/components/ui/icon-tile";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ShopDetails } from "./ShopDetails";
 import {
   ShopAlert,
   ShopButton,
   ShopField,
   ShopHero,
-  ShopSkeleton,
   ShopTestnetBadge,
   ShopTextLink,
   shopArriveClass,
-  shopEmptyClass,
+  shopEmptyStateClass,
+  shopEmptyTextClass,
   shopHeadingClass,
   shopHeadingRowClass,
   shopInputClass,
@@ -411,14 +414,13 @@ export function Shop({ lang }: { lang: Lang }) {
       )}
 
       {loadError ? (
-        <Card asChild className={shopEmptyClass}>
-          <div>
-            <p className={shopTextClass} role="alert">
-              {loadError}
-            </p>
+        <EmptyState className={shopEmptyStateClass}>
+          <EmptyStateDescription className={shopEmptyTextClass} role="alert">
+            {loadError}
+          </EmptyStateDescription>
+          <EmptyStateActions className="mt-[18px]">
             <ShopButton
               variant="outline"
-              className="mt-[18px]"
               onClick={() => {
                 setLoadError("");
                 setAttempt((value) => value + 1);
@@ -426,8 +428,8 @@ export function Shop({ lang }: { lang: Lang }) {
             >
               {t.retry}
             </ShopButton>
-          </div>
-        </Card>
+          </EmptyStateActions>
+        </EmptyState>
       ) : !catalog ? (
         // The shape of the plans to come, so the page does not jump when they arrive.
         <div
@@ -438,22 +440,24 @@ export function Shop({ lang }: { lang: Lang }) {
           <span className="sr-only">{t.loading}</span>
           {[0, 1, 2].map((index) => (
             <Card className="block p-7 max-narrow:px-5 max-narrow:py-[22px]" key={index}>
-              <ShopSkeleton className="mb-[22px] size-[38px]" />
-              <ShopSkeleton className="h-6 w-3/5" />
-              <ShopSkeleton className="mt-4 h-4 w-full" />
-              <ShopSkeleton className="mt-2 h-4 w-4/5" />
-              <ShopSkeleton className="mt-[30px] h-11 w-2/5" />
-              <ShopSkeleton className="mt-[30px] h-4 w-full" />
-              <ShopSkeleton className="mt-2 h-4 w-2/3" />
-              <ShopSkeleton className="mt-8 h-10 w-36" />
+              <Skeleton className="mb-[22px] size-[38px]" />
+              <Skeleton className="h-6 w-3/5" />
+              <Skeleton className="mt-4 h-4 w-full" />
+              <Skeleton className="mt-2 h-4 w-4/5" />
+              <Skeleton className="mt-[30px] h-11 w-2/5" />
+              <Skeleton className="mt-[30px] h-4 w-full" />
+              <Skeleton className="mt-2 h-4 w-2/3" />
+              <Skeleton className="mt-8 h-10 w-36" />
             </Card>
           ))}
         </div>
       ) : !catalog.available || plans.length === 0 ? (
-        <Card className={shopEmptyClass}>
-          <h2 className="text-xl">{t.closed}</h2>
-          <p className={shopTextClass}>{t.closedDescription}</p>
-        </Card>
+        <EmptyState className={shopEmptyStateClass}>
+          <EmptyStateTitle asChild>
+            <h2 className="text-xl">{t.closed}</h2>
+          </EmptyStateTitle>
+          <EmptyStateDescription className={shopEmptyTextClass}>{t.closedDescription}</EmptyStateDescription>
+        </EmptyState>
       ) : (
         <section className={shopArriveClass} aria-labelledby="shop-products-title">
           <div>
@@ -498,64 +502,69 @@ export function Shop({ lang }: { lang: Lang }) {
               </div>
             )}
             {couponsOffered && (
-              <details className="group/coupon mt-5 mb-6 max-w-[520px] max-tablet:mt-0 min-w-0 flex-[1_1_320px]">
-                <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current [&::-webkit-details-marker]:hidden">
+              <Collapsible className="group/coupon mt-5 mb-6 max-w-[520px] max-tablet:mt-0 min-w-0 flex-[1_1_320px]">
+                <CollapsibleTrigger className="inline-flex min-h-9 cursor-pointer items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current">
                   {t.couponToggle}
                   <span
-                    className="text-muted-foreground no-underline transition-transform duration-150 group-open/coupon:rotate-45"
+                    className="text-muted-foreground no-underline transition-transform duration-150 group-data-[state=open]/coupon:rotate-45"
                     aria-hidden="true"
                   >
                     +
                   </span>
-                </summary>
-                <form
-                  className="mt-1"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void applyCoupon();
-                  }}
-                >
-                  <ShopField
-                    htmlFor="shop-coupon"
-                    label={t.couponLabel}
-                    hint={couponError || t.couponHint}
-                    hintId="shop-coupon-hint"
-                    invalid={Boolean(couponError)}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <form
+                    className="mt-1"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void applyCoupon();
+                    }}
                   >
-                    <div className="flex flex-wrap gap-2">
-                      <Input
-                        className={cn(shopInputClass, "max-w-[260px] min-w-0 flex-1 uppercase placeholder:normal-case")}
-                        id="shop-coupon"
-                        autoComplete="off"
-                        autoCapitalize="characters"
-                        spellCheck={false}
-                        maxLength={COUPON_MAX_LENGTH}
-                        value={coupon}
-                        onChange={(event) => changeCoupon(event.target.value)}
-                        aria-describedby="shop-coupon-hint"
-                        aria-invalid={couponError ? true : undefined}
-                      />
-                      <ShopButton variant="outline" type="submit" disabled={!typedCoupon || couponChecking}>
-                        {couponChecking ? t.couponChecking : t.couponApply}
-                      </ShopButton>
-                      {coupon !== "" && (
-                        <Button variant="link" className="text-sm" type="button" onClick={() => changeCoupon("")}>
-                          {t.couponRemove}
-                        </Button>
-                      )}
-                    </div>
-                  </ShopField>
-                  <p className="text-sm/[1.7]" role="status">
-                    {/* "Can't be used" only once every plan on offer was asked: an unchecked plan may still take the code. */}
-                    {applied &&
-                      {
-                        applied: t.couponApplied(applied.code),
-                        refused: t.couponInvalid,
-                        unchecked: t.couponUnchecked,
-                      }[couponVerdict(applied.quotes, applied.offered)]}
-                  </p>
-                </form>
-              </details>
+                    <ShopField
+                      htmlFor="shop-coupon"
+                      label={t.couponLabel}
+                      hint={couponError || t.couponHint}
+                      hintId="shop-coupon-hint"
+                      invalid={Boolean(couponError)}
+                    >
+                      <div className="flex flex-wrap gap-2">
+                        <Input
+                          className={cn(
+                            shopInputClass,
+                            "max-w-[260px] min-w-0 flex-1 uppercase placeholder:normal-case",
+                          )}
+                          id="shop-coupon"
+                          autoComplete="off"
+                          autoCapitalize="characters"
+                          spellCheck={false}
+                          maxLength={COUPON_MAX_LENGTH}
+                          value={coupon}
+                          onChange={(event) => changeCoupon(event.target.value)}
+                          aria-describedby="shop-coupon-hint"
+                          aria-invalid={couponError ? true : undefined}
+                        />
+                        <ShopButton variant="outline" type="submit" disabled={!typedCoupon || couponChecking}>
+                          {couponChecking ? t.couponChecking : t.couponApply}
+                        </ShopButton>
+                        {coupon !== "" && (
+                          <Button variant="link" className="text-sm" type="button" onClick={() => changeCoupon("")}>
+                            {t.couponRemove}
+                          </Button>
+                        )}
+                      </div>
+                    </ShopField>
+                    <p className="text-sm/[1.7]" role="status">
+                      {/* "Can't be used" only once every plan on offer was asked: an unchecked plan may still take the code. */}
+                      {applied &&
+                        {
+                          applied: t.couponApplied(applied.code),
+                          refused: t.couponInvalid,
+                          unchecked: t.couponUnchecked,
+                        }[couponVerdict(applied.quotes, applied.offered)]}
+                    </p>
+                  </form>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </div>
           {checkoutError && (

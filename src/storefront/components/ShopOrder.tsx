@@ -5,9 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { EmptyState, EmptyStateActions, EmptyStateDescription } from "@/components/ui/empty-state";
+import { CopyButton } from "@/components/ui/copy-button";
+import { PricingPrice } from "@/components/ui/pricing-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { LANG_PATHS, storePath, type Lang } from "@/storefront/i18n";
 import {
@@ -34,7 +37,6 @@ import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
 import { celebrate } from "./onboard/celebrate";
-import { copyText } from "./onboard/clipboard";
 import { ShopDetails } from "./ShopDetails";
 import {
   ShopActions,
@@ -46,20 +48,17 @@ import {
   ShopOrderCode,
   ShopPanel,
   ShopProgress,
-  ShopSkeleton,
-  ShopStatus,
+  shopChipClass,
   ShopSuccessMark,
   ShopTextLink,
   shopArriveClass,
-  shopEmptyClass,
+  shopEmptyStateClass,
+  shopEmptyTextClass,
   shopHeadingClass,
   shopHeadingRowClass,
   shopInputClass,
   shopNoteClass,
   shopOrderPageClass,
-  shopPriceAmountClass,
-  shopPriceLineClass,
-  shopPriceUnitClass,
   shopTextClass,
 } from "./ShopParts";
 import { ShopPrice } from "./ShopPrice";
@@ -93,7 +92,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const [result, setResult] = useState<PublicShopOrder | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [copyNotice, setCopyNotice] = useState("");
   const [checking, setChecking] = useState(false);
   const checkLock = useRef(false);
   const [attempt, setAttempt] = useState(0);
@@ -103,8 +101,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const [pollRound, setPollRound] = useState(0);
   // The round of polling that ran out without a payment: until then the page says it is waiting for the payment.
   const [pollEnded, setPollEnded] = useState(-1);
-  // "Copied" on the button for a moment; the sentence below stays for screen readers and for a failed copy.
-  const [copied, setCopied] = useState(false);
   const successMark = useRef<HTMLDivElement>(null);
   // This tab showed the order waiting for payment (now or before the trip to the payment page): its payment is celebrated.
   const awaited = useRef(false);
@@ -222,12 +218,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     void celebrate(successMark.current, controller.signal);
     return () => controller.abort();
   }, [orderId, validId, status]);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
 
   async function reconcile() {
     if (checkLock.current) return;
@@ -359,14 +349,13 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           </form>
         </ShopPanel>
       ) : !result && error ? (
-        <Card asChild className={shopEmptyClass}>
-          <div>
-            <p className={shopTextClass} role="alert">
-              {error}
-            </p>
+        <EmptyState className={shopEmptyStateClass}>
+          <EmptyStateDescription className={shopEmptyTextClass} role="alert">
+            {error}
+          </EmptyStateDescription>
+          <EmptyStateActions className="mt-[18px]">
             <ShopButton
               variant="outline"
-              className="mt-[18px]"
               onClick={() => {
                 setError("");
                 setAttempt((value) => value + 1);
@@ -374,27 +363,27 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             >
               {t.retry}
             </ShopButton>
-          </div>
-        </Card>
+          </EmptyStateActions>
+        </EmptyState>
       ) : !result ? (
         // The shape of the order to come: the plan and its price, then the payment panel.
         <div role="status" aria-busy="true">
           <span className="sr-only">{t.loading}</span>
           <ShopPanel>
             <div className={shopHeadingRowClass}>
-              <ShopSkeleton className="h-6 w-2/5" />
-              <ShopSkeleton className="h-5 w-16" />
+              <Skeleton className="h-6 w-2/5" />
+              <Skeleton className="h-5 w-16" />
             </div>
-            <ShopSkeleton className="mt-[30px] h-11 w-1/3" />
-            <ShopSkeleton className="mt-[30px] h-4 w-4/5" />
-            <ShopSkeleton className="mt-2 h-4 w-3/5" />
-            <ShopSkeleton className="mt-8 h-4 w-full" />
-            <ShopSkeleton className="mt-2 h-4 w-full" />
+            <Skeleton className="mt-[30px] h-11 w-1/3" />
+            <Skeleton className="mt-[30px] h-4 w-4/5" />
+            <Skeleton className="mt-2 h-4 w-3/5" />
+            <Skeleton className="mt-8 h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-full" />
           </ShopPanel>
           <ShopPanel>
-            <ShopSkeleton className="h-6 w-1/3" />
-            <ShopSkeleton className="mt-4 h-4 w-4/5" />
-            <ShopSkeleton className="mt-6 h-10 w-40" />
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="mt-4 h-4 w-4/5" />
+            <Skeleton className="mt-6 h-10 w-40" />
           </ShopPanel>
         </div>
       ) : order ? (
@@ -425,7 +414,8 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           <ShopPanel>
             <div className={shopHeadingRowClass}>
               <h2 className={shopHeadingClass}>{order.productName}</h2>
-              <ShopStatus active={paid}>
+              {/* Not StatusLabel: this badge draws its own indicator, a tick that pops or a beating dot. */}
+              <Badge className={cn(shopChipClass, paid && "text-success")}>
                 {/* A paid order ticks; one that is being watched for its payment shows a beating dot. */}
                 {paid ? (
                   <CheckIcon className="size-3 animate-pop" strokeWidth={3} aria-hidden="true" />
@@ -438,25 +428,25 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   )
                 )}
                 {order.trial ? trialCopy[lang].title : paid ? t.paid : t.pending}
-              </ShopStatus>
+              </Badge>
             </div>
             {order.trial ? (
               <p className={shopTextClass}>{trialCopy[lang].title}</p>
             ) : order.provider === "stripe" ? (
               // Without the currency the amount cannot be read: show none rather than a guessed one.
               order.currency && (
-                <p className={cn(shopPriceLineClass, "mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}>
-                  <strong className={shopPriceAmountClass}>
-                    {formatMoney(order.priceCents, order.currency, lang)}
-                  </strong>
-                </p>
+                <PricingPrice
+                  className={cn("mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}
+                  price={formatMoney(order.priceCents, order.currency, lang)}
+                />
               )
             ) : order.provider === "usdt" ? (
               // Hundredths of a USDT, written with two decimals and the token's name (USDT is not an ISO 4217 currency).
-              <p className={cn(shopPriceLineClass, "mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}>
-                <strong className={shopPriceAmountClass}>{formatCredits(order.priceCents)}</strong>
-                <span className={shopPriceUnitClass}>USDT</span>
-              </p>
+              <PricingPrice
+                className={cn("mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}
+                price={formatCredits(order.priceCents)}
+                period="USDT"
+              />
             ) : (
               <ShopPrice item={order} className={couponUsed ? "mb-0" : undefined} />
             )}
@@ -517,18 +507,17 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   <p className={shopTextClass}>{t.expiryNote}</p>
                   {result.codeStatus === "available" && <p className={shopTextClass}>{t.setUpInAccountNote}</p>}
                   <ShopActions>
-                    <ShopButton
+                    <CopyButton
                       variant="outline"
-                      type="button"
-                      onClick={async () => {
-                        const done = await copyText(result.code!);
-                        setCopied(done);
-                        setCopyNotice(done ? t.copied : t.copyFailed);
-                      }}
+                      size="lg"
+                      className="h-auto min-h-10 gap-3 py-2 whitespace-normal"
+                      text={result.code}
+                      label={t.copy}
+                      copiedLabel={t.copied}
+                      failedLabel={t.copyFailed}
                     >
-                      {copied && <CheckIcon className="animate-pop text-success" aria-hidden="true" />}
-                      {copied ? t.copiedShort : t.copy}
-                    </ShopButton>
+                      {t.copy}
+                    </CopyButton>
                     {result.codeStatus === "available" && (
                       <>
                         <ShopButton asChild>
@@ -546,9 +535,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                       </>
                     )}
                   </ShopActions>
-                  <p className={shopTextClass} role="status">
-                    {copyNotice}
-                  </p>
                 </>
               ) : order.trial ? (
                 <>

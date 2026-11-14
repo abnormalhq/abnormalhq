@@ -1,4 +1,6 @@
+import { BookOpenIcon, CheckIcon, LockIcon } from "lucide-react";
 import Link from "next/link";
+import { TextLink } from "@/components/ui/text-link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Disclosure, DisclosureContent, DisclosureList, DisclosureTrigger } from "@/components/ui/disclosure";
@@ -11,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { shopCopy } from "@/storefront/lib/shop-copy";
 import { apiBase, withBase } from "@/storefront/site";
 import { OnboardForm } from "./onboard/OnboardForm";
-import { RichText, inlineLinkClass } from "./RichText";
+import { RichText } from "./RichText";
 
 /** Sidebar subheading: heading font, but body size and tracking. */
 const asideTitleClass = "text-sm font-medium tracking-normal";
@@ -51,7 +53,11 @@ export function Onboard({ lang }: { lang: Lang }) {
                 className="inline-flex items-center gap-1.5 text-xs/body text-muted-foreground max-narrow:gap-1"
                 key={feature}
               >
-                <CheckIcon className="shrink-0 text-foreground max-narrow:size-3" />
+                <CheckIcon
+                  className="size-[15px] shrink-0 text-foreground max-narrow:size-3"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
                 {feature}
               </li>
             ))}
@@ -102,18 +108,7 @@ export function Onboard({ lang }: { lang: Lang }) {
                 className="mb-5 size-10 max-narrow:mb-[18px] max-narrow:size-[38px]"
                 aria-hidden="true"
               >
-                <svg
-                  width="25"
-                  height="25"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 6v14M3 4h5a4 4 0 0 1 4 2 4 4 0 0 1 4-2h5v14h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3Z" />
-                </svg>
+                <BookOpenIcon className="size-[25px]" strokeWidth={1.5} />
               </IconTile>
               <h2 className="text-xl/[1.35]">{t.ui.guideTitle}</h2>
               <p className={cn("mt-2.5 max-narrow:max-w-[44ch]", asideTextClass)}>{t.ui.guideDescription}</p>
@@ -134,19 +129,7 @@ export function Onboard({ lang }: { lang: Lang }) {
           </Card>
           <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-2.5 gap-y-2 rounded-mark border border-border p-5">
             <span className="text-muted-foreground" aria-hidden="true">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="5" y="10" width="14" height="11" rx="3" />
-                <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" />
-              </svg>
+              <LockIcon className="size-5" strokeWidth={1.5} />
             </span>
             <h3 className={cn("self-center", asideTitleClass)}>{t.ui.reminderTitle}</h3>
             <p className={cn("col-start-2", asideTextClass)}>{t.ui.reminderDescription}</p>
@@ -177,9 +160,9 @@ export function Onboard({ lang }: { lang: Lang }) {
           </h2>
           <p className={cn("mt-4 max-w-[27ch] wrap-anywhere max-narrow:mt-3 max-narrow:max-w-none", asideTextClass)}>
             {t.help.contact[0]}
-            <a className={inlineLinkClass} href={`mailto:${supportEmail}`}>
+            <TextLink variant="inline" href={`mailto:${supportEmail}`}>
               {supportEmail}
-            </a>
+            </TextLink>
             {t.help.contact[1]}
           </p>
         </div>
@@ -199,7 +182,7 @@ export function Onboard({ lang }: { lang: Lang }) {
               </DisclosureTrigger>
               <DisclosureContent className="m-0 text-base/[1.75] wrap-anywhere max-narrow:text-sm/[1.75]">
                 <p className="pr-10 pb-[22px] pl-[30px] max-narrow:pr-3 max-narrow:pl-6">
-                  <RichText text={item.a} base={homePath} linkClassName={inlineLinkClass} />
+                  <RichText text={item.a} base={homePath} inlineLinks />
                 </p>
               </DisclosureContent>
             </Disclosure>
@@ -217,25 +200,6 @@ function HelpToggle() {
       className="relative size-[25px] shrink-0 rounded-chip border border-border transition-colors duration-150 group-open/disclosure:border-highlight-foreground group-open/disclosure:bg-highlight before:absolute before:top-[11px] before:left-[7px] before:h-px before:w-[9px] before:bg-muted-foreground group-open/disclosure:before:bg-highlight-foreground after:absolute after:top-[11px] after:left-[7px] after:h-px after:w-[9px] after:rotate-90 after:bg-muted-foreground after:transition-transform after:duration-150 group-open/disclosure:after:rotate-0 group-open/disclosure:after:bg-highlight-foreground"
       aria-hidden="true"
     />
-  );
-}
-
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      aria-hidden="true"
-      width="15"
-      height="15"
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m4 10 4 4 8-8" />
-    </svg>
   );
 }
 
@@ -281,7 +245,7 @@ function MailArtwork() {
         </div>
       </div>
       <span className="absolute right-8 bottom-[39px] grid size-11 -rotate-[7deg] place-items-center rounded-full border-[5px] border-background bg-foreground text-background">
-        <CheckIcon className="size-[23px]" />
+        <CheckIcon className="size-[23px]" strokeWidth={1.75} />
       </span>
     </div>
   );

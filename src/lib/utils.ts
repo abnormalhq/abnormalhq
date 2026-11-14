@@ -25,6 +25,8 @@ export const CN_THEME = {
     "flash",
     "pop",
     "progress-sweep",
+    "expand",
+    "collapse",
   ],
 };
 

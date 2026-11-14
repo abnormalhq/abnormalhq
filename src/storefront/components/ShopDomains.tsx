@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
 import type { Lang } from "@/storefront/i18n";
@@ -25,7 +27,6 @@ import { formatDateTime, isRefusal } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
-import { CopyButton } from "./onboard/CopyButton";
 import {
   ShopActions,
   ShopAlert,
@@ -33,6 +34,7 @@ import {
   ShopField,
   ShopPanel,
   ShopStatus,
+  shopChipClass,
   shopAccountItemClass,
   shopHeadingClass,
   shopHeadingRowClass,
@@ -118,7 +120,9 @@ export function ShopDomains({
     <ShopPanel>
       <div className={shopHeadingRowClass}>
         <h2 className={shopHeadingClass}>{t.domainsTitle}</h2>
-        {data && data.limit > 0 && <ShopStatus>{t.domainsCount(data.domains.length, data.limit)}</ShopStatus>}
+        {data && data.limit > 0 && (
+          <Badge className={shopChipClass}>{t.domainsCount(data.domains.length, data.limit)}</Badge>
+        )}
       </div>
       <p className={shopTextClass}>{data && data.limit === 0 ? t.domainsNotIncluded : t.domainsHint}</p>
       {loadError && (
@@ -226,7 +230,16 @@ function CopyField({ id, label, value, hint }: { id: string; label: string; valu
           aria-describedby={hint ? `${id}-hint` : undefined}
           onFocus={(event) => event.currentTarget.select()}
         />
-        <CopyButton text={value} label={t.domainCopy} copiedLabel={t.domainCopied} />
+        <CopyButton
+          size="sm"
+          className="mr-1"
+          text={value}
+          label={t.domainCopy}
+          copiedLabel={t.domainCopied}
+          failedLabel={t.copyFailedShort}
+        >
+          {t.domainCopy}
+        </CopyButton>
       </InputGroup>
       {hint && (
         <p className="text-xs/[1.6] text-muted-foreground" id={`${id}-hint`}>

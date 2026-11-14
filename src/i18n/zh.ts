@@ -138,6 +138,7 @@ export const zh: Copy = {
       calendar: "日历",
       labels: "标签",
       search: "搜索主题、发件人、正文",
+      clearSearch: "清除搜索",
       categoryAll: "所有邮件",
       categoryPrimary: "主要",
       categoryNewsletters: "订阅",
@@ -857,7 +858,6 @@ export const zh: Copy = {
     newWindow: "（新窗口打开）",
     copied: "已复制咨询内容，可粘贴后发送给我们。",
     copyFailed: "暂时无法自动复制，请长按或选中上方咨询内容进行复制。",
-    copyFieldLabel: "待复制的咨询内容",
   },
   legal: {
     effective: "生效日期",

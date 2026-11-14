@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Fragment } from "react";
+import { TextLink } from "@/components/ui/text-link";
 import { Container } from "@/components/ui/container";
 import { site, type Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
@@ -66,13 +67,14 @@ export function Footer({ lang }: { lang: Lang }) {
           <div className="col-span-full md:col-auto md:justify-self-end">
             <p className={labelClass}>{f.contactLabel}</p>
             {supportEmail && (
-              <a
-                className="text-md/body font-medium wrap-anywhere underline decoration-border underline-offset-4 transition-[text-decoration-color] duration-150 hover:decoration-current"
+              <TextLink
+                variant="inline"
+                className="text-md/body font-medium wrap-anywhere"
                 href={`mailto:${supportEmail}`}
                 aria-label={f.emailAria(supportEmail)}
               >
                 {supportEmail}
-              </a>
+              </TextLink>
             )}
           </div>
         </div>

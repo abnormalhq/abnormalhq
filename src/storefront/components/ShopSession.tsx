@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { TextLink } from "@/components/ui/text-link";
 import { Button } from "@/components/ui/button";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import { getAccount, logoutAccount } from "@/storefront/lib/shop";
@@ -48,12 +49,9 @@ export function ShopSession({ lang, onSignedOut }: { lang: Lang; onSignedOut?: (
   return (
     <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm/body text-muted-foreground">
       <span>
-        <Link
-          className="text-foreground underline decoration-border underline-offset-4 hover:decoration-current"
-          href={`/${LANG_PATHS[lang]}shop/account/`}
-        >
-          {t.signedInAs(email)}
-        </Link>
+        <TextLink variant="inline" asChild>
+          <Link href={`/${LANG_PATHS[lang]}shop/account/`}>{t.signedInAs(email)}</Link>
+        </TextLink>
         {" · "}
         {t.sessionNote}
       </span>
