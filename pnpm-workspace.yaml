@@ -1,6 +1,6 @@
 overrides:
-  # OpenNext's minifier pins an old glob; the sync API is compatible, so bump it in place to fix the CLI command injection vulnerability (same as mail).
-  "@node-minify/core@9.0.2>glob": ^13.0.6
+  # OpenNext asks for glob 13, whose minimatch is open to a globparts denial of service and whose AbortSignal cancellation can be bypassed; glob 14 has the same glob/globSync API, so lift it in place.
+  "@opennextjs/cloudflare>glob": ^14.0.6
 
 # pnpm 12 does not run dependency install scripts by default, and unapproved ones fail outright in frozen-lockfile mode.
 # wrangler runs workerd locally and bundles with esbuild; both need their install scripts to download platform binaries.
