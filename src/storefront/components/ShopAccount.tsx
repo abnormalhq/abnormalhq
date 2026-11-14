@@ -465,18 +465,33 @@ export function ShopAccount({ lang }: { lang: Lang }) {
             {method === "password" && (
               <p className={shopTextClass}>
                 {t.passwordForgot}{" "}
-                <Button variant="link" className={inlineLinkButtonClass} onClick={() => chooseMethod("forgot")}>
+                <Button
+                  type="button"
+                  variant="link"
+                  className={inlineLinkButtonClass}
+                  onClick={() => chooseMethod("forgot")}
+                >
                   {t.forgotLink}
                 </Button>
                 <span aria-hidden="true"> · </span>
-                <Button variant="link" className={inlineLinkButtonClass} onClick={() => chooseMethod("link")}>
+                <Button
+                  type="button"
+                  variant="link"
+                  className={inlineLinkButtonClass}
+                  onClick={() => chooseMethod("link")}
+                >
                   {t.passwordUseLink}
                 </Button>
               </p>
             )}
             {(method === "link" || method === "forgot") && (
               <p className={shopTextClass}>
-                <Button variant="link" className={inlineLinkButtonClass} onClick={() => chooseMethod("password")}>
+                <Button
+                  type="button"
+                  variant="link"
+                  className={inlineLinkButtonClass}
+                  onClick={() => chooseMethod("password")}
+                >
                   ← {t.linkBack}
                 </Button>
               </p>

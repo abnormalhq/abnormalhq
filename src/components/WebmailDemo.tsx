@@ -188,6 +188,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
         aria-label={t.inbox}
       >
         <Button
+          type="button"
           onClick={(event) => {
             opener.current = event.currentTarget;
             setDraft({ to: "", subject: "", body: "" });
@@ -201,6 +202,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
         </Button>
         {nav.map((entry) => (
           <Button
+            type="button"
             variant="ghost"
             key={entry.id}
             aria-current={folder === entry.id && !label ? "page" : undefined}
@@ -219,6 +221,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
         <p className="mt-4 px-3 text-xs text-muted-foreground max-md:hidden">{t.labels}</p>
         {copy.labels.map((entry) => (
           <Button
+            type="button"
             variant="ghost"
             key={entry.id}
             aria-current={label === entry.id ? "page" : undefined}
@@ -384,6 +387,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                   {!open.outgoing && (
                     <>
                       <Button
+                        type="button"
                         size="sm"
                         onClick={(event) => {
                           opener.current = event.currentTarget;
@@ -472,6 +476,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
           <div className="flex items-center justify-between bg-foreground px-4 py-2 text-background">
             <span className="font-medium">{draft.subject || t.compose}</span>
             <Button
+              type="button"
               variant="ghost"
               size="icon-sm"
               aria-label={t.close}
@@ -529,6 +534,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
         >
           {notice}
           <Button
+            type="button"
             variant="ghost"
             size="icon-xs"
             aria-label={t.close}
@@ -566,6 +572,7 @@ function IconButton({
 }) {
   return (
     <Button
+      type="button"
       variant="ghost"
       size="icon"
       aria-label={label}
