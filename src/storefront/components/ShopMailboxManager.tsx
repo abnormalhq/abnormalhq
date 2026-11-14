@@ -9,6 +9,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupButton, InputGroupInput, InputGroupSuffix } from "@/components/ui/input-group";
 import { NativeSelect } from "@/components/ui/native-select";
+import { PasswordInput } from "@/components/ui/password-input";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import { forgetAddress, recallAddress } from "@/storefront/lib/address";
 import { generatePassword, normalizeUsername, passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
@@ -428,33 +429,36 @@ function MailboxRow({
             hintId={`${id}-password-hint`}
             invalid={problem !== ""}
           >
-            <InputGroup size="lg" className="max-w-[420px]">
-              <InputGroupInput
-                ref={passwordInput}
-                id={`${id}-password`}
-                type={show ? "text" : "password"}
-                autoComplete="new-password"
-                required
-                maxLength={128}
-                aria-invalid={problem ? true : undefined}
-                aria-describedby={`${id}-password-hint`}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                disabled={busy}
-              />
-              <InputGroupButton className={inputActionClass} aria-pressed={show} onClick={() => setShow(!show)}>
-                {show ? t.mailboxHide : t.mailboxShow}
-              </InputGroupButton>
-              <InputGroupButton
-                className={inputActionClass}
-                onClick={() => {
-                  setPassword(generatePassword());
-                  setShow(true);
-                }}
-              >
-                {t.mailboxGenerate}
-              </InputGroupButton>
-            </InputGroup>
+            <PasswordInput
+              size="lg"
+              className="max-w-[420px]"
+              toggle="text"
+              showLabel={t.mailboxShow}
+              hideLabel={t.mailboxHide}
+              visible={show}
+              onVisibleChange={setShow}
+              actions={
+                <InputGroupButton
+                  className={inputActionClass}
+                  onClick={() => {
+                    setPassword(generatePassword());
+                    setShow(true);
+                  }}
+                >
+                  {t.mailboxGenerate}
+                </InputGroupButton>
+              }
+              ref={passwordInput}
+              id={`${id}-password`}
+              autoComplete="new-password"
+              required
+              maxLength={128}
+              aria-invalid={problem ? true : undefined}
+              aria-describedby={`${id}-password-hint`}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={busy}
+            />
           </ShopField>
           <p className="text-xs/[1.6] text-muted-foreground">{t.mailboxPasswordEffect}</p>
           <ShopActions>
@@ -606,27 +610,30 @@ function CreateMailboxForm({
         hintId="mailbox-create-password-hint"
         invalid={problem?.field === "password"}
       >
-        <InputGroup size="lg" className="max-w-[420px]">
-          <InputGroupInput
-            ref={passwordInput}
-            id="mailbox-create-password"
-            type={show ? "text" : "password"}
-            autoComplete="new-password"
-            required
-            maxLength={128}
-            aria-invalid={problem?.field === "password" ? true : undefined}
-            aria-describedby="mailbox-create-password-hint"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            disabled={busy}
-          />
-          <InputGroupButton className={inputActionClass} aria-pressed={show} onClick={() => setShow(!show)}>
-            {show ? t.mailboxHide : t.mailboxShow}
-          </InputGroupButton>
-          <InputGroupButton className={inputActionClass} onClick={() => setPassword(generatePassword())}>
-            {t.mailboxGenerate}
-          </InputGroupButton>
-        </InputGroup>
+        <PasswordInput
+          size="lg"
+          className="max-w-[420px]"
+          toggle="text"
+          showLabel={t.mailboxShow}
+          hideLabel={t.mailboxHide}
+          visible={show}
+          onVisibleChange={setShow}
+          actions={
+            <InputGroupButton className={inputActionClass} onClick={() => setPassword(generatePassword())}>
+              {t.mailboxGenerate}
+            </InputGroupButton>
+          }
+          ref={passwordInput}
+          id="mailbox-create-password"
+          autoComplete="new-password"
+          required
+          maxLength={128}
+          aria-invalid={problem?.field === "password" ? true : undefined}
+          aria-describedby="mailbox-create-password-hint"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={busy}
+        />
       </ShopField>
       <ShopActions>
         <ShopButton type="submit" disabled={busy}>
