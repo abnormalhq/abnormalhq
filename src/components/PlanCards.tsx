@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Copy } from "@/i18n/types";
 import { planRows, planRowsFor, type PlanRow, type PlanView } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -123,8 +124,8 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /**
- * The same values side by side: one column per plan, one row per fact. The table scrolls sideways inside its own frame on narrow
- * screens, and the frame is focusable so a keyboard can scroll it.
+ * The same values side by side: one column per plan, one row per fact. The registry's Table scrolls sideways inside its own
+ * frame on narrow screens, and takes keyboard focus as a region named by the heading while it does.
  */
 export function PlanComparison({
   plans,
@@ -136,50 +137,45 @@ export function PlanComparison({
   /** id of the heading that names the table. */
   labelledBy: string;
 }) {
-  const cell = "border-b border-border px-5 py-3.5 text-left align-top";
+  // Table's cells are dense and do not wrap; these keep the comparison's roomier cells, wrapping long values.
+  const cell = "h-auto px-5 py-3.5 text-left align-top whitespace-normal";
   // The row labels stay put while the plans scroll sideways on a narrow screen, so every value keeps its label in view.
-  // They need a background of their own to cover the cells sliding under them, and a hairline on the right to show the edge.
+  // Table pins columns on the right only, so this one is pinned here: a background of its own to cover the cells sliding
+  // under it, and a hairline on the right to show the edge.
   const labelCell =
     "sticky left-0 z-1 bg-background shadow-[inset_-1px_0_0_var(--border)] max-sm:w-[8.5rem] max-sm:px-4 md:shadow-none";
   const rows = planRowsFor(plans);
   return (
-    <div
-      // relative: the cells' sr-only text is absolutely positioned, and without a positioned frame it escapes the scroll clip
-      // and makes the whole page scroll sideways on a phone.
-      className="relative overflow-x-auto rounded-panel border border-border focus-visible:outline-2 focus-visible:outline-ring"
-      role="region"
-      aria-labelledby={labelledBy}
-      tabIndex={0}
-    >
-      <table className="w-full min-w-[34rem] border-collapse text-sm/body" aria-labelledby={labelledBy}>
-        <thead>
-          <tr>
-            <th scope="col" className={cn(cell, labelCell, "w-[11rem] font-normal text-muted-foreground")}>
+    <div className="overflow-hidden rounded-panel border border-border">
+      <Table className="min-w-[34rem] text-sm/body" aria-labelledby={labelledBy}>
+        {/* No header tint and no row hover: the comparison is read, not acted on, and the pinned labels keep one background. */}
+        <TableHeader className="bg-transparent">
+          <TableRow className="hover:bg-transparent">
+            <TableHead
+              scope="col"
+              className={cn(cell, labelCell, "w-[11rem] text-sm/body font-normal text-muted-foreground")}
+            >
               {copy.compare.feature}
-            </th>
+            </TableHead>
             {plans.map((plan) => (
-              <th scope="col" className={cn(cell, "text-base font-semibold wrap-anywhere")} key={plan.id}>
-                {plan.name}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={row}>
-              <th
-                scope="row"
-                className={cn(
-                  cell,
-                  labelCell,
-                  "font-normal text-muted-foreground",
-                  index === rows.length - 1 && "border-b-0",
-                )}
+              <TableHead
+                scope="col"
+                className={cn(cell, "text-base font-semibold wrap-anywhere text-foreground")}
+                key={plan.id}
               >
+                {plan.name}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow className="hover:bg-transparent" key={row}>
+              <TableHead scope="row" className={cn(cell, labelCell, "text-sm/body font-normal text-muted-foreground")}>
                 {copy.compare.rows[row]}
-              </th>
+              </TableHead>
               {plans.map((plan) => (
-                <td className={cn(cell, "wrap-anywhere", index === rows.length - 1 && "border-b-0")} key={plan.id}>
+                <TableCell className={cn(cell, "wrap-anywhere")} key={plan.id}>
                   {plan.rows[row]}
                   {row === "price" && plan.discount && (
                     <span className="mt-1 block text-xs/body text-muted-foreground">
@@ -187,12 +183,12 @@ export function PlanComparison({
                       <s>{plan.discount.original}</s>
                     </span>
                   )}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
