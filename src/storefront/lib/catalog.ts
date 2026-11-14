@@ -456,14 +456,9 @@ function retryAfterSeconds(response: Response): number | null {
   return Number.isFinite(value) && value > 0 ? Math.ceil(value) : null;
 }
 
-export async function request(
-  path: string,
-  payload?: unknown,
-  signal?: AbortSignal,
-  lang?: Lang,
-  credentials: RequestCredentials = "same-origin",
-): Promise<unknown> {
-  const response = await fetch(`${shopApiRoot}/${path}`, {
+/** The fetch options of a shop API request; the shop page's early catalog request (earlyCatalogScript) sends the same. */
+function requestInit(payload: unknown, lang: Lang | undefined, credentials: RequestCredentials): RequestInit {
+  return {
     method: payload === undefined ? "GET" : "POST",
     mode: "same-origin",
     credentials,
@@ -474,8 +469,11 @@ export async function request(
       ...(payload === undefined ? {} : { "Content-Type": "application/json" }),
     },
     ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-    signal,
-  });
+  };
+}
+
+/** The body of a shop API answer; a refusal throws ShopApiError. */
+async function readAnswer(response: Response, lang?: Lang): Promise<unknown> {
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const refusal = parseRefusal(body);
@@ -489,6 +487,17 @@ export async function request(
     );
   }
   return body;
+}
+
+export async function request(
+  path: string,
+  payload?: unknown,
+  signal?: AbortSignal,
+  lang?: Lang,
+  credentials: RequestCredentials = "same-origin",
+): Promise<unknown> {
+  const response = await fetch(`${shopApiRoot}/${path}`, { ...requestInit(payload, lang, credentials), signal });
+  return readAnswer(response, lang);
 }
 
 /**
@@ -540,6 +549,36 @@ export function parseShopCatalog(body: unknown): ShopCatalog {
 
 export async function getShopCatalog(signal?: AbortSignal, lang?: Lang): Promise<ShopCatalog> {
   return parseShopCatalog(await request("catalog", undefined, signal, lang));
+}
+
+/** Where earlyCatalogScript leaves its request: the language it asked in and the answer (null when the request failed). */
+const earlyCatalogKey = "__abnormalShopCatalog";
+type EarlyCatalog = { lang: string; response: Promise<Response | null> };
+
+/**
+ * An inline script for the shop page's HTML that starts the catalog request while the page is still being parsed: the plans
+ * would otherwise wait for every script of the page to download and for React to hydrate before the request even starts.
+ * The request is the one getShopCatalog sends (same address and options); takeEarlyCatalog hands its answer to the page.
+ */
+export function earlyCatalogScript(lang: Lang): string {
+  const { method, mode, credentials, cache, headers } = requestInit(undefined, lang, "same-origin");
+  const init = JSON.stringify({ method, mode, credentials, cache, headers });
+  const early = `{lang:${JSON.stringify(lang)},response:fetch(${JSON.stringify(`${shopApiRoot}/catalog`)},${init}).catch(function(){return null})}`;
+  return `window.${earlyCatalogKey}=${early};`;
+}
+
+/**
+ * The catalog the early request (earlyCatalogScript) fetched for this language, once: a retry, another language or a page
+ * without the script gets null and asks itself. When the early request failed to reach the server, it is asked again here.
+ */
+export function takeEarlyCatalog(lang: Lang, signal?: AbortSignal): Promise<ShopCatalog> | null {
+  const scope = globalThis as { [earlyCatalogKey]?: EarlyCatalog };
+  const early = scope[earlyCatalogKey];
+  if (!early || early.lang !== lang) return null;
+  delete scope[earlyCatalogKey];
+  return early.response.then(async (response) =>
+    response ? parseShopCatalog(await readAnswer(response, lang)) : getShopCatalog(signal, lang),
+  );
 }
 
 /** The domains the plans on sale offer, each once, in catalog order: the choices of the address check. */

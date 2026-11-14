@@ -22,7 +22,8 @@ import {
   type DomainRecord,
 } from "@/storefront/lib/domains";
 import { formatDateTime, isRefusal } from "@/storefront/lib/shop";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "./onboard/CopyButton";
 import {
@@ -54,7 +55,7 @@ export function ShopDomains({
   /** A domain went live: "My mailboxes" offers it now, so its list is read again. */
   onLive: () => void;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   // undefined: still loading; null: not offered (signed out, or a backend without buyer domains).
   const [data, setData] = useState<AccountDomains | null | undefined>(undefined);
   const [reload, setReload] = useState(0);
@@ -76,10 +77,10 @@ export function ShopDomains({
         setLoadError("");
       })
       .catch((cause: unknown) => {
-        if (!controller.signal.aborted) setLoadError(shopError(cause, lang));
+        if (!controller.signal.aborted) setLoadError(describeShopError(cause, lang, t));
       });
     return () => controller.abort();
-  }, [lang, reload]);
+  }, [lang, reload, t]);
 
   if (data === null) return null;
   // Nothing to say to an account whose plans include no own domain and that has none.
@@ -106,7 +107,7 @@ export function ShopDomains({
       setNotice(t.domainAdded(added.name));
     } catch (cause) {
       // The field reads out mail's reason: not a domain name, a public suffix, the provider's own, already in use, or the limit.
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
       input.current?.focus();
     } finally {
       setAdding(false);
@@ -209,20 +210,8 @@ export function ShopDomains({
 }
 
 /** A value to copy into a DNS panel: read-only, selectable, with a copy button named after what it copies. */
-function CopyField({
-  id,
-  label,
-  value,
-  hint,
-  lang,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  hint?: string;
-  lang: Lang;
-}) {
-  const t = shopCopy[lang];
+function CopyField({ id, label, value, hint }: { id: string; label: string; value: string; hint?: string }) {
+  const t = useShopCopy();
   return (
     <div className="grid gap-1.5">
       <label className="text-xs/body text-muted-foreground" htmlFor={id}>
@@ -264,7 +253,7 @@ function DomainCard({
   onRemoved: () => void;
   onLive: () => void;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const id = useId();
   // The records and their status as last checked; null until the first check (a reservation has none to check).
   const [check, setCheck] = useState<Pick<DomainCheck, "records" | "ready" | "checkedAt"> | null>(null);
@@ -326,7 +315,7 @@ function DomainCard({
     } catch (cause) {
       if (controller.signal.aborted) return;
       // A refusal (mail's rate limit says how long to wait) ends the automatic checks; "Check again" starts them over.
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
       setAuto(false);
     } finally {
       if (mounted.current && request.current === controller) setBusy(null);
@@ -382,7 +371,7 @@ function DomainCard({
       // mail's reason, in the page language: the TXT record is not visible yet, wrong or expired; the wait of a rate limit;
       // the mail server not answering. Two of them say what to do next by their code (`shop.refusalCodes`).
       if (!mounted.current) return;
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
       // The value ran out before it was verified: "Get a new value" becomes the way on, whatever this browser's clock says.
       if (isRefusal(cause, "domain_ownership_expired")) setExpiredValue(domain.ownership?.value ?? null);
       // Ownership was verified meanwhile (another tab, another device): read where the domain stands now.
@@ -424,15 +413,14 @@ function DomainCard({
               <span className="text-xs/body text-muted-foreground">{t.domainRecordType}</span>
               <span className="ml-3 font-mono">{ownership.type}</span>
             </p>
-            <CopyField id={`${id}-own-name`} lang={lang} label={t.domainRecordName} value={ownership.name} />
+            <CopyField id={`${id}-own-name`} label={t.domainRecordName} value={ownership.name} />
             <CopyField
               id={`${id}-own-host`}
-              lang={lang}
               label={t.domainRecordHost}
               value={recordHost(ownership.name, domain.name)}
               hint={t.domainRecordHostHint}
             />
-            <CopyField id={`${id}-own-value`} lang={lang} label={t.domainRecordValue} value={ownership.value} />
+            <CopyField id={`${id}-own-value`} label={t.domainRecordValue} value={ownership.value} />
           </div>
           <p className={cn("mt-3 text-xs/[1.6]", expired ? "text-destructive" : "text-muted-foreground")}>
             {expired ? t.domainOwnershipExpired : t.domainOwnershipExpires(formatDateTime(ownership.expiresAt, lang))}
@@ -499,7 +487,6 @@ function DomainCard({
                   <RecordRow
                     key={`${item.type}:${item.name}:${item.value}`}
                     id={`${id}-record-${index}`}
-                    lang={lang}
                     record={item}
                     domain={domain.name}
                   />
@@ -539,8 +526,8 @@ function DomainCard({
   );
 }
 
-function RecordRow({ id, lang, record, domain }: { id: string; lang: Lang; record: DomainRecord; domain: string }) {
-  const t = shopCopy[lang];
+function RecordRow({ id, record, domain }: { id: string; record: DomainRecord; domain: string }) {
+  const t = useShopCopy();
   const purpose = t.domainPurposes[record.purpose] ?? record.type;
   return (
     <li className="rounded-md border border-border p-4">
@@ -559,11 +546,10 @@ function RecordRow({ id, lang, record, domain }: { id: string; lang: Lang; recor
       <div className="mt-3 grid gap-3">
         <CopyField
           id={`${id}-name`}
-          lang={lang}
           label={`${t.domainRecordName} · ${t.domainRecordHost}: ${recordHost(record.name, domain)}`}
           value={record.name}
         />
-        <CopyField id={`${id}-value`} lang={lang} label={t.domainRecordValue} value={record.value} />
+        <CopyField id={`${id}-value`} label={t.domainRecordValue} value={record.value} />
         {record.priority !== undefined && (
           <p className="text-sm/body">
             <span className="text-xs/body text-muted-foreground">{t.domainRecordPriority}</span>

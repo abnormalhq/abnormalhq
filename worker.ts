@@ -4,11 +4,13 @@
  * The rewrites in next.config can only match Accept with a regex and cannot compare weights; the cache headers OpenNext hardcodes can only be changed at this layer too.
  * The language redirect (src/lib/lang.ts) reads the cookie and Accept-Language, which prerendered pages cannot do, so it also lives here.
  * The storefront API (/api/onboard/*, /api/shop/*) is a proxy to mail over the MAIL Service Binding (src/storefront/worker/); it never reaches Next.js.
- * The promo videos (/video/*) are the only static files that pass through here (assets.run_worker_first in wrangler.jsonc): the asset service
+ * The promo videos (/video/*.mp4) are the only static files that pass through here (assets.run_worker_first in wrangler.jsonc): the asset service
  * ignores Range requests, which browsers need to play video, so the Worker cuts the ranges itself (src/lib/range.ts).
+ * The pages rendered on every request (/pricing/, /download/) are kept for a minute in the Worker's cache and in browsers (src/lib/edge-cache.ts).
  */
 import handler from "./.open-next/worker.js";
 import { revalidateInBrowser } from "./src/lib/cache.ts";
+import { isLivePageRequest, serveLivePage, type EdgeCache } from "./src/lib/edge-cache.ts";
 import { languageRedirect } from "./src/lib/lang.ts";
 import { markdownUrl, varyOnAccept } from "./src/lib/negotiate.ts";
 import { isRangedAsset, serveByteRanges } from "./src/lib/range.ts";
@@ -16,11 +18,17 @@ import { withSecurityHeaders } from "./src/lib/security.ts";
 import { isStorefrontApi, storefrontApi, type StorefrontEnv } from "./src/storefront/worker/index.ts";
 import { legacyRedirect } from "./src/storefront/worker/legacy.ts";
 
-/** The bindings of wrangler.jsonc this entry uses: the storefront's, and the static asset service. */
-type Env = StorefrontEnv & { ASSETS: { fetch(request: Request): Promise<Response> } };
+/** The bindings of wrangler.jsonc this entry uses: the storefront's, the static asset service and the deployment's version. */
+type Env = StorefrontEnv & {
+  ASSETS: { fetch(request: Request): Promise<Response> };
+  CF_VERSION_METADATA?: { id: string };
+};
+
+/** The part of the Worker's ExecutionContext used here (OpenNext receives it whole). */
+type Context = { waitUntil(promise: Promise<unknown>): void };
 
 /** The response before the headers every response shares. */
-async function respond(request: Request, env: Env, ctx: unknown): Promise<Response> {
+async function respond(request: Request, env: Env, ctx: Context): Promise<Response> {
   const { pathname } = new URL(request.url);
   // The API answers on the old storefront domain too, so payment notifications sent there keep arriving.
   if (isStorefrontApi(pathname)) return storefrontApi.fetch(request, env);
@@ -36,11 +44,22 @@ async function respond(request: Request, env: Env, ctx: unknown): Promise<Respon
     // Markdown is requested by agents, and the language in the address is the one they want: no change by cookie or browser language.
     return revalidateInBrowser(varyOnAccept(await handler.fetch(new Request(markdown, request), env, ctx)));
   }
-  return languageRedirect(request) ?? revalidateInBrowser(await handler.fetch(request, env, ctx));
+  const redirect = languageRedirect(request);
+  if (redirect) return redirect;
+  const render = async () => revalidateInBrowser(await handler.fetch(request, env, ctx));
+  if (isLivePageRequest(request)) {
+    // Past the language redirect, so this visitor gets this page whatever their cookie or browser language says.
+    return serveLivePage(request, render, {
+      cache: (globalThis as { caches?: { default?: EdgeCache } }).caches?.default,
+      version: env.CF_VERSION_METADATA?.id,
+      waitUntil: (promise) => ctx.waitUntil(promise),
+    });
+  }
+  return render();
 }
 
 const worker = {
-  async fetch(request: Request, env: Env, ctx: unknown) {
+  async fetch(request: Request, env: Env, ctx: Context) {
     return withSecurityHeaders(await respond(request, env, ctx));
   },
 };

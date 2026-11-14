@@ -1,0 +1,20 @@
+# Cache headers of the files the static asset service answers without running the Worker (OpenNext copies public/ into
+# .open-next/assets, this file included; see https://developers.cloudflare.com/workers/static-assets/headers).
+# Without a rule the asset service sends "public, max-age=0, must-revalidate", so every visit revalidates every file.
+# Pages come from the Worker (worker.ts) and these rules do not reach them; the promo videos (/video/*.mp4) also run the Worker, which
+# sets their Cache-Control itself (src/lib/range.ts), the same as /video/* below.
+/*
+  X-Content-Type-Options: nosniff
+# Content-hashed by Next.js: a changed file gets a new name, so a copy never needs checking.
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+# Fixed names (the registry's fonts, mirrored from abnormalhq/ui): a new version keeps its name, so long-lived but not immutable.
+/fonts/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=604800
+# Fixed names that a release may replace (screenshots, social images, video posters): a day, then refreshed in the background.
+/screens/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/og/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/video/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

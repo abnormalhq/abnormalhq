@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
-import { copy, formatDate, type Lang } from "@/storefront/i18n";
+import { formatDate, type Lang } from "@/storefront/i18n";
 import { recallAddress } from "@/storefront/lib/address";
 import { ApiError, NetworkError, REDEEM_TURNSTILE_ACTION, createApi, type CdkInfo } from "@/storefront/lib/api";
 import {
@@ -29,6 +29,7 @@ import {
   usernameProblem,
 } from "@/storefront/lib/onboard";
 import { cn } from "@/lib/utils";
+import { useOnboardCopy } from "../copy/context";
 import { useTurnstile } from "../Turnstile";
 import { AccountRow, fieldLabelClass, type RowInputs } from "./AccountRow";
 import { celebrate } from "./celebrate";
@@ -72,7 +73,7 @@ interface Props {
 }
 
 export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePath }: Props) {
-  const t = copy[lang];
+  const t = useOnboardCopy();
   const api = useMemo(() => createApi(apiBase, undefined, lang), [apiBase, lang]);
   const reducer = useMemo(() => createReducer(t), [t]);
   const [state, dispatch] = useReducer(reducer, defaultDomain, initialState);

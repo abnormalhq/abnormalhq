@@ -4,7 +4,8 @@
  * Plans and prices are fetched from mail at runtime and not hard-coded here; this only points at the catalog endpoint.
  */
 import { siteName, supportEmail } from "../config.ts";
-import { LANG_PATHS, copy, storePath, type GuideBlock, type Lang } from "../i18n.ts";
+import { copy } from "../copy.ts";
+import { LANG_PATHS, storePath, type GuideBlock, type Lang } from "../i18n.ts";
 import { absoluteUrl } from "../site.ts";
 import { shopCopy } from "./shop-copy.ts";
 
