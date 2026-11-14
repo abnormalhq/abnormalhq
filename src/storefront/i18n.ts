@@ -5,6 +5,8 @@
  * Tone follows the design system's content guidelines: short sentences ending in full stops, no exclamation marks or emoji; full-width punctuation in Chinese; product names are not translated.
  */
 
+import { localDate } from "../lib/dates.ts";
+
 export type Lang = "zh" | "en";
 export const LANGS: readonly Lang[] = ["en", "zh"];
 
@@ -177,13 +179,7 @@ export function withoutPeriod(reason: string): string {
   return reason.replace(/[。.]\s*$/, "");
 }
 
-/** Display of a redeem code's expiry: written as a full date in the page language. */
-export function formatDate(iso: string, lang: Lang): string | null {
-  const time = Date.parse(iso);
-  if (Number.isNaN(time)) return null;
-  return new Date(time).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+/** Display of a redeem code's expiry: "2026-11-14", as every date on the site is written. */
+export function formatDate(iso: string): string | null {
+  return localDate(iso);
 }

@@ -35,7 +35,7 @@ export const helpZh: HelpContent = {
             {
               ol: [
                 "在[我的账户](shop/account/?mode=register)用邮箱和密码注册，并打开确认邮件里的链接。链接 15 分钟内有效。",
-                "在[商店](shop/)选择套餐，用 Linux DO Credit、银行卡或 USDT（TRC-20）支付。付款前可以先核对订单。",
+                "在[商店](shop/)选择套餐，用 Linux DO Credit、银行卡或 USDT（TRON、BNB Smart Chain、Ethereum 或 Solana）支付。付款前可以先核对订单。",
                 "支付确认后，打开[我的账户](shop/account/)里的「我的邮箱」，选好用户名和密码，邮箱即刻开通。",
                 `用完整的邮箱地址和这个密码登录网页邮箱：${webmail}。`,
               ],
@@ -85,7 +85,7 @@ export const helpZh: HelpContent = {
               ],
             },
             {
-              p: `如果收不到或发不出邮件，请先查看[服务状态页](https://console.abnormalhq.com/status)。其他问题请写信到 ${support}，并附上邮箱地址或订单号。请不要发送密码、验证码或银行卡信息。`,
+              p: `如果收不到或发不出邮件，请先查看[服务状态页](https://status.abnormalhq.com)。其他问题请写信到 ${support}，并附上邮箱地址或订单号。请不要发送密码、验证码或银行卡信息。`,
             },
           ],
         },
@@ -316,7 +316,7 @@ export const helpZh: HelpContent = {
                 "检查用户名：是完整的邮箱地址，而不只是 @ 前面的部分。",
                 "修改密码后，每个应用都要换成新密码。开启两步验证后，应用需要使用应用专用密码。",
                 "对照你的邮箱对应的端口和加密方式；两者不匹配是最常见的原因。",
-                `查看[服务状态页](https://console.abnormalhq.com/status)。仍然不行的话，请写信到 ${support}，说明邮箱地址、所用应用和它显示的错误，但不要附上密码。`,
+                `查看[服务状态页](https://status.abnormalhq.com)。仍然不行的话，请写信到 ${support}，说明邮箱地址、所用应用和它显示的错误，但不要附上密码。`,
               ],
             },
           ],
@@ -654,7 +654,7 @@ export const helpZh: HelpContent = {
               ul: [
                 "**用 Linux DO Credit 购买的**：在续费页面续费。链接在订单页、[我的账户](shop/account/)和到期提醒邮件里，无需登录即可使用。选择 1 到 12 个周期，然后像普通订单一样支付续费订单。",
                 "**直接用银行卡购买的订阅**：每个周期自动续费。在「我的账户」里可以更换银行卡，也可以取消或恢复自动续费。银行卡订阅不能在续费页面手动续费。",
-                "**用 USDT 购买的订阅**：和 Linux DO Credit 一样在续费页面续费，只能用 USDT 付款。续费订单在订单页支付：通过 TRON 网络（TRC-20）把显示的准确金额转到该订单的收款地址。",
+                "**用 USDT 购买的订阅**：和 Linux DO Credit 一样在续费页面续费，只能用 USDT 付款。续费订单在订单页支付：先选择转账网络，再通过该网络把显示的准确金额转到该订单的收款地址。",
               ],
             },
             {

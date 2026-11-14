@@ -157,7 +157,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
     }
   }
 
-  const date = (value: string) => formatDateTime(value, lang);
+  const date = (value: string) => formatDateTime(value);
 
   return (
     <div className={shopOrderPageClass}>

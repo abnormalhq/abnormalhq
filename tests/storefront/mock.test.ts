@@ -66,7 +66,7 @@ test("mock API: after one activation a single-use redeem code is used up and the
   ).toBe("username_taken");
 });
 
-test("mock redeem accepts the Stalwart password rules and returns the same credentials", () => {
+test("mock redeem accepts the mail server password rules and returns the same credentials", () => {
   const s = store();
   const result = s.redeem({
     code: "ABCD-EFGH-JKLM-NPQR",

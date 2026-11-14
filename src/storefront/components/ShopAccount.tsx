@@ -287,7 +287,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
     }
   }
 
-  const date = (value: string) => formatDateTime(value, lang);
+  const date = (value: string) => formatDateTime(value);
 
   return (
     <div className={shopOrderPageClass}>

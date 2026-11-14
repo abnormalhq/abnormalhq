@@ -915,7 +915,6 @@ export const en: Copy = {
   legal: {
     effective: "Effective",
     updated: "Last updated",
-    dateLocale: "en-US",
     tocLabel: "Contents",
     tocHint: "On this page",
     tocKicker: "Contents",

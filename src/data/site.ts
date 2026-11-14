@@ -57,7 +57,7 @@ export function linksFor(lang: Lang) {
     /** The developer documentation on its own site (developersSite below); this site's /developers/ redirects there. */
     developers: lang === "en" ? `${developersSite}/` : `${developersSite}/${lang}/`,
     webmail: "https://webmail.abnormalhq.com/",
-    status: "https://console.abnormalhq.com/status",
+    status: "https://status.abnormalhq.com",
   } as const;
 }
 

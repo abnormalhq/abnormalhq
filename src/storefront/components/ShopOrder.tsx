@@ -266,7 +266,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     }
   }
 
-  const date = (value: string) => formatDateTime(value, lang);
+  const date = (value: string) => formatDateTime(value);
 
   return (
     <div className={shopOrderPageClass}>
@@ -555,7 +555,13 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             <ShopPanel key="usdt">
               <h2 className={shopHeadingClass}>{t.usdtTitle}</h2>
               <p className={shopTextClass}>{t.usdtNote}</p>
-              <ShopUsdtCheckout orderId={order.id} lang={lang} onPaid={refreshOrder} onWatching={setUsdtWatching} />
+              <ShopUsdtCheckout
+                orderId={order.id}
+                lang={lang}
+                chain={result?.usdtChain}
+                onPaid={refreshOrder}
+                onWatching={setUsdtWatching}
+              />
               <ShopActions>
                 <ShopButton variant="outline" type="button" loading={checking} onClick={() => void reconcile()}>
                   {checking ? t.refreshing : t.refresh}

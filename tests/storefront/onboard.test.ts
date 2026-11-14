@@ -55,7 +55,7 @@ test("username rules match mailhq: lower-case letters, digits and . _ -, letter 
   }
 });
 
-test("password rules match the Stalwart backend: 8 to 128 characters, no whitespace, no required character mix", () => {
+test("password rules match the mail server backend: 8 to 128 characters, no whitespace, no required character mix", () => {
   expect(passwordProblem("")).toBe("required");
   expect(passwordProblem("Aa1".padEnd(129, "x"))).toBe("too_long");
   expect(passwordProblem("Aa1 aaaaa")).toBe("whitespace");

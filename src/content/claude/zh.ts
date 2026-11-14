@@ -192,7 +192,7 @@ export const claudeZh: ConnectorContent = {
       title: "获取帮助",
       blocks: [
         {
-          p: `连接器的使用问题、故障或安全疑虑，请写信到 ${support}，附上你的工作区、时间和 Claude 的回答。不要附上密码或令牌。正在发生的故障可以先看[服务状态页](https://console.abnormalhq.com/status)。`,
+          p: `连接器的使用问题、故障或安全疑虑，请写信到 ${support}，附上你的工作区、时间和 Claude 的回答。不要附上密码或令牌。正在发生的故障可以先看[服务状态页](https://status.abnormalhq.com)。`,
         },
       ],
     },

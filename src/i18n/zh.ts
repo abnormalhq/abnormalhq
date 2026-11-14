@@ -863,7 +863,6 @@ export const zh: Copy = {
   legal: {
     effective: "生效日期",
     updated: "最后更新",
-    dateLocale: "zh-CN",
     tocLabel: "目录",
     tocHint: "本页目录",
     tocKicker: "Contents",

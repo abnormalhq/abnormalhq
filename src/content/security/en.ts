@@ -15,7 +15,7 @@ export const securityEn: SecurityContent = {
   title: "Security and privacy, plainly",
   summary:
     "What protects your mailbox, what we can and cannot see, where your data is processed, and how to report a problem. This page is an overview; the Privacy Policy is the authoritative text.",
-  reviewed: "2026-11-10",
+  reviewed: "2026-11-14",
   sections: [
     {
       title: "Encryption in transit",
@@ -68,7 +68,7 @@ export const securityEn: SecurityContent = {
       blocks: [
         {
           ul: [
-            "**Mail**: your messages, folders and flags are stored on our own Stalwart mail servers. We don't analyse mail content for advertising and never sell it.",
+            "**Mail**: your messages, folders and flags are stored on our own mail servers. We don't analyse mail content for advertising and never sell it.",
             "**Passwords**: mailbox passwords are stored encrypted in our management system, rather than hashed, because webmail and mailbox management sign in to the mail server with them. Shop account passwords are stored only as a one-way hash.",
             "**Secrets**: payment credentials, merchant keys and other sensitive settings are stored encrypted. While an import from another provider runs, that mailbox's password is kept encrypted and is deleted when the import ends.",
             "**Sessions**: for the purchase session and the shop account session, our database stores only a digest of the token in your browser.",
@@ -100,7 +100,7 @@ export const securityEn: SecurityContent = {
             "**Cloudflare** hosts this website and runs the shop, the redeem page, webmail and the management system.",
             "**A database provider** (currently PlanetScale) stores accounts, orders, redeem codes, ticket text and settings.",
             "**A cloud host** runs our own mail servers and the mail stored on them.",
-            "**Stripe** and **Linux DO Credit** process the payment method you choose; a USDT payment goes from your own wallet over the TRON network, and TronGrid tells us what arrived at the order's address.",
+            "**Stripe** and **Linux DO Credit** process the payment method you choose; a USDT payment goes from your own wallet over the network you chose (TRON, BNB Smart Chain, Ethereum or Solana), and Tatum tells us what arrived at the order's address.",
             "**A large language model provider** (currently DeepSeek) receives content only when the AI features are used.",
           ],
         },
@@ -119,7 +119,7 @@ export const securityEn: SecurityContent = {
           ul: [
             "Please don't access, change or delete data that isn't yours, and don't disrupt the service for others while testing.",
             "Don't include passwords, verification codes or other people's personal data in the report.",
-            "If you think your own mailbox or account has been taken over, change its password right away and write to us; check the [service status page](https://console.abnormalhq.com/status) for ongoing incidents.",
+            "If you think your own mailbox or account has been taken over, change its password right away and write to us; check the [service status page](https://status.abnormalhq.com) for ongoing incidents.",
           ],
         },
       ],

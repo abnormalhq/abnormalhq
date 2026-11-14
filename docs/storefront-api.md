@@ -57,7 +57,7 @@ Wrangler connects the local `MAIL` binding by Worker name; when mail is not runn
 | `count_exceeded`   | 409     | count    | The batch size exceeds what the redeem code can still activate, or exceeds the limit of 20 per request   |
 | `domain_invalid`   | 400     | domain   | This redeem code does not allow activation on that domain                                                |
 | `username_invalid` | 400     | username | Does not meet the local-part rules (see below)                                                           |
-| `username_taken`   | 409     | username | Already exists under the same domain (in local records or already on the Stalwart server)                |
+| `username_taken`   | 409     | username | Already exists under the same domain (in local records or already on the mail server)                    |
 | `password_invalid` | 400     | password | Does not meet mailhq's password requirements                                                             |
 | `notify_invalid`   | 400     | notify   | The address that receives the account details is malformed or too long                                   |
 | `rate_limited`     | 429     | -        | Too many requests                                                                                        |
@@ -81,7 +81,7 @@ Response `200`:
 ```
 
 - `domains`: the domains on which this redeem code can activate mailboxes, at least one, the first being the default; only domains managed in "Settings" are listed.
-- `quotaSupportedByDomain`: per-mailbox hard quota capability returned per domain; only domains explicitly bound to a single active Stalwart connection return `true`. Contains no management connection credentials.
+- `quotaSupportedByDomain`: per-mailbox hard quota capability returned per domain; only domains explicitly bound to a single active mail server connection return `true`. Contains no management connection credentials.
 - `expiresAt`: ISO 8601, `null` means never expires. `usesLeft`: how many more mailboxes can be activated, always a non-negative integer (every redeem code has a limited number of uses, at most 1000 in mail; there is no "unlimited");
   the redeem page uses it to show the count dropdown (at most 20 per request), and treats a value that is not a non-negative integer as an invalid response format.
 - `turnstileSiteKey`: present only when mailhq has Cloudflare Turnstile human verification enabled. The redeem page uses it to render the verification widget above the submit button and sends the token when activating.
@@ -95,7 +95,7 @@ Response `200`: `{ "available": true, "email": "kunish@abnormalhq.com" }`; taken
 
 - The server first normalizes with mailhq's `normalizeUsername` (trim whitespace, lowercase, drop everything after @), then validates against `LOCAL_PART_PATTERN`
   (`^[a-z0-9](?:(?:[a-z0-9_-]|\.(?!\.)){0,62}[a-z0-9])?$`: starts and ends with a letter or digit, no two consecutive dots, at most 64 characters).
-- "Taken" is determined by mailhq's `existingUsernames` query against local records and by `listMailboxes(domain)` against the Stalwart server; existence in either means taken.
+- "Taken" is determined by mailhq's `existingUsernames` query against local records and by `listMailboxes(domain)` against the mail server; existence in either means taken.
 - The redeem page calls this 500ms after typing pauses, only as an early hint; the activation step is authoritative.
 
 ## `POST /api/onboard/redeem` Activate mailboxes
@@ -146,7 +146,7 @@ Response `201`:
   when the redeem code runs out midway, all the following ones are `code_used`. When all fail, the first one's reason is returned as a normal error response.
 - Password validation matches mailhq's `mailboxPasswordError` and `parsePassword`: 8-128 characters, no whitespace, no specific character classes required.
 - What the server does for each mailbox, in order: take one use from the redeem code (atomically) -> `createMailbox` (register locally as "pending", `cdk_id` records the origin, no note is written) ->
-  push to the Stalwart server bound to the domain to create it (using the redeem code's quota when it is configured with a positive quota and the domain supports it, otherwise the connection's default quota) -> mark as "active" -> write the redemption record (whose IP, which mailbox, when) ->
+  push to the mail server bound to the domain to create it (using the redeem code's quota when it is configured with a positive quota and the domain supports it, otherwise the connection's default quota) -> mark as "active" -> write the redemption record (whose IP, which mailbox, when) ->
   write the operation log (`action: "mailbox.redeem"`, `target` is the mailbox, `detail` carries the redeem code). A local registration collision or a push failure returns the use and deletes the local record,
   leaving no pending record; if the remote creation succeeds but the local status update or logging fails, the created mailbox is kept and the credentials are returned, without creating again or returning the use.
 - `imap` / `smtp` are resolved from the single active connection of the domain activated in this request. For a manually configured connection the IMAP / SMTP settings in "Settings" are used; other connections use their own TLS endpoints.
@@ -191,7 +191,7 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                         |
 | POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page          |
 | POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`              |
-| POST   | `/api/shop/pay/usdt`                   | JSON: `{ orderId }` (see "USDT payments")                                                  | `200`, `{ status: "open", address, amount, … }` or `{ status: "paid" }`                |
+| POST   | `/api/shop/pay/usdt`                   | JSON: `{ orderId, chain? }` (see "USDT payments")                                          | `200`, `{ status: "open", address, amount, … }` or `{ status: "paid" }`                |
 | POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                             |
 | GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status   |
 | POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                     |
@@ -302,17 +302,22 @@ The platform notification is handled as plain text, the payment endpoint as form
 
 ### USDT payments
 
-`shop.usdt` in `docs/onboard-contract.json` (mail's docs/shop.md, "USDT payments"). The buyer sends USDT (TRC-20) on TRON to an address that
-belongs to their order alone (mail derives it from the shop's extended public key); mail watches the chain (TronGrid) and the order is paid,
-and its code issued, once the confirmed total at that address reaches the amount, about a minute after sending.
+`shop.usdt` in `docs/onboard-contract.json` (mail's docs/shop.md, "USDT payments"). The buyer sends USDT on TRON (TRC-20), BNB Smart Chain
+(BEP-20), Ethereum (ERC-20) or Solana (SPL), whichever of those the shop offers they choose, to an address that belongs to their order alone (mail derives it
+from the shop's extended public key for that chain); mail reads the chain through Tatum and the order is paid, and its code issued, once the
+final total at that address reaches the amount: seconds after sending on Solana, about a minute on TRON and BNB Smart Chain, about 15 minutes
+on Ethereum.
 
 - **Units.** Every amount of a USDT order, quote, plan or seat subscription is in hundredths of a USDT with `currency: "usdt"` (four letters, not
   ISO 4217). The pages write it `12.34 USDT` (two decimals, no Intl currency style). Like a card price a USDT price has no plan discount
   (`discountPercent` 0, `originalPriceCents === priceCents` before a code). `seat_total_too_large.maxTotalCents` for USDT is in hundredths of a USDT
   (`shop.seats.maxTotalCentsUnit.usdt`).
-- **Catalog.** `payment.usdt` is `{ currency: "usdt", network: "mainnet" | "nile", contract }` while USDT is on, and `null` or absent otherwise;
-  `nile` is TRON's testnet, and the pages show a "Testnet (Nile)" badge next to the USDT price and on the payment panel. A `payment.usdt` with an
-  unknown network or a contract that is no TRON address counts as off, like a card with an unusable currency. A plan offers USDT when
+- **Catalog.** `payment.usdt` is `{ currency: "usdt", network: "mainnet" | "nile", contract, chains }` while USDT is on, and `null` or absent
+  otherwise; `nile` is TRON's testnet (mail offers TRON only there), and the pages show a "Testnet (Nile)" badge next to the USDT price and on the
+  payment panel. `chains` lists the chains the buyer may choose, in the order to offer them, each `{ chain: "tron" | "bsc" | "ethereum" | "solana", name,
+standard, contract }` (`shop.usdt.catalogChainFields`); `contract` is the first chain's. A mail that offers TRON only sends no `chains`: the page
+  takes TRON as the one chain. A chain the page does not know, or whose contract is no address of it (TRON's `T…`, the EVM chains' `0x…`, Solana's base58 of 32 bytes; on Solana `contract` is the USDT mint and `standard` is `SPL`), is left
+  out; a `payment.usdt` with an unknown network or no usable chain counts as off, like a card with an unusable currency. A plan offers USDT when
   `payment.usdt` is there and its `usdtPriceMinor` is above 0; a seat plan's `unitUsdtPriceMinor` (one seat; `shop.usdt.seatPlanFields`) falls back to
   `usdtPriceMinor` the way `unitFiatPriceMinor` falls back to `fiatPriceMinor`. The shop page shows a third button, "Pay with USDT", with its price
   (per period for a subscription); a seat plan's USDT total is quantity × `unitUsdtPriceMinor` as an estimate until the quote has mail's number.
@@ -320,10 +325,12 @@ and its code issued, once the confirmed total at that address reaches the amount
   `currency: "usdt"`, `discountPercent: 0` and `planDiscountCents: 0`; an entry (or a code preview) whose currency is not the one of its way of paying
   (`""` for LDC, the card currency for Stripe, `"usdt"` for USDT) fails the answer. A percentage code applies to a USDT price; a fixed-amount code never
   does (`{ valid: false }`), and the page says the code can't be used with USDT.
-- **`pay/usdt`** (`POST`, JSON `{ orderId }`, same origin, the buyer and account cookies as for `pay/stripe`) answers `{ status: "paid" }` (already
-  paid, possibly just now) or `{ status: "open", network, token: "USDT", contract, address, amount, amountMinor, received, confirming }`
-  (`shop.usdt.payFields`): `address` is the order's own base58 TRON address (`T` and 33 characters), `amount` the exact amount to send as a decimal string
-  (`amountMinor` the same in hundredths; the client refuses an answer where the two disagree), `received` what the chain has confirmed at the address so
+- **`pay/usdt`** (`POST`, JSON `{ orderId, chain? }`, same origin, the buyer and account cookies as for `pay/stripe`): `chain` is the chain the buyer
+  chose, which mail gives the address on at the first call (absent: the catalog's first chain) and ignores afterwards. It answers `{ status: "paid" }`
+  (already paid, possibly just now) or `{ status: "open", chain, standard, network, token: "USDT", contract, address, amount, amountMinor, received,
+confirming }` (`shop.usdt.payFields`; a mail that offers TRON only sends no `chain` and `standard`, and its orders are TRON's): `address` is the
+  order's own address on `chain` (and `contract` the token there; the client refuses either when it is no address of that chain), `amount` the exact amount to send as a decimal string
+  (`amountMinor` the same in hundredths; the client refuses an answer where the two disagree), `received` what is final on the chain at the address so
   far and `confirming` what it has seen but not yet confirmed (decimal strings, up to six decimals). Each call has mail look at the chain (it throttles
   that itself), so the order page calls it every 5 seconds while the tab is visible (and at once when the tab is shown again), for up to 2 hours,
   then stops and offers "Check again"; when the 2 hours run out in a hidden tab, it calls once more when the tab is shown and stops after that. While
@@ -334,9 +341,14 @@ and its code issued, once the confirmed total at that address reaches the amount
   renewed since), `429` with `Retry-After` and `503` (USDT not configured). The Worker proxies it like `pay/stripe` (JSON in and out, never a
   redirect: the `pay` redirect allowlist is unchanged), and turns the 404 page of a mail before USDT into a JSON 404, which the page shows as
   "not available".
-- **Order page.** The USDT panel shows the network (TRON · TRC-20, and the testnet badge on `nile`), the amount and the address with copy buttons, a
+- **Choosing the chain.** The `orders` answer carries `usdtChain` (`shop.usdt.orderAnswerFields`): the chain a USDT order already has its address
+  on, or `null` before its first `pay/usdt` call (absent on a mail that offers TRON only). While it is `null` and the catalog lists more than one
+  chain, the USDT panel first asks the buyer which network they send from (a button per chain, with a note that the address is for that network
+  only and the choice can't be changed, and one that Ethereum's fees are usually several dollars), then calls `pay/usdt` with it; with one chain,
+  or a catalog that cannot be read, it calls `pay/usdt` without one.
+- **Order page.** The USDT panel shows the network (e.g. TRON · TRC-20, and the testnet badge on `nile`), the amount and the address with copy buttons, a
   QR code of the address alone (wallets scan an address; amounts in payment URIs are not the same across wallets; drawn as inline SVG with
-  [uqr](https://github.com/unjs/uqr)), a warning to send USDT on TRON (TRC-20) only and to make sure the amount that arrives covers any exchange
+  [uqr](https://github.com/unjs/uqr)), a warning to send USDT on that network only and to make sure the amount that arrives covers any exchange
   withdrawal fee, and the status line.
 - **Renewal, account, seats.** A subscription bought with USDT has `provider: "usdt"` and `currency: "usdt"` in `renewal` and `account`; its
   `renewPriceCents` is in hundredths of a USDT and it renews with USDT only (`renew` with `provider: "usdt"`), paid on the order page like a purchase.
@@ -909,7 +921,7 @@ The shop mock API of `pnpm dev` (`src/storefront/mock/shop.ts`) answers by the s
 
 ## Service status
 
-The footer of every page and the home page's hero show the live service status as one link to the status page: the state and the availability of the last 30 days, for example "All systems operational · 99.98% uptime over the last 30 days" (`src/components/ServiceStatus.tsx`). It is mail's public status page (`https://console.abnormalhq.com/status`) in one line, so it never says more than that page does: no service names, hosts, outage periods or maintenance text.
+The footer of every page and the home page's hero show the live service status as one link to the status page: the state and the availability of the last 30 days, for example "All systems operational · 99.98% uptime over the last 30 days" (`src/components/ServiceStatus.tsx`). It is mail's public status page (`https://status.abnormalhq.com`) in one line, so it never says more than that page does: no service names, hosts, outage periods or maintenance text.
 
 - **Browser to this site**: `GET /api/status` (same origin, no cookies). Response `200`: `{ "status": "up", "days": 30, "uptime": 99.98, "updatedAt": "2026-11-10T12:00:00.000Z" }`.
   - `status`: `up` (every service up), `down` (an outage outside maintenance), `maintenance` (a maintenance in progress and no other outage) or `pending` (no data yet).
@@ -944,10 +956,10 @@ equal to mail's copy, and mail's `docs/shop.md` lists the same points as propose
 
 ## Self-hosted mail server and quotas
 
-mailhq currently uses only Stalwart; activation, password changes, quotas and domain ownership are handled server-side by active connection. Mail is sent, received and stored in Stalwart;
+Mailboxes live on self-hosted mail servers; activation, password changes, quotas and domain ownership are handled server-side by active connection. Mail is sent, received and stored on the mail server;
 the Worker provides the application and protocol connections, and PostgreSQL stores business records and a rebuildable reading cache, not the primary mailbox storage.
 
-`quotaSupportedByDomain` in `/api/onboard/cdk` and in public products and orders returns a boolean per domain; only a single, valid Stalwart binding promises a per-mailbox hard quota.
+`quotaSupportedByDomain` in `/api/onboard/cdk` and in public products and orders returns a boolean per domain; only a single, valid mail server binding promises a per-mailbox hard quota.
 `false` or mixed capability must not be read as unlimited storage; the UI shows that the quota is unavailable or that the selected domain's server settings apply, respectively.
 When `quotaMb > 0` and the domain supports quotas, the product / redeem code's capacity is used; `quotaMb = 0` means the connection's default quota, and only when the server default is also 0 is no capacity limit set.
 Orders keep `quotaMb` and the other sales terms from the time of purchase; `quotaSupportedByDomain` is recomputed at query time from the current domain bindings, and the actual activation follows the current server configuration.
