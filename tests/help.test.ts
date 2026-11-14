@@ -132,7 +132,13 @@ test("help: values that differ per deployment are never written down", () => {
   // IMAP / SMTP / CalDAV / CardDAV host names and ports come from the mailbox's own domain binding in mail: an article
   // says where the reader sees theirs.
   // The mailbox domains (in example addresses) and the site's own public hosts.
-  const allowedHosts = new Set(["abnormalhq.com", "abnormal.bid", "webmail.abnormalhq.com", "console.abnormalhq.com"]);
+  const allowedHosts = new Set([
+    "abnormalhq.com",
+    "abnormal.bid",
+    "webmail.abnormalhq.com",
+    "console.abnormalhq.com",
+    "status.abnormalhq.com",
+  ]);
   for (const lang of langs) {
     for (const article of helpArticles(lang)) {
       const body = [article.title, article.summary, ...texts(article.sections)].join("\n");

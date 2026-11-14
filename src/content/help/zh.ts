@@ -85,7 +85,7 @@ export const helpZh: HelpContent = {
               ],
             },
             {
-              p: `如果收不到或发不出邮件，请先查看[服务状态页](https://console.abnormalhq.com/status)。其他问题请写信到 ${support}，并附上邮箱地址或订单号。请不要发送密码、验证码或银行卡信息。`,
+              p: `如果收不到或发不出邮件，请先查看[服务状态页](https://status.abnormalhq.com)。其他问题请写信到 ${support}，并附上邮箱地址或订单号。请不要发送密码、验证码或银行卡信息。`,
             },
           ],
         },
@@ -316,7 +316,7 @@ export const helpZh: HelpContent = {
                 "检查用户名：是完整的邮箱地址，而不只是 @ 前面的部分。",
                 "修改密码后，每个应用都要换成新密码。开启两步验证后，应用需要使用应用专用密码。",
                 "对照你的邮箱对应的端口和加密方式；两者不匹配是最常见的原因。",
-                `查看[服务状态页](https://console.abnormalhq.com/status)。仍然不行的话，请写信到 ${support}，说明邮箱地址、所用应用和它显示的错误，但不要附上密码。`,
+                `查看[服务状态页](https://status.abnormalhq.com)。仍然不行的话，请写信到 ${support}，说明邮箱地址、所用应用和它显示的错误，但不要附上密码。`,
               ],
             },
           ],

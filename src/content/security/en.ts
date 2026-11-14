@@ -119,7 +119,7 @@ export const securityEn: SecurityContent = {
           ul: [
             "Please don't access, change or delete data that isn't yours, and don't disrupt the service for others while testing.",
             "Don't include passwords, verification codes or other people's personal data in the report.",
-            "If you think your own mailbox or account has been taken over, change its password right away and write to us; check the [service status page](https://console.abnormalhq.com/status) for ongoing incidents.",
+            "If you think your own mailbox or account has been taken over, change its password right away and write to us; check the [service status page](https://status.abnormalhq.com) for ongoing incidents.",
           ],
         },
       ],

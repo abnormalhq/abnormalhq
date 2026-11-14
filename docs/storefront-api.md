@@ -908,7 +908,7 @@ The shop mock API of `pnpm dev` (`src/storefront/mock/shop.ts`) answers by the s
 
 ## Service status
 
-The footer of every page and the home page's hero show the live service status as one link to the status page: the state and the availability of the last 30 days, for example "All systems operational · 99.98% uptime over the last 30 days" (`src/components/ServiceStatus.tsx`). It is mail's public status page (`https://console.abnormalhq.com/status`) in one line, so it never says more than that page does: no service names, hosts, outage periods or maintenance text.
+The footer of every page and the home page's hero show the live service status as one link to the status page: the state and the availability of the last 30 days, for example "All systems operational · 99.98% uptime over the last 30 days" (`src/components/ServiceStatus.tsx`). It is mail's public status page (`https://status.abnormalhq.com`) in one line, so it never says more than that page does: no service names, hosts, outage periods or maintenance text.
 
 - **Browser to this site**: `GET /api/status` (same origin, no cookies). Response `200`: `{ "status": "up", "days": 30, "uptime": 99.98, "updatedAt": "2026-11-10T12:00:00.000Z" }`.
   - `status`: `up` (every service up), `down` (an outage outside maintenance), `maintenance` (a maintenance in progress and no other outage) or `pending` (no data yet).
