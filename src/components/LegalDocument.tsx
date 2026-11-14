@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
+import {
+  DescriptionDetails,
+  DescriptionItem,
+  DescriptionList,
+  DescriptionTerm,
+} from "@/components/ui/description-list";
 import { Container } from "@/components/ui/container";
 import { Prose } from "@/components/ui/prose";
 import { Eyebrow, HeadingMark, sectionSpaceClassName } from "@/components/ui/section-heading";
@@ -52,20 +58,23 @@ export function LegalDocument({
             </h1>
             <p className="mt-5 text-md/prose text-muted-foreground">{summary}</p>
           </div>
-          <dl className="flex shrink-0 flex-wrap gap-x-10 gap-y-6 border-t border-border pt-5 lg:min-w-44 lg:flex-col lg:gap-[1.4rem] lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
-            <div>
-              <dt className="text-xs/body text-muted-foreground">{l.effective}</dt>
-              <dd className="mt-[0.4rem] text-base/body font-medium">
+          <DescriptionList
+            variant="stacked"
+            className="flex shrink-0 flex-wrap gap-x-10 gap-y-6 border-t border-border pt-5 text-base lg:min-w-44 lg:flex-col lg:gap-[1.4rem] lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8"
+          >
+            <DescriptionItem>
+              <DescriptionTerm className="text-xs/body">{l.effective}</DescriptionTerm>
+              <DescriptionDetails className="mt-1 text-base/body font-medium">
                 <time dateTime={effective}>{effective}</time>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs/body text-muted-foreground">{l.updated}</dt>
-              <dd className="mt-[0.4rem] text-base/body font-medium">
+              </DescriptionDetails>
+            </DescriptionItem>
+            <DescriptionItem>
+              <DescriptionTerm className="text-xs/body">{l.updated}</DescriptionTerm>
+              <DescriptionDetails className="mt-1 text-base/body font-medium">
                 <time dateTime={updated}>{updated}</time>
-              </dd>
-            </div>
-          </dl>
+              </DescriptionDetails>
+            </DescriptionItem>
+          </DescriptionList>
         </Container>
       </section>
 

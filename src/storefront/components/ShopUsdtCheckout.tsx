@@ -16,6 +16,12 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
+import {
+  DescriptionDetails,
+  DescriptionItem,
+  DescriptionList,
+  DescriptionTerm,
+} from "@/components/ui/description-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QrCode } from "@/components/ui/qr-code";
 import { Spinner } from "@/components/ui/spinner";
@@ -312,7 +318,7 @@ export function ShopUsdtCheckout({
           <QrCode value={payment.address} label={t.usdtQr(payment.address)} className="size-[176px]" />
           <figcaption className="mt-2 max-w-[176px] text-xs/[1.6] text-muted-foreground">{t.usdtQrHint}</figcaption>
         </figure>
-        <dl className="grid min-w-0 flex-1 basis-[260px] gap-5">
+        <DescriptionList variant="stacked" className="min-w-0 flex-1 basis-[260px] gap-y-5">
           <CopyRow
             label={t.usdtAmount}
             copyLabel={t.usdtCopyAmount}
@@ -334,7 +340,7 @@ export function ShopUsdtCheckout({
           >
             <code className="font-mono text-sm/[1.6] break-all select-all">{payment.address}</code>
           </CopyRow>
-        </dl>
+        </DescriptionList>
       </div>
       {/* Read in its place, not announced: it is there from the start and does not change. */}
       <Alert role="note" className="my-5 px-[18px]">
@@ -404,11 +410,11 @@ function CopyRow({
 }) {
   const id = useId();
   return (
-    <div className="grid gap-1.5">
-      <dt className="text-xs/body text-muted-foreground" id={id}>
+    <DescriptionItem>
+      <DescriptionTerm className="text-xs/body" id={id}>
         {label}
-      </dt>
-      <dd className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      </DescriptionTerm>
+      <DescriptionDetails className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2">
         <span className="min-w-0">{children}</span>
         <CopyButton
           variant="outline"
@@ -422,7 +428,7 @@ function CopyRow({
         >
           {copyLabel}
         </CopyButton>
-      </dd>
-    </div>
+      </DescriptionDetails>
+    </DescriptionItem>
   );
 }
