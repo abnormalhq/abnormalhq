@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { EmptyState, EmptyStateActions, EmptyStateDescription } from "@/components/ui/empty-state";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,7 +51,8 @@ import {
   ShopSuccessMark,
   ShopTextLink,
   shopArriveClass,
-  shopEmptyClass,
+  shopEmptyStateClass,
+  shopEmptyTextClass,
   shopHeadingClass,
   shopHeadingRowClass,
   shopInputClass,
@@ -350,14 +351,13 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           </form>
         </ShopPanel>
       ) : !result && error ? (
-        <Card asChild className={shopEmptyClass}>
-          <div>
-            <p className={shopTextClass} role="alert">
-              {error}
-            </p>
+        <EmptyState className={shopEmptyStateClass}>
+          <EmptyStateDescription className={shopEmptyTextClass} role="alert">
+            {error}
+          </EmptyStateDescription>
+          <EmptyStateActions className="mt-[18px]">
             <ShopButton
               variant="outline"
-              className="mt-[18px]"
               onClick={() => {
                 setError("");
                 setAttempt((value) => value + 1);
@@ -365,8 +365,8 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             >
               {t.retry}
             </ShopButton>
-          </div>
-        </Card>
+          </EmptyStateActions>
+        </EmptyState>
       ) : !result ? (
         // The shape of the order to come: the plan and its price, then the payment panel.
         <div role="status" aria-busy="true">

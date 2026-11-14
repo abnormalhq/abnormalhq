@@ -24,7 +24,11 @@ export const shopHeadingRowClass = "flex flex-wrap items-center justify-between 
 export const shopPriceLineClass = "flex flex-wrap items-baseline gap-2.5";
 export const shopPriceAmountClass = "text-[40px] leading-[1.1] font-semibold tracking-[-0.03em]";
 export const shopPriceUnitClass = "text-xs/body text-muted-foreground";
+/** A panel standing in for content that is loading. */
 export const shopEmptyClass = "block px-7 py-12 text-center";
+/** The registry's EmptyState where the shop has nothing to show (closed, or a page that could not load), at the shop's spacing. */
+export const shopEmptyStateClass = "gap-0 bg-card px-7 py-12";
+export const shopEmptyTextClass = "mt-2.5 max-w-none text-sm/[1.7]";
 /** One subscription or order block on the account page; from the second block on there is a thin line above. */
 export const shopAccountItemClass = "[&+&]:mt-5 [&+&]:border-t [&+&]:border-border [&+&]:pt-5";
 

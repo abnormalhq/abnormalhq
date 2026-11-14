@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState, EmptyStateActions, EmptyStateDescription, EmptyStateTitle } from "@/components/ui/empty-state";
 import { IconTile } from "@/components/ui/icon-tile";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Copy } from "@/i18n/types";
@@ -193,7 +194,7 @@ export function PlanComparison({
   );
 }
 
-/** The panel shown instead of plans: loading, shop closed, or catalog unreadable. */
+/** Shown instead of plans: loading, shop closed, or catalog unreadable. The registry's EmptyState, at the pricing page's size. */
 export function PlanNotice({
   title,
   children,
@@ -206,10 +207,12 @@ export function PlanNotice({
   role?: "status" | "alert";
 }) {
   return (
-    <Card className="block px-7 py-12 text-center" role={role}>
-      {title && <p className="text-xl/[1.4] font-semibold">{title}</p>}
-      <p className={cn("mx-auto max-w-xl text-base/prose text-muted-foreground", title && "mt-2.5")}>{children}</p>
-      {actions && <div className="mt-6 flex flex-wrap justify-center gap-3">{actions}</div>}
-    </Card>
+    <EmptyState className="gap-0 bg-card px-7 py-12" role={role}>
+      {title && <EmptyStateTitle className="text-xl/[1.4]">{title}</EmptyStateTitle>}
+      <EmptyStateDescription className={cn("max-w-xl text-base/prose", title && "mt-2.5")}>
+        {children}
+      </EmptyStateDescription>
+      {actions && <EmptyStateActions className="mt-6 gap-3">{actions}</EmptyStateActions>}
+    </EmptyState>
   );
 }

@@ -41,6 +41,7 @@ import {
   withoutAddress,
 } from "@/storefront/lib/address";
 import { cn } from "@/lib/utils";
+import { EmptyState, EmptyStateActions, EmptyStateDescription, EmptyStateTitle } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { IconTile } from "@/components/ui/icon-tile";
@@ -55,7 +56,8 @@ import {
   ShopTestnetBadge,
   ShopTextLink,
   shopArriveClass,
-  shopEmptyClass,
+  shopEmptyStateClass,
+  shopEmptyTextClass,
   shopHeadingClass,
   shopHeadingRowClass,
   shopInputClass,
@@ -412,14 +414,13 @@ export function Shop({ lang }: { lang: Lang }) {
       )}
 
       {loadError ? (
-        <Card asChild className={shopEmptyClass}>
-          <div>
-            <p className={shopTextClass} role="alert">
-              {loadError}
-            </p>
+        <EmptyState className={shopEmptyStateClass}>
+          <EmptyStateDescription className={shopEmptyTextClass} role="alert">
+            {loadError}
+          </EmptyStateDescription>
+          <EmptyStateActions className="mt-[18px]">
             <ShopButton
               variant="outline"
-              className="mt-[18px]"
               onClick={() => {
                 setLoadError("");
                 setAttempt((value) => value + 1);
@@ -427,8 +428,8 @@ export function Shop({ lang }: { lang: Lang }) {
             >
               {t.retry}
             </ShopButton>
-          </div>
-        </Card>
+          </EmptyStateActions>
+        </EmptyState>
       ) : !catalog ? (
         // The shape of the plans to come, so the page does not jump when they arrive.
         <div
@@ -451,10 +452,12 @@ export function Shop({ lang }: { lang: Lang }) {
           ))}
         </div>
       ) : !catalog.available || plans.length === 0 ? (
-        <Card className={shopEmptyClass}>
-          <h2 className="text-xl">{t.closed}</h2>
-          <p className={shopTextClass}>{t.closedDescription}</p>
-        </Card>
+        <EmptyState className={shopEmptyStateClass}>
+          <EmptyStateTitle asChild>
+            <h2 className="text-xl">{t.closed}</h2>
+          </EmptyStateTitle>
+          <EmptyStateDescription className={shopEmptyTextClass}>{t.closedDescription}</EmptyStateDescription>
+        </EmptyState>
       ) : (
         <section className={shopArriveClass} aria-labelledby="shop-products-title">
           <div>

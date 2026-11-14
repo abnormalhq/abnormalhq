@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { EmptyState, EmptyStateDescription } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -35,6 +36,8 @@ import {
   ShopStatus,
   ShopTextLink,
   shopEmptyClass,
+  shopEmptyStateClass,
+  shopEmptyTextClass,
   shopHeadingClass,
   shopHeadingRowClass,
   shopInputClass,
@@ -167,13 +170,11 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
         {summary?.trial ? trialCopy[lang].expiry : t.renewDescription}
       </ShopHero>
       {loadError ? (
-        <Card asChild className={shopEmptyClass}>
-          <div>
-            <p className={shopTextClass} role="alert">
-              {loadError}
-            </p>
-          </div>
-        </Card>
+        <EmptyState className={shopEmptyStateClass}>
+          <EmptyStateDescription className={shopEmptyTextClass} role="alert">
+            {loadError}
+          </EmptyStateDescription>
+        </EmptyState>
       ) : !summary ? (
         <Card asChild className={shopEmptyClass}>
           <p role="status">{t.loading}</p>
