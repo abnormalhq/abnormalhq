@@ -10,12 +10,12 @@
  * Nothing here holds a key or signs anything: the buyer pays from their own wallet.
  */
 import { CheckIcon, TriangleAlertIcon } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { encode } from "uqr";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QrCode } from "@/components/ui/qr-code";
 import { Spinner } from "@/components/ui/spinner";
 import type { Lang } from "@/storefront/i18n";
 import { ShopApiError, startUsdtPayment, usdtDecimal, usdtUnits, type UsdtPaymentStart } from "@/storefront/lib/shop";
@@ -222,7 +222,7 @@ export function ShopUsdtCheckout({
       </div>
       <div className="mt-5 flex flex-wrap items-start gap-x-7 gap-y-5">
         <figure className="shrink-0">
-          <UsdtQr address={payment.address} label={t.usdtQr(payment.address)} />
+          <QrCode value={payment.address} label={t.usdtQr(payment.address)} className="size-[176px]" />
           <figcaption className="mt-2 max-w-[176px] text-xs/[1.6] text-muted-foreground">{t.usdtQrHint}</figcaption>
         </figure>
         <dl className="grid min-w-0 flex-1 basis-[260px] gap-5">
@@ -335,34 +335,5 @@ function CopyRow({
         </CopyButton>
       </dd>
     </div>
-  );
-}
-
-/**
- * The address as a QR code, drawn as inline SVG from uqr's module matrix: dark modules on white with the four-module quiet zone
- * scanners need, on white in the dark theme too (a light-on-dark code is not read by every wallet).
- */
-function UsdtQr({ address, label }: { address: string; label: string }) {
-  const { size, path } = useMemo(() => {
-    const qr = encode(address, { ecc: "M", border: 4 });
-    let d = "";
-    qr.data.forEach((row, y) =>
-      row.forEach((dark, x) => {
-        if (dark) d += `M${x} ${y}h1v1h-1z`;
-      }),
-    );
-    return { size: qr.size, path: d };
-  }, [address]);
-  return (
-    <svg
-      viewBox={`0 0 ${size} ${size}`}
-      className="block size-[176px] rounded-control border border-border"
-      role="img"
-      aria-label={label}
-      shapeRendering="crispEdges"
-    >
-      <rect width={size} height={size} fill="#ffffff" />
-      <path d={path} fill="#000000" />
-    </svg>
   );
 }
