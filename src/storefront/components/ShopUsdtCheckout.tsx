@@ -17,12 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
-import { writeClipboard } from "@/lib/clipboard";
 import type { Lang } from "@/storefront/i18n";
 import { ShopApiError, startUsdtPayment, usdtDecimal, usdtUnits, type UsdtPaymentStart } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
-import { ShopActions, ShopAlert, ShopButton, ShopTestnetBadge, shopArriveClass, shopTextClass } from "./ShopParts";
+import { ShopActions, ShopAlert, ShopButton, ShopTestnetBadge, shopArriveClass } from "./ShopParts";
 
 /** How often pay/usdt is asked while the page is visible: mail expects about this and throttles its own look at the chain. */
 export const USDT_POLL_MS = 5_000;
@@ -66,7 +65,6 @@ export function ShopUsdtCheckout({
   const [round, setRound] = useState(0);
   // The round that ran out of time without a payment (or stopped on an answer that asking again will not change).
   const [stopped, setStopped] = useState(-1);
-  const [copyNotice, setCopyNotice] = useState("");
   const callbacks = useRef({ onPaid, onWatching });
   useEffect(() => {
     callbacks.current = { onPaid, onWatching };
@@ -178,17 +176,6 @@ export function ShopUsdtCheckout({
     setRound((value) => value + 1);
   }
 
-  /** CopyButton's write: the button announces the outcome, and the sentence stays on the page below. */
-  async function copy(value: string, done: string): Promise<void> {
-    try {
-      await writeClipboard(value);
-    } catch (error) {
-      setCopyNotice(t.usdtCopyFailed);
-      throw error;
-    }
-    setCopyNotice(done);
-  }
-
   if (phase === "loading") {
     return (
       <div className="mt-6" role="status" aria-busy="true">
@@ -245,7 +232,6 @@ export function ShopUsdtCheckout({
             copiedLabel={t.usdtAmountCopied}
             failedLabel={t.usdtCopyFailed}
             value={payment.amount}
-            write={(text) => copy(text, t.usdtAmountCopied)}
           >
             <span className="text-[28px] leading-[1.2] font-semibold tracking-[-0.02em] tabular-nums">
               {payment.amount}
@@ -258,7 +244,6 @@ export function ShopUsdtCheckout({
             copiedLabel={t.usdtAddressCopied}
             failedLabel={t.usdtCopyFailed}
             value={payment.address}
-            write={(text) => copy(text, t.usdtAddressCopied)}
           >
             <code className="font-mono text-sm/[1.6] break-all select-all">{payment.address}</code>
           </CopyRow>
@@ -308,8 +293,6 @@ export function ShopUsdtCheckout({
           </ShopButton>
         </ShopActions>
       )}
-      {/* Not a live region: the copy button announces the same sentence itself. */}
-      <p className={shopTextClass}>{copyNotice}</p>
     </div>
   );
 }
@@ -321,7 +304,6 @@ function CopyRow({
   copiedLabel,
   failedLabel,
   value,
-  write,
   children,
 }: {
   label: string;
@@ -329,7 +311,6 @@ function CopyRow({
   copiedLabel: string;
   failedLabel: string;
   value: string;
-  write: (text: string) => Promise<void>;
   children: ReactNode;
 }) {
   const id = useId();
@@ -348,7 +329,6 @@ function CopyRow({
           label={copyLabel}
           copiedLabel={copiedLabel}
           failedLabel={failedLabel}
-          write={write}
           aria-describedby={id}
         >
           {copyLabel}

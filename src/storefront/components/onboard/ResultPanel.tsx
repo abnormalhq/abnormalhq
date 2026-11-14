@@ -4,7 +4,6 @@ import { CheckIcon } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { REDEEM_PATH, type Copy } from "@/storefront/i18n";
 import type { ServerEndpoint } from "@/storefront/lib/api";
-import { writeClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { RichText, inlineLinkClass } from "@/storefront/components/RichText";
 import { Button } from "@/components/ui/button";
@@ -99,7 +98,6 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
           label={t.buttons.copyAll}
           copiedLabel={t.buttons.copied}
           failedLabel={t.buttons.copyFailed}
-          write={writeClipboard}
           text={issued.map((item) => `${item.email}\t${item.password}`).join("\n")}
         >
           {t.buttons.copyAll}
@@ -187,7 +185,6 @@ function IssuedItem({ t, item }: { t: Copy; item: Issued }) {
           label={t.buttons.copy}
           copiedLabel={t.buttons.copied}
           failedLabel={t.buttons.copyFailed}
-          write={writeClipboard}
           text={item.email}
         >
           {t.buttons.copy}
@@ -218,7 +215,6 @@ function IssuedItem({ t, item }: { t: Copy; item: Issued }) {
           label={t.buttons.copy}
           copiedLabel={t.buttons.copied}
           failedLabel={t.buttons.copyFailed}
-          write={writeClipboard}
           text={item.password}
         >
           {t.buttons.copy}

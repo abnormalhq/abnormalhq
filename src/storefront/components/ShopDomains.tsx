@@ -26,7 +26,6 @@ import {
 import { formatDateTime, isRefusal } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
-import { writeClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import {
   ShopActions,
@@ -238,7 +237,6 @@ function CopyField({ id, label, value, hint }: { id: string; label: string; valu
           label={t.domainCopy}
           copiedLabel={t.domainCopied}
           failedLabel={t.copyFailedShort}
-          write={writeClipboard}
         >
           {t.domainCopy}
         </CopyButton>

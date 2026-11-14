@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +10,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ThemePreference = "system" | "light" | "dark";
 
@@ -48,17 +51,27 @@ function ThemeOptions({ value, onValueChange, labels }: ThemeOptionsProps) {
   );
 }
 
+type Side = "top" | "right" | "bottom" | "left";
+
 /**
  * The theme button of a header: an icon for the current preference that opens system, light and dark.
  * It keeps no state and no storage. The page passes what it saved (next-themes, a cookie, its own script) and
  * writes the choice back, so every project shows the same control whatever holds the preference.
+ * Before the preference is known, such as before hydration with a preference kept in the browser, pass undefined:
+ * the button then shows the sun or the moon for the theme the page is painted in, by the same rule as the tokens, so
+ * no wrong icon flashes, and the icon of the preference takes over once it is known.
+ * `side` and `align` place the menu (above a sidebar's footer, beside its rail), and `tooltip` adds a tooltip on
+ * `tooltipSide`, for an icon button with no text around it.
  */
 function ThemePicker({
   value,
   onValueChange,
   labels,
   label,
+  side,
   align = "end",
+  tooltip,
+  tooltipSide,
   onOpenChange,
   variant = "ghost",
   size = "icon",
@@ -66,19 +79,41 @@ function ThemePicker({
 }: ThemeOptionsProps & {
   /** The button's accessible name, such as "Theme" or "Theme: dark". */
   label: string;
+  /** Where the menu opens; below the button unless given. */
+  side?: Side;
   align?: "start" | "center" | "end";
+  /** A tooltip for the button, such as "Theme". */
+  tooltip?: React.ReactNode;
+  tooltipSide?: Side;
   /** The menu opening or closing, for a header that closes its other menus when this one opens. */
   onOpenChange?: (open: boolean) => void;
 } & Omit<React.ComponentProps<typeof Button>, "value" | "onChange" | "children" | "aria-label" | "asChild">) {
-  const Icon = icons[value ?? "system"];
+  const Icon = value ? icons[value] : null;
+  const trigger = (
+    <DropdownMenuTrigger asChild>
+      <Button variant={variant} size={size} aria-label={label} {...props}>
+        {Icon ? (
+          <Icon />
+        ) : (
+          <>
+            <SunIcon data-slot="theme-picker-light" className="dark:hidden" />
+            <MoonIcon data-slot="theme-picker-dark" className="hidden dark:block" />
+          </>
+        )}
+      </Button>
+    </DropdownMenuTrigger>
+  );
   return (
     <DropdownMenu modal={false} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger asChild>
-        <Button variant={variant} size={size} aria-label={label} {...props}>
-          <Icon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="w-36">
+      {tooltip === undefined || tooltip === null || tooltip === false ? (
+        trigger
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+          <TooltipContent side={tooltipSide}>{tooltip}</TooltipContent>
+        </Tooltip>
+      )}
+      <DropdownMenuContent side={side} align={align} className="w-36">
         <ThemeOptions value={value} onValueChange={onValueChange} labels={labels} />
       </DropdownMenuContent>
     </DropdownMenu>

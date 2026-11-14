@@ -1,8 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId } from "react";
 import { CopyButton } from "@/components/ui/copy-button";
-import { writeClipboard } from "@/lib/clipboard";
 
 /**
  * An install command on the download page (Homebrew, apt) with a button that copies it.
@@ -25,7 +24,6 @@ export function CommandLine({
   failed: string;
 }) {
   const labelId = useId();
-  const [failed, setFailed] = useState(false);
 
   return (
     <div className="mt-5 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-3">
@@ -39,16 +37,6 @@ export function CommandLine({
         copiedLabel={copied}
         failedLabel={failedLabel}
         aria-describedby={labelId}
-        // The button announces the outcome; a failure also stays on the page, with what to do instead.
-        write={async (text) => {
-          try {
-            await writeClipboard(text);
-          } catch (error) {
-            setFailed(true);
-            throw error;
-          }
-          setFailed(false);
-        }}
       >
         {copy}
       </CopyButton>
@@ -60,7 +48,6 @@ export function CommandLine({
       >
         <code>{code}</code>
       </pre>
-      {failed && <p className="col-span-2 mt-2 text-sm/[1.6] text-muted-foreground">{failedLabel}</p>}
     </div>
   );
 }

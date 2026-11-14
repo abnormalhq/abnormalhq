@@ -13,7 +13,6 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { HeadingMark } from "@/components/ui/section-heading";
 import { Textarea } from "@/components/ui/textarea";
 import { site } from "@/data/site";
-import { writeClipboard } from "@/lib/clipboard";
 import { describeContact, formatInquiry, getContactLink } from "@/lib/inquiry";
 import { fillTemplate } from "@/lib/template";
 import type { InquiryProps } from "./InquiryDialog";
@@ -22,6 +21,42 @@ import { Icon } from "./Icon";
 const fieldClass = "block min-w-0 text-sm/body font-medium";
 const linkClass =
   "underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current";
+
+/**
+ * The copy button's `write`: the dialog shows the outcome as a sentence under its buttons, and CopyButton does not say how a copy
+ * went, so this copies itself. The Clipboard API where the page has one, else a hidden textarea inside the dialog (where its focus
+ * trap lets it be selected) and execCommand, after which the focus goes back to the button. Throws when neither worked.
+ */
+async function copyInquiry(text: string, container: HTMLElement | null, fieldLabel: string): Promise<void> {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      /* Fall back to selection-based copying. */
+    }
+  }
+  const button = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.setAttribute("aria-label", fieldLabel);
+  field.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
+  (container ?? document.body).appendChild(field);
+  field.focus({ preventScroll: true });
+  field.select();
+  field.setSelectionRange(0, field.value.length);
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  } finally {
+    field.remove();
+    button?.focus({ preventScroll: true });
+  }
+  if (!copied) throw new Error("Copy failed");
+}
 
 export function InquiryForm({
   lang,
@@ -172,7 +207,7 @@ export function InquiryForm({
             // announces the outcome; the sentence under the buttons stays on the page.
             write={async (text) => {
               try {
-                await writeClipboard(text, { container: content.current, label: copy.copyFieldLabel });
+                await copyInquiry(text, content.current, copy.copyFieldLabel);
               } catch (error) {
                 setStatus(copy.copyFailed);
                 throw error;

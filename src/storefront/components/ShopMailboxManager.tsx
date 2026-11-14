@@ -26,7 +26,6 @@ import {
 import { describeShopError } from "@/storefront/lib/shop-error";
 import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
 import { useShopCopy } from "./copy/context";
-import { writeClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { inputActionClass } from "./onboard/AccountRow";
 import {
@@ -314,7 +313,6 @@ function MailboxGroup({
               label={t.mailboxCopy}
               copiedLabel={t.mailboxCopied}
               failedLabel={t.copyFailedShort}
-              write={writeClipboard}
             >
               {t.mailboxCopy}
             </CopyButton>

@@ -33,7 +33,6 @@ import {
 } from "@/storefront/lib/order-progress";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
-import { writeClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
 import { celebrate } from "./onboard/celebrate";
@@ -94,7 +93,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const [result, setResult] = useState<PublicShopOrder | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [copyNotice, setCopyNotice] = useState("");
   const [checking, setChecking] = useState(false);
   const checkLock = useRef(false);
   const [attempt, setAttempt] = useState(0);
@@ -519,16 +517,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                       label={t.copy}
                       copiedLabel={t.copied}
                       failedLabel={t.copyFailed}
-                      // The button announces the outcome; the sentence below stays on the page, for a failed copy above all.
-                      write={async (text) => {
-                        try {
-                          await writeClipboard(text);
-                        } catch (error) {
-                          setCopyNotice(t.copyFailed);
-                          throw error;
-                        }
-                        setCopyNotice(t.copied);
-                      }}
                     >
                       {t.copy}
                     </CopyButton>
@@ -549,7 +537,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                       </>
                     )}
                   </ShopActions>
-                  <p className={shopTextClass}>{copyNotice}</p>
                 </>
               ) : order.trial ? (
                 <>
