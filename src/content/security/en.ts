@@ -15,7 +15,7 @@ export const securityEn: SecurityContent = {
   title: "Security and privacy, plainly",
   summary:
     "What protects your mailbox, what we can and cannot see, where your data is processed, and how to report a problem. This page is an overview; the Privacy Policy is the authoritative text.",
-  reviewed: "2026-11-10",
+  reviewed: "2026-11-14",
   sections: [
     {
       title: "Encryption in transit",
