@@ -443,13 +443,12 @@ This is already configured; follow it when it needs to be rebuilt. In Workers & 
 - Deploy command: `pnpm cf:deploy` (deploys, then submits every page to IndexNow; see "Entry points for agents". A refused submission is reported in the log and never fails the deploy)
 - Build variables:
 
-  | Variable                  | Value     | Purpose                                                                         |
-  | ------------------------- | --------- | ------------------------------------------------------------------------------- |
-  | `PNPM_VERSION`            | `12.18.0` | Matches `packageManager` in `package.json`                                      |
-  | `SKIP_DEPENDENCY_INSTALL` | `1`       | Skips the default install in favor of the frozen-lockfile install command above |
-  | `NEXT_TELEMETRY_DISABLED` | `1`       | Disables Next.js build telemetry                                                |
+  | Variable                  | Value | Purpose                                                                         |
+  | ------------------------- | ----- | ------------------------------------------------------------------------------- |
+  | `SKIP_DEPENDENCY_INSTALL` | `1`   | Skips the default install in favor of the frozen-lockfile install command above |
+  | `NEXT_TELEMETRY_DISABLED` | `1`   | Disables Next.js build telemetry                                                |
 
-The Node.js version is set by `.node-version`.
+The Node.js version is set by `.node-version`, and the pnpm version by `packageManager` in `package.json` (Workers Builds reads it before any `PNPM_VERSION` build variable, so none is set).
 
 ### Domains
 
