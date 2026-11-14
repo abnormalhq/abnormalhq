@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useId, useSyncExternalStore } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import type { Copy } from "@/i18n/types";
 import { matchesQuery, type HelpSearchEntry } from "@/lib/help-search";
 import { fillTemplate } from "@/lib/template";
@@ -64,38 +63,18 @@ export function HelpSearch({ copy, groups }: { copy: Copy["help"]["search"]; gro
           <label className="sr-only" htmlFor={`${id}-query`}>
             {copy.label}
           </label>
-          <div className="relative">
-            <Icon
-              name="search"
-              className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input
-              size="lg"
-              className="pr-11 pl-10 [&::-webkit-search-cancel-button]:hidden"
-              id={`${id}-query`}
-              type="search"
-              enterKeyHint="search"
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={copy.placeholder}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              aria-controls={`${id}-results`}
-            />
-            {searching && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2 border-0"
-                type="button"
-                aria-label={copy.clear}
-                title={copy.clear}
-                onClick={() => setQuery("")}
-              >
-                <Icon name="close" className="size-4" />
-              </Button>
-            )}
-          </div>
+          <SearchInput
+            size="lg"
+            id={`${id}-query`}
+            enterKeyHint="search"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={copy.placeholder}
+            clearLabel={copy.clear}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            aria-controls={`${id}-results`}
+          />
         </form>
       </search>
       <p className="mt-3 min-h-[1.6em] text-sm/[1.6] text-muted-foreground" role="status">
