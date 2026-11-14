@@ -102,7 +102,7 @@ export function orderCoupon(
     priceCents: number;
     originalPriceCents: number;
     discountPercent: number;
-    provider?: "ldc" | "stripe";
+    provider?: "ldc" | "stripe" | "usdt";
     couponCode?: string;
     couponDiscountCents?: number;
   },
@@ -119,8 +119,8 @@ export function orderCoupon(
   if (order.kind === "renewal") return null;
   if (!hint || hint.orderId !== order.id || hint.baseCents <= order.priceCents) return null;
   // An LDC order with a plan discount still carries its original price: the price before the code cannot be above it.
-  // It can equal it: a small plan discount rounds away (1% off 0.50 is still 0.50).
-  if (order.provider !== "stripe" && order.discountPercent > 0 && hint.baseCents > order.originalPriceCents)
+  // It can equal it: a small plan discount rounds away (1% off 0.50 is still 0.50). Card and USDT prices carry no plan discount.
+  if ((order.provider ?? "ldc") === "ldc" && order.discountPercent > 0 && hint.baseCents > order.originalPriceCents)
     return null;
   return { code: hint.code, discountCents: hint.baseCents - order.priceCents, baseCents: hint.baseCents };
 }

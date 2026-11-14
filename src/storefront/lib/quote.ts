@@ -10,9 +10,9 @@
  */
 import type { Lang } from "../i18n.ts";
 import {
+  currencyFits,
   isBoolean,
   isCount,
-  isCurrency,
   isString,
   oneOf,
   parseRefusal,
@@ -32,7 +32,7 @@ import {
  */
 export interface QuoteAsk {
   productId: string;
-  /** The ways of paying on offer for the plan, each once and at least one; the answer has one price per entry. */
+  /** The ways of paying on offer for the plan, each once and at least one (any of ldc, stripe, usdt); the answer has one price per entry. */
   providers: readonly ShopPaymentProvider[];
   quantity: number;
   /**
@@ -48,13 +48,14 @@ export type QuoteCoupon =
 
 /**
  * One way of paying of mail's quote, with what the quote says for every way laid next to it: the figures one total on a
- * page is drawn from. Amounts are hundredths of an LDC, or the smallest unit of `currency` for a card.
+ * page is drawn from. Amounts are hundredths of an LDC, the smallest unit of `currency` for a card, or hundredths of a USDT
+ * (`currency` "usdt"; like a card, no plan discount).
  */
 export interface PurchaseQuote {
   productId: string;
   planKind: PlanKind;
   provider: ShopPaymentProvider;
-  /** "" for LDC. */
+  /** "" for LDC, the card currency for Stripe, "usdt" for USDT. */
   currency: string;
   /** Seats of a seat plan; 1 for a fixed plan. */
   quantity: number;
@@ -107,7 +108,7 @@ export interface PlanQuote {
   prices: readonly (({ available: true } & PurchaseQuote) | ({ available: false } & QuoteRefusal))[];
 }
 
-const isProvider = oneOf(["ldc", "stripe"] as const);
+const isProvider = oneOf(["ldc", "stripe", "usdt"] as const);
 const isPlanKind = oneOf(PLAN_KINDS);
 
 function parseQuoteCoupon(value: unknown): QuoteCoupon | undefined {
@@ -156,8 +157,8 @@ function parseQuotePrice(
   } = entry;
   const coupon = parseQuoteCoupon(entry.coupon);
   if (
-    !isCurrency(currency) ||
-    (provider === "stripe") !== Boolean(currency) ||
+    // Each way of paying counts in its own unit: no currency for LDC, the card's for Stripe, "usdt" for USDT.
+    !currencyFits(provider, currency) ||
     ![
       unitOriginalPriceCents,
       unitPriceCents,
@@ -604,7 +605,7 @@ export class QuoteBoard {
 export type SeatFigure =
   | {
       kind: "quoted";
-      /** The currency the total is counted in, as the quote says it; "" for LDC. */
+      /** The currency the total is counted in, as the quote says it; "" for LDC, "usdt" for USDT. */
       currency: string;
       totalCents: number;
       /** The order before the plan's discount; equal to the total when there is none. */
@@ -650,7 +651,7 @@ export function seatFigure(
     : { kind: "tooMany" };
 }
 
-/** What a total is labelled with: the currency it is counted in ("" for LDC), the billing period and the plan's discount. */
+/** What a total is labelled with: the currency it is counted in ("" for LDC, "usdt" for USDT), the billing period and the plan's discount. */
 export interface SeatTerms {
   currency: string;
   periodDays: number;

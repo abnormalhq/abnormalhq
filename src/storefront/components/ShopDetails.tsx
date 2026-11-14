@@ -2,12 +2,13 @@ import { Badge } from "@/components/ui/badge";
 import type { Lang } from "@/storefront/i18n";
 import { shopCopy } from "@/storefront/lib/shop-copy";
 import type { ReactNode } from "react";
-import { formatCredits, formatMoney, type ShopProduct } from "@/storefront/lib/shop";
+import { formatCredits, formatMoney, formatUsdt, type ShopProduct } from "@/storefront/lib/shop";
 
 export function ShopDetails({
   item,
   lang,
   stripeCurrency,
+  usdt = false,
   seatRange,
 }: {
   item: Pick<
@@ -25,6 +26,8 @@ export function ShopDetails({
   lang: Lang;
   /** Stripe order: the renewal price is a fiat amount in this currency, not LDC. Empty when the backend did not say which: no renewal price is shown then. */
   stripeCurrency?: string;
+  /** USDT order: the renewal price is in hundredths of a USDT, and it renews with USDT. */
+  usdt?: boolean;
   /** A seat plan on the shop page: the buyer chooses how many mailboxes, and every price is for one of them. */
   seatRange?: { min: number; max: number };
 }) {
@@ -53,7 +56,12 @@ export function ShopDetails({
             {item.periodDays > 0 ? (
               <>
                 {t.periodValue(item.periodDays)}
-                {stripeCurrency !== undefined ? (
+                {usdt ? (
+                  <>
+                    <br />
+                    {t.usdtPrice(formatUsdt(renewCents), item.periodDays)}
+                  </>
+                ) : stripeCurrency !== undefined ? (
                   stripeCurrency && (
                     <>
                       <br />

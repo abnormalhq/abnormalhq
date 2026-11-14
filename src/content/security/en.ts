@@ -100,7 +100,7 @@ export const securityEn: SecurityContent = {
             "**Cloudflare** hosts this website and runs the shop, the redeem page, webmail and the management system.",
             "**A database provider** (currently PlanetScale) stores accounts, orders, redeem codes, ticket text and settings.",
             "**A cloud host** runs our own mail servers and the mail stored on them.",
-            "**Stripe** and **Linux DO Credit** process the payment method you choose.",
+            "**Stripe** and **Linux DO Credit** process the payment method you choose; a USDT payment goes from your own wallet over the TRON network, and TronGrid tells us what arrived at the order's address.",
             "**A large language model provider** (currently DeepSeek) receives content only when the AI features are used.",
           ],
         },

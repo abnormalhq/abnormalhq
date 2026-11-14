@@ -5,9 +5,11 @@
 import type { Lang } from "../i18n.ts";
 import {
   compact,
+  currencyFits,
   isBoolean,
   isCount,
   isCurrency,
+  isFiatCurrency,
   isNullableString,
   isString,
   isStrings,
@@ -17,17 +19,23 @@ import {
   record,
   request,
   ShopApiError,
+  TRON_ADDRESS,
+  USDT_NETWORKS,
   type ShopPaymentProvider,
   type ShopProduct,
   type SubscriptionState,
+  type UsdtNetwork,
 } from "./catalog.ts";
 
 export {
   catalogPlans,
   checkAddress,
   clampSeats,
+  currencyFits,
+  formatAmount,
   formatCredits,
   formatMoney,
+  formatUsdt,
   getShopCatalog,
   isRefusal,
   isSeatProduct,
@@ -37,8 +45,10 @@ export {
   seatCardPrice,
   seatOrderPrice,
   seatTotals,
+  seatUsdtPrice,
   ShopApiError,
   shopApiRoot,
+  USDT_CURRENCY,
   type AddressAvailability,
   type PlanKind,
   type RefusalCode,
@@ -47,6 +57,8 @@ export {
   type ShopPaymentProvider,
   type ShopProduct,
   type SubscriptionState,
+  type UsdtNetwork,
+  type UsdtPayment,
 } from "./catalog.ts";
 
 export interface PublicShopOrder {
@@ -64,7 +76,7 @@ export interface PublicShopOrder {
     /** Which subscription a renewal order renews. */
     subscriptionId?: string | null;
     provider?: ShopPaymentProvider;
-    /** Currency of a Stripe order; the amount priceCents is in its smallest unit. */
+    /** Currency of a Stripe order (priceCents is in its smallest unit), or "usdt" for a USDT order (hundredths of a USDT). */
     currency?: string;
     /**
      * The discount code of the order ("" without one) and what it took off, in the unit of priceCents (0 without one). mail
@@ -123,14 +135,17 @@ export interface RenewalSummary {
   mailboxes: string[];
   maxPeriods: number;
   hasContactEmail: boolean;
-  /** Stripe subscriptions are charged automatically each period and cannot be renewed manually on the renewal page. */
+  /**
+   * Stripe subscriptions are charged automatically each period and cannot be renewed manually on the renewal page. A USDT
+   * subscription renews with USDT only: `renewPriceCents` is then in hundredths of a USDT and `currency` is "usdt".
+   */
   provider?: ShopPaymentProvider;
   autoRenew?: boolean;
 }
 
 export const SUBSCRIPTION_STATES: readonly SubscriptionState[] = ["active", "grace", "suspended", "expired"];
 export const CODE_STATUSES = ["available", "used", "expired", "disabled"] as const;
-export const PAYMENT_PROVIDERS: readonly ShopPaymentProvider[] = ["ldc", "stripe"];
+export const PAYMENT_PROVIDERS: readonly ShopPaymentProvider[] = ["ldc", "stripe", "usdt"];
 export type CodeStatus = (typeof CODE_STATUSES)[number];
 
 const isProvider = oneOf(PAYMENT_PROVIDERS);
@@ -210,7 +225,7 @@ export async function createShopOrder(
   lang?: Lang,
   /** Contact email for subscription expiry reminders; the field is not sent when empty. */
   email = "",
-  /** Not sent for the default ldc (compatible with old backends that only know LDC). */
+  /** Not sent for the default ldc (compatible with old backends that only know LDC); sent for every other way of paying. */
   provider: ShopPaymentProvider = "ldc",
   /** Discount code; the field is not sent when empty. mail prices the order with it, or refuses the checkout (400) and creates no order. */
   coupon = "",
@@ -222,7 +237,7 @@ export async function createShopOrder(
     {
       productId,
       ...(email ? { email } : {}),
-      ...(provider === "stripe" ? { provider } : {}),
+      ...(provider !== "ldc" ? { provider } : {}),
       ...(coupon ? { coupon } : {}),
       ...(quantity > 0 ? { quantity } : {}),
     },
@@ -234,14 +249,17 @@ export async function createShopOrder(
   return body.orderId;
 }
 
-/** What a plan costs with a discount code, as mail's preview answers it. Amounts are hundredths of an LDC, or the smallest unit of `currency` for a card price. */
+/**
+ * What a plan costs with a discount code, as mail's preview answers it. Amounts are hundredths of an LDC, the smallest unit of
+ * `currency` for a card price, or hundredths of a USDT. mail applies a percentage code to a USDT price and never a fixed amount.
+ */
 export interface CouponQuote {
   /** The code as mail stores it (upper-case). */
   code: string;
   provider: ShopPaymentProvider;
-  /** Currency of a card price; the empty string for LDC. */
+  /** Currency of a card price, "usdt" for a USDT price; the empty string for LDC. */
   currency: string;
-  /** The price before the code: the plan's discounted LDC price, or its card price. */
+  /** The price before the code: the plan's discounted LDC price, or its card or USDT price. */
   basePriceCents: number;
   discountCents: number;
   priceCents: number;
@@ -268,7 +286,7 @@ export async function previewCoupon(
 ): Promise<CouponQuote | null> {
   const body = await request(
     "coupon",
-    { productId, ...(provider === "stripe" ? { provider } : {}), coupon, ...(quantity > 0 ? { quantity } : {}) },
+    { productId, ...(provider !== "ldc" ? { provider } : {}), coupon, ...(quantity > 0 ? { quantity } : {}) },
     signal,
     lang,
   );
@@ -283,8 +301,8 @@ function parseCouponQuote(body: Record<string, unknown>, provider: ShopPaymentPr
     !isString(body.code) ||
     !body.code ||
     body.provider !== provider ||
-    !isCurrency(body.currency) ||
-    (provider === "stripe") !== Boolean(body.currency) ||
+    // An amount in another unit than the way of paying asked about (a card price without its currency, say) cannot be shown.
+    !currencyFits(provider, body.currency) ||
     !isCount(basePriceCents) ||
     !isCount(discountCents) ||
     !isCount(priceCents) ||
@@ -337,7 +355,7 @@ export async function previewCoupons(
     {
       products: asks.map(({ productId, provider, quantity = 0 }) => ({
         productId,
-        ...(provider === "stripe" ? { provider } : {}),
+        ...(provider !== "ldc" ? { provider } : {}),
         ...(quantity > 0 ? { quantity } : {}),
       })),
       coupon,
@@ -489,8 +507,7 @@ export async function getRenewal(token: string, signal?: AbortSignal, lang?: Lan
     payment !== undefined &&
     (!record(payment) ||
       !isBoolean(payment.ldc) ||
-      (payment.stripe !== null &&
-        (!record(payment.stripe) || !isCurrency(payment.stripe.currency) || !payment.stripe.currency)))
+      (payment.stripe !== null && (!record(payment.stripe) || !isFiatCurrency(payment.stripe.currency))))
   )
     throw new ShopApiError("");
   return compact({
@@ -514,7 +531,11 @@ export async function getRenewal(token: string, signal?: AbortSignal, lang?: Lan
   });
 }
 
-/** Places a renewal order for a subscription and returns the order number; payment then happens on the order page as usual. */
+/**
+ * Places a renewal order for a subscription and returns the order number; payment then happens on the order page as usual. A USDT
+ * subscription renews with `provider: "usdt"` only (mail refuses any other way for it), an LDC one with LDC (or, for a trial's
+ * upgrade, by card).
+ */
 export async function createRenewalOrder(
   token: string,
   periods: number,
@@ -530,7 +551,7 @@ export async function createRenewalOrder(
       token,
       periods,
       ...(email ? { email } : {}),
-      ...(provider === "stripe" ? { provider } : {}),
+      ...(provider !== "ldc" ? { provider } : {}),
       ...(coupon ? { coupon } : {}),
       ...upgrade,
     },
@@ -966,6 +987,90 @@ export async function startStripePayment(orderId: string, lang?: Lang): Promise<
   throw new ShopApiError("");
 }
 
+/**
+ * Paying a USDT order on the order page (mail's pay/usdt, `shop.usdt` in docs/onboard-contract.json):
+ * - open: the order is waiting for USDT on TRON (TRC-20). `address` belongs to this order alone, `amount` is exactly what to send
+ *   (a decimal string, what the buyer copies; `amountMinor` the same in hundredths of a USDT), `received` what has been confirmed
+ *   on chain to the address so far and `confirming` what has been seen there but is not confirmed yet (decimal strings, up to six
+ *   decimals). The order is paid once the confirmed total reaches the amount, so a buyer who sent too little sends the rest.
+ * - paid: already paid (possibly just now): the order page reads the order again and shows the code.
+ * Every call has mail look at the chain (mail throttles it itself), so the page may call it every few seconds while it is shown.
+ * Failures are ShopApiError: 404 (no such order for this buyer, or a backend without USDT, whose 404 page the Worker passes on
+ * as a JSON 404), 409 (not a USDT order, USDT switched off, or an order that can no longer be paid), 429 with `retryAfter`,
+ * 503 (USDT not configured).
+ */
+export type UsdtPaymentStart =
+  | {
+      status: "open";
+      network: UsdtNetwork;
+      token: "USDT";
+      contract: string;
+      address: string;
+      amount: string;
+      amountMinor: number;
+      received: string;
+      confirming: string;
+    }
+  | { status: "paid" };
+
+/** A USDT amount as mail writes it: whole USDT and up to six decimals (the token's base unit), no sign, no exponent. */
+const USDT_DECIMAL = /^(0|[1-9][0-9]{0,11})(?:\.([0-9]{1,6}))?$/;
+
+/**
+ * A USDT decimal string in the token's base units (millionths of a USDT), as a whole number the page can compare and subtract
+ * exactly; null for anything that is not such an amount. 10^12 USDT in base units is still a safe integer.
+ */
+export function usdtUnits(value: unknown): number | null {
+  if (!isString(value)) return null;
+  const match = USDT_DECIMAL.exec(value);
+  if (!match) return null;
+  return Number(match[1]) * 1_000_000 + Number((match[2] ?? "").padEnd(6, "0"));
+}
+
+/** Base units of USDT as a decimal string with at least two decimals and no trailing zeros past them: 12340000 → "12.34", 1 → "0.000001". */
+export function usdtDecimal(units: number): string {
+  const whole = Math.floor(units / 1_000_000);
+  const fraction = String(units % 1_000_000)
+    .padStart(6, "0")
+    .replace(/0{1,4}$/, "");
+  return `${whole}.${fraction}`;
+}
+
+export async function startUsdtPayment(orderId: string, lang?: Lang, signal?: AbortSignal): Promise<UsdtPaymentStart> {
+  const body = await request("pay/usdt", { orderId }, signal, lang);
+  if (!record(body)) throw new ShopApiError("");
+  if (body.status === "paid") return { status: "paid" };
+  const amount = usdtUnits(body.amount);
+  if (
+    body.status !== "open" ||
+    !(USDT_NETWORKS as readonly unknown[]).includes(body.network) ||
+    body.token !== "USDT" ||
+    !isString(body.contract) ||
+    !TRON_ADDRESS.test(body.contract) ||
+    !isString(body.address) ||
+    !TRON_ADDRESS.test(body.address) ||
+    amount === null ||
+    !isCount(body.amountMinor) ||
+    body.amountMinor < 1 ||
+    // The amount to send and its hundredths say the same: a QR code or a copy button never carries a different amount.
+    amount !== body.amountMinor * 10_000 ||
+    usdtUnits(body.received) === null ||
+    usdtUnits(body.confirming) === null
+  )
+    throw new ShopApiError("");
+  return {
+    status: "open",
+    network: body.network as UsdtNetwork,
+    token: "USDT",
+    contract: body.contract,
+    address: body.address,
+    amount: body.amount as string,
+    amountMinor: body.amountMinor,
+    received: body.received as string,
+    confirming: body.confirming as string,
+  };
+}
+
 /** Opens the customer portal for the buyer's own Stripe subscription (change card, cancel or resume auto-renewal) and returns Stripe's page address. */
 export async function openBillingPortal(subscriptionId: string, lang?: Lang): Promise<string> {
   const body = await request("account/portal", { subscriptionId }, undefined, lang);
@@ -1037,10 +1142,10 @@ export interface AccountSeats {
   /** The plan's range: seats can be added up to max and removed down to min. */
   min: number;
   max: number;
-  /** One seat for one period: hundredths of an LDC, or the smallest unit of `currency` for a card subscription. */
+  /** One seat for one period: hundredths of an LDC, the smallest unit of `currency` for a card subscription, or hundredths of a USDT. */
   seatPriceCents: number;
   provider: ShopPaymentProvider;
-  /** Currency of a card subscription; the empty string for LDC. */
+  /** Currency of a card subscription, "usdt" for a USDT one; the empty string for LDC. */
   currency: string;
   /**
    * The length of the period `seatPriceCents` is for, in days (`shop.seats.accountFields` since contract version 3). Absent
@@ -1069,9 +1174,8 @@ function parseAccountSeats(value: unknown): AccountSeats | null | undefined {
     value.max < value.min ||
     !isCount(value.seatPriceCents) ||
     !isProvider(value.provider) ||
-    !isCurrency(value.currency) ||
-    // A card amount without its currency cannot be shown.
-    (value.provider === "stripe") !== Boolean(value.currency) ||
+    // A card amount without its currency (or any amount in another unit than its way of paying) cannot be shown.
+    !currencyFits(value.provider, value.currency) ||
     // Seats are only ever those of a subscription, so a period that is there is at least a day.
     !(value.periodDays === undefined || (isCount(value.periodDays) && value.periodDays >= 1)) ||
     !isString(value.periodEnd) ||
@@ -1237,7 +1341,7 @@ export interface SeatQuote {
   currency: string;
   priceCents: number;
   /**
-   * true for LDC: the price of the order if it is placed at once (it falls as the period runs down). false for a card
+   * true for LDC and USDT: the price of the order if it is placed at once (it falls as the period runs down). false for a card
    * subscription: mail's estimate by the same rule, while Stripe works out the final amount itself when the change is made.
    */
   exact: boolean;
@@ -1251,8 +1355,7 @@ export async function quoteSeats(orderId: string, add: number, signal?: AbortSig
     body.add !== add ||
     !isSeatCount(body.seats) ||
     !isProvider(body.provider) ||
-    !isCurrency(body.currency) ||
-    (body.provider === "stripe") !== Boolean(body.currency) ||
+    !currencyFits(body.provider, body.currency) ||
     !isCount(body.priceCents) ||
     body.priceCents < 1 ||
     !isBoolean(body.exact) ||
@@ -1272,8 +1375,8 @@ export async function quoteSeats(orderId: string, add: number, signal?: AbortSig
 
 /**
  * The outcome of adding seats:
- * - order: an LDC subscription got an order for the prorated amount, paid on the order page like a renewal order; the seats
- *   rise when it is paid;
+ * - order: an LDC or USDT subscription got an order for the prorated amount, paid on the order page like a renewal order; the
+ *   seats rise when it is paid;
  * - applied: a card subscription's card was charged and `seats` is the new count;
  * - payment_required: the bank wants the buyer (authentication, or a declined card). Nothing changed: `seats` is still the
  *   old count, and the seats rise only once Stripe confirms the payment made on `invoiceUrl` (Stripe's hosted invoice page;

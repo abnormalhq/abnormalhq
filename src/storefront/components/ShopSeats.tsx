@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import {
   addSeats,
+  formatAmount,
   formatCredits,
   formatDateTime,
   formatMoney,
+  formatUsdt,
   keepSeats,
   quoteSeats,
   removeSeats,
@@ -23,7 +25,8 @@ import { ShopSeatStepper } from "./ShopSeatStepper";
  * The seats of one seat subscription, inside its group of "My mailboxes": how many are used, adding seats for the rest of the
  * period and removing seats at the next renewal ("Seat plans" in docs/storefront-api.md). Every rule is mail's: this shows its
  * quote before anything is paid, sends the change and asks the manager to read the list again.
- * - Adding to an LDC subscription creates an order for the prorated amount, paid on the order page; the seats rise when it is paid.
+ * - Adding to an LDC or USDT subscription creates an order for the prorated amount, paid on the order page; the seats rise
+ *   when it is paid.
  * - Adding to a card subscription charges the card at once. When the bank wants the buyer, nothing changes until Stripe confirms
  *   the payment made on its invoice page: the notice stays up with the link and a "Refresh seats" button.
  * - Removing never happens mid-period: the buyer picks the count and which mailboxes go, and can take it back until the renewal.
@@ -72,7 +75,7 @@ export function ShopSeats({
 
   const id = `seats-${orderId}`;
   const card = seats.provider === "stripe";
-  const money = (cents: number) => (card ? formatMoney(cents, seats.currency, lang) : `${formatCredits(cents)} LDC`);
+  const money = (cents: number) => formatAmount(cents, seats.provider, seats.currency, lang);
   const periodEnd = formatDateTime(seats.periodEnd, lang);
   // Read once when the panel appears: mail decides for real when the change is sent.
   const [shownAt] = useState(() => Date.now());
@@ -243,13 +246,15 @@ export function ShopSeats({
           {quote && (
             <div className="rounded-md bg-highlight-muted p-4 text-sm/[1.7]" role="status">
               <p>
-                {quote.exact
-                  ? t.seatsQuoteLdc(quote.add, formatCredits(quote.priceCents), formatDateTime(quote.periodEnd, lang))
-                  : t.seatsQuoteCard(
-                      quote.add,
-                      formatMoney(quote.priceCents, quote.currency, lang),
-                      formatDateTime(quote.periodEnd, lang),
-                    )}
+                {quote.provider === "usdt"
+                  ? t.seatsQuoteUsdt(quote.add, formatUsdt(quote.priceCents), formatDateTime(quote.periodEnd, lang))
+                  : quote.exact
+                    ? t.seatsQuoteLdc(quote.add, formatCredits(quote.priceCents), formatDateTime(quote.periodEnd, lang))
+                    : t.seatsQuoteCard(
+                        quote.add,
+                        formatMoney(quote.priceCents, quote.currency, lang),
+                        formatDateTime(quote.periodEnd, lang),
+                      )}
               </p>
               <p className="mt-1 text-muted-foreground">
                 {t.seatsQuoteAfter(quote.seats, money(seats.seatPriceCents * quote.seats), seats.periodDays)}

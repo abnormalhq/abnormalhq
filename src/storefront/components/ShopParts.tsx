@@ -94,6 +94,21 @@ export function ShopStatus({ active, children }: { active?: boolean; children: R
   );
 }
 
+/**
+ * "Testnet (Nile)" beside a USDT price or payment panel while the shop takes USDT on TRON's test network: what is sent there is
+ * test tokens, never real money, so it is marked in the destructive colour where the buyer looks.
+ */
+export function ShopTestnetBadge({ children }: { children: ReactNode }) {
+  return (
+    <Badge
+      variant="outline"
+      className="h-auto w-auto shrink border-destructive/40 py-[3px] text-xs/body whitespace-normal text-destructive"
+    >
+      {children}
+    </Badge>
+  );
+}
+
 export function ShopMeta({ children }: { children: ReactNode }) {
   return <dl className="mt-6 border-t border-border pt-[18px] text-xs/body">{children}</dl>;
 }

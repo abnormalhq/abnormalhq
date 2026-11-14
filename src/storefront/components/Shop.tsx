@@ -21,6 +21,7 @@ import {
   type CouponQuote,
   type ShopCatalog,
   formatMoney,
+  formatUsdt,
   type ShopPaymentProvider,
 } from "@/storefront/lib/shop";
 import { COUPON_MAX_LENGTH, couponVerdict, normalizeCoupon, rememberCoupon } from "@/storefront/lib/coupon";
@@ -48,6 +49,7 @@ import {
   ShopField,
   ShopHero,
   ShopSkeleton,
+  ShopTestnetBadge,
   ShopTextLink,
   shopArriveClass,
   shopEmptyClass,
@@ -157,11 +159,15 @@ export function Shop({ lang }: { lang: Lang }) {
   const waysOf = (product: (typeof plans)[number]) => {
     const ldc = Boolean(catalog?.payment.ldc);
     const card = Boolean(catalog?.payment.stripe && product.fiatPriceMinor);
-    if (!isSeatProduct(product)) return { ldc, card, ldcFigure: null, cardFigure: null, asking: false };
+    // USDT, like a card, only for a plan with a USDT price of its own.
+    const usdt = Boolean(catalog?.payment.usdt && product.usdtPriceMinor);
+    if (!isSeatProduct(product))
+      return { ldc, card, usdt, ldcFigure: null, cardFigure: null, usdtFigure: null, asking: false };
     const seats = seatsOf(product);
-    const estimate = seatTotals(product, seats, { ldc, card }, quotes.maxTotalCents ?? undefined);
+    const estimate = seatTotals(product, seats, { ldc, card, usdt }, quotes.maxTotalCents ?? undefined);
     const ldcView = viewOf(quotes, product.id, product.id, seats, "ldc");
     const cardView = viewOf(quotes, product.id, product.id, seats, "stripe");
+    const usdtView = viewOf(quotes, product.id, product.id, seats, "usdt");
     const ldcFigure = ldc ? seatFigure(ldcView, estimate.ldc) : null;
     const cardFigure = card
       ? seatFigure(
@@ -169,12 +175,23 @@ export function Shop({ lang }: { lang: Lang }) {
           estimate.card === null ? null : { originalPriceCents: estimate.card, priceCents: estimate.card },
         )
       : null;
+    const usdtFigure = usdt
+      ? seatFigure(
+          usdtView,
+          estimate.usdt === null ? null : { originalPriceCents: estimate.usdt, priceCents: estimate.usdt },
+        )
+      : null;
     return {
       ldc: sold(ldcFigure),
       card: sold(cardFigure),
+      usdt: sold(usdtFigure),
       ldcFigure,
       cardFigure,
-      asking: (ldc && ldcView?.state === "loading") || (card && cardView?.state === "loading"),
+      usdtFigure,
+      asking:
+        (ldc && ldcView?.state === "loading") ||
+        (card && cardView?.state === "loading") ||
+        (usdt && usdtView?.state === "loading"),
     };
   };
 
@@ -187,6 +204,7 @@ export function Shop({ lang }: { lang: Lang }) {
         const providers = [
           ...(catalog.payment.ldc ? ["ldc"] : []),
           ...(catalog.payment.stripe && product.fiatPriceMinor ? ["stripe"] : []),
+          ...(catalog.payment.usdt && product.usdtPriceMinor ? ["usdt"] : []),
         ];
         return providers.length > 0 ? [`${product.id}:${providers.join("+")}:${seatsOf(product)}`] : [];
       });
@@ -261,6 +279,7 @@ export function Shop({ lang }: { lang: Lang }) {
       return [
         ...(open.ldc ? [{ product, provider: "ldc" as const, seats }] : []),
         ...(open.card ? [{ product, provider: "stripe" as const, seats }] : []),
+        ...(open.usdt ? [{ product, provider: "usdt" as const, seats }] : []),
       ];
     });
     // One request (one guess against mail's limit) for up to eight of them, further requests only for a larger catalog; what
@@ -304,9 +323,11 @@ export function Shop({ lang }: { lang: Lang }) {
           refusal.code === "seat_quantity_out_of_range"
             ? t.couponSeatRange(refusal.min, refusal.max)
             : t.couponSeatTotal(
-                cardCurrency
-                  ? formatMoney(refusal.maxTotalCents, cardCurrency, lang)
-                  : formatCredits(refusal.maxTotalCents),
+                about?.provider === "usdt"
+                  ? formatUsdt(refusal.maxTotalCents)
+                  : cardCurrency
+                    ? formatMoney(refusal.maxTotalCents, cardCurrency, lang)
+                    : formatCredits(refusal.maxTotalCents),
               ),
         );
       } else setCouponError(shopError(result.error, lang));
@@ -329,7 +350,9 @@ export function Shop({ lang }: { lang: Lang }) {
         // mail took the code (it refuses the checkout otherwise). It publishes the code and what it took off with the order,
         // and the order page uses that; the price before the code is still remembered for this tab, only as the fallback for
         // a mail before those fields (src/storefront/lib/coupon.ts).
-        const figure = product && (provider === "stripe" ? waysOf(product).cardFigure : waysOf(product).ldcFigure);
+        const ways = product && waysOf(product);
+        const figure =
+          ways && (provider === "stripe" ? ways.cardFigure : provider === "usdt" ? ways.usdtFigure : ways.ldcFigure);
         const baseCents = !product
           ? undefined
           : figure
@@ -340,7 +363,9 @@ export function Shop({ lang }: { lang: Lang }) {
                 : undefined
             : provider === "stripe"
               ? product.fiatPriceMinor
-              : product.priceCents;
+              : provider === "usdt"
+                ? product.usdtPriceMinor
+                : product.priceCents;
         if (baseCents) rememberCoupon({ orderId: id, code: applied?.code ?? typedCoupon.toUpperCase(), baseCents });
       }
       router.push(`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(id)}`);
@@ -534,6 +559,9 @@ export function Shop({ lang }: { lang: Lang }) {
                 stripeCurrency && product.fiatPriceMinor
                   ? formatMoney(product.fiatPriceMinor, stripeCurrency, lang)
                   : null;
+              // USDT: hundredths of a USDT, for one mailbox on a seat plan; "12.34 USDT", never Intl's currency style.
+              const usdtPayment = catalog.payment.usdt;
+              const usdtPrice = usdtPayment && product.usdtPriceMinor ? formatUsdt(product.usdtPriceMinor) : null;
               const selected = product.id === selectedPlan;
               // A plan sold per mailbox: every price of the plan is for one, and the order is priced for the quantity.
               const seatPlan = isSeatProduct(product) ? product : null;
@@ -541,9 +569,9 @@ export function Shop({ lang }: { lang: Lang }) {
               const days = product.periodDays ?? 0;
               // The order's total for either way of paying: mail's quote, or the page's estimate by mail's rule while there is
               // none. Each way has its own limit on what one order can charge: a quantity too many for one is still sold by the other.
-              const { ldcFigure, cardFigure, asking, ...open } = waysOf(product);
+              const { ldcFigure, cardFigure, usdtFigure, asking, ...open } = waysOf(product);
               const range = rangeOf(product);
-              const figures = [ldcFigure, cardFigure].filter((figure) => figure !== null);
+              const figures = [ldcFigure, cardFigure, usdtFigure].filter((figure) => figure !== null);
               // What each total is labelled with: the quote's own currency, period and discount for a quoted total (the
               // catalog can be older than the quote), the catalog's only for the page's estimate.
               const catalogTerms = { periodDays: days, discountPercent: product.discountPercent };
@@ -551,12 +579,14 @@ export function Shop({ lang }: { lang: Lang }) {
               const cardTerms = sold(cardFigure)
                 ? seatTerms(cardFigure, { ...catalogTerms, currency: stripeCurrency ?? "" })
                 : null;
+              const usdtTerms = sold(usdtFigure) ? seatTerms(usdtFigure, { ...catalogTerms, currency: "usdt" }) : null;
               const tooMany = figures.length > 0 && figures.every((figure) => figure.kind === "tooMany");
               // The applied code on this plan, per way of paying the card offers: a quote, null (cannot be used) or undefined (not asked).
               const ldcQuote = open.ldc ? applied?.quotes[`${product.id}:ldc:${seats}`] : undefined;
               const cardQuote = open.card ? applied?.quotes[`${product.id}:stripe:${seats}`] : undefined;
-              const ways = Number(open.ldc) + Number(open.card);
-              const refused = Number(ldcQuote === null) + Number(cardQuote === null);
+              const usdtQuote = open.usdt ? applied?.quotes[`${product.id}:usdt:${seats}`] : undefined;
+              const ways = Number(open.ldc) + Number(open.card) + Number(open.usdt);
+              const refused = Number(ldcQuote === null) + Number(cardQuote === null) + Number(usdtQuote === null);
               const couponLines = !applied
                 ? []
                 : [
@@ -571,15 +601,24 @@ export function Shop({ lang }: { lang: Lang }) {
                           ),
                         ]
                       : []),
-                    ...(ldcQuote?.firstPeriodOnly || cardQuote?.firstPeriodOnly ? [t.couponFirstPeriod] : []),
+                    ...(usdtQuote
+                      ? [t.couponWith(applied.code, t.couponPriceUsdt(formatUsdt(usdtQuote.priceCents)))]
+                      : []),
+                    ...(ldcQuote?.firstPeriodOnly || cardQuote?.firstPeriodOnly || usdtQuote?.firstPeriodOnly
+                      ? [t.couponFirstPeriod]
+                      : []),
                     ...(ways > 0 && refused === ways
                       ? [t.couponNotForPlan]
                       : [
                           ...(ldcQuote === null ? [t.couponNotForLdc] : []),
                           ...(cardQuote === null ? [t.couponNotForCard] : []),
+                          // mail applies a percentage code to a USDT price, never a fixed amount.
+                          ...(usdtQuote === null ? [t.couponNotForUsdt] : []),
                         ]),
                     // Plans that were not asked about (past a press's limit, or after a failure): checkout decides.
-                    ...((open.ldc && ldcQuote === undefined) || (open.card && cardQuote === undefined)
+                    ...((open.ldc && ldcQuote === undefined) ||
+                    (open.card && cardQuote === undefined) ||
+                    (open.usdt && usdtQuote === undefined)
                       ? [t.couponAtCheckout]
                       : []),
                   ];
@@ -631,6 +670,19 @@ export function Shop({ lang }: { lang: Lang }) {
                           )}
                         >
                           {seatPlan ? t.seatCardEach(cardPrice, days) : t.cardPrice(cardPrice, days)}
+                        </p>
+                      ) : null}
+                      {usdtPrice ? (
+                        <p
+                          className={cn(
+                            "flex flex-wrap items-center gap-x-2 gap-y-1 text-sm/body",
+                            catalog.payment.ldc || cardPrice
+                              ? cn(cardPrice ? "pt-1" : "mt-auto pt-4", "text-muted-foreground")
+                              : "font-semibold",
+                          )}
+                        >
+                          <span>{seatPlan ? t.seatUsdtEach(usdtPrice, days) : t.usdtPrice(usdtPrice, days)}</span>
+                          {usdtPayment?.network === "nile" && <ShopTestnetBadge>{t.usdtTestnet}</ShopTestnetBadge>}
                         </p>
                       ) : null}
                       {seatPlan && range && (
@@ -699,12 +751,26 @@ export function Shop({ lang }: { lang: Lang }) {
                                     )}
                                   </p>
                                 )}
+                                {sold(usdtFigure) && usdtTerms && (
+                                  <p
+                                    className={cn(
+                                      "animate-arrive",
+                                      sold(ldcFigure) || sold(cardFigure) ? "text-muted-foreground" : "font-semibold",
+                                    )}
+                                    key={`usdt:${usdtFigure.totalCents}`}
+                                  >
+                                    {t.seatTotalUsdt(formatUsdt(usdtFigure.totalCents), usdtTerms.periodDays)}
+                                  </p>
+                                )}
                                 {/* Only the way of paying that cannot take this quantity is closed, and says why. */}
                                 {ldcFigure?.kind === "tooMany" && (
                                   <p className="text-destructive">{t.seatTooManyLdc}</p>
                                 )}
                                 {cardFigure?.kind === "tooMany" && (
                                   <p className="text-destructive">{t.seatTooManyCard}</p>
+                                )}
+                                {usdtFigure?.kind === "tooMany" && (
+                                  <p className="text-destructive">{t.seatTooManyUsdt}</p>
                                 )}
                                 {/* Any other refusal of a quote is mail's own sentence, once when both ways got the same. */}
                                 {[
@@ -739,7 +805,8 @@ export function Shop({ lang }: { lang: Lang }) {
                           {couponLines.map((line, index) => (
                             <li
                               className={
-                                index < Number(Boolean(ldcQuote)) + Number(Boolean(cardQuote))
+                                index <
+                                Number(Boolean(ldcQuote)) + Number(Boolean(cardQuote)) + Number(Boolean(usdtQuote))
                                   ? "font-semibold"
                                   : "text-muted-foreground"
                               }
@@ -761,7 +828,9 @@ export function Shop({ lang }: { lang: Lang }) {
                         <p className="mt-3 text-xs/body text-muted-foreground">{t.planWithoutDomain(carried.domain)}</p>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2 pt-6">
+                    {/* Top-aligned: a card whose buttons wrap onto two lines makes the shared row taller, and the
+                        buttons of the other cards keep their own height instead of stretching to it. */}
+                    <div className="flex flex-wrap content-start items-start gap-2 pt-6">
                       {catalog.payment.ldc && (
                         <ShopButton
                           type="button"
@@ -785,6 +854,19 @@ export function Shop({ lang }: { lang: Lang }) {
                         >
                           {buying === `${product.id}:stripe` ? t.buying : t.payCard}
                           {buying !== `${product.id}:stripe` && <span aria-hidden="true">↗</span>}
+                        </ShopButton>
+                      ) : null}
+                      {usdtPrice ? (
+                        <ShopButton
+                          variant={catalog.payment.ldc || cardPrice ? "outline" : "default"}
+                          type="button"
+                          loading={buying === `${product.id}:usdt`}
+                          disabled={buying !== null || !open.usdt}
+                          onClick={() => void checkout(product.id, "usdt")}
+                          aria-label={`${t.payUsdt} · ${product.name}`}
+                        >
+                          {buying === `${product.id}:usdt` ? t.buying : t.payUsdt}
+                          {buying !== `${product.id}:usdt` && <span aria-hidden="true">↗</span>}
                         </ShopButton>
                       ) : null}
                     </div>

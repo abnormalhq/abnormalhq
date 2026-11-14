@@ -39,7 +39,7 @@ export const helpEn: HelpContent = {
             {
               ol: [
                 "Create an account in [My account](shop/account/?mode=register) with your email and a password, and open the link in the confirmation email. The link works for 15 minutes.",
-                "Pick a plan in the [shop](shop/) and pay with Linux DO Credit or by card. You review the order before paying.",
+                "Pick a plan in the [shop](shop/) and pay with Linux DO Credit, by card or with USDT (TRC-20). You review the order before paying.",
                 "Once the payment is confirmed, open My mailboxes in [My account](shop/account/), choose a username and a password, and the mailbox is set up.",
                 `Sign in to webmail at ${webmail} with the full address and that password.`,
               ],
@@ -689,6 +689,7 @@ export const helpEn: HelpContent = {
               ul: [
                 "**Paid with Linux DO Credit**: renew on the renewal page. The link is on the order page, in [My account](shop/account/) and in the reminder emails, and works without signing in. Choose 1 to 12 periods and pay the renewal order like any order.",
                 "**Subscriptions bought directly by card**: the subscription renews automatically each period. In My account you can change the card, or cancel and resume automatic renewal. A card subscription cannot be renewed by hand on the renewal page.",
+                "**Paid with USDT**: renew on the renewal page like Linux DO Credit, with USDT only. The renewal order is paid on the order page: send the exact amount shown, on the TRON network (TRC-20), to the address shown for that order.",
               ],
             },
             {

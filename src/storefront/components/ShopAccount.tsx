@@ -11,10 +11,12 @@ import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import {
   ACCOUNT_PASSWORD_MAX,
   ACCOUNT_PASSWORD_MIN,
+  formatAmount,
   formatCredits,
   formatDateTime,
   finishGoogleLogin,
   formatMoney,
+  formatUsdt,
   getAccount,
   getShopCatalog,
   LOGIN_TURNSTILE_ACTION,
@@ -567,7 +569,13 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     <ShopMetaRow label={t.subscriptionEnds}>{date(subscription.currentPeriodEnd)}</ShopMetaRow>
                     <ShopMetaRow label={subscription.trial ? trialCopy[lang].paidPeriod : t.period}>
                       {t.periodValue(subscription.periodDays)}
-                      {subscription.provider !== "stripe" ? (
+                      {subscription.provider === "usdt" ? (
+                        // Bought with USDT: renews with USDT, at a price in hundredths of a USDT, through the renewal link below.
+                        <>
+                          <br />
+                          {t.usdtRenewAt(formatUsdt(subscription.renewPriceCents))}
+                        </>
+                      ) : subscription.provider !== "stripe" ? (
                         <>
                           <br />
                           {t.renewAt(formatCredits(subscription.renewPriceCents))}
@@ -644,9 +652,9 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     </ShopMetaRow>
                     <ShopMetaRow label={t.createdAt}>
                       {date(order.created)}
-                      {order.provider !== "stripe"
-                        ? ` · ${formatCredits(order.priceCents)} LDC`
-                        : order.currency && ` · ${formatMoney(order.priceCents, order.currency, lang)}`}
+                      {/* A card amount without its currency cannot be read: none rather than a guessed one. */}
+                      {(order.provider !== "stripe" || order.currency) &&
+                        ` · ${formatAmount(order.priceCents, order.provider, order.currency, lang)}`}
                     </ShopMetaRow>
                     {order.kind === "renewal" && (
                       <ShopMetaRow label={t.period}>
@@ -664,10 +672,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                             {" · "}
                           </>
                         )}
-                        −
-                        {order.provider !== "stripe"
-                          ? `${formatCredits(order.couponDiscountCents ?? 0)} LDC`
-                          : formatMoney(order.couponDiscountCents ?? 0, order.currency ?? "", lang)}
+                        −{formatAmount(order.couponDiscountCents ?? 0, order.provider, order.currency, lang)}
                       </ShopMetaRow>
                     )}
                     {order.code && (

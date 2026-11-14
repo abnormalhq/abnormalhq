@@ -193,17 +193,22 @@ test("shop client: keeps the domain quota capability and rejects non-boolean cap
   await expect(getShopCatalog()).rejects.toThrow(ShopApiError);
 });
 
-test("shop client: provider is sent in the order request only when card payment is chosen", async () => {
+test("shop client: provider is sent in the order request whenever it is not LDC (card or USDT), never for LDC", async () => {
   const bodies: unknown[] = [];
   vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
     bodies.push(JSON.parse(String((init as RequestInit).body)));
     return Response.json({ orderId: ORDER_ID }, { status: 201 });
   });
   await createShopOrder(PRODUCT.id);
+  await createShopOrder(PRODUCT.id, "zh", "", "ldc");
   await createShopOrder(PRODUCT.id, "zh", "buyer@example.test", "stripe");
+  await createShopOrder(PRODUCT.id, "en", "", "usdt");
   expect(bodies).toStrictEqual([
     { productId: PRODUCT.id },
+    // A mail that only knows LDC never sees the field.
+    { productId: PRODUCT.id },
     { productId: PRODUCT.id, email: "buyer@example.test", provider: "stripe" },
+    { productId: PRODUCT.id, provider: "usdt" },
   ]);
   vi.restoreAllMocks();
 });

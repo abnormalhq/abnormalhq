@@ -196,11 +196,14 @@ test("quantity: each way of paying has its own limit, so one that can take the q
   const both = { ldc: true, card: true };
   // 1,500.00 LDC a seat is above one order's 1,000,000.00 at 700 seats; 19.99 by card is far below it.
   const dear = { originalPriceCents: 150_000, discountPercent: 0, fiatPriceMinor: 1999 };
+  // USDT is not offered here (`both` names LDC and card only): it is never "too many", and has no total.
   expect(seatTotals(dear, 700, both)).toStrictEqual({
     ldc: null,
     card: 1_399_300,
+    usdt: null,
     ldcTooMany: true,
     cardTooMany: false,
+    usdtTooMany: false,
     tooMany: false,
   });
   // The other way round: a card price in a currency with small units passes the limit while the LDC total does not.
@@ -208,8 +211,10 @@ test("quantity: each way of paying has its own limit, so one that can take the q
   expect(seatTotals(smallUnits, 500, both)).toStrictEqual({
     ldc: { originalPriceCents: 166_500, priceCents: 149_850 },
     card: null,
+    usdt: null,
     ldcTooMany: false,
     cardTooMany: true,
+    usdtTooMany: false,
     tooMany: false,
   });
   // Only when no way on offer can take it is the whole quantity refused; a way that is not offered is never "too many".
