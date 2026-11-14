@@ -431,7 +431,12 @@ test("dev shop: card orders are recorded as Stripe orders at the fiat price, the
   const info = vi.spyOn(console, "info").mockImplementation(() => {});
   const store = new MockShopStore(() => NOW);
   const catalog = await (await store.fetch("catalog", request("catalog"))).json();
-  expect(catalog.payment).toStrictEqual({ ldc: true, stripe: { currency: "usd" } });
+  // USDT on TRON's testnet is offered next to them (MOCK_USDT, on by default); a card order is still a Stripe order.
+  expect(catalog.payment).toStrictEqual({
+    ldc: true,
+    stripe: { currency: "usd" },
+    usdt: { currency: "usdt", network: "nile", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" },
+  });
   const bought = await store.fetch(
     "checkout",
     request("checkout", { body: { productId: "demoproduct0002", provider: "stripe" } }),

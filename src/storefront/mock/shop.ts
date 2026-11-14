@@ -10,7 +10,9 @@
  * charged) and removed only at the next renewal, and an order that adds seats is published as a renewal order.
  * Like mail since contract version 3 (docs/onboard-contract.json), POST quote says what an order would cost before it exists,
  * a seat plan says its range and the prices of one seat outright, and the refusals about a quantity, a discount code, a plan
- * or a buyer's domain carry a stable code and their text in both languages.
+ * or a buyer's domain carry a stable code and their text in both languages. Like mail with USDT (`shop.usdt`), the plans have a
+ * USDT price on TRON's testnet, a USDT order is paid to an address of its own through pay/usdt (the demo sees the transfer on
+ * the third look and confirms it on the fourth), and a USDT subscription renews and adds seats with USDT.
  */
 import { createHash, randomBytes } from "node:crypto";
 import { normalizeUsername, passwordProblem, usernameProblem } from "@/storefront/lib/onboard";
@@ -23,7 +25,13 @@ import type {
   SeatProduct,
   ShopProduct,
 } from "@/storefront/lib/shop";
-import { isSeatProduct, seatCardPrice, seatOrderPrice, SHOP_PRICE_MAX_CENTS } from "@/storefront/lib/catalog";
+import {
+  isSeatProduct,
+  seatCardPrice,
+  seatOrderPrice,
+  seatUsdtPrice,
+  SHOP_PRICE_MAX_CENTS,
+} from "@/storefront/lib/catalog";
 import { MockDomains } from "./domains";
 
 const COOKIE = "mailhq_shop";
@@ -107,6 +115,29 @@ export const MOCK_CUSTOM_DOMAINS: Readonly<Record<string, number>> = {
 export const MOCK_SEATS_PAYMENT_REQUIRED = 7;
 /** Adding exactly this many seats to a demo card subscription fails: the card could not be charged (409). */
 export const MOCK_SEATS_CARD_DECLINED = 9;
+/**
+ * USDT prices of the demo plans, in hundredths of a USDT (one seat of the seat plan), published while the demo backend takes
+ * USDT. Like a card price, no plan discount applies to them.
+ */
+export const MOCK_USDT_PRICES: Readonly<Record<string, number>> = {
+  [PRODUCT.id]: 150,
+  [SUBSCRIPTION_PRODUCT.id]: 80,
+  [SEAT_PRODUCT.id]: 60,
+};
+/** USDT (TRC-20) on TRON's Nile testnet, as the demo catalog offers it. */
+export const MOCK_USDT_CONTRACT = "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf";
+/** The address every demo USDT order is paid to (mail derives one per order from the shop's key). */
+export const MOCK_USDT_ADDRESS = "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH";
+/** The look at the chain (pay/usdt) on which the demo sees the transfer, still unconfirmed; the next one finds it confirmed and the order paid. */
+export const MOCK_USDT_SEEN_AT = 3;
+
+/** A way of paying as the demo backend reads it from a request. */
+type Provider = "ldc" | "stripe" | "usdt";
+
+function usdtPriceOf(product: ShopProduct): number {
+  return MOCK_USDT_PRICES[product.id] ?? 0;
+}
+
 /** Stripe's hosted invoice page of the demo. */
 const MOCK_INVOICE_URL = "https://invoice.stripe.com/i/demo";
 /** Plan names and descriptions in English: like mail, the catalog answers in the request's language. */
@@ -149,16 +180,18 @@ export const MOCK_COUPONS: Readonly<Record<string, MockCoupon>> = {
 /** The price with a code, from the price before it; null when the code cannot be used for this purchase. */
 function couponPrice(
   product: ShopProduct,
-  provider: "ldc" | "stripe",
+  provider: Provider,
   typed: string,
   /** Seats of a seat plan: the code then applies to the order's total, like mail. 0 for a fixed plan. */
   quantity = 0,
 ): { code: string; baseCents: number; priceCents: number; discountCents: number } | null {
   const code = typed.trim().toUpperCase();
   const coupon = Object.hasOwn(MOCK_COUPONS, code) ? MOCK_COUPONS[code] : undefined;
-  const baseCents = purchaseTerms(product, provider === "stripe", quantity)?.priceCents ?? 0;
+  const baseCents = purchaseTerms(product, provider, quantity)?.priceCents ?? 0;
   if (!coupon || baseCents < 1 || (coupon.products && !coupon.products.includes(product.id))) return null;
-  const off = provider === "stripe" ? coupon.fiatAmountOffMinor : coupon.amountOffCents;
+  // Like mail: a fixed amount is per way of paying and there is none for USDT, so only a percentage applies to a USDT price.
+  const off =
+    provider === "stripe" ? coupon.fiatAmountOffMinor : provider === "usdt" ? undefined : coupon.amountOffCents;
   // A percentage is rounded half up, like the plan discount.
   const priceCents = coupon.percentOff
     ? Math.floor((baseCents * (100 - coupon.percentOff) + 50) / 100)
@@ -191,16 +224,24 @@ function orderQuantity(product: ShopProduct | SeatProduct, value: unknown): numb
 
 /**
  * What an order costs before a discount code, like mail's purchaseTerms (apps/console/src/lib/shop/orders.ts): a fixed plan's
- * own prices, or a seat plan's for `seats` seats (the discount on the whole order, rounded once; by card, seats × the
- * seat's card price). `renewPriceCents` is each later period, 0 for a one-time plan. null when that many seats cost more
- * than one order can charge, now or at renewal.
+ * own prices, or a seat plan's for `seats` seats (the discount on the whole order, rounded once; by card or USDT, seats ×
+ * the seat's card or USDT price). `renewPriceCents` is each later period, 0 for a one-time plan. null when that many seats
+ * cost more than one order can charge, now or at renewal.
  */
 function purchaseTerms(
   product: ShopProduct | SeatProduct,
-  card: boolean,
+  provider: Provider,
   seats: number,
 ): { originalPriceCents: number; priceCents: number; renewPriceCents: number } | null {
   const recurring = Boolean(product.periodDays);
+  if (provider === "usdt") {
+    // Like a card: no plan discount, and a subscription renews at the same price.
+    const unit = usdtPriceOf(product);
+    const total = isSeatProduct(product) ? seatUsdtPrice({ usdtPriceMinor: unit }, seats) : unit;
+    if (total === null) return null;
+    return { originalPriceCents: total, priceCents: total, renewPriceCents: recurring ? total : 0 };
+  }
+  const card = provider === "stripe";
   if (!isSeatProduct(product)) {
     const priceCents = card ? (product.fiatPriceMinor ?? 0) : product.priceCents;
     return {
@@ -248,6 +289,8 @@ interface StoredOrder {
   addsSeats?: { pricedTo: number };
   /** How many own domains the plan allowed its buyer when the order was placed (mail's shop_orders.custom_domains); not published with the order. */
   customDomains?: number;
+  /** A USDT order: how many times pay/usdt has looked at the chain for it (the demo's stand-in for a transfer on its way). */
+  usdtChecks?: number;
 }
 
 interface StoredLogin {
@@ -273,8 +316,10 @@ interface StoredSubscription {
   end: number;
   /** The demo card subscription always has auto-renewal on. */
   stripe: boolean;
+  /** Bought with USDT: renews with USDT only, and its prices are in hundredths of a USDT. */
+  usdt?: boolean;
   periodDays: number;
-  /** What one period costs at renewal: hundredths of an LDC, or the card price in cents for a card subscription. */
+  /** What one period costs at renewal: hundredths of an LDC, the card price in cents for a card subscription, or hundredths of a USDT. */
   renewPriceCents: number;
   mailboxCount: number;
   /** A seat subscription: its seats, the plan's range, what one seat costs per period and a removal scheduled for the next renewal. */
@@ -392,6 +437,11 @@ export class MockShopStore {
    * backend the storefront may still be deployed against, to see the pages fall back to what they did before.
    */
   private readonly v3: boolean;
+  /**
+   * Whether the demo backend takes USDT (`shop.usdt` in docs/onboard-contract.json). Off (`MOCK_USDT=off`), the catalog has no
+   * `payment.usdt` and no USDT prices, pay/usdt answers 404 and "usdt" is no way of paying, like a mail before USDT.
+   */
+  private readonly usdt: boolean;
 
   constructor(
     now: () => number = Date.now,
@@ -401,12 +451,14 @@ export class MockShopStore {
     domains = process.env.MOCK_DOMAINS !== "off",
     domainApproval = process.env.MOCK_DOMAIN_APPROVAL !== "off",
     v3 = process.env.MOCK_QUOTE !== "off",
+    usdt = process.env.MOCK_USDT !== "off",
   ) {
     this.now = now;
     this.addressCheck = addressCheck;
     this.coupons = coupons;
     this.seats = seats;
     this.v3 = v3;
+    this.usdt = usdt;
     this.buyerDomains = domains ? new MockDomains(now, domainApproval, v3) : null;
   }
 
@@ -428,6 +480,23 @@ export class MockShopStore {
         .filter((stored) => stored?.order.status === "paid" && (stored.order.kind ?? "purchase") === "purchase")
         .map((stored) => stored?.customDomains ?? 0),
     );
+  }
+
+  /** A plan's USDT price as the demo backend sells it: 0 (not with USDT) while it takes no USDT. */
+  private usdtPrice(product: ShopProduct): number {
+    return this.usdt ? usdtPriceOf(product) : 0;
+  }
+
+  /** Whether a plan can be bought with this way of paying at all (before any quantity). */
+  private sells(product: ShopProduct, provider: Provider): boolean {
+    return (
+      provider === "ldc" || (provider === "stripe" ? Boolean(product.fiatPriceMinor) : this.usdtPrice(product) > 0)
+    );
+  }
+
+  /** The ways of paying a request may name: "usdt" only while the demo backend takes USDT. */
+  private isProvider(value: unknown): value is Provider {
+    return value === "ldc" || value === "stripe" || (this.usdt && value === "usdt");
   }
 
   /** The plans checkout and the code preview know: the seat plan only while the demo backend has seat plans. */
@@ -499,6 +568,7 @@ export class MockShopStore {
         "checkout",
         "pay",
         "pay/stripe",
+        ...(this.usdt ? ["pay/usdt"] : []),
         "reconcile",
         "renewal",
         "renew",
@@ -565,6 +635,7 @@ export class MockShopStore {
       } = structuredClone(SEAT_PRODUCT);
       const seatEntry = {
         ...seatFields,
+        ...(this.usdt ? { usdtPriceMinor: usdtPriceOf(SEAT_PRODUCT) } : {}),
         ...this.customDomains(SEAT_PRODUCT.id),
         kind: "seat",
         seatMin: minQuantity,
@@ -578,15 +649,22 @@ export class MockShopStore {
               unitPriceCents,
               unitRenewPriceCents,
               unitFiatPriceMinor,
+              ...(this.usdt ? { unitUsdtPriceMinor: usdtPriceOf(SEAT_PRODUCT) } : {}),
             }
           : {}),
         ...(english ? PRODUCT_TEXT_EN[SEAT_PRODUCT.id] : {}),
       };
       const catalog = {
         available: true,
-        payment: { ldc: true, stripe: { currency: "usd" } },
+        payment: {
+          ldc: true,
+          stripe: { currency: "usd" },
+          // Like mail with USDT on: the network and the token contract (TRON's testnet here, so the pages show the badge).
+          ...(this.usdt ? { usdt: { currency: "usdt", network: "nile", contract: MOCK_USDT_CONTRACT } } : {}),
+        },
         products: PRODUCTS.map((product) => ({
           ...structuredClone(product),
+          ...(this.usdt ? { usdtPriceMinor: usdtPriceOf(product) } : {}),
           // Since contract version 3 a fixed plan says how it is sold too, in the word a seat plan and a quote use.
           ...(this.v3 ? { planKind: "fixed" } : {}),
           ...this.customDomains(product.id),
@@ -678,7 +756,7 @@ export class MockShopStore {
       if (many && (!Array.isArray(body.products) || body.products.length < 1 || body.products.length > 8))
         return failure(400, say("请选择套餐。", "Choose a plan."));
       const entries: unknown[] = many ? (body.products as unknown[]) : [body];
-      const items: { productId: string; provider: "ldc" | "stripe"; quantity: unknown }[] = [];
+      const items: { productId: string; provider: Provider; quantity: unknown }[] = [];
       // A malformed entry fails the whole request, with no partial answer.
       for (const entry of entries) {
         const item: Record<string, unknown> =
@@ -687,11 +765,11 @@ export class MockShopStore {
             : {};
         if (typeof item.productId !== "string" || !ORDER_ID.test(item.productId))
           return failure(400, say("请选择套餐。", "Choose a plan."));
-        if (item.provider !== undefined && item.provider !== "ldc" && item.provider !== "stripe")
+        if (item.provider !== undefined && !this.isProvider(item.provider))
           return failure(400, say("请选择支付方式。", "Choose a way of paying."));
         items.push({
           productId: item.productId,
-          provider: item.provider === "stripe" ? "stripe" : "ldc",
+          provider: item.provider === undefined ? "ldc" : item.provider,
           quantity: item.quantity,
         });
       }
@@ -702,7 +780,7 @@ export class MockShopStore {
         // Like mail: the refusal of an entry of `products` says which one, by its position.
         const at: Record<string, number> = many ? { index } : {};
         const product = this.plans().find((item) => item.id === productId);
-        const open = product && (provider === "ldc" || Boolean(product.fiatPriceMinor));
+        const open = product && this.sells(product, provider);
         // Like mail: a seat plan's preview needs the quantity, and its amounts are for that many seats. A quantity the plan
         // does not sell is never "the code can't be used": it fails the whole request with its own code. (A mail before
         // contract version 3 answered "can't be used" for a total above what one order can charge.)
@@ -710,14 +788,14 @@ export class MockShopStore {
         const seats = seatPlan ? orderQuantity(seatPlan, quantity) : 0;
         if (seats === "invalid") return badQuantity(at);
         if (seats === "range") return outOfRange(seatPlan!, at);
-        if (seatPlan && this.v3 && !purchaseTerms(seatPlan, provider === "stripe", seats)) return totalTooLarge(at);
+        if (seatPlan && this.v3 && !purchaseTerms(seatPlan, provider, seats)) return totalTooLarge(at);
         const quote = open ? couponPrice(product, provider, typed, seats) : null;
         quotes.push(
           product && quote
             ? {
                 code: quote.code,
                 provider,
-                currency: provider === "stripe" ? "usd" : "",
+                currency: provider === "stripe" ? "usd" : provider === "usdt" ? "usdt" : "",
                 basePriceCents: quote.baseCents,
                 discountCents: quote.discountCents,
                 priceCents: quote.priceCents,
@@ -745,12 +823,12 @@ export class MockShopStore {
       if (
         !Array.isArray(asked) ||
         asked.length < 1 ||
-        asked.length > 2 ||
-        !asked.every((provider) => provider === "ldc" || provider === "stripe") ||
+        asked.length > (this.usdt ? 3 : 2) ||
+        !asked.every((provider) => this.isProvider(provider)) ||
         new Set(asked).size !== asked.length
       )
         return failure(400, say("请选择有效的支付方式。", "Choose a valid payment method."));
-      const providers = asked as ("ldc" | "stripe")[];
+      const providers = asked as Provider[];
       const product = this.plans().find((item) => item.id === body.productId);
       if (!product) return unavailableProduct();
       // The quantity is the same whichever way the order is paid: a wrong one refuses the whole request.
@@ -762,9 +840,9 @@ export class MockShopStore {
       // One entry per way asked, in the order asked: its price, or the refusal a quote for that way alone would get.
       const prices = providers.map((provider) => {
         const card = provider === "stripe";
-        if (card && !product.fiatPriceMinor)
-          return { provider, available: false, refusal: refusalBody(...UNAVAILABLE) };
-        const terms = purchaseTerms(product, card, seats);
+        const usdt = provider === "usdt";
+        if (!this.sells(product, provider)) return { provider, available: false, refusal: refusalBody(...UNAVAILABLE) };
+        const terms = purchaseTerms(product, provider, seats);
         if (!terms)
           return {
             provider,
@@ -775,11 +853,15 @@ export class MockShopStore {
         return {
           provider,
           available: true,
-          currency: card ? "usd" : "",
-          unitOriginalPriceCents: card ? (product.fiatPriceMinor ?? 0) : product.originalPriceCents,
-          unitPriceCents: card ? (product.fiatPriceMinor ?? 0) : product.priceCents,
+          currency: card ? "usd" : usdt ? "usdt" : "",
+          unitOriginalPriceCents: card
+            ? (product.fiatPriceMinor ?? 0)
+            : usdt
+              ? usdtPriceOf(product)
+              : product.originalPriceCents,
+          unitPriceCents: card ? (product.fiatPriceMinor ?? 0) : usdt ? usdtPriceOf(product) : product.priceCents,
           subtotalCents: terms.originalPriceCents,
-          discountPercent: card ? 0 : product.discountPercent,
+          discountPercent: card || usdt ? 0 : product.discountPercent,
           planDiscountCents: terms.originalPriceCents - terms.priceCents,
           basePriceCents: terms.priceCents,
           coupon: !typed
@@ -1064,8 +1146,21 @@ export class MockShopStore {
             "This subscription renews automatically through Stripe and can't be renewed here. Sign in to your account to manage auto-renewal or update your card.",
           ),
         );
+      // Like mail: a USDT subscription renews with USDT only, and nothing else does.
+      if (renewal && (renewal.provider === "usdt") !== (body.provider === "usdt"))
+        return failure(
+          409,
+          say(
+            renewal.provider === "usdt" ? "这个订阅只能用 USDT 续费。" : "这个订阅不能用 USDT 续费。",
+            renewal.provider === "usdt"
+              ? "This subscription renews with USDT only."
+              : "This subscription can't be renewed with USDT.",
+          ),
+        );
       if (route === "checkout" && !product) return unavailableProduct();
       if (route === "checkout" && body.provider === "stripe" && !product?.fiatPriceMinor) return unavailableProduct();
+      if (route === "checkout" && body.provider === "usdt" && !(product && this.usdtPrice(product) > 0))
+        return unavailableProduct();
       // Like mail: a seat plan is ordered by the seat, within its range, and a fixed plan takes no quantity (one above 1 is
       // refused). Each refusal has its code: not a whole number, outside the range (with the range), too large a total.
       const seatPlan = route === "checkout" && product && isSeatProduct(product) ? product : null;
@@ -1074,12 +1169,14 @@ export class MockShopStore {
       if (asked === "range") return outOfRange(seatPlan!);
       const seats = seatPlan ? asked : 0;
       const card = body.provider === "stripe";
+      const usdt = body.provider === "usdt";
+      const provider: Provider = card ? "stripe" : usdt ? "usdt" : "ldc";
       // What the order costs before a discount code: for a seat plan, the whole order priced by mail's rule.
-      const terms = route === "checkout" && product ? purchaseTerms(product, card, seats) : null;
+      const terms = route === "checkout" && product ? purchaseTerms(product, provider, seats) : null;
       if (route === "checkout" && !terms) return totalTooLarge();
       // Like mail: a code that cannot be used fails the checkout with one message for every reason, and no order is created.
       const typed = route === "checkout" && this.coupons ? couponFrom(body) : null;
-      const quote = typed && product ? couponPrice(product, card ? "stripe" : "ldc", typed, seats) : null;
+      const quote = typed && product ? couponPrice(product, provider, typed, seats) : null;
       if (typed && !quote)
         return refuse(
           400,
@@ -1100,8 +1197,9 @@ export class MockShopStore {
       } while (this.orders.has(id));
       const price = renewal ? renewal.renewPriceCents * periods : 0;
       // A seat plan's order: the seats in mailboxCount, the total in the price fields, and seats × the seat's renewal price per period.
-      const ldcTerms = product && !card ? terms : null;
+      const ldcTerms = product && !card && !usdt ? terms : null;
       const cardPrice = card ? (terms?.priceCents ?? 0) : 0;
+      const usdtTerms = usdt ? terms : null;
       // Orders placed while logged in belong to this account from the start (like mail's customer_id).
       if (customer) {
         const owned = this.owned.get(customer) ?? new Set<string>();
@@ -1131,6 +1229,8 @@ export class MockShopStore {
               periods,
               periodDays: renewal.periodDays,
               subscriptionId: renewal.subscriptionId,
+              // A USDT subscription's renewal is a USDT order, paid to its own address like a purchase.
+              ...(renewal.provider === "usdt" ? { provider: "usdt" as const, currency: "usdt" } : {}),
               couponCode: "",
               couponDiscountCents: 0,
               status: "pending",
@@ -1164,7 +1264,17 @@ export class MockShopStore {
                     // Same as the backend: Stripe subscriptions charge the fiat price from purchase time each period.
                     renewPriceCents: cardPrice,
                   }
-                : { provider: "ldc" as const }),
+                : usdtTerms
+                  ? {
+                      // Like a card: hundredths of a USDT, no plan discount, renewing (with USDT) at the same price.
+                      provider: "usdt" as const,
+                      currency: "usdt",
+                      priceCents: quote ? quote.priceCents : usdtTerms.priceCents,
+                      originalPriceCents: usdtTerms.priceCents,
+                      discountPercent: 0,
+                      renewPriceCents: usdtTerms.renewPriceCents,
+                    }
+                  : { provider: "ldc" as const }),
               couponCode: quote?.code ?? "",
               couponDiscountCents: quote?.discountCents ?? 0,
               status: "pending",
@@ -1178,6 +1288,37 @@ export class MockShopStore {
     }
     const stored = this.findOrder(body.orderId, token, customer);
     if (!stored) return failure(404, notFound);
+    if (route === "pay/usdt") {
+      // Like mail's pay/usdt: the order's own address and the exact amount; each call is a look at the chain. The demo sends
+      // nothing anywhere: the transfer is seen (unconfirmed) on look MOCK_USDT_SEEN_AT and confirmed on the next.
+      if (stored.order.provider !== "usdt")
+        return failure(409, say("这笔订单不是 USDT 订单。", "This order is not paid with USDT."));
+      if (stored.order.status === "paid") return json({ status: "paid" });
+      if (
+        stored.addsSeats &&
+        this.subscriptions.get(stored.order.subscriptionId ?? "")?.end !== stored.addsSeats.pricedTo
+      )
+        return failure(409, say("该订单暂时无法支付。", "This order cannot be paid right now."));
+      stored.usdtChecks = (stored.usdtChecks ?? 0) + 1;
+      if (stored.usdtChecks > MOCK_USDT_SEEN_AT) {
+        stored.order.status = "paid";
+        stored.order.paidAt = new Date(this.now()).toISOString();
+        this.startOrExtend(stored);
+        return json({ status: "paid" });
+      }
+      const amount = (stored.order.priceCents / 100).toFixed(2);
+      return json({
+        status: "open",
+        network: "nile",
+        token: "USDT",
+        contract: MOCK_USDT_CONTRACT,
+        address: MOCK_USDT_ADDRESS,
+        amount,
+        amountMinor: stored.order.priceCents,
+        received: "0.00",
+        confirming: stored.usdtChecks === MOCK_USDT_SEEN_AT ? amount : "0.00",
+      });
+    }
     if (route === "pay/stripe") {
       // The demo does not talk to Stripe and so has no publishable key: like mail without one, the page falls back to the "Pay" form (pressing it locally counts as paid).
       if (stored.order.provider !== "stripe")
@@ -1194,6 +1335,12 @@ export class MockShopStore {
         stored.addsSeats &&
         this.subscriptions.get(stored.order.subscriptionId ?? "")?.end !== stored.addsSeats.pricedTo
       )
+        return new Response(null, {
+          status: 303,
+          headers: { ...HEADERS, Location: `${base}${prefix}/shop/orders/?id=${stored.order.id}&error=payment` },
+        });
+      // A USDT order is paid to its address (pay/usdt), never through the pay form: back to the order page with the payment error.
+      if (stored.order.status !== "paid" && stored.order.provider === "usdt")
         return new Response(null, {
           status: 303,
           headers: { ...HEADERS, Location: `${base}${prefix}/shop/orders/?id=${stored.order.id}&error=payment` },
@@ -1277,8 +1424,12 @@ export class MockShopStore {
                       min: seats.min,
                       max: seats.max,
                       seatPriceCents: seats.seatPriceCents,
-                      provider: subscription.stripe ? ("stripe" as const) : ("ldc" as const),
-                      currency: subscription.stripe ? "usd" : "",
+                      provider: subscription.stripe
+                        ? ("stripe" as const)
+                        : subscription.usdt
+                          ? ("usdt" as const)
+                          : ("ldc" as const),
+                      currency: subscription.stripe ? "usd" : subscription.usdt ? "usdt" : "",
                       // The length of the period a seat's price is for (mail since contract version 3).
                       ...(this.v3 ? { periodDays: subscription.periodDays } : {}),
                       periodEnd: new Date(subscription.end).toISOString(),
@@ -1427,9 +1578,14 @@ export class MockShopStore {
             renewToken: summary.provider === "stripe" ? null : `demo-${order.id}`,
             provider: summary.provider,
             autoRenew: summary.autoRenew,
-            currency: "usd",
-            fiatRenewMinor:
-              summary.provider === "stripe" ? summary.renewPriceCents : SUBSCRIPTION_PRODUCT.fiatPriceMinor,
+            // A USDT subscription's price is in hundredths of a USDT and it has no card price.
+            ...(summary.provider === "usdt"
+              ? { currency: "usdt" }
+              : {
+                  currency: "usd",
+                  fiatRenewMinor:
+                    summary.provider === "stripe" ? summary.renewPriceCents : SUBSCRIPTION_PRODUCT.fiatPriceMinor,
+                }),
           };
         }),
       orders: orders.map((order) => ({
@@ -1504,16 +1660,20 @@ export class MockShopStore {
     const plan = this.plans().find((item) => item.name === order.productName);
     const seatPlan = plan && isSeatProduct(plan) ? plan : null;
     const stripe = order.provider === "stripe";
-    // What one seat costs per period at renewal: the card price, or the plan's renewal price (its discounted price when it has none).
+    const usdt = order.provider === "usdt";
+    // What one seat costs per period at renewal: the card or USDT price, or the plan's renewal price (its discounted price when it has none).
     const seatPriceCents = seatPlan
       ? stripe
         ? seatPlan.unitFiatPriceMinor
-        : seatPlan.unitRenewPriceCents || seatPlan.unitPriceCents
+        : usdt
+          ? usdtPriceOf(seatPlan)
+          : seatPlan.unitRenewPriceCents || seatPlan.unitPriceCents
       : 0;
     this.subscriptions.set(id, {
       productName: order.productName,
       end: this.now() + days * 86_400_000,
       stripe,
+      ...(usdt ? { usdt: true } : {}),
       periodDays: order.periodDays ?? 0,
       renewPriceCents: seatPlan ? seatPriceCents * order.mailboxCount : order.renewPriceCents || order.priceCents,
       mailboxCount: order.mailboxCount,
@@ -1608,10 +1768,10 @@ export class MockShopStore {
         return json({
           add: body.add,
           seats: seats.seats + body.add,
-          provider: subscription.stripe ? "stripe" : "ldc",
-          currency: subscription.stripe ? "usd" : "",
+          provider: subscription.stripe ? "stripe" : subscription.usdt ? "usdt" : "ldc",
+          currency: subscription.stripe ? "usd" : subscription.usdt ? "usdt" : "",
           priceCents,
-          // LDC: the order's price if ordered at once. Card: an estimate, Stripe's invoice has the final amount.
+          // LDC and USDT: the order's price if ordered at once. Card: an estimate, Stripe's invoice has the final amount.
           exact: !subscription.stripe,
           periodEnd,
         });
@@ -1632,7 +1792,7 @@ export class MockShopStore {
         this.raiseSeats(subscription, seats.seats + body.add);
         return json({ status: "applied", seats: subscription.seats!.seats, invoiceUrl: null });
       }
-      // LDC: an order for the prorated amount, paid on the order page like a renewal order; it starts a purchase session like renew.
+      // LDC or USDT: an order for the prorated amount, paid on the order page like a renewal order; it starts a purchase session like renew.
       const buyer = token ?? randomBytes(32).toString("hex");
       let id: string;
       do {
@@ -1663,8 +1823,8 @@ export class MockShopStore {
           periodDays: subscription.periodDays,
           renewPriceCents: 0,
           subscriptionId: order.id,
-          provider: "ldc",
-          currency: "",
+          provider: subscription.usdt ? "usdt" : "ldc",
+          currency: subscription.usdt ? "usdt" : "",
           couponCode: "",
           couponDiscountCents: 0,
           status: "pending",
@@ -1740,8 +1900,10 @@ export class MockShopStore {
       mailboxes: (this.mailboxes.get(id) ?? []).map((mailbox) => mailbox.email),
       maxPeriods: subscription.stripe ? 0 : RENEW_MAX_PERIODS,
       hasContactEmail: false,
-      provider: subscription.stripe ? "stripe" : "ldc",
+      provider: subscription.stripe ? "stripe" : subscription.usdt ? "usdt" : "ldc",
       autoRenew: subscription.stripe,
+      // Like mail: a USDT subscription says its renewal price is in hundredths of a USDT.
+      ...(subscription.usdt ? { currency: "usdt" } : {}),
     };
   }
 
@@ -1779,7 +1941,11 @@ export class MockShopStore {
             currentPeriodEnd: new Date(subscription.end).toISOString(),
             state: subscription.end > this.now() ? "active" : "grace",
             renewToken: `demo-${subscriptionId}`,
-            provider: subscription.stripe ? ("stripe" as const) : ("ldc" as const),
+            provider: subscription.stripe
+              ? ("stripe" as const)
+              : subscription.usdt
+                ? ("usdt" as const)
+                : ("ldc" as const),
             autoRenew: subscription.stripe,
           }
         : null,

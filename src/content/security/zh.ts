@@ -97,7 +97,7 @@ export const securityZh: SecurityContent = {
             "**Cloudflare** 托管官网，并运行商店、开通页、网页邮箱与管理系统。",
             "**数据库服务商**（目前为 PlanetScale）保存账号、订单、兑换码、工单文字与设置等数据。",
             "**云主机服务商**承载我们自建的邮件服务器与邮件数据。",
-            "**Stripe** 与 **Linux DO Credit** 处理你选择的支付方式。",
+            "**Stripe** 与 **Linux DO Credit** 处理你选择的支付方式；USDT 付款从你自己的钱包经 TRON 网络发出，由 TronGrid 告诉我们订单收款地址的到账情况。",
             "**大模型服务商**（目前为 DeepSeek）仅在使用 AI 功能时接收相关内容。",
           ],
         },

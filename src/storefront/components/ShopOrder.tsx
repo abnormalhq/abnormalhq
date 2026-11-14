@@ -15,6 +15,7 @@ import {
   reconcileShopOrder,
   shopApiRoot,
   type PublicShopOrder,
+  formatAmount,
   formatCredits,
   formatDateTime,
   formatMoney,
@@ -51,12 +52,14 @@ import {
   shopOrderPageClass,
   shopPriceAmountClass,
   shopPriceLineClass,
+  shopPriceUnitClass,
   shopTextClass,
 } from "./ShopParts";
 import { ShopPrice } from "./ShopPrice";
 import { ShopSession } from "./ShopSession";
 import { trialCopy } from "@/storefront/lib/trial";
 import { ShopStripeCheckout } from "./ShopStripeCheckout";
+import { ShopUsdtCheckout } from "./ShopUsdtCheckout";
 
 export function ShopOrder({ lang }: { lang: Lang }) {
   const searchParams = useSearchParams();
@@ -73,6 +76,9 @@ export function ShopOrder({ lang }: { lang: Lang }) {
 
 /** The remembered code never changes while the order page is open; it is read once the page runs in the browser. */
 const noSubscription = () => () => {};
+/** After pay/usdt answers paid: how many times the order is read until it shows paid, and how long apart. */
+const USDT_PAID_READS = 6;
+const USDT_PAID_READ_MS = 2_000;
 
 function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId: string; paymentError: boolean }) {
   const t = useShopCopy();
@@ -100,7 +106,10 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const pending = order?.status === "pending";
   const renewal = order?.kind === "renewal";
   const embeddedCard = order?.provider === "stripe" && !hostedCard;
-  const watching = pending && pollEnded !== pollRound;
+  // A USDT order is paid to its own address on this page: its panel asks mail (pay/usdt) by itself, and says when it does.
+  const usdt = order?.provider === "usdt";
+  const [usdtWatching, setUsdtWatching] = useState(false);
+  const watching = pending && (usdt ? usdtWatching : pollEnded !== pollRound);
   const status = order?.status;
   // The discount code of this order: mail's own fields once it publishes them, until then what the shop page remembered at
   // checkout, as text so the store's value is stable (src/storefront/lib/coupon.ts).
@@ -110,8 +119,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     () => "null",
   );
   const couponUsed = order ? orderCoupon(order, JSON.parse(remembered) as ReturnType<typeof recallCoupon>) : null;
-  const amount = (cents: number) =>
-    order?.provider === "stripe" ? formatMoney(cents, order.currency ?? "", lang) : `${formatCredits(cents)} LDC`;
+  const amount = (cents: number) => formatAmount(cents, order?.provider, order?.currency, lang);
 
   useEffect(() => {
     if (!validId) return;
@@ -125,7 +133,8 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   }, [orderId, validId, attempt, lang, t]);
 
   useEffect(() => {
-    if (!pending) return;
+    // The USDT panel asks pay/usdt instead, which also has mail look at the chain.
+    if (!pending || usdt) return;
     const controller = new AbortController();
     let attempts = 0;
     let timer = 0;
@@ -154,7 +163,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [orderId, pending, lang, pollRound]);
+  }, [orderId, pending, usdt, lang, pollRound]);
 
   // Confetti for a payment that was just made, once: not for opening an order that was paid some other day.
   useEffect(() => {
@@ -194,6 +203,27 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     } finally {
       setChecking(false);
       checkLock.current = false;
+    }
+  }
+
+  /**
+   * pay/usdt says the order is paid: read it again, and the code appears (and is celebrated) as for any other way of paying.
+   * The USDT panel stops polling once paid and the page's own polling is off for USDT orders, so a read that fails (or that
+   * a replica answers with the order still pending) is tried again a few times before the error is shown.
+   */
+  async function refreshOrder() {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const next = await getShopOrder(orderId, undefined, lang);
+        setResult((current) => (current?.order.status === "paid" ? current : next));
+        if (next.order.status === "paid" || attempt >= USDT_PAID_READS) return;
+      } catch (cause) {
+        if (attempt >= USDT_PAID_READS) {
+          setError(describeShopError(cause, lang, t, { notFound: t.notFound }));
+          return;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, USDT_PAID_READ_MS));
     }
   }
 
@@ -254,7 +284,9 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   ? hostedCard
                     ? t.orderDescriptionStripeHosted
                     : t.orderDescriptionStripe
-                  : t.orderDescription}
+                  : order?.provider === "usdt"
+                    ? t.orderDescriptionUsdt
+                    : t.orderDescription}
       </ShopHero>
       {!validId ? (
         <ShopPanel>
@@ -372,6 +404,12 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   </strong>
                 </p>
               )
+            ) : order.provider === "usdt" ? (
+              // Hundredths of a USDT, written with two decimals and the token's name (USDT is not an ISO 4217 currency).
+              <p className={cn(shopPriceLineClass, "mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}>
+                <strong className={shopPriceAmountClass}>{formatCredits(order.priceCents)}</strong>
+                <span className={shopPriceUnitClass}>USDT</span>
+              </p>
             ) : (
               <ShopPrice item={order} className={couponUsed ? "mb-0" : undefined} />
             )}
@@ -401,6 +439,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                 item={order}
                 lang={lang}
                 stripeCurrency={order.provider === "stripe" ? (order.currency ?? "") : undefined}
+                usdt={order.provider === "usdt"}
               />
             )}
             <ShopMeta>
@@ -476,6 +515,21 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   {t.codeMissing}
                 </p>
               )}
+            </ShopPanel>
+          ) : usdt ? (
+            <ShopPanel key="usdt">
+              <h2 className={shopHeadingClass}>{t.usdtTitle}</h2>
+              <p className={shopTextClass}>{t.usdtNote}</p>
+              <ShopUsdtCheckout orderId={order.id} lang={lang} onPaid={refreshOrder} onWatching={setUsdtWatching} />
+              <ShopActions>
+                <ShopButton variant="outline" type="button" loading={checking} onClick={() => void reconcile()}>
+                  {checking ? t.refreshing : t.refresh}
+                </ShopButton>
+              </ShopActions>
+              {error && <ShopAlert className={shopArriveClass}>{error}</ShopAlert>}
+              <p className={shopTextClass} role="status">
+                {notice}
+              </p>
             </ShopPanel>
           ) : embeddedCard ? (
             <ShopPanel key="card">

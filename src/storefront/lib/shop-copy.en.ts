@@ -340,6 +340,49 @@ export const en: ShopCopy = {
   renewalStripeNote:
     "This subscription renews automatically through Stripe and can't be renewed here. Sign in to your account to resume auto-renewal or update your card.",
   portalOpening: "Opening…",
+  payUsdt: "Pay with USDT",
+  usdtPrice: (price: string, days: number) =>
+    days > 0 ? `${price} every ${days} ${days === 1 ? "day" : "days"}` : price,
+  usdtTestnet: "Testnet (Nile)",
+  seatUsdtEach: (price: string, days: number) =>
+    days > 0 ? `${price} per mailbox every ${days} days` : `${price} per mailbox`,
+  seatTotalUsdt: (price: string, days: number) => (days > 0 ? `${price} every ${days} days` : price),
+  seatTooManyUsdt: "That many mailboxes cost more than one USDT order can charge. Pay another way, or choose fewer.",
+  couponPriceUsdt: (price: string) => price,
+  couponNotForUsdt: "This code can't be used when paying with USDT.",
+  orderDescriptionUsdt: "Check your plan details, then pay with USDT (TRC-20) below.",
+  usdtTitle: "Pay with USDT",
+  usdtNote:
+    "Send exactly the amount below in USDT to this address. The address belongs to this order alone. Once the transfer is confirmed on chain (usually about a minute), your code appears here.",
+  usdtNetwork: "TRON · TRC-20",
+  usdtAmount: "Amount to send",
+  usdtAddress: "Address",
+  usdtCopyAmount: "Copy amount",
+  usdtCopyAddress: "Copy address",
+  usdtAmountCopied: "Amount copied.",
+  usdtAddressCopied: "Address copied.",
+  usdtCopyFailed: "Couldn't copy. Select it and copy it by hand.",
+  usdtQr: (address: string) => `QR code of the address ${address}`,
+  usdtQrHint: "The QR code holds the address only. Enter the amount in your wallet.",
+  usdtWarning: (amount: string) =>
+    `Send USDT on the TRON network (TRC-20) only. Other tokens or networks are lost. Exchanges that deduct a withdrawal fee from the amount: make sure the amount that arrives is at least ${amount}.`,
+  usdtStatus: "Payment status",
+  usdtWaiting: "Waiting for your transfer. This page updates by itself once it is confirmed on chain.",
+  usdtConfirming: "Payment detected, waiting for confirmation…",
+  usdtPartial: (received: string, amount: string, remaining: string) =>
+    `Received ${received} of ${amount} USDT. Send the remaining ${remaining} USDT.`,
+  usdtPaid: "Payment confirmed. Loading your code…",
+  usdtStopped: "Automatic checks have stopped. If you have sent the payment, choose “Check again”.",
+  usdtCheckAgain: "Check again",
+  usdtChecking: "Checking…",
+  usdtLoading: "Preparing your payment address…",
+  usdtUnavailable: "USDT payment details can't be shown right now. Please try again later.",
+  usdtRenewAt: (price: string) => `Renews at ${price} per period`,
+  renewUsdtButton: "Renew with USDT",
+  renewalUsdtNote:
+    "This subscription was bought with USDT and renews with USDT: create the renewal order, then pay it on the order page.",
+  seatsQuoteUsdt: (n: number, price: string, date: string) =>
+    `${n} more ${n === 1 ? "seat" : "seats"} for the rest of this period (until ${date}): ${price}. That is the price if you order now; it falls as the period runs down.`,
   rateLimitedWait: (seconds: number) =>
     `Too many requests. Try again in ${seconds < 60 ? `${seconds} ${seconds === 1 ? "second" : "seconds"}` : seconds < 3600 ? `${Math.ceil(seconds / 60)} ${Math.ceil(seconds / 60) === 1 ? "minute" : "minutes"}` : `${Math.ceil(seconds / 3600)} ${Math.ceil(seconds / 3600) === 1 ? "hour" : "hours"}`}.`,
   seatUnit: (days: number) => (days > 0 ? `LDC / mailbox / ${days} days` : "LDC / mailbox"),

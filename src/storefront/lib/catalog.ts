@@ -27,6 +27,11 @@ export interface ShopProduct {
   /** Card (Stripe) price in the smallest unit of the shop currency; 0 or absent means it cannot be bought by card. */
   fiatPriceMinor?: number;
   /**
+   * USDT (TRC-20) price in hundredths of a USDT; 0 or absent (every mail before USDT) means it cannot be bought with USDT. Like a
+   * card price it carries no plan discount. Absent from the parsed plan when mail did not send it.
+   */
+  usdtPriceMinor?: number;
+  /**
    * "Use my own domain": how many domains of their own a buyer of this plan may connect from the account page. Absent (old
    * backends, and plans without it) or 0 means none.
    */
@@ -54,6 +59,11 @@ export interface SeatProduct extends ShopProduct {
   unitRenewPriceCents: number;
   /** One seat with a card, in the smallest unit of the shop currency; 0 when the plan cannot be bought with a card. */
   unitFiatPriceMinor: number;
+  /**
+   * One seat with USDT, in hundredths of a USDT; 0 when the plan cannot be bought with USDT. Absent, like `usdtPriceMinor`, when
+   * mail sent neither (a mail before USDT).
+   */
+  unitUsdtPriceMinor?: number;
 }
 
 /** How a plan is sold, in the public words of the contract (`shop.planKinds`): a set of mailboxes at one price, or by the seat. */
@@ -68,16 +78,34 @@ export const SEAT_MAX = 1000;
  */
 export const SHOP_PRICE_MAX_CENTS = 100_000_000;
 
-/** ldc = Linux DO Credit; stripe = card (Stripe Checkout). */
-export type ShopPaymentProvider = "ldc" | "stripe";
+/** ldc = Linux DO Credit; stripe = card (Stripe Checkout); usdt = USDT (TRC-20) on TRON, sent to an address of the order's own. */
+export type ShopPaymentProvider = "ldc" | "stripe" | "usdt";
+
+/** The currency string of every USDT amount (`shop.usdt.currency`): amounts are hundredths of a USDT. */
+export const USDT_CURRENCY = "usdt";
+/** The TRON networks mail takes USDT on (`shop.usdt.networks`): nile is TRON's testnet. */
+export const USDT_NETWORKS = ["mainnet", "nile"] as const;
+export type UsdtNetwork = (typeof USDT_NETWORKS)[number];
+/** A TRON address in base58check: `T` and 33 more characters of the base58 alphabet (no 0, O, I or l). */
+export const TRON_ADDRESS = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+
+/** USDT as the catalog offers it: the network and the token contract it is paid on. */
+export interface UsdtPayment {
+  currency: typeof USDT_CURRENCY;
+  network: UsdtNetwork;
+  contract: string;
+}
 
 export type SubscriptionState = "active" | "grace" | "suspended" | "expired";
 
 export interface ShopCatalog {
   trial?: { days: number; quotaMb: number };
   available: boolean;
-  /** Whether each of the two payment methods is available; old backends that omit it count as LDC only. */
-  payment: { ldc: boolean; stripe: { currency: string } | null };
+  /**
+   * Whether each payment method is available; old backends that omit it count as LDC only. `usdt` is absent while USDT is not
+   * offered (and on every mail before it).
+   */
+  payment: { ldc: boolean; stripe: { currency: string } | null; usdt?: UsdtPayment };
   products: ShopProduct[];
   /**
    * Plans sold per mailbox, present only while one is on sale. mail lists them apart from `products` because their prices are
@@ -233,9 +261,29 @@ export function oneOf<T extends string>(values: readonly T[]) {
   return (value: unknown): value is T => (values as readonly unknown[]).includes(value);
 }
 
-/** Currency of a Stripe amount: a three-letter lower-case ISO 4217 code (as mail stores it); the empty string for LDC orders. */
+/** A card currency: a three-letter lower-case ISO 4217 code, as mail stores it. */
+export function isFiatCurrency(value: unknown): value is string {
+  return typeof value === "string" && /^[a-z]{3}$/.test(value);
+}
+
+/**
+ * Currency of an amount: a card currency (isFiatCurrency), "usdt" for a USDT amount (hundredths of a USDT; not ISO 4217, hence
+ * four letters), or the empty string for LDC.
+ */
 export function isCurrency(value: unknown): value is string {
-  return value === "" || (typeof value === "string" && /^[a-z]{3}$/.test(value));
+  return value === "" || value === USDT_CURRENCY || isFiatCurrency(value);
+}
+
+/**
+ * Whether an amount's currency is the one its way of paying counts in: none for LDC, a card currency for Stripe, "usdt" for USDT.
+ * An amount whose currency says otherwise cannot be shown, so an answer carrying one is not used.
+ */
+export function currencyFits(provider: ShopPaymentProvider, currency: unknown): currency is string {
+  return provider === "ldc"
+    ? currency === ""
+    : provider === "usdt"
+      ? currency === USDT_CURRENCY
+      : isFiatCurrency(currency);
 }
 
 /** A field an old backend may omit: absent, or of the right shape. */
@@ -290,6 +338,7 @@ export function parseEntitlements(value: Fields, couponDiscountCents = 0, freeTr
     !optional(value.periodDays, isCount) ||
     !optional(value.renewPriceCents, isCount) ||
     !optional(value.fiatPriceMinor, isCount) ||
+    !optional(value.usdtPriceMinor, isCount) ||
     !optional(value.customDomains, isCount) ||
     !(
       quotaSupportedByDomain === undefined ||
@@ -309,6 +358,7 @@ export function parseEntitlements(value: Fields, couponDiscountCents = 0, freeTr
     periodDays: value.periodDays,
     renewPriceCents: value.renewPriceCents,
     fiatPriceMinor: value.fiatPriceMinor,
+    usdtPriceMinor: value.usdtPriceMinor,
     // 0 says the same as absent: the pages only ever ask "does this plan include own domains".
     customDomains: value.customDomains || undefined,
   };
@@ -348,6 +398,8 @@ export function parseSeatProduct(value: unknown): SeatProduct | null {
     // A mail before the field: the plan's renewal price, or its discounted price when it has none; a one-time plan renews at nothing.
     unitRenewPriceCents = product.periodDays ? product.renewPriceCents || product.priceCents : 0,
     unitFiatPriceMinor = product.fiatPriceMinor ?? 0,
+    // Absent with `usdtPriceMinor` on a mail before USDT: the plan then has no USDT price at all.
+    unitUsdtPriceMinor = product.usdtPriceMinor,
   } = value;
   if (
     !validPrice({
@@ -356,7 +408,8 @@ export function parseSeatProduct(value: unknown): SeatProduct | null {
       priceCents: unitPriceCents,
     }) ||
     !isCount(unitRenewPriceCents) ||
-    !isCount(unitFiatPriceMinor)
+    !isCount(unitFiatPriceMinor) ||
+    !optional(unitUsdtPriceMinor, isCount)
   )
     return null;
   return {
@@ -373,6 +426,7 @@ export function parseSeatProduct(value: unknown): SeatProduct | null {
     unitPriceCents: unitPriceCents as number,
     unitRenewPriceCents,
     unitFiatPriceMinor,
+    ...(unitUsdtPriceMinor === undefined ? {} : { usdtPriceMinor: unitUsdtPriceMinor, unitUsdtPriceMinor }),
   };
 }
 
@@ -416,28 +470,51 @@ export function seatCardPrice(
 }
 
 /**
+ * What `quantity` seats cost with USDT: quantity × the seat's USDT price (hundredths of a USDT, per period for a subscription; no
+ * plan discount, like a card). null above the payable limit or without a USDT price. The fallback, like seatOrderPrice.
+ */
+export function seatUsdtPrice(
+  product: Pick<SeatProduct, "unitUsdtPriceMinor"> | Pick<ShopProduct, "usdtPriceMinor">,
+  quantity: number,
+  maxTotalCents: number = SHOP_PRICE_MAX_CENTS,
+): number | null {
+  const unit =
+    ("unitUsdtPriceMinor" in product ? product.unitUsdtPriceMinor : undefined) ??
+    ("usdtPriceMinor" in product ? product.usdtPriceMinor : undefined) ??
+    0;
+  const total = unit * quantity;
+  return Number.isSafeInteger(quantity) && quantity >= 1 && total >= 1 && total <= maxTotalCents ? total : null;
+}
+
+/**
  * What `quantity` seats cost by each way of paying the shop offers, each judged on its own: mail refuses an order above what one
- * order can charge per way of paying (the LDC total and the card total are different amounts in different units), so a quantity
- * that is too many for one can still be bought with the other. `ldcTooMany` / `cardTooMany` are true only for a way that is
- * offered and cannot take the quantity; `tooMany` when no offered way can. The fallback, like seatOrderPrice.
+ * order can charge per way of paying (the LDC, card and USDT totals are different amounts in different units), so a quantity
+ * that is too many for one can still be bought with another. `ldcTooMany` / `cardTooMany` / `usdtTooMany` are true only for a
+ * way that is offered and cannot take the quantity; `tooMany` when no offered way can. The fallback, like seatOrderPrice.
  */
 export function seatTotals(
-  product: SeatPrices & (Pick<SeatProduct, "unitFiatPriceMinor"> | Pick<ShopProduct, "fiatPriceMinor">),
+  product: SeatPrices &
+    (Pick<SeatProduct, "unitFiatPriceMinor"> | Pick<ShopProduct, "fiatPriceMinor">) &
+    Partial<Pick<SeatProduct, "unitUsdtPriceMinor" | "usdtPriceMinor">>,
   quantity: number,
-  offered: { ldc: boolean; card: boolean },
+  offered: { ldc: boolean; card: boolean; usdt?: boolean },
   maxTotalCents: number = SHOP_PRICE_MAX_CENTS,
 ): {
   ldc: { originalPriceCents: number; priceCents: number } | null;
   card: number | null;
+  usdt: number | null;
   ldcTooMany: boolean;
   cardTooMany: boolean;
+  usdtTooMany: boolean;
   tooMany: boolean;
 } {
   const ldc = offered.ldc ? seatOrderPrice(product, quantity, maxTotalCents) : null;
   const card = offered.card ? seatCardPrice(product, quantity, maxTotalCents) : null;
+  const usdt = offered.usdt ? seatUsdtPrice(product, quantity, maxTotalCents) : null;
   const ldcTooMany = offered.ldc && !ldc;
   const cardTooMany = offered.card && !card;
-  return { ldc, card, ldcTooMany, cardTooMany, tooMany: !ldc && !card };
+  const usdtTooMany = Boolean(offered.usdt) && !usdt;
+  return { ldc, card, usdt, ldcTooMany, cardTooMany, usdtTooMany, tooMany: !ldc && !card && !usdt };
 }
 
 /** The range of a quantity field: a catalog seat plan's, or the old names an upgrade plan of the renewal page carries. */
@@ -520,14 +597,16 @@ export function parseShopCatalog(body: unknown): ShopCatalog {
   const payment = record(body.payment) ? body.payment : null;
   // Card payment with a bad currency cannot show a price, so it counts as off.
   const stripe =
-    payment && record(payment.stripe) && isCurrency(payment.stripe.currency) && payment.stripe.currency
+    payment && record(payment.stripe) && isFiatCurrency(payment.stripe.currency)
       ? { currency: payment.stripe.currency }
       : null;
+  const usdt = payment ? parseUsdtPayment(payment.usdt) : null;
   return {
     available: body.available,
     payment: {
       ldc: payment ? payment.ldc === true : body.available,
       stripe,
+      ...(usdt ? { usdt } : {}),
     },
     products,
     ...(seats.length > 0 ? { seatProducts: seats } : {}),
@@ -545,6 +624,22 @@ export function parseShopCatalog(body: unknown): ShopCatalog {
       ? { trial: { days: body.trial.days, quotaMb: body.trial.quotaMb } }
       : {}),
   };
+}
+
+/**
+ * The catalog's `payment.usdt` (`shop.usdt.catalogFields`): null when absent or null (USDT off, or a mail before it), and when it
+ * is not usable (an unknown network, a contract that is no TRON address), which counts as off like a card with a bad currency.
+ */
+function parseUsdtPayment(value: unknown): UsdtPayment | null {
+  if (
+    !record(value) ||
+    value.currency !== USDT_CURRENCY ||
+    !(USDT_NETWORKS as readonly unknown[]).includes(value.network) ||
+    !isString(value.contract) ||
+    !TRON_ADDRESS.test(value.contract)
+  )
+    return null;
+  return { currency: USDT_CURRENCY, network: value.network as UsdtNetwork, contract: value.contract };
 }
 
 export async function getShopCatalog(signal?: AbortSignal, lang?: Lang): Promise<ShopCatalog> {
@@ -635,4 +730,24 @@ export function formatMoney(minor: number, currency: string, lang?: Lang): strin
 
 export function formatCredits(cents: number): string {
   return (cents / 100).toFixed(2);
+}
+
+/** A USDT amount from hundredths of a USDT: "12.34 USDT". Two decimals and the token's name, never Intl's currency style (USDT is not ISO 4217). */
+export function formatUsdt(cents: number): string {
+  return `${(cents / 100).toFixed(2)} USDT`;
+}
+
+/**
+ * An amount in the unit its way of paying counts in: "7.50 LDC", the card currency as Intl writes it, or "12.34 USDT". A card
+ * amount without its currency cannot be read and gives "" (the pages then show none rather than a guessed one).
+ */
+export function formatAmount(
+  cents: number,
+  provider: ShopPaymentProvider | undefined,
+  currency: string | undefined,
+  lang?: Lang,
+): string {
+  if (provider === "usdt") return formatUsdt(cents);
+  if (provider === "stripe") return currency ? formatMoney(cents, currency, lang) : "";
+  return `${formatCredits(cents)} LDC`;
 }

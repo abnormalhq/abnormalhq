@@ -11,6 +11,7 @@ import {
   createRenewalOrder,
   formatCredits,
   formatMoney,
+  formatUsdt,
   type ShopPaymentProvider,
   formatDateTime,
   getRenewal,
@@ -73,7 +74,10 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
   const trial = trialCopy[lang];
   const selected = summary?.trial ? summary.upgradePlans?.find((plan) => plan.id === productId) : undefined;
   const periodDays = selected?.periodDays ?? summary?.periodDays ?? 30;
-  const currency = selected ? summary?.upgradePayment?.stripe?.currency : summary?.currency;
+  // A subscription bought with USDT renews with USDT only: its renewal price is in hundredths of a USDT, and its `currency`
+  // ("usdt") is no card currency. A trial is never one (its upgrade is paid with LDC or by card).
+  const usdtRenewal = summary?.provider === "usdt" && !summary.trial;
+  const currency = selected ? summary?.upgradePayment?.stripe?.currency : usdtRenewal ? undefined : summary?.currency;
   // An upgrade to a seat plan is priced by mail for the seats chosen (POST /api/shop/quote, one request for every way of
   // paying on offer; src/storefront/lib/quote.ts). The board asks again when the plan or the seats change, after a pause and
   // cancelling what was asked before; without a quote (a mail before the endpoint, one on its way, the rate limit, a
@@ -187,7 +191,9 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
               <ShopMetaRow label={summary.trial ? trial.paidPeriod : t.period}>
                 {t.periodValue(summary.periodDays)}
                 <br />
-                {t.renewAt(formatCredits(summary.renewPriceCents))}
+                {usdtRenewal
+                  ? t.usdtRenewAt(formatUsdt(summary.renewPriceCents))
+                  : t.renewAt(formatCredits(summary.renewPriceCents))}
               </ShopMetaRow>
               <ShopMetaRow label={t.renewMailboxes}>
                 {summary.mailboxes.length > 0 ? <ShopMailboxes mailboxes={summary.mailboxes} /> : t.noMailboxes}
@@ -214,7 +220,13 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                 onSubmit={(event) => {
                   event.preventDefault();
                   const button = (event.nativeEvent as SubmitEvent).submitter;
-                  void submit(button instanceof HTMLButtonElement && button.value === "stripe" ? "stripe" : "ldc");
+                  void submit(
+                    usdtRenewal
+                      ? "usdt"
+                      : button instanceof HTMLButtonElement && button.value === "stripe"
+                        ? "stripe"
+                        : "ldc",
+                  );
                 }}
               >
                 {summary.trial && (summary.upgradePlans?.length ?? 0) > 0 && (
@@ -327,10 +339,12 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                     />
                   </ShopField>
                 )}
+                {usdtRenewal && <p className={shopTextClass}>{t.renewalUsdtNote}</p>}
                 <p className={shopPriceLineClass}>
                   <span className={shopPriceUnitClass}>{summary.trial ? trial.estimate : t.total}</span>
+                  {/* A USDT subscription's renewal price is in hundredths of a USDT: the same two decimals, its own unit. */}
                   <strong className={shopPriceAmountClass}>{formatCredits(ldcTotal)}</strong>
-                  <span className={shopPriceUnitClass}>LDC</span>
+                  <span className={shopPriceUnitClass}>{usdtRenewal ? "USDT" : "LDC"}</span>
                 </p>
                 {Boolean(cardPeriod && currency) && (
                   <p className={shopTextClass}>
@@ -345,14 +359,31 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                 )}
                 {error && <ShopAlert>{error}</ShopAlert>}
                 <ShopActions>
-                  <ShopButton type="submit" name="provider" value="ldc" disabled={creating || periods > ldcMaxPeriods}>
-                    {creating
-                      ? t.renewing
-                      : summary.trial || summary.fiatRenewMinor
-                        ? trialCopy[lang].credits
-                        : t.renewButton}
-                    <span aria-hidden="true">↗</span>
-                  </ShopButton>
+                  {usdtRenewal ? (
+                    <ShopButton
+                      type="submit"
+                      name="provider"
+                      value="usdt"
+                      disabled={creating || periods > ldcMaxPeriods}
+                    >
+                      {creating ? t.renewing : t.renewUsdtButton}
+                      <span aria-hidden="true">↗</span>
+                    </ShopButton>
+                  ) : (
+                    <ShopButton
+                      type="submit"
+                      name="provider"
+                      value="ldc"
+                      disabled={creating || periods > ldcMaxPeriods}
+                    >
+                      {creating
+                        ? t.renewing
+                        : summary.trial || summary.fiatRenewMinor
+                          ? trialCopy[lang].credits
+                          : t.renewButton}
+                      <span aria-hidden="true">↗</span>
+                    </ShopButton>
+                  )}
                   {Boolean(cardPeriod && currency) && (
                     <ShopButton
                       type="submit"

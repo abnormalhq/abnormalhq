@@ -191,6 +191,7 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                         |
 | POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page          |
 | POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`              |
+| POST   | `/api/shop/pay/usdt`                   | JSON: `{ orderId }` (see "USDT payments")                                                  | `200`, `{ status: "open", address, amount, … }` or `{ status: "paid" }`                |
 | POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                             |
 | GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status   |
 | POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                     |
@@ -230,6 +231,7 @@ Failure statuses: except for `pay` (always `303`, see below), every shop POST ma
 Per endpoint, additionally: `checkout` has `409` (product withdrawn, domain no longer managed or no card price), `400` (a discount code that cannot be used) and `503` (sales paused or this payment method not enabled);
 `orders` and `reconcile` have `404` (order does not exist or credential does not match); `renewal` has `404` (token invalid or expired); `renew` has `404` (token),
 `409` (Stripe subscriptions cannot be renewed manually) and `400` (wrong number of periods or total over the per-payment limit); `account` has `401` (not logged in);
+`pay/usdt` has `404` (order not found or credential mismatch; also a mail before USDT), `409` (not a USDT order, USDT switched off, or an order that can no longer be paid) and `503` (USDT not configured);
 `account/peek` and `account/verify` have `400` (link invalid, expired or already used); `account/login` has `403` (human verification on and token missing, invalid or already used)
 and `503` (email could not be sent);
 `account/portal` has `401` (not logged in), `404` (not a Stripe subscription of this account) and `503`;
@@ -261,18 +263,20 @@ The platform notification is handled as plain text, the payment endpoint as form
 - `catalog` returns only products that are on sale and whose domains are still managed; when sales are not open, `available` is `false` and `products` is empty. A product contains `id`, `name`,
   `description`, `originalPriceCents`, `discountPercent`, `priceCents`, `domains`, `mailboxCount`, `quotaMb`, `quotaSupportedByDomain`, `codeExpiresDays`;
   subscription products also have `periodDays` (period length in days, 0 for a one-time purchase) and `renewPriceCents`, and those that can be bought by card have `fiatPriceMinor` (in the smallest unit of the shop currency, 0 meaning it cannot be bought by card);
-  Client ID, Client Secret and backend settings are not returned. `payment` is `{ ldc: boolean, stripe: { currency } | null }`, with the two payment methods toggled separately, and
-  `currency` is a three-letter lowercase ISO 4217 code; when an old backend does not return `payment`, treat it as LDC only.
+  Client ID, Client Secret and backend settings are not returned. `payment` is `{ ldc: boolean, stripe: { currency } | null, usdt: { currency, network, contract } | null }`, with the payment methods toggled separately, and
+  `stripe.currency` is a three-letter lowercase ISO 4217 code; when an old backend does not return `payment`, treat it as LDC only, and a `payment` without `usdt` (a mail before USDT) as without USDT.
+  Products that can be bought with USDT also have `usdtPriceMinor` (hundredths of a USDT; 0 or absent meaning not with USDT; see "USDT payments").
   `originalPriceCents` is the original price and `priceCents` the price actually paid, both positive integers in cents; `discountPercent` is an integer 0-99, with 25 meaning 25% off.
   The original price must not be lower than the price paid, and the two are equal when there is no discount (0); the frontend displays the backend amounts and does not recalculate or submit the price paid itself.
   Prices are in integer hundredths of an LDC; `codeExpiresDays` of 0 means the redeem code never expires, and says nothing about the mailbox service period.
-- `checkout` accepts only a product ID; `provider` defaults to `ldc`, and `stripe` means bank card (the product must have `fiatPriceMinor` and Stripe must be enabled in the backend);
+- `checkout` accepts only a product ID; `provider` defaults to `ldc`, `stripe` means bank card (the product must have `fiatPriceMinor` and Stripe must be enabled in the backend),
+  and `usdt` means USDT on TRON (the product must have `usdtPriceMinor` and `payment.usdt` must be on). Every client request sends `provider` whenever it is not `ldc`, and never for LDC, so a mail that only knows LDC sees no new field;
   `email` is optional, the contact address for subscription expiry reminders. The backend saves a snapshot of the original price, discount rate, price paid and entitlements; later product adjustments do not change the order snapshot.
   Prices passed in by the browser play no part in billing; products whose sales are paused, that are withdrawn or whose domain is no longer valid cannot be ordered. The request language is recorded on the order, for reminder emails and the return page after payment.
 - Order lookup only reads the single order the current browser can access: the buyer cookie is the one that placed the order, or the logged-in account owns it; there is no public order list. `order` is the order's public projection
   (mail's `PUBLIC_ORDER_FIELDS`): `id`, `productName`, the price and entitlement snapshot (`originalPriceCents`, `discountPercent`,
   `priceCents`, `domains`, `mailboxCount`, `quotaMb`, `quotaSupportedByDomain`, `codeExpiresDays`, `periodDays`, `renewPriceCents`),
-  `kind` (`purchase` / `renewal`), `subscriptionId`, `periods`, `provider`, `currency` (the currency of Stripe orders, in whose smallest unit `priceCents` is expressed),
+  `kind` (`purchase` / `renewal`), `subscriptionId`, `periods`, `provider`, `currency` (the currency of Stripe orders, in whose smallest unit `priceCents` is expressed; `"usdt"` for USDT orders, in hundredths of a USDT),
   `status`, `created` and `paidAt`. The merchant ID (LDC Client ID), the payment provider's transaction ID, the product id and the redeem code's row id are not returned; pages also do not read these fields when an old mail version returns them.
   While payment is pending, `code` and `codeStatus` are `null`; only after payment is confirmed are the formatted redeem code and its status (`available` / `used` / `expired` / `disabled`) returned.
   Paid subscription purchase orders and renewal orders carry `subscription`: `{ currentPeriodEnd, state, renewToken, provider, autoRenew }`, where `state` is `active` / `grace` / `suspended` / `expired`.
@@ -296,12 +300,57 @@ The platform notification is handled as plain text, the payment endpoint as form
 - `notify` does not depend on browser cookies or `Origin`; mailhq verifies the signature, merchant, order, amount and transaction status and then atomically issues one CDK.
   Duplicate or concurrent notifications do not issue a code twice. The browser return and its query parameters by themselves cannot confirm payment; when the notification is delayed, `reconcile` has the backend query Credit or Stripe to fill in the status.
 
+### USDT payments
+
+`shop.usdt` in `docs/onboard-contract.json` (mail's docs/shop.md, "USDT payments"). The buyer sends USDT (TRC-20) on TRON to an address that
+belongs to their order alone (mail derives it from the shop's extended public key); mail watches the chain (TronGrid) and the order is paid,
+and its code issued, once the confirmed total at that address reaches the amount, about a minute after sending.
+
+- **Units.** Every amount of a USDT order, quote, plan or seat subscription is in hundredths of a USDT with `currency: "usdt"` (four letters, not
+  ISO 4217). The pages write it `12.34 USDT` (two decimals, no Intl currency style). Like a card price a USDT price has no plan discount
+  (`discountPercent` 0, `originalPriceCents === priceCents` before a code). `seat_total_too_large.maxTotalCents` for USDT is in hundredths of a USDT
+  (`shop.seats.maxTotalCentsUnit.usdt`).
+- **Catalog.** `payment.usdt` is `{ currency: "usdt", network: "mainnet" | "nile", contract }` while USDT is on, and `null` or absent otherwise;
+  `nile` is TRON's testnet, and the pages show a "Testnet (Nile)" badge next to the USDT price and on the payment panel. A `payment.usdt` with an
+  unknown network or a contract that is no TRON address counts as off, like a card with an unusable currency. A plan offers USDT when
+  `payment.usdt` is there and its `usdtPriceMinor` is above 0; a seat plan's `unitUsdtPriceMinor` (one seat; `shop.usdt.seatPlanFields`) falls back to
+  `usdtPriceMinor` the way `unitFiatPriceMinor` falls back to `fiatPriceMinor`. The shop page shows a third button, "Pay with USDT", with its price
+  (per period for a subscription); a seat plan's USDT total is quantity × `unitUsdtPriceMinor` as an estimate until the quote has mail's number.
+- **Checkout, quote, discount codes.** `checkout`, `coupon` (both forms), `renew` and the quote's `providers` take `"usdt"`. A USDT quote price has
+  `currency: "usdt"`, `discountPercent: 0` and `planDiscountCents: 0`; an entry (or a code preview) whose currency is not the one of its way of paying
+  (`""` for LDC, the card currency for Stripe, `"usdt"` for USDT) fails the answer. A percentage code applies to a USDT price; a fixed-amount code never
+  does (`{ valid: false }`), and the page says the code can't be used with USDT.
+- **`pay/usdt`** (`POST`, JSON `{ orderId }`, same origin, the buyer and account cookies as for `pay/stripe`) answers `{ status: "paid" }` (already
+  paid, possibly just now) or `{ status: "open", network, token: "USDT", contract, address, amount, amountMinor, received, confirming }`
+  (`shop.usdt.payFields`): `address` is the order's own base58 TRON address (`T` and 33 characters), `amount` the exact amount to send as a decimal string
+  (`amountMinor` the same in hundredths; the client refuses an answer where the two disagree), `received` what the chain has confirmed at the address so
+  far and `confirming` what it has seen but not yet confirmed (decimal strings, up to six decimals). Each call has mail look at the chain (it throttles
+  that itself), so the order page calls it every 5 seconds while the tab is visible, for up to 2 hours, then stops and offers "Check again". While
+  `confirming` is above 0 the page says the payment was detected and is waiting for confirmation; when `received` is above 0 but below `amount` it says
+  how much arrived and asks for the rest (the order is paid once the confirmed total reaches the amount). On `paid` the page reads the order again
+  (`orders`) and shows the code as for any other way of paying. `reconcile` also works for a USDT order. Errors: `404` (order not found or credential
+  mismatch), `409` (not a USDT order, USDT switched off, or an order that can no longer be paid, such as a seat order priced to a period that was
+  renewed since), `429` with `Retry-After` and `503` (USDT not configured). The Worker proxies it like `pay/stripe` (JSON in and out, never a
+  redirect: the `pay` redirect allowlist is unchanged), and turns the 404 page of a mail before USDT into a JSON 404, which the page shows as
+  "not available".
+- **Order page.** The USDT panel shows the network (TRON · TRC-20, and the testnet badge on `nile`), the amount and the address with copy buttons, a
+  QR code of the address alone (wallets scan an address; amounts in payment URIs are not the same across wallets; drawn as inline SVG with
+  [uqr](https://github.com/unjs/uqr)), a warning to send USDT on TRON (TRC-20) only and to make sure the amount that arrives covers any exchange
+  withdrawal fee, and the status line.
+- **Renewal, account, seats.** A subscription bought with USDT has `provider: "usdt"` and `currency: "usdt"` in `renewal` and `account`; its
+  `renewPriceCents` is in hundredths of a USDT and it renews with USDT only (`renew` with `provider: "usdt"`), paid on the order page like a purchase.
+  LDC subscriptions never renew with USDT, and trial upgrades (`upgradePayment`) have no USDT. A USDT seat subscription behaves like an LDC one
+  (`exact: true`; `add` creates an order paid on the order page), with its amounts in USDT. The account shows USDT amounts and the renewal link like LDC.
+- **Development.** The mock shop (`MOCK_USDT`, on by default) offers USDT on `nile` with demo USDT prices, prices quotes and codes for it, and answers
+  `pay/usdt` with a fixed demo address: the first two calls see nothing, the third the transfer (`confirming` = the amount), the fourth the payment.
+
 ### Renewal
 
 - Renewal tokens are issued by mail and appear in the renewal links on the order page, the account page and the expiry reminder emails (`/shop/renew/?t=…`; reminder emails link to the Chinese or English page according to the subscription's language),
   and need neither login nor the original browser. The page carries it along when switching language.
 - `renewal` returns `{ subscriptionId, productName, mailboxCount, periodDays, renewPriceCents, currentPeriodEnd, state, mailboxes, maxPeriods, hasContactEmail, provider, autoRenew }`;
   an invalid or expired token gives `404`. Stripe subscriptions are charged automatically by Stripe each period and cannot be renewed manually on the renewal page (`maxPeriods` is 0 and `renew` returns `409`); they are managed on the account page.
+  A USDT subscription (`provider: "usdt"`, `currency: "usdt"`) renews with USDT only, at a `renewPriceCents` in hundredths of a USDT (see "USDT payments").
 - `renew` creates a renewal order at the renewal price locked in at purchase (`periods` is 1 to 12, and the total must not exceed the per-payment limit), which is then paid as usual through the order page and `pay`.
 
 ### Account and login

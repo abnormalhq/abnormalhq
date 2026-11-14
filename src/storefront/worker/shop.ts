@@ -15,9 +15,9 @@ type ShopMethod = "GET" | "POST";
 /**
  * Every route of mail's shop API this Worker proxies, with the methods each answers. Anything else under /api/shop/ is a
  * JSON 404 and never reaches mail (Stripe's webhook, for one, is called on mail's own host). The table is what
- * docs/onboard-contract.json lists, in five places: `shop.routes`, and the routes mail added later under `shop.seats.routes`,
- * `shop.quote.routes`, `shop.buyerDomains.routes` and `shop.trials.routes`, each route with the list of its methods as
- * here; tests/storefront/worker.test.ts checks that the table and the lists name the same routes and methods, as mail's
+ * docs/onboard-contract.json lists, in six places: `shop.routes`, and the routes mail added later under `shop.seats.routes`,
+ * `shop.quote.routes`, `shop.buyerDomains.routes`, `shop.trials.routes` and `shop.usdt.routes`, each route with the list of
+ * its methods as here; tests/storefront/worker.test.ts checks that the table and the lists name the same routes and methods, as mail's
  * contract test does for its own routes.
  */
 export const SHOP_ROUTES: Readonly<Record<string, readonly ShopMethod[]>> = {
@@ -28,6 +28,8 @@ export const SHOP_ROUTES: Readonly<Record<string, readonly ShopMethod[]>> = {
   checkout: ["POST"],
   pay: ["POST"],
   "pay/stripe": ["POST"],
+  // Paying a USDT order: JSON in and out like pay/stripe, never a redirect.
+  "pay/usdt": ["POST"],
   reconcile: ["POST"],
   renewal: ["POST"],
   renew: ["POST"],
@@ -121,6 +123,13 @@ export const DOMAIN_ROUTES = [
  * page takes as "no trial offered".
  */
 export const TRIAL_ROUTE = "account/trial";
+/**
+ * Paying a USDT order on the order page (POST pay/usdt: the order's own TRON address, the exact amount and what the chain shows so
+ * far; `shop.usdt.routes` in docs/onboard-contract.json). It is proxied like pay/stripe: same-origin Origin, JSON only, the client
+ * IP kept and the purchase and account cookies forwarded (the order is the buyer's), and its answer is JSON, never a redirect. A
+ * mail before USDT answers its own 404 page, passed on as a JSON 404: the order page takes that as "USDT not offered".
+ */
+export const USDT_ROUTE = "pay/usdt";
 /** Routes of features an older mail does not have: its 404 page becomes a JSON 404, which the pages take as "not offered". */
 function optionalRoute(route: string): boolean {
   return (
@@ -128,6 +137,7 @@ function optionalRoute(route: string): boolean {
     route === COUPON_ROUTE ||
     route === QUOTE_ROUTE ||
     route === TRIAL_ROUTE ||
+    route === USDT_ROUTE ||
     SEAT_ROUTES.includes(route) ||
     DOMAIN_ROUTES.includes(route)
   );

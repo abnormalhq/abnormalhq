@@ -34,6 +34,7 @@ const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) 
     quote: { routes: Record<string, ("GET" | "POST")[]> };
     buyerDomains: { routes: Record<string, ("GET" | "POST")[]> };
     trials: { routes: Record<string, ("GET" | "POST")[]> };
+    usdt: { routes: Record<string, ("GET" | "POST")[]> };
     cookies: Record<"buyer" | "customer", { name: string; pattern: string; maxAgeSeconds: number }> & {
       google: { name: string; pattern: string; maxAgeSeconds: number; path: string };
     };
@@ -1168,7 +1169,7 @@ test("contract: the redeem and shop routes and methods the Worker forwards match
   }
   expect((await worker.fetch(post("/api/onboard/lookup"), bindings())).status).toBe(404);
 
-  // The route lists of the contract (shop.routes, and the seat, quote, buyer-domain and trial routes mail lists apart):
+  // The route lists of the contract (shop.routes, and the seat, quote, buyer-domain, trial and USDT routes mail lists apart):
   // the Worker proxies every one of them, and nothing else under /api/shop/. Every list has the same form, a route with
   // the list of its methods, which is also the form of the Worker's table.
   const lists: Record<string, ("GET" | "POST")[]>[] = [
@@ -1177,6 +1178,7 @@ test("contract: the redeem and shop routes and methods the Worker forwards match
     contract.shop.quote.routes,
     contract.shop.buyerDomains.routes,
     contract.shop.trials.routes,
+    contract.shop.usdt.routes,
   ];
   for (const methods of lists.flatMap((list) => Object.values(list))) {
     expect(Array.isArray(methods)).toBe(true);

@@ -82,7 +82,7 @@
     "orderPages": { "zh": "/zh/shop/orders/", "en": "/shop/orders/" },
     "legacyOrderPages": { "zh": "/shop/orders/", "en": "/en/shop/orders/" },
     "payRedirects": ["https://credit.linux.do/paying", "https://checkout.stripe.com/c/pay/"],
-    "providers": ["ldc", "stripe"],
+    "providers": ["ldc", "stripe", "usdt"],
     "subscriptionStates": ["active", "grace", "suspended", "expired"],
     "renewMaxPeriods": 12,
     "publicOrderFields": [
@@ -146,7 +146,8 @@
       "maxTotalCents": 100000000,
       "maxTotalCentsUnit": {
         "ldc": "hundredths of an LDC",
-        "stripe": "the smallest unit of the catalog's payment.stripe.currency"
+        "stripe": "the smallest unit of the catalog's payment.stripe.currency",
+        "usdt": "hundredths of a USDT"
       }
     },
     "quote": {
@@ -208,6 +209,29 @@
       "routes": {
         "account/trial": ["GET", "POST"]
       }
+    },
+    "usdt": {
+      "$comment": "USDT (TRC-20) on TRON, paid to an address of the order's own (mail docs/shop.md, \"USDT payments\"). Amounts in the catalog, orders and quotes are hundredths of a USDT (currency \"usdt\"); pay/usdt also gives the amount to send as a decimal string. A storefront that knows none of this keeps working: the catalog key and the product fields are new, and it never creates a usdt order.",
+      "routes": {
+        "pay/usdt": ["POST"]
+      },
+      "currency": "usdt",
+      "networks": ["mainnet", "nile"],
+      "catalogFields": ["currency", "network", "contract"],
+      "productFields": ["usdtPriceMinor"],
+      "seatPlanFields": ["unitUsdtPriceMinor"],
+      "payStatuses": ["open", "paid"],
+      "payFields": [
+        "status",
+        "network",
+        "token",
+        "contract",
+        "address",
+        "amount",
+        "amountMinor",
+        "received",
+        "confirming"
+      ]
     },
     "refusalFields": ["error", "code", "messages"],
     "refusalLanguages": ["zh", "en"],

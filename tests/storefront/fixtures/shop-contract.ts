@@ -157,3 +157,22 @@ export const accountResponse = {
     },
   ],
 };
+
+/** The catalog's `payment.usdt` while USDT is on (`shop.usdt.catalogFields`): TRON's testnet and its USDT contract. */
+export const usdtCatalogPayment = { currency: "usdt", network: "nile", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" };
+
+/**
+ * POST /api/shop/pay/usdt for an unpaid USDT order (`shop.usdt.payFields`): the order's own address, the amount to send as a
+ * decimal string and in hundredths, and what the chain shows so far (received: confirmed; confirming: seen, not confirmed).
+ */
+export const usdtPayResponse = {
+  status: "open",
+  network: "nile",
+  token: "USDT",
+  contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
+  address: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH",
+  amount: "12.34",
+  amountMinor: 1234,
+  received: "0.00",
+  confirming: "0.00",
+};
