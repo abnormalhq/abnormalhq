@@ -129,7 +129,7 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
         type: "code/resolved",
         code,
         info,
-        expires: info.expiresAt ? formatDate(info.expiresAt, lang) : null,
+        expires: info.expiresAt ? formatDate(info.expiresAt) : null,
       });
       // Usernames already entered are re-checked for availability under the new redeem code (and domain).
       for (const row of stateRef.current.rows) if (row.username) scheduleCheck(row.id);

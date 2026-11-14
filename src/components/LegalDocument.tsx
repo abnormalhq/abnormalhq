@@ -37,9 +37,6 @@ export function LegalDocument({
   const relatedPages = t.legalPages.filter(({ path: page }) => page !== currentPage);
   const sections = [...legalSections(headings), { slug: "contact", text: l.contactTitle }];
 
-  const dateFormatter = new Intl.DateTimeFormat(l.dateLocale, { dateStyle: "long", timeZone: "UTC" });
-  const formatDate = (value: string) => dateFormatter.format(new Date(`${value}T00:00:00Z`));
-
   const contacts = contactChannels(site.contact, l.contactLabels);
 
   return (
@@ -59,13 +56,13 @@ export function LegalDocument({
             <div>
               <dt className="text-xs/body text-muted-foreground">{l.effective}</dt>
               <dd className="mt-[0.4rem] text-base/body font-medium">
-                <time dateTime={effective}>{formatDate(effective)}</time>
+                <time dateTime={effective}>{effective}</time>
               </dd>
             </div>
             <div>
               <dt className="text-xs/body text-muted-foreground">{l.updated}</dt>
               <dd className="mt-[0.4rem] text-base/body font-medium">
-                <time dateTime={updated}>{formatDate(updated)}</time>
+                <time dateTime={updated}>{updated}</time>
               </dd>
             </div>
           </dl>

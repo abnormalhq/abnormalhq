@@ -274,7 +274,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     }
   }
 
-  const date = (value: string) => formatDateTime(value, lang);
+  const date = (value: string) => formatDateTime(value);
 
   return (
     <div className={shopOrderPageClass}>

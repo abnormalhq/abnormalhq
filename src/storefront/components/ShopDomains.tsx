@@ -423,7 +423,7 @@ function DomainCard({
             <CopyField id={`${id}-own-value`} label={t.domainRecordValue} value={ownership.value} />
           </div>
           <p className={cn("mt-3 text-xs/[1.6]", expired ? "text-destructive" : "text-muted-foreground")}>
-            {expired ? t.domainOwnershipExpired : t.domainOwnershipExpires(formatDateTime(ownership.expiresAt, lang))}
+            {expired ? t.domainOwnershipExpired : t.domainOwnershipExpires(formatDateTime(ownership.expiresAt))}
           </p>
           <ShopActions>
             <ShopButton
@@ -495,9 +495,7 @@ function DomainCard({
               {/* Read out when a check changes the outcome. */}
               <p className="mt-4 text-sm/[1.7]" role="status">
                 {check.ready ? t.domainReady : t.domainNotReady}{" "}
-                <span className="text-muted-foreground">
-                  {t.domainCheckedAt(formatDateTime(check.checkedAt, lang))}
-                </span>
+                <span className="text-muted-foreground">{t.domainCheckedAt(formatDateTime(check.checkedAt))}</span>
               </p>
             </>
           )}

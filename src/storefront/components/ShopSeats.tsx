@@ -77,7 +77,7 @@ export function ShopSeats({
   const id = `seats-${orderId}`;
   const card = seats.provider === "stripe";
   const money = (cents: number) => formatAmount(cents, seats.provider, seats.currency, lang);
-  const periodEnd = formatDateTime(seats.periodEnd, lang);
+  const periodEnd = formatDateTime(seats.periodEnd);
   // Read once when the panel appears: mail decides for real when the change is sent.
   const [shownAt] = useState(() => Date.now());
   const ended = Date.parse(seats.periodEnd) <= shownAt;
@@ -248,13 +248,13 @@ export function ShopSeats({
             <div className="rounded-md bg-highlight-muted p-4 text-sm/[1.7]" role="status">
               <p>
                 {quote.provider === "usdt"
-                  ? t.seatsQuoteUsdt(quote.add, formatUsdt(quote.priceCents), formatDateTime(quote.periodEnd, lang))
+                  ? t.seatsQuoteUsdt(quote.add, formatUsdt(quote.priceCents), formatDateTime(quote.periodEnd))
                   : quote.exact
-                    ? t.seatsQuoteLdc(quote.add, formatCredits(quote.priceCents), formatDateTime(quote.periodEnd, lang))
+                    ? t.seatsQuoteLdc(quote.add, formatCredits(quote.priceCents), formatDateTime(quote.periodEnd))
                     : t.seatsQuoteCard(
                         quote.add,
                         formatMoney(quote.priceCents, quote.currency, lang),
-                        formatDateTime(quote.periodEnd, lang),
+                        formatDateTime(quote.periodEnd),
                       )}
               </p>
               <p className="mt-1 text-muted-foreground">
@@ -288,10 +288,7 @@ export function ShopSeats({
             if (removeProblem) return setError(removeProblem);
             void run("remove", async () => {
               const result = await removeSeats(orderId, count, picked, lang);
-              return t.seatsRemovalScheduled(
-                result.seatsNext ?? seats.seats - count,
-                formatDateTime(result.effective, lang),
-              );
+              return t.seatsRemovalScheduled(result.seatsNext ?? seats.seats - count, formatDateTime(result.effective));
             });
           }}
         >

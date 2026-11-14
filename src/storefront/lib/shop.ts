@@ -2,6 +2,7 @@
  * Browser clients of the shop API that need a purchase or sign-in session: orders, renewals, the buyer account and its mailboxes.
  * The catalog, the response validators and the money formatters live in catalog.ts and are re-exported here.
  */
+import { localDateTime } from "../../lib/dates.ts";
 import type { Lang } from "../i18n.ts";
 import {
   compact,
@@ -1079,15 +1080,9 @@ export async function openBillingPortal(subscriptionId: string, lang?: Lang): Pr
   return body.url;
 }
 
-/** Date and time of an order or subscription in the page language; a value that is no date is shown as it came. */
-export function formatDateTime(value: string, lang: Lang): string {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime())
-    ? value
-    : new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(parsed);
+/** Date and time of an order or subscription ("2026-11-14 09:05"); a value that is no date is shown as it came. */
+export function formatDateTime(value: string): string {
+  return localDateTime(value) ?? value;
 }
 
 /* ---------------------------------------------------------------------------

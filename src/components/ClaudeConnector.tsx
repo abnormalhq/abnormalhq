@@ -17,10 +17,6 @@ export function ClaudeConnector({ lang }: { lang: Lang }) {
   const { t, path } = useCopy(lang);
   const c = t.claude;
   const content = claudeContent[lang];
-  // A fixed date from the content, not the clock: the page is prerendered.
-  const reviewed = new Intl.DateTimeFormat(t.legal.dateLocale, { dateStyle: "long", timeZone: "UTC" }).format(
-    new Date(`${content.reviewed}T00:00:00Z`),
-  );
   return (
     <>
       <JsonLd data={claudeStructuredData(lang)} />
@@ -36,7 +32,7 @@ export function ClaudeConnector({ lang }: { lang: Lang }) {
           <>
             {c.reviewedLabel}
             {t.legal.colon}
-            <time dateTime={content.reviewed}>{reviewed}</time>
+            <time dateTime={content.reviewed}>{content.reviewed}</time>
           </>
         }
       >
