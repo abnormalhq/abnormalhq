@@ -504,7 +504,7 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
                   <div>
                     <Label className={stepLabelClass} htmlFor="notify">
                       {t.steps.notify.label}
-                      <Badge className="h-auto rounded-control border-0 px-1.5 py-px text-xs/[1.4] tracking-normal">
+                      <Badge size="sm" className="tracking-normal">
                         {t.ui.optional}
                       </Badge>
                     </Label>

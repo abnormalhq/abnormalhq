@@ -13,6 +13,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -330,12 +331,9 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                                 {mail.labels.map((id) => {
                                   const entry = labelsById.get(id);
                                   return entry ? (
-                                    <span
-                                      key={id}
-                                      className={cn("shrink-0 rounded-chip px-1.5 text-[11px]", labelTone[entry.color])}
-                                    >
+                                    <Badge size="sm" key={id} className={cn("font-normal", labelTone[entry.color])}>
                                       {entry.name}
-                                    </span>
+                                    </Badge>
                                   ) : null;
                                 })}
                                 <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
@@ -433,9 +431,9 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                       {open.labels.map((id) => {
                         const entry = labelsById.get(id);
                         return entry ? (
-                          <span key={id} className={cn("rounded-chip px-1.5 text-xs", labelTone[entry.color])}>
+                          <Badge size="sm" key={id} className={cn("text-xs font-normal", labelTone[entry.color])}>
                             {entry.name}
-                          </span>
+                          </Badge>
                         ) : null;
                       })}
                     </div>
