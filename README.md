@@ -445,7 +445,7 @@ This is already configured; follow it when it needs to be rebuilt. In Workers & 
 
   | Variable                  | Value     | Purpose                                                                         |
   | ------------------------- | --------- | ------------------------------------------------------------------------------- |
-  | `PNPM_VERSION`            | `12.16.1` | Matches `packageManager` in `package.json`                                      |
+  | `PNPM_VERSION`            | `12.18.0` | Matches `packageManager` in `package.json`                                      |
   | `SKIP_DEPENDENCY_INSTALL` | `1`       | Skips the default install in favor of the frozen-lockfile install command above |
   | `NEXT_TELEMETRY_DISABLED` | `1`       | Disables Next.js build telemetry                                                |
 
