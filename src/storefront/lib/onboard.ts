@@ -49,7 +49,7 @@ export function usernameProblem(username: string): UsernameProblem | null {
   return null;
 }
 
-/** Password rules of a Stalwart mailbox: 8 to 128 characters, no whitespace. */
+/** Password rules of a mailbox on the mail server: 8 to 128 characters, no whitespace. */
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_FIELD_MAX = 128;
 export const PASSWORD_GENERATED_LENGTH = 16;

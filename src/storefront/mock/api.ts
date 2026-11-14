@@ -112,7 +112,7 @@ export const MOCK_SERVERS = {
 /** A notification address on this domain simulates a delivery failure, to see the "not sent" notice; every other address counts as sent. */
 export const MOCK_BOUNCE_DOMAIN = "bounce.example";
 
-/** This domain simulates not being bound to a single Stalwart connection: quotaSupportedByDomain is false. */
+/** This domain simulates not being bound to a single mail server connection: quotaSupportedByDomain is false. */
 export const MOCK_NO_QUOTA_DOMAIN = "legacy.abnormalhq.com";
 
 /** Error messages in both languages (worded like mail); for kinds other than other the redeem page uses its own copy, so these mostly serve other and the notification result. */
