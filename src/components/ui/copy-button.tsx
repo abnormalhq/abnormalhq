@@ -53,7 +53,8 @@ function copyBySelection(text: string, button: HTMLElement) {
   area.setAttribute("aria-hidden", "true");
   area.tabIndex = -1;
   area.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;opacity:0;";
-  (button.parentElement ?? document.body).append(area);
+  (button.parentElement ?? document.body).appendChild(area);
+  area.focus({ preventScroll: true });
   area.select();
   area.setSelectionRange(0, text.length);
   try {
