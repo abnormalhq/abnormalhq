@@ -503,6 +503,12 @@ test("order page: pay/usdt is asked every 5 seconds while visible, for up to two
   const page = readFileSync("src/storefront/components/ShopOrder.tsx", "utf8");
   expect(page).toMatch(/<ShopUsdtCheckout orderId=\{order\.id\}/);
   expect(page).toMatch(/if \(!pending \|\| usdt\) return;/);
+  // An amount still confirming counts towards the total: the buyer is never asked to send it a second time.
+  expect(panel).toMatch(/const counted = received \+ confirming;/);
+  expect(panel).toMatch(/usdtDecimal\(amount - counted\)/);
+  // The order is read again until it shows paid (a failed or stale read is retried), since nothing else polls it.
+  expect(page).toMatch(/const USDT_PAID_READS = \d+;/);
+  expect(page).toMatch(/if \(next\.order\.status === "paid" \|\| attempt >= USDT_PAID_READS\) return;/);
   expect(TRON_ADDRESS.test(MOCK_USDT_ADDRESS)).toBe(true);
   for (const lang of ["zh", "en"] as const) {
     const t = shopCopy[lang];

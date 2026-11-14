@@ -75,6 +75,9 @@ export function ShopOrder({ lang }: { lang: Lang }) {
 
 /** The remembered code never changes while the order page is open; it is read once the page runs in the browser. */
 const noSubscription = () => () => {};
+/** After pay/usdt answers paid: how many times the order is read until it shows paid, and how long apart. */
+const USDT_PAID_READS = 6;
+const USDT_PAID_READ_MS = 2_000;
 
 function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId: string; paymentError: boolean }) {
   const t = shopCopy[lang];
@@ -202,13 +205,24 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     }
   }
 
-  /** pay/usdt says the order is paid: read it again, and the code appears (and is celebrated) as for any other way of paying. */
+  /**
+   * pay/usdt says the order is paid: read it again, and the code appears (and is celebrated) as for any other way of paying.
+   * The USDT panel stops polling once paid and the page's own polling is off for USDT orders, so a read that fails (or that
+   * a replica answers with the order still pending) is tried again a few times before the error is shown.
+   */
   async function refreshOrder() {
-    try {
-      const next = await getShopOrder(orderId, undefined, lang);
-      setResult((current) => (current?.order.status === "paid" ? current : next));
-    } catch (cause) {
-      setError(shopError(cause, lang, { notFound: t.notFound }));
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const next = await getShopOrder(orderId, undefined, lang);
+        setResult((current) => (current?.order.status === "paid" ? current : next));
+        if (next.order.status === "paid" || attempt >= USDT_PAID_READS) return;
+      } catch (cause) {
+        if (attempt >= USDT_PAID_READS) {
+          setError(shopError(cause, lang, { notFound: t.notFound }));
+          return;
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, USDT_PAID_READ_MS));
     }
   }
 

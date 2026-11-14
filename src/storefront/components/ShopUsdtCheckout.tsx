@@ -189,7 +189,9 @@ export function ShopUsdtCheckout({
   const received = usdtUnits(payment.received) ?? 0;
   const confirming = usdtUnits(payment.confirming) ?? 0;
   const amountText = `${payment.amount} USDT`;
-  const partial = received > 0 && received < amount;
+  // What is on its way counts too: an amount still confirming is never asked for a second time.
+  const counted = received + confirming;
+  const partial = counted > 0 && counted < amount;
 
   return (
     <div className="mt-6">
@@ -239,7 +241,7 @@ export function ShopUsdtCheckout({
           <>
             {partial && (
               <p className="font-semibold">
-                {t.usdtPartial(payment.received, payment.amount, usdtDecimal(amount - received))}
+                {t.usdtPartial(usdtDecimal(counted), payment.amount, usdtDecimal(amount - counted))}
               </p>
             )}
             {confirming > 0 ? (
