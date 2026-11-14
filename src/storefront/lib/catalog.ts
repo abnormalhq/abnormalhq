@@ -566,6 +566,29 @@ async function readAnswer(response: Response, lang?: Lang): Promise<unknown> {
   return body;
 }
 
+/**
+ * How long a shop API request may take, answer included, before it fails with a TimeoutError. The order page's polling only asks
+ * again once a request has settled, so one request that never ends would otherwise stop it for good.
+ */
+export const REQUEST_TIMEOUT_MS = 15_000;
+
+/**
+ * The caller's signal and the timeout as one signal. A timeout is not the caller's abort: the caller's own signal stays unaborted,
+ * so pollers that tell an unmount by it count a timeout as one more failed request and ask again.
+ */
+function withTimeout(signal?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  if (!signal) return timeout;
+  if (typeof AbortSignal.any === "function") return AbortSignal.any([signal, timeout]);
+  // Safari before 17.4 (the supported browsers go back to 16.4) has no AbortSignal.any: one controller follows both.
+  const both = new AbortController();
+  for (const source of [signal, timeout]) {
+    if (source.aborted) both.abort(source.reason);
+    else source.addEventListener("abort", () => both.abort(source.reason), { once: true });
+  }
+  return both.signal;
+}
+
 export async function request(
   path: string,
   payload?: unknown,
@@ -573,7 +596,10 @@ export async function request(
   lang?: Lang,
   credentials: RequestCredentials = "same-origin",
 ): Promise<unknown> {
-  const response = await fetch(`${shopApiRoot}/${path}`, { ...requestInit(payload, lang, credentials), signal });
+  const response = await fetch(`${shopApiRoot}/${path}`, {
+    ...requestInit(payload, lang, credentials),
+    signal: withTimeout(signal),
+  });
   return readAnswer(response, lang);
 }
 
