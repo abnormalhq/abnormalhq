@@ -655,7 +655,6 @@ export interface Copy {
     newWindow: string;
     copied: string;
     copyFailed: string;
-    copyFieldLabel: string;
   };
   legal: {
     effective: string;

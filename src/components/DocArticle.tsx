@@ -102,8 +102,7 @@ export function DocArticle({
         </aside>
 
         <article className="max-w-[46rem] min-w-0">
-          {/* Prose frames every pre; a CodeBlock's pre sits in the block's own frame, so it is set back to the block's look. */}
-          <Prose className="[&_h2]:scroll-mt-24 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_[data-slot=code-block-pre]]:my-0 [&_[data-slot=code-block-pre]]:rounded-none [&_[data-slot=code-block-pre]]:border-0 [&_[data-slot=code-block-pre]]:p-3 [&_[data-slot=code-block-pre]]:text-sm/relaxed [&>section:first-child_h2]:mt-0">
+          <Prose className="[&_h2]:scroll-mt-24 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&>section:first-child_h2]:mt-0">
             {sections.map((section, index) => (
               <section aria-labelledby={sectionId(index)} key={section.title}>
                 <h2 id={sectionId(index)}>{section.title}</h2>

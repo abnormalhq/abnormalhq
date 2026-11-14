@@ -23,6 +23,7 @@ const BUBBLE_ROOM = 32;
  * Without `write` it uses the Clipboard API, and where there is none (a page served over plain HTTP, such as an
  * internal address) or it refuses, the older way: the text is selected in a hidden textarea next to the button and
  * copied with execCommand, then the focus goes back to the button. `write` replaces both; it throws to fail.
+ * `onCopied` and `onCopyFailed` hear the outcome, for a page that also says it in a sentence of its own.
  * Without `text` it copies the code shown next to it: the text of the first <code> (else <pre>) in the button's parent, read when
  * pressed, with line breaks kept. A code block rendered on the server then sends its source once, as the highlighted markup,
  * instead of a second time as a prop of this button.
@@ -85,6 +86,8 @@ function CopyButton({
   copiedLabel,
   failedLabel,
   write,
+  onCopied,
+  onCopyFailed,
   children,
   variant = "ghost",
   size,
@@ -102,6 +105,10 @@ function CopyButton({
   failedLabel: string;
   /** How to copy, instead of navigator.clipboard; reject or throw when it could not. */
   write?: (text: string) => void | Promise<void>;
+  /** After a copy went through, with the text copied: for a page that also says so in its own words. */
+  onCopied?: (text: string) => void;
+  /** After a copy failed, with what went wrong. */
+  onCopyFailed?: (error: unknown) => void;
 }) {
   const [feedback, setFeedback] = React.useState<Feedback>("idle");
   const [anchor, setAnchor] = React.useState<Anchor | null>(null);
@@ -153,9 +160,14 @@ function CopyButton({
             const value = text ?? adjacentCode(button);
             if (write) await write(value);
             else await copyText(value, button);
+            // A copy that settles after the button has gone tells nobody, as it shows nothing.
+            if (!mounted.current) return;
             show("copied");
-          } catch {
+            onCopied?.(value);
+          } catch (error) {
+            if (!mounted.current) return;
             show("failed");
+            onCopyFailed?.(error);
           }
         }}
         {...props}

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
  * Second-level headings are numbered with a signal-colored counter.
  * Code blocks, tables, quotes and rules are styled too, for documentation rendered from Markdown: a code block is a
  * bordered panel that scrolls sideways, and a table scrolls sideways inside the column instead of widening the page.
+ * A CodeBlock inside keeps its own frame: only a bare <pre> takes the panel, and the block takes the same spacing.
  */
 function Prose({ className, ...props }: React.ComponentProps<"div">) {
   return (
@@ -24,7 +25,9 @@ function Prose({ className, ...props }: React.ComponentProps<"div">) {
         "[&_code]:rounded-control [&_code]:bg-surface [&_code]:px-[0.4em] [&_code]:py-[0.1em] [&_code]:font-mono [&_code]:text-sm/[inherit] [&_code]:text-foreground",
         // A long inline path or identifier wraps rather than widen the page on a phone.
         "[&_:not(pre)>code]:wrap-anywhere",
-        "[&_pre]:my-5 [&_pre]:overflow-x-auto [&_pre]:rounded-panel [&_pre]:border [&_pre]:border-border [&_pre]:p-4 [&_pre]:text-sm/[1.65] [&_pre]:text-foreground",
+        // A CodeBlock draws its own frame, so only a bare <pre> from Markdown gets this one; the block keeps the spacing.
+        "[&_pre:not([data-slot=code-block-pre])]:my-5 [&_pre:not([data-slot=code-block-pre])]:overflow-x-auto [&_pre:not([data-slot=code-block-pre])]:rounded-panel [&_pre:not([data-slot=code-block-pre])]:border [&_pre:not([data-slot=code-block-pre])]:border-border [&_pre:not([data-slot=code-block-pre])]:p-4 [&_pre:not([data-slot=code-block-pre])]:text-sm/[1.65] [&_pre:not([data-slot=code-block-pre])]:text-foreground",
+        "[&_[data-slot=code-block]]:my-5",
         "[&_pre_code]:rounded-none [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-[length:inherit]",
         "[&_table]:my-5 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-left [&_table]:text-sm/[1.55]",
         "[&_th]:border-b [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:font-medium [&_th]:whitespace-nowrap [&_th]:text-foreground",

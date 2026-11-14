@@ -910,7 +910,6 @@ export const en: Copy = {
     newWindow: " (opens in a new window)",
     copied: "Copied. Paste it into a message to us.",
     copyFailed: "Couldn't copy automatically. Select the text above and copy it.",
-    copyFieldLabel: "Message to copy",
   },
   legal: {
     effective: "Effective",

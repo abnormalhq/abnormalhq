@@ -4,7 +4,7 @@
  * The inquiry dialog itself: Radix Dialog, the form and its preview. InquiryProvider (InquiryDialog.tsx) loads this module only when the
  * dialog first opens, or when a pointer or focus reaches an inquiry button, so no page ships it up front.
  */
-import { Fragment, useRef, useState, type RefObject } from "react";
+import { Fragment, useState, type RefObject } from "react";
 import { TextLink } from "@/components/ui/text-link";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -20,42 +20,6 @@ import type { InquiryProps } from "./InquiryDialog";
 import { Icon } from "./Icon";
 
 const fieldClass = "block min-w-0 text-sm/body font-medium";
-
-/**
- * The copy button's `write`: the dialog shows the outcome as a sentence under its buttons, and CopyButton does not say how a copy
- * went, so this copies itself. The Clipboard API where the page has one, else a hidden textarea inside the dialog (where its focus
- * trap lets it be selected) and execCommand, after which the focus goes back to the button. Throws when neither worked.
- */
-async function copyInquiry(text: string, container: HTMLElement | null, fieldLabel: string): Promise<void> {
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch {
-      /* Fall back to selection-based copying. */
-    }
-  }
-  const button = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  const field = document.createElement("textarea");
-  field.value = text;
-  field.setAttribute("readonly", "");
-  field.setAttribute("aria-label", fieldLabel);
-  field.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
-  (container ?? document.body).appendChild(field);
-  field.focus({ preventScroll: true });
-  field.select();
-  field.setSelectionRange(0, field.value.length);
-  let copied = false;
-  try {
-    copied = document.execCommand("copy");
-  } catch {
-    copied = false;
-  } finally {
-    field.remove();
-    button?.focus({ preventScroll: true });
-  }
-  if (!copied) throw new Error("Copy failed");
-}
 
 export function InquiryForm({
   lang,
@@ -83,7 +47,6 @@ export function InquiryForm({
 }) {
   const [duration, setDuration] = useState<string>(copy.durations[0]!);
   const [notes, setNotes] = useState("");
-  const content = useRef<HTMLDivElement>(null);
 
   const inquiry = { product, duration, notes };
   const contactLink = getContactLink(site.contact, inquiry, lang);
@@ -91,7 +54,6 @@ export function InquiryForm({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        ref={content}
         id="inquiry-dialog"
         showCloseButton={false}
         className="flex max-h-[calc(100dvh-40px)] w-[min(560px,calc(100%-34px))] max-w-none flex-col gap-0 overflow-hidden overscroll-contain p-0 sm:max-w-none max-dialog:max-h-[calc(100dvh-24px)] max-dialog:w-[calc(100%-34px)] [@media(max-height:600px)]:block [@media(max-height:600px)]:overflow-y-auto"
@@ -202,17 +164,9 @@ export function InquiryForm({
             label={copy.copy}
             copiedLabel={copy.copied}
             failedLabel={copy.copyFailed}
-            // The textarea of the fallback goes inside the dialog, where its focus trap lets it be selected. The button
-            // announces the outcome; the sentence under the buttons stays on the page.
-            write={async (text) => {
-              try {
-                await copyInquiry(text, content.current, copy.copyFieldLabel);
-              } catch (error) {
-                setStatus(copy.copyFailed);
-                throw error;
-              }
-              setStatus(copy.copied);
-            }}
+            // The button says how it went; the dialog also says it in a sentence under its buttons.
+            onCopied={() => setStatus(copy.copied)}
+            onCopyFailed={() => setStatus(copy.copyFailed)}
           >
             {copy.copy}
           </CopyButton>
