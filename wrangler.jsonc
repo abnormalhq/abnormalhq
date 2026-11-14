@@ -81,5 +81,14 @@
   },
   "observability": {
     "enabled": true,
+    "redact_query_string": true,
+    // Traces: 10% of requests. Issues must be written here, or the next deploy turns off a switch enabled in the dashboard.
+    "issues": {
+      "enabled": true,
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+    },
   },
 }
