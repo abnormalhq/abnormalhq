@@ -325,7 +325,8 @@ and its code issued, once the confirmed total at that address reaches the amount
   (`shop.usdt.payFields`): `address` is the order's own base58 TRON address (`T` and 33 characters), `amount` the exact amount to send as a decimal string
   (`amountMinor` the same in hundredths; the client refuses an answer where the two disagree), `received` what the chain has confirmed at the address so
   far and `confirming` what it has seen but not yet confirmed (decimal strings, up to six decimals). Each call has mail look at the chain (it throttles
-  that itself), so the order page calls it every 5 seconds while the tab is visible, for up to 2 hours, then stops and offers "Check again". While
+  that itself), so the order page calls it every 5 seconds while the tab is visible (and at once when the tab is shown again), for up to 2 hours,
+  then stops and offers "Check again"; when the 2 hours run out in a hidden tab, it calls once more when the tab is shown and stops after that. While
   `confirming` is above 0 the page says the payment was detected and is waiting for confirmation; when `received` is above 0 but below `amount` it says
   how much arrived and asks for the rest (the order is paid once the confirmed total reaches the amount). On `paid` the page reads the order again
   (`orders`) and shows the code as for any other way of paying. `reconcile` also works for a USDT order. Errors: `404` (order not found or credential
