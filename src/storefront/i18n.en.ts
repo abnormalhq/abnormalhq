@@ -226,7 +226,7 @@ export const en: Copy = {
         title: "Webmail",
         blocks: [
           {
-            p: `Use Open webmail in your creation result, or visit ${webmailLinkEn}. Sign in with your full email address and the password you set. Our self-hosted Stalwart server sends, receives and stores your mail; webmail and mail apps access the same mailbox.`,
+            p: `Use Open webmail in your creation result, or visit ${webmailLinkEn}. Sign in with your full email address and the password you set. Our own mail servers send, receive and store your mail; webmail and mail apps access the same mailbox.`,
           },
           {
             p: "It works in a phone browser as well; if you read mail on your phone often, set up a mail app once, as in the next section.",
