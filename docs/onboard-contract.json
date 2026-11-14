@@ -211,18 +211,24 @@
       }
     },
     "usdt": {
-      "$comment": "USDT (TRC-20) on TRON, paid to an address of the order's own (mail docs/shop.md, \"USDT payments\"). Amounts in the catalog, orders and quotes are hundredths of a USDT (currency \"usdt\"); pay/usdt also gives the amount to send as a decimal string. A storefront that knows none of this keeps working: the catalog key and the product fields are new, and it never creates a usdt order.",
+      "$comment": "USDT on TRON (TRC-20), BNB Smart Chain (BEP-20), Ethereum (ERC-20) or Solana (SPL; contract is the USDT mint, address a Solana wallet address the buyer sends to as to any), paid to an address of the order's own (mail docs/shop.md, \"USDT payments\"). Amounts in the catalog, orders and quotes are hundredths of a USDT (currency \"usdt\") whatever the chain; pay/usdt also gives the amount to send as a decimal string. The catalog's usdt.chains are the chains the buyer may choose, in the order to offer them, each with the only token that pays there; pay/usdt takes the chosen one as chain on its first call (absent: the first of them), and its answer says the chain the order is paid on; the orders route's answer carries usdtChain, the chain a USDT order already has its address on (null before), so that the order page offers the choice only before the first call. A storefront that knows none of this keeps working: the catalog key and the product fields are new, it never creates a usdt order, and one that knows only TRON gets TRON while the shop offers it.",
       "routes": {
         "pay/usdt": ["POST"]
       },
       "currency": "usdt",
       "networks": ["mainnet", "nile"],
-      "catalogFields": ["currency", "network", "contract"],
+      "chains": ["tron", "bsc", "ethereum", "solana"],
+      "catalogFields": ["currency", "network", "contract", "chains"],
+      "catalogChainFields": ["chain", "name", "standard", "contract"],
+      "payRequestFields": ["orderId", "chain"],
+      "orderAnswerFields": ["usdtChain"],
       "productFields": ["usdtPriceMinor"],
       "seatPlanFields": ["unitUsdtPriceMinor"],
       "payStatuses": ["open", "paid"],
       "payFields": [
         "status",
+        "chain",
+        "standard",
         "network",
         "token",
         "contract",

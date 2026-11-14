@@ -78,7 +78,10 @@ export const SEAT_MAX = 1000;
  */
 export const SHOP_PRICE_MAX_CENTS = 100_000_000;
 
-/** ldc = Linux DO Credit; stripe = card (Stripe Checkout); usdt = USDT (TRC-20) on TRON, sent to an address of the order's own. */
+/**
+ * ldc = Linux DO Credit; stripe = card (Stripe Checkout); usdt = USDT on TRON, BNB Smart Chain or Ethereum, sent to an address
+ * of the order's own.
+ */
 export type ShopPaymentProvider = "ldc" | "stripe" | "usdt";
 
 /** The currency string of every USDT amount (`shop.usdt.currency`): amounts are hundredths of a USDT. */
@@ -88,12 +91,50 @@ export const USDT_NETWORKS = ["mainnet", "nile"] as const;
 export type UsdtNetwork = (typeof USDT_NETWORKS)[number];
 /** A TRON address in base58check: `T` and 33 more characters of the base58 alphabet (no 0, O, I or l). */
 export const TRON_ADDRESS = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+/** An EVM address (BNB Smart Chain, Ethereum): 0x and 40 hex digits. */
+export const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+/** A Solana address: 32 bytes in base58, 32 to 44 characters. */
+export const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-/** USDT as the catalog offers it: the network and the token contract it is paid on. */
+/** Whether a base58 string decodes to exactly 32 bytes (a TRON address, 25 bytes, does not, though it looks alike). */
+function isSolanaAddress(value: string): boolean {
+  if (!SOLANA_ADDRESS.test(value)) return false;
+  let number = 0n;
+  for (const char of value) number = number * 58n + BigInt(BASE58.indexOf(char));
+  const zeros = value.length - value.replace(/^1+/, "").length;
+  const hex = number === 0n ? "" : number.toString(16);
+  return zeros + Math.ceil(hex.length / 2) === 32;
+}
+
+/** The chains mail takes USDT on (`shop.usdt.chains`), in the order it offers them. */
+export const USDT_CHAINS = ["tron", "bsc", "ethereum", "solana"] as const;
+export type UsdtChain = (typeof USDT_CHAINS)[number];
+
+/** Whether a string is an address of the chain: TRON's base58 T… addresses, the EVM chains' 0x ones, Solana's base58 ones. */
+export function isUsdtAddress(chain: UsdtChain, value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  if (chain === "solana") return isSolanaAddress(value);
+  return (chain === "tron" ? TRON_ADDRESS : EVM_ADDRESS).test(value);
+}
+
+/** A chain the buyer may pay USDT on (`shop.usdt.catalogChainFields`): its name, token standard and the only token that pays. */
+export interface UsdtChainOption {
+  chain: UsdtChain;
+  name: string;
+  standard: string;
+  contract: string;
+}
+
+/**
+ * USDT as the catalog offers it: the network, the token contract of the chain an order is paid on when none is chosen, and
+ * the chains the buyer may choose (just TRON on a mail before the others).
+ */
 export interface UsdtPayment {
   currency: typeof USDT_CURRENCY;
   network: UsdtNetwork;
   contract: string;
+  chains: UsdtChainOption[];
 }
 
 export type SubscriptionState = "active" | "grace" | "suspended" | "expired";
@@ -672,18 +713,43 @@ export function parseShopCatalog(body: unknown): ShopCatalog {
 
 /**
  * The catalog's `payment.usdt` (`shop.usdt.catalogFields`): null when absent or null (USDT off, or a mail before it), and when it
- * is not usable (an unknown network, a contract that is no TRON address), which counts as off like a card with a bad currency.
+ * is not usable (an unknown network, a contract that is no address of its chain), which counts as off like a card with a bad
+ * currency. `chains` is absent on a mail that offers TRON only: TRON is then the one chain. A chain this page does not know, or
+ * whose contract is not an address of it, is left out; none left counts as off.
  */
 function parseUsdtPayment(value: unknown): UsdtPayment | null {
   if (
     !record(value) ||
     value.currency !== USDT_CURRENCY ||
     !(USDT_NETWORKS as readonly unknown[]).includes(value.network) ||
-    !isString(value.contract) ||
-    !TRON_ADDRESS.test(value.contract)
+    !isString(value.contract)
   )
     return null;
-  return { currency: USDT_CURRENCY, network: value.network as UsdtNetwork, contract: value.contract };
+  let chains: UsdtChainOption[];
+  if (value.chains === undefined) {
+    if (!TRON_ADDRESS.test(value.contract)) return null;
+    chains = [{ chain: "tron", name: "TRON", standard: "TRC-20", contract: value.contract }];
+  } else {
+    if (!Array.isArray(value.chains)) return null;
+    chains = value.chains.flatMap((entry): UsdtChainOption[] => {
+      if (
+        !record(entry) ||
+        !(USDT_CHAINS as readonly unknown[]).includes(entry.chain) ||
+        !isString(entry.name) ||
+        !entry.name.trim() ||
+        entry.name.length > 40 ||
+        !isString(entry.standard) ||
+        !/^(?:[A-Z]{2,5}-[0-9]{2,4}|SPL)$/.test(entry.standard) ||
+        !isUsdtAddress(entry.chain as UsdtChain, entry.contract)
+      )
+        return [];
+      return [
+        { chain: entry.chain as UsdtChain, name: entry.name, standard: entry.standard, contract: entry.contract },
+      ];
+    });
+    if (!chains.length) return null;
+  }
+  return { currency: USDT_CURRENCY, network: value.network as UsdtNetwork, contract: chains[0].contract, chains };
 }
 
 export async function getShopCatalog(signal?: AbortSignal, lang?: Lang): Promise<ShopCatalog> {

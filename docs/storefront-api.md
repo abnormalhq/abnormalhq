@@ -191,7 +191,7 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                         |
 | POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page          |
 | POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`              |
-| POST   | `/api/shop/pay/usdt`                   | JSON: `{ orderId }` (see "USDT payments")                                                  | `200`, `{ status: "open", address, amount, … }` or `{ status: "paid" }`                |
+| POST   | `/api/shop/pay/usdt`                   | JSON: `{ orderId, chain? }` (see "USDT payments")                                          | `200`, `{ status: "open", address, amount, … }` or `{ status: "paid" }`                |
 | POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                             |
 | GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status   |
 | POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                     |
@@ -302,17 +302,22 @@ The platform notification is handled as plain text, the payment endpoint as form
 
 ### USDT payments
 
-`shop.usdt` in `docs/onboard-contract.json` (mail's docs/shop.md, "USDT payments"). The buyer sends USDT (TRC-20) on TRON to an address that
-belongs to their order alone (mail derives it from the shop's extended public key); mail watches the chain (TronGrid) and the order is paid,
-and its code issued, once the confirmed total at that address reaches the amount, about a minute after sending.
+`shop.usdt` in `docs/onboard-contract.json` (mail's docs/shop.md, "USDT payments"). The buyer sends USDT on TRON (TRC-20), BNB Smart Chain
+(BEP-20), Ethereum (ERC-20) or Solana (SPL), whichever of those the shop offers they choose, to an address that belongs to their order alone (mail derives it
+from the shop's extended public key for that chain); mail reads the chain through Tatum and the order is paid, and its code issued, once the
+final total at that address reaches the amount: seconds after sending on Solana, about a minute on TRON and BNB Smart Chain, about 15 minutes
+on Ethereum.
 
 - **Units.** Every amount of a USDT order, quote, plan or seat subscription is in hundredths of a USDT with `currency: "usdt"` (four letters, not
   ISO 4217). The pages write it `12.34 USDT` (two decimals, no Intl currency style). Like a card price a USDT price has no plan discount
   (`discountPercent` 0, `originalPriceCents === priceCents` before a code). `seat_total_too_large.maxTotalCents` for USDT is in hundredths of a USDT
   (`shop.seats.maxTotalCentsUnit.usdt`).
-- **Catalog.** `payment.usdt` is `{ currency: "usdt", network: "mainnet" | "nile", contract }` while USDT is on, and `null` or absent otherwise;
-  `nile` is TRON's testnet, and the pages show a "Testnet (Nile)" badge next to the USDT price and on the payment panel. A `payment.usdt` with an
-  unknown network or a contract that is no TRON address counts as off, like a card with an unusable currency. A plan offers USDT when
+- **Catalog.** `payment.usdt` is `{ currency: "usdt", network: "mainnet" | "nile", contract, chains }` while USDT is on, and `null` or absent
+  otherwise; `nile` is TRON's testnet (mail offers TRON only there), and the pages show a "Testnet (Nile)" badge next to the USDT price and on the
+  payment panel. `chains` lists the chains the buyer may choose, in the order to offer them, each `{ chain: "tron" | "bsc" | "ethereum" | "solana", name,
+standard, contract }` (`shop.usdt.catalogChainFields`); `contract` is the first chain's. A mail that offers TRON only sends no `chains`: the page
+  takes TRON as the one chain. A chain the page does not know, or whose contract is no address of it (TRON's `T…`, the EVM chains' `0x…`, Solana's base58 of 32 bytes; on Solana `contract` is the USDT mint and `standard` is `SPL`), is left
+  out; a `payment.usdt` with an unknown network or no usable chain counts as off, like a card with an unusable currency. A plan offers USDT when
   `payment.usdt` is there and its `usdtPriceMinor` is above 0; a seat plan's `unitUsdtPriceMinor` (one seat; `shop.usdt.seatPlanFields`) falls back to
   `usdtPriceMinor` the way `unitFiatPriceMinor` falls back to `fiatPriceMinor`. The shop page shows a third button, "Pay with USDT", with its price
   (per period for a subscription); a seat plan's USDT total is quantity × `unitUsdtPriceMinor` as an estimate until the quote has mail's number.
@@ -320,10 +325,12 @@ and its code issued, once the confirmed total at that address reaches the amount
   `currency: "usdt"`, `discountPercent: 0` and `planDiscountCents: 0`; an entry (or a code preview) whose currency is not the one of its way of paying
   (`""` for LDC, the card currency for Stripe, `"usdt"` for USDT) fails the answer. A percentage code applies to a USDT price; a fixed-amount code never
   does (`{ valid: false }`), and the page says the code can't be used with USDT.
-- **`pay/usdt`** (`POST`, JSON `{ orderId }`, same origin, the buyer and account cookies as for `pay/stripe`) answers `{ status: "paid" }` (already
-  paid, possibly just now) or `{ status: "open", network, token: "USDT", contract, address, amount, amountMinor, received, confirming }`
-  (`shop.usdt.payFields`): `address` is the order's own base58 TRON address (`T` and 33 characters), `amount` the exact amount to send as a decimal string
-  (`amountMinor` the same in hundredths; the client refuses an answer where the two disagree), `received` what the chain has confirmed at the address so
+- **`pay/usdt`** (`POST`, JSON `{ orderId, chain? }`, same origin, the buyer and account cookies as for `pay/stripe`): `chain` is the chain the buyer
+  chose, which mail gives the address on at the first call (absent: the catalog's first chain) and ignores afterwards. It answers `{ status: "paid" }`
+  (already paid, possibly just now) or `{ status: "open", chain, standard, network, token: "USDT", contract, address, amount, amountMinor, received,
+confirming }` (`shop.usdt.payFields`; a mail that offers TRON only sends no `chain` and `standard`, and its orders are TRON's): `address` is the
+  order's own address on `chain` (and `contract` the token there; the client refuses either when it is no address of that chain), `amount` the exact amount to send as a decimal string
+  (`amountMinor` the same in hundredths; the client refuses an answer where the two disagree), `received` what is final on the chain at the address so
   far and `confirming` what it has seen but not yet confirmed (decimal strings, up to six decimals). Each call has mail look at the chain (it throttles
   that itself), so the order page calls it every 5 seconds while the tab is visible (and at once when the tab is shown again), for up to 2 hours,
   then stops and offers "Check again"; when the 2 hours run out in a hidden tab, it calls once more when the tab is shown and stops after that. While
@@ -334,9 +341,14 @@ and its code issued, once the confirmed total at that address reaches the amount
   renewed since), `429` with `Retry-After` and `503` (USDT not configured). The Worker proxies it like `pay/stripe` (JSON in and out, never a
   redirect: the `pay` redirect allowlist is unchanged), and turns the 404 page of a mail before USDT into a JSON 404, which the page shows as
   "not available".
-- **Order page.** The USDT panel shows the network (TRON · TRC-20, and the testnet badge on `nile`), the amount and the address with copy buttons, a
+- **Choosing the chain.** The `orders` answer carries `usdtChain` (`shop.usdt.orderAnswerFields`): the chain a USDT order already has its address
+  on, or `null` before its first `pay/usdt` call (absent on a mail that offers TRON only). While it is `null` and the catalog lists more than one
+  chain, the USDT panel first asks the buyer which network they send from (a button per chain, with a note that the address is for that network
+  only and the choice can't be changed, and one that Ethereum's fees are usually several dollars), then calls `pay/usdt` with it; with one chain,
+  or a catalog that cannot be read, it calls `pay/usdt` without one.
+- **Order page.** The USDT panel shows the network (e.g. TRON · TRC-20, and the testnet badge on `nile`), the amount and the address with copy buttons, a
   QR code of the address alone (wallets scan an address; amounts in payment URIs are not the same across wallets; drawn as inline SVG with
-  [uqr](https://github.com/unjs/uqr)), a warning to send USDT on TRON (TRC-20) only and to make sure the amount that arrives covers any exchange
+  [uqr](https://github.com/unjs/uqr)), a warning to send USDT on that network only and to make sure the amount that arrives covers any exchange
   withdrawal fee, and the status line.
 - **Renewal, account, seats.** A subscription bought with USDT has `provider: "usdt"` and `currency: "usdt"` in `renewal` and `account`; its
   `renewPriceCents` is in hundredths of a USDT and it renews with USDT only (`renew` with `provider: "usdt"`), paid on the order page like a purchase.

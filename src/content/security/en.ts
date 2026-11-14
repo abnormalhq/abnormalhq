@@ -15,7 +15,7 @@ export const securityEn: SecurityContent = {
   title: "Security and privacy, plainly",
   summary:
     "What protects your mailbox, what we can and cannot see, where your data is processed, and how to report a problem. This page is an overview; the Privacy Policy is the authoritative text.",
-  reviewed: "2026-11-10",
+  reviewed: "2026-11-14",
   sections: [
     {
       title: "Encryption in transit",
@@ -100,7 +100,7 @@ export const securityEn: SecurityContent = {
             "**Cloudflare** hosts this website and runs the shop, the redeem page, webmail and the management system.",
             "**A database provider** (currently PlanetScale) stores accounts, orders, redeem codes, ticket text and settings.",
             "**A cloud host** runs our own mail servers and the mail stored on them.",
-            "**Stripe** and **Linux DO Credit** process the payment method you choose; a USDT payment goes from your own wallet over the TRON network, and TronGrid tells us what arrived at the order's address.",
+            "**Stripe** and **Linux DO Credit** process the payment method you choose; a USDT payment goes from your own wallet over the network you chose (TRON, BNB Smart Chain, Ethereum or Solana), and Tatum tells us what arrived at the order's address.",
             "**A large language model provider** (currently DeepSeek) receives content only when the AI features are used.",
           ],
         },

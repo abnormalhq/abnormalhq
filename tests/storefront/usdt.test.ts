@@ -28,7 +28,7 @@ import {
   usdtDecimal,
   usdtUnits,
 } from "@/storefront/lib/shop";
-import { TRON_ADDRESS, USDT_NETWORKS } from "@/storefront/lib/catalog";
+import { TRON_ADDRESS, USDT_CHAINS, USDT_NETWORKS } from "@/storefront/lib/catalog";
 import { orderCoupon } from "@/storefront/lib/coupon";
 import { parsePurchaseQuote, quotePurchase, type QuoteAsk } from "@/storefront/lib/quote";
 import { shopCopy } from "@/storefront/lib/shop-copy";
@@ -43,7 +43,7 @@ import {
 import { storefrontApi as worker, type StorefrontEnv } from "@/storefront/worker/index";
 import { SHOP_ROUTES, USDT_ROUTE } from "@/storefront/worker/shop";
 import { USDT_POLL_LIMIT_MS, USDT_POLL_MS } from "@/storefront/components/ShopUsdtCheckout";
-import { catalogResponse, usdtCatalogPayment, usdtPayResponse } from "./fixtures/shop-contract";
+import { catalogResponse, usdtCatalogChains, usdtCatalogPayment, usdtPayResponse } from "./fixtures/shop-contract";
 
 const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) as {
   shop: {
@@ -53,7 +53,11 @@ const contract = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8")) 
       routes: Record<string, string[]>;
       currency: string;
       networks: string[];
+      chains: string[];
       catalogFields: string[];
+      catalogChainFields: string[];
+      payRequestFields: string[];
+      orderAnswerFields: string[];
       productFields: string[];
       seatPlanFields: string[];
       payStatuses: string[];
@@ -84,6 +88,9 @@ test("contract: USDT is the third way of paying, with its route, currency, netwo
   expect(SHOP_ROUTES[USDT_ROUTE]).toStrictEqual(["POST"]);
   expect(USDT_CURRENCY).toBe(contract.shop.usdt.currency);
   expect([...USDT_NETWORKS]).toStrictEqual(contract.shop.usdt.networks);
+  expect([...USDT_CHAINS]).toStrictEqual(contract.shop.usdt.chains);
+  expect(contract.shop.usdt.payRequestFields).toStrictEqual(["orderId", "chain"]);
+  expect(contract.shop.usdt.orderAnswerFields).toStrictEqual(["usdtChain"]);
 
   // The catalog's payment.usdt, a plan's and a seat plan's USDT price: every field mail lists is on the parsed catalog.
   const seat = { ...catalogResponse.products[0], id: "seatplanabcdefg", kind: "seat", seatMin: 2, seatMax: 50 };
@@ -94,6 +101,9 @@ test("contract: USDT is the third way of paying, with its route, currency, netwo
     seatProducts: [{ ...seat, usdtPriceMinor: 60, unitUsdtPriceMinor: 60 }],
   });
   expect(Object.keys(catalog.payment.usdt!).toSorted()).toStrictEqual(contract.shop.usdt.catalogFields.toSorted());
+  expect(Object.keys(catalog.payment.usdt!.chains[0]).toSorted()).toStrictEqual(
+    contract.shop.usdt.catalogChainFields.toSorted(),
+  );
   for (const field of contract.shop.usdt.productFields) expect(catalog.products[0]).toHaveProperty(field, 120);
   for (const field of contract.shop.usdt.seatPlanFields) expect(catalog.seatProducts![0]).toHaveProperty(field, 60);
 
@@ -110,12 +120,26 @@ test("contract: USDT is the third way of paying, with its route, currency, netwo
 test("catalog: payment.usdt is read when usable, and is absent when off, missing or not usable; LDC and card stay as they were", () => {
   const read = (usdt: unknown) =>
     parseShopCatalog({ ...catalogResponse, payment: { ...catalogResponse.payment, usdt } }).payment;
+  const tron = { chain: "tron", name: "TRON", standard: "TRC-20", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" };
   expect(read(usdtCatalogPayment)).toStrictEqual({
     ldc: true,
     stripe: { currency: "usd" },
-    usdt: { currency: "usdt", network: "nile", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" },
+    usdt: { currency: "usdt", network: "nile", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf", chains: [tron] },
   });
   expect(read({ ...usdtCatalogPayment, network: "mainnet" }).usdt?.network).toBe("mainnet");
+  // A mail that offers TRON only says no chains: TRON is the one.
+  const tronOnly = { currency: "usdt", network: "nile", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" };
+  expect(read(tronOnly).usdt).toStrictEqual(read(usdtCatalogPayment).usdt);
+  // More chains: each with its own token; the first is the one an order is paid on when none is chosen.
+  expect(read(usdtCatalogChains).usdt).toStrictEqual(usdtCatalogChains);
+  // A chain this page does not know, or whose token is no address of it, is left out.
+  const [, bsc] = usdtCatalogChains.chains;
+  expect(
+    read({
+      ...usdtCatalogChains,
+      chains: [{ ...tron, chain: "dogecoin" }, { ...bsc, contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" }, bsc],
+    }).usdt,
+  ).toStrictEqual({ ...usdtCatalogChains, contract: bsc.contract, chains: [bsc] });
   // A mail before USDT (no key), USDT switched off (null), and anything the page could not show: off, and not there at all.
   for (const usdt of [
     undefined,
@@ -123,9 +147,14 @@ test("catalog: payment.usdt is read when usable, and is absent when off, missing
     {},
     { ...usdtCatalogPayment, currency: "usd" },
     { ...usdtCatalogPayment, network: "shasta" },
-    { ...usdtCatalogPayment, contract: "0x55d398326f99059fF775485246999027B3197955" },
-    { ...usdtCatalogPayment, contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeB0" },
-    { ...usdtCatalogPayment, contract: undefined },
+    { ...tronOnly, contract: "0x55d398326f99059fF775485246999027B3197955" },
+    { ...tronOnly, contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeB0" },
+    { ...tronOnly, contract: undefined },
+    { ...usdtCatalogPayment, chains: [] },
+    { ...usdtCatalogPayment, chains: [{ ...tron, chain: "dogecoin" }] },
+    // A TRON address looks like base58 but is no Solana address (25 bytes, not 32).
+    { ...usdtCatalogPayment, chains: [{ ...tron, chain: "solana" }] },
+    { ...usdtCatalogPayment, chains: "tron" },
     "usdt",
   ]) {
     expect(read(usdt), JSON.stringify(usdt)).toStrictEqual({ ldc: true, stripe: { currency: "usd" } });
@@ -437,8 +466,38 @@ test("seats: a USDT seat subscription is quoted exactly in USDT and its seats ar
 test("pay/usdt client: an open order's address and exact amount, paid, and every malformed answer refused", async () => {
   const calls = respond(usdtPayResponse);
   await expect(startUsdtPayment(ORDER_ID, "en")).resolves.toStrictEqual(usdtPayResponse);
-  // JSON with the order id only, to this site's own API.
+  // JSON with the order id only, to this site's own API; with the chain the buyer chose when there is one.
   expect(calls).toStrictEqual([{ url: "/api/shop/pay/usdt", body: { orderId: ORDER_ID } }]);
+  const bscAnswer = {
+    ...usdtPayResponse,
+    chain: "bsc",
+    standard: "BEP-20",
+    network: "mainnet",
+    contract: "0x55d398326f99059fF775485246999027B3197955",
+    address: "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+  };
+  // Solana: a base58 address of the order's own, paid in the USDT mint.
+  const solanaAnswer = {
+    ...usdtPayResponse,
+    chain: "solana",
+    standard: "SPL",
+    network: "mainnet",
+    contract: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    address: "BarYJFM3886mZZ11rDXajH6Rajs76vzvrEYwe4ZJ3ysY",
+  };
+  respond(solanaAnswer);
+  await expect(startUsdtPayment(ORDER_ID, "en", undefined, "solana")).resolves.toStrictEqual(solanaAnswer);
+  respond({ ...solanaAnswer, address: "0x9858EfFD232B4033E47d90003D41EC34EcaEda94" });
+  await expect(startUsdtPayment(ORDER_ID)).rejects.toBeInstanceOf(ShopApiError);
+  const chosen = respond(bscAnswer);
+  await expect(startUsdtPayment(ORDER_ID, "en", undefined, "bsc")).resolves.toStrictEqual(bscAnswer);
+  expect(chosen).toStrictEqual([{ url: "/api/shop/pay/usdt", body: { orderId: ORDER_ID, chain: "bsc" } }]);
+  // A mail that offers TRON only names no chain: the order is TRON's.
+  const tronOnly: Record<string, unknown> = { ...usdtPayResponse };
+  delete tronOnly.chain;
+  delete tronOnly.standard;
+  respond(tronOnly);
+  await expect(startUsdtPayment(ORDER_ID)).resolves.toStrictEqual(usdtPayResponse);
 
   respond({ status: "paid" });
   await expect(startUsdtPayment(ORDER_ID)).resolves.toStrictEqual({ status: "paid" });
@@ -455,6 +514,12 @@ test("pay/usdt client: an open order's address and exact amount, paid, and every
     { network: "shasta" },
     { token: "USDC" },
     { contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7" },
+    // An address of another chain than the one said, or a chain this page does not know.
+    { chain: "bsc", standard: "BEP-20" },
+    { chain: "dogecoin" },
+    { chain: "solana", standard: "SPL" },
+    { standard: "TRC20" },
+    { standard: undefined },
     { address: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYd" },
     { address: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdH0" },
     { address: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYdO" },
@@ -501,7 +566,11 @@ test("order page: pay/usdt is asked every 5 seconds while visible, for up to two
   expect(panel).toMatch(/role="img"/);
   // The order page hands a USDT order to the panel, re-reads the order on `paid`, and leaves its own polling to it.
   const page = readFileSync("src/storefront/components/ShopOrder.tsx", "utf8");
-  expect(page).toMatch(/<ShopUsdtCheckout orderId=\{order\.id\}/);
+  expect(page).toMatch(/<ShopUsdtCheckout\s+orderId=\{order\.id\}/);
+  // The chain the order already has: the buyer chooses only before the first pay/usdt call.
+  expect(page).toMatch(/chain=\{result\?\.usdtChain\}/);
+  expect(panel).toMatch(/startUsdtPayment\(orderId, lang, controller\.signal, chosen\)/);
+  expect(panel).toMatch(/options\.length > 1 \?/);
   expect(page).toMatch(/if \(!pending \|\| usdt\) return;/);
   // An amount still confirming counts towards the total: the buyer is never asked to send it a second time.
   expect(panel).toMatch(/const counted = received \+ confirming;/);
@@ -512,14 +581,16 @@ test("order page: pay/usdt is asked every 5 seconds while visible, for up to two
   expect(TRON_ADDRESS.test(MOCK_USDT_ADDRESS)).toBe(true);
   for (const lang of ["zh", "en"] as const) {
     const t = shopCopy[lang];
-    expect(t.usdtWarning("12.34 USDT")).toContain("12.34 USDT");
-    expect(t.usdtWarning("12.34 USDT")).toMatch(/TRC-20/);
+    expect(t.usdtWarning("12.34 USDT", "BNB Smart Chain (BEP-20)")).toContain("12.34 USDT");
+    expect(t.usdtWarning("12.34 USDT", "BNB Smart Chain (BEP-20)")).toMatch(/BNB Smart Chain \(BEP-20\)/);
+    expect(t.usdtNetwork("TRON", "TRC-20")).toBe("TRON · TRC-20");
+    expect(t.usdtChainOption("Ethereum", "ERC-20")).toMatch(/Ethereum.*ERC-20/);
     expect(t.usdtPartial("5.00", "12.34", "7.34")).toContain("7.34");
     expect(new Set([t.usdtWaiting, t.usdtConfirming, t.usdtPaid, t.usdtStopped]).size).toBe(4);
     expect(t.usdtTestnet).toMatch(/Nile/);
   }
-  expect(shopCopy.en.usdtWarning("12.34 USDT")).toBe(
-    "Send USDT on the TRON network (TRC-20) only. Other tokens or networks are lost. Exchanges that deduct a withdrawal fee from the amount: make sure the amount that arrives is at least 12.34 USDT.",
+  expect(shopCopy.en.usdtWarning("12.34 USDT", "TRON (TRC-20)")).toBe(
+    "Send USDT on the TRON (TRC-20) network only. Other tokens or networks are lost. Exchanges that deduct a withdrawal fee from the amount: make sure the amount that arrives is at least 12.34 USDT.",
   );
 });
 
@@ -560,7 +631,12 @@ test("dev shop: USDT prices in the catalog, a USDT order, and pay/usdt seeing th
   const store = new MockShopStore(() => NOW);
   const routes = browser(store);
   const catalog = await getShopCatalog(undefined, "en");
-  expect(catalog.payment.usdt).toStrictEqual({ currency: "usdt", network: "nile", contract: MOCK_USDT_CONTRACT });
+  expect(catalog.payment.usdt).toStrictEqual({
+    currency: "usdt",
+    network: "nile",
+    contract: MOCK_USDT_CONTRACT,
+    chains: [{ chain: "tron", name: "TRON", standard: "TRC-20", contract: MOCK_USDT_CONTRACT }],
+  });
   expect(catalog.products.map((product) => product.usdtPriceMinor)).toStrictEqual([
     MOCK_USDT_PRICES[ONE_TIME],
     MOCK_USDT_PRICES[MONTHLY],
@@ -587,6 +663,8 @@ test("dev shop: USDT prices in the catalog, a USDT order, and pay/usdt seeing th
     status: "pending",
   });
   expect(placed.code).toBeNull();
+  // No address yet: the order page may offer the chains.
+  expect(placed.usdtChain).toBeNull();
 
   // The first looks find nothing, the third the transfer on its way, the fourth confirms it.
   const looks = [];
@@ -598,6 +676,8 @@ test("dev shop: USDT prices in the catalog, a USDT order, and pay/usdt seeing th
   ]);
   expect(looks[0]).toStrictEqual({
     status: "open",
+    chain: "tron",
+    standard: "TRC-20",
     network: "nile",
     token: "USDT",
     contract: MOCK_USDT_CONTRACT,
@@ -607,6 +687,7 @@ test("dev shop: USDT prices in the catalog, a USDT order, and pay/usdt seeing th
     received: "0.00",
     confirming: "0.00",
   });
+  expect((await getShopOrder(id)).usdtChain).toBe("tron");
   expect(await startUsdtPayment(id, "en")).toStrictEqual({ status: "paid" });
   // The order page then reads the order again: paid, with its code, as for any other way of paying.
   const paid = await getShopOrder(id);

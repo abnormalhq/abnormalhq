@@ -12,7 +12,7 @@ export const securityZh: SecurityContent = {
   title: "把安全与隐私说清楚",
   summary:
     "什么在保护你的邮箱、我们能看到什么和看不到什么、数据在哪里处理，以及如何报告问题。本页只是概览，以隐私政策为准。",
-  reviewed: "2026-11-10",
+  reviewed: "2026-11-14",
   sections: [
     {
       title: "传输加密",
@@ -97,7 +97,7 @@ export const securityZh: SecurityContent = {
             "**Cloudflare** 托管官网，并运行商店、开通页、网页邮箱与管理系统。",
             "**数据库服务商**（目前为 PlanetScale）保存账号、订单、兑换码、工单文字与设置等数据。",
             "**云主机服务商**承载我们自建的邮件服务器与邮件数据。",
-            "**Stripe** 与 **Linux DO Credit** 处理你选择的支付方式；USDT 付款从你自己的钱包经 TRON 网络发出，由 TronGrid 告诉我们订单收款地址的到账情况。",
+            "**Stripe** 与 **Linux DO Credit** 处理你选择的支付方式；USDT 付款从你自己的钱包经你选择的网络（TRON、BNB Smart Chain、Ethereum 或 Solana）发出，由 Tatum 告诉我们订单收款地址的到账情况。",
             "**大模型服务商**（目前为 DeepSeek）仅在使用 AI 功能时接收相关内容。",
           ],
         },
