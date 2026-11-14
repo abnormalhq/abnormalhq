@@ -144,6 +144,7 @@ export const en: Copy = {
       calendar: "Calendar",
       labels: "Labels",
       search: "Search subject, sender, body",
+      clearSearch: "Clear search",
       categoryAll: "Everything",
       categoryPrimary: "Primary",
       categoryNewsletters: "Newsletters",

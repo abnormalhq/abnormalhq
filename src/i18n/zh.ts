@@ -138,6 +138,7 @@ export const zh: Copy = {
       calendar: "日历",
       labels: "标签",
       search: "搜索主题、发件人、正文",
+      clearSearch: "清除搜索",
       categoryAll: "所有邮件",
       categoryPrimary: "主要",
       categoryNewsletters: "订阅",

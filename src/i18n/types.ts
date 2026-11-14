@@ -232,6 +232,8 @@ export interface Copy {
       calendar: string;
       labels: string;
       search: string;
+      /** The search box's clear button. */
+      clearSearch: string;
       categoryAll: string;
       categoryPrimary: string;
       categoryNewsletters: string;
