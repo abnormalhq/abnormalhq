@@ -5,7 +5,7 @@ import { copies } from "../src/i18n/index.ts";
 import { linksFor } from "../src/data/site.ts";
 import { planViews } from "../src/lib/pricing.ts";
 import { parseReleaseIndex } from "../src/lib/releases.ts";
-import { copy as storeCopy } from "../src/storefront/i18n.ts";
+import { copy as storeCopy } from "../src/storefront/copy.ts";
 import { shopCopy } from "../src/storefront/lib/shop-copy.ts";
 import { storeMarkdownPaths } from "../src/storefront/lib/markdown.ts";
 import {

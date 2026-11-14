@@ -20,7 +20,9 @@ import {
   type AccountMailboxes,
   ShopApiError,
 } from "@/storefront/lib/shop";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
+import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
 import { CopyButton, inputActionClass } from "./onboard/CopyButton";
 import {
@@ -64,7 +66,7 @@ export function ShopMailboxManager({
   /** Changes when something outside the manager changed what it lists (one of the buyer's own domains went live): the list is read again. */
   refresh?: number;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   // undefined: still loading; null: unavailable (logged out or old backend), this block is hidden.
   const [data, setData] = useState<AccountMailboxes | null | undefined>(undefined);
   const [reload, setReload] = useState(0);
@@ -95,10 +97,10 @@ export function ShopMailboxManager({
         if (controller.signal.aborted) return;
         // Old backends without this endpoint (404) hide this block; other failures show the reason and a retry, over the list read before if there is one.
         if (cause instanceof ShopApiError && cause.status === 404) setData(null);
-        else setLoadError(shopError(cause, lang));
+        else setLoadError(describeShopError(cause, lang, t));
       });
     return () => controller.abort();
-  }, [lang, reload, refresh]);
+  }, [lang, reload, refresh, t]);
 
   /** Run one change: on success close the form, show the result and re-read the list; on failure keep the form and show the reason. */
   async function act(work: () => Promise<string | void>): Promise<boolean> {
@@ -116,7 +118,7 @@ export function ShopMailboxManager({
       setReload((value) => value + 1);
       return true;
     } catch (cause) {
-      if (mounted.current) setError(shopError(cause, lang));
+      if (mounted.current) setError(describeShopError(cause, lang, t));
       return false;
     } finally {
       if (mounted.current) setBusy(false);
@@ -215,7 +217,7 @@ export function ShopMailboxManager({
               }
             />
           ))}
-          <MailServers lang={lang} servers={data.servers} />
+          <MailServers servers={data.servers} />
         </div>
       )}
     </ShopPanel>
@@ -248,7 +250,7 @@ function MailboxGroup({
   onStatus: (mailbox: AccountMailbox) => Promise<boolean>;
   onDelete: (mailbox: AccountMailbox, confirm: string) => Promise<boolean>;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const canCreate = !group.locked && group.usesLeft > 0 && group.domains.length > 0;
   const creating = open?.kind === "create" && open.orderId === group.orderId;
   return (
@@ -283,7 +285,6 @@ function MailboxGroup({
           {group.mailboxes.map((mailbox) => (
             <MailboxRow
               key={mailbox.id}
-              lang={lang}
               mailbox={mailbox}
               locked={group.locked}
               leaving={group.seats?.removing.includes(mailbox.id) ?? false}
@@ -309,13 +310,7 @@ function MailboxGroup({
       )}
       {canCreate &&
         (creating ? (
-          <CreateMailboxForm
-            lang={lang}
-            domains={group.domains}
-            busy={busy}
-            onCancel={() => onOpen(null)}
-            onSubmit={onCreate}
-          />
+          <CreateMailboxForm domains={group.domains} busy={busy} onCancel={() => onOpen(null)} onSubmit={onCreate} />
         ) : (
           <ShopActions>
             <ShopButton
@@ -331,7 +326,7 @@ function MailboxGroup({
   );
 }
 
-function usage(t: (typeof shopCopy)[Lang], mailbox: AccountMailbox): string {
+function usage(t: ShopCopy, mailbox: AccountMailbox): string {
   const mb = (value: number) => (value >= 1024 ? `${(value / 1024).toFixed(1)} GB` : `${Math.round(value)} MB`);
   if (mailbox.usageMb === null) return t.mailboxUsageUnknown;
   if (mailbox.quotaMb === null || mailbox.quotaMb === 0) return mb(mailbox.usageMb);
@@ -339,7 +334,6 @@ function usage(t: (typeof shopCopy)[Lang], mailbox: AccountMailbox): string {
 }
 
 function MailboxRow({
-  lang,
   mailbox,
   locked,
   leaving,
@@ -350,7 +344,6 @@ function MailboxRow({
   onStatus,
   onDelete,
 }: {
-  lang: Lang;
   mailbox: AccountMailbox;
   locked: boolean;
   /** Chosen to go with a seat removal scheduled for the next renewal. */
@@ -362,7 +355,7 @@ function MailboxRow({
   onStatus: () => Promise<boolean>;
   onDelete: (confirm: string) => Promise<boolean>;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [confirm, setConfirm] = useState("");
@@ -501,19 +494,17 @@ function MailboxRow({
 }
 
 function CreateMailboxForm({
-  lang,
   domains,
   busy,
   onCancel,
   onSubmit,
 }: {
-  lang: Lang;
   domains: string[];
   busy: boolean;
   onCancel: () => void;
   onSubmit: (input: { domain: string; username: string; password: string }) => Promise<boolean>;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   // The address picked in the address check before buying, when this order can create it (src/storefront/lib/address.ts).
   // The form only opens on a click, in the browser, so reading the tab's storage here cannot differ from a prerender.
   const [carried] = useState(() => {
@@ -638,8 +629,8 @@ function CreateMailboxForm({
 }
 
 /** Incoming and outgoing servers to enter in a mail client: listed per domain, collapsed at the end. */
-function MailServers({ lang, servers }: { lang: Lang; servers: AccountMailboxes["servers"] }) {
-  const t = shopCopy[lang];
+function MailServers({ servers }: { servers: AccountMailboxes["servers"] }) {
+  const t = useShopCopy();
   const entries = Object.entries(servers).filter(([, value]) => value.imap || value.smtp);
   if (entries.length === 0) return null;
   const security = (value: string) => (value === "tls" ? "SSL/TLS" : value === "starttls" ? "STARTTLS" : value);

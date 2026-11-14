@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { defaultDomain } from "@/storefront/config";
-import { copy } from "@/storefront/i18n";
+import { copy } from "@/storefront/copy";
 import type { RedeemResult } from "@/storefront/lib/api";
 import {
   allowedCount,

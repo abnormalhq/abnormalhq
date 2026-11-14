@@ -15,7 +15,8 @@ import {
   type AccountSeats,
   type SeatQuote,
 } from "@/storefront/lib/shop";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import { useShopCopy } from "./copy/context";
 import { ShopActions, ShopAlert, ShopButton, ShopField, ShopMeta, ShopMetaRow, shopTextClass } from "./ShopParts";
 import { ShopSeatStepper } from "./ShopSeatStepper";
 
@@ -49,7 +50,7 @@ export function ShopSeats({
   /** The seats changed (or may have): read the list again. */
   onChanged: () => void;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const router = useRouter();
   const [mode, setMode] = useState<"add" | "remove" | null>(null);
   const [count, setCount] = useState(1);
@@ -107,7 +108,7 @@ export function ShopSeats({
       if (message) setNotice(message);
       onChanged();
     } catch (cause) {
-      if (mounted.current) setError(shopError(cause, lang));
+      if (mounted.current) setError(describeShopError(cause, lang, t));
     } finally {
       if (mounted.current) setBusy(null);
     }
@@ -124,7 +125,7 @@ export function ShopSeats({
       const next = await quoteSeats(orderId, count, controller.signal, lang);
       if (!controller.signal.aborted) setQuote(next);
     } catch (cause) {
-      if (!controller.signal.aborted) setError(shopError(cause, lang));
+      if (!controller.signal.aborted) setError(describeShopError(cause, lang, t));
     } finally {
       if (mounted.current && quoteRequest.current === controller) setBusy(null);
     }

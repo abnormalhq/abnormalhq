@@ -33,7 +33,9 @@ import {
   verifyLogin,
   type CustomerAccount,
 } from "@/storefront/lib/shop";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
+import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
 import {
@@ -64,8 +66,7 @@ import { ShopMailboxManager } from "./ShopMailboxManager";
 import { useTurnstile } from "./Turnstile";
 
 /** What stops a new password typed twice from being sent: its length (counted in characters), then the two entries differing; the empty string when nothing does. */
-function newPasswordProblem(password: string, again: string, lang: Lang): string {
-  const t = shopCopy[lang];
+function newPasswordProblem(password: string, again: string, t: ShopCopy): string {
   const length = [...password].length;
   if (length < ACCOUNT_PASSWORD_MIN || length > ACCOUNT_PASSWORD_MAX)
     return t.passwordLength(ACCOUNT_PASSWORD_MIN, ACCOUNT_PASSWORD_MAX);
@@ -87,7 +88,7 @@ function forgetLoginToken() {
  * That answer is only valid in the browser that started the login (mail checks it against this browser's state cookie), so such a link sent by someone else logs into nothing.
  */
 export function ShopAccount({ lang }: { lang: Lang }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const params = useSearchParams();
   const loginToken = params.get("login") ?? "";
   const resetToken = params.get("reset") ?? "";
@@ -140,11 +141,11 @@ export function ShopAccount({ lang }: { lang: Lang }) {
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
-        setError(shopError(cause, lang));
+        setError(describeShopError(cause, lang, t));
         setAccount(null);
       });
     return () => controller.abort();
-  }, [lang, reload]);
+  }, [lang, reload, t]);
 
   /** Login confirmed: the token has been used, re-read the account. */
   const signedIn = useCallback(
@@ -165,7 +166,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
       await requestLogin(email.trim(), lang, check.token());
       setSentTo(email.trim());
     } catch (cause) {
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
     } finally {
       // The token can only be used once.
       check.reset();
@@ -181,7 +182,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
       await requestPasswordReset(email.trim(), lang, check.token());
       setForgotTo(email.trim());
     } catch (cause) {
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
     } finally {
       check.reset();
       setSending(false);
@@ -197,7 +198,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
       setPassword("");
       signedIn(result.claimed);
     } catch (cause) {
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
     } finally {
       check.reset();
       setSending(false);
@@ -206,7 +207,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
 
   async function register() {
     if (sending) return;
-    const problem = newPasswordProblem(password, passwordAgain, lang);
+    const problem = newPasswordProblem(password, passwordAgain, t);
     if (problem) return setError(problem);
     setSending(true);
     setError("");
@@ -216,7 +217,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
       setPasswordAgain("");
       setRegisteredTo(email.trim());
     } catch (cause) {
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
     } finally {
       check.reset();
       setSending(false);
@@ -243,7 +244,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
     try {
       window.location.assign(await startGoogleLogin(lang));
     } catch (cause) {
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
       setGoogleStarting(false);
     }
   }
@@ -263,7 +264,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
     try {
       window.location.assign(await openBillingPortal(subscriptionId, lang));
     } catch (cause) {
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
       setOpening(null);
     }
   }
@@ -275,7 +276,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
       setAccount(null);
       setNotice("");
     } catch (cause) {
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
     }
   }
 
@@ -714,7 +715,7 @@ function ShopLoginConfirm({
   onSignedIn: (claimed: number) => void;
   onRejected: (message: string) => void;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   // undefined: still asking; null: the backend cannot say which mailbox.
   const [email, setEmail] = useState<string | null | undefined>(undefined);
   // Registration confirmation link: the copy says "complete registration" rather than "log in".
@@ -734,13 +735,13 @@ function ShopLoginConfirm({
         if (controller.signal.aborted) return;
         if (cause instanceof ShopApiError && cause.status === 400) {
           forgetLoginToken();
-          onRejected(shopError(cause, lang));
+          onRejected(describeShopError(cause, lang, t));
         } else {
           setEmail(null);
         }
       });
     return () => controller.abort();
-  }, [token, lang, onRejected]);
+  }, [token, lang, onRejected, t]);
 
   async function confirm() {
     if (busy) return;
@@ -754,10 +755,10 @@ function ShopLoginConfirm({
       setBusy(false);
       if (cause instanceof ShopApiError && cause.status === 400) {
         forgetLoginToken();
-        onRejected(shopError(cause, lang));
+        onRejected(describeShopError(cause, lang, t));
       } else {
         // Temporary failure: the link has not been spent, keep it and try again.
-        setError(shopError(cause, lang));
+        setError(describeShopError(cause, lang, t));
       }
     }
   }
@@ -796,7 +797,7 @@ function ShopLoginConfirm({
  * otherwise mail requires the current password and answers 403 with what to do when it is wrong. After saving, mail logs this account out in every other browser.
  */
 function ShopPasswordPanel({ lang, hasPassword, onSaved }: { lang: Lang; hasPassword: boolean; onSaved: () => void }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const [editing, setEditing] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -822,7 +823,7 @@ function ShopPasswordPanel({ lang, hasPassword, onSaved }: { lang: Lang; hasPass
 
   async function save() {
     if (busy) return;
-    const problem = newPasswordProblem(next, again, lang);
+    const problem = newPasswordProblem(next, again, t);
     if (problem) return setError(problem);
     setBusy(true);
     setError("");
@@ -832,7 +833,7 @@ function ShopPasswordPanel({ lang, hasPassword, onSaved }: { lang: Lang; hasPass
       close();
       onSaved();
     } catch (cause) {
-      if (mounted.current) setError(shopError(cause, lang));
+      if (mounted.current) setError(describeShopError(cause, lang, t));
     } finally {
       if (mounted.current) setBusy(false);
     }
@@ -938,7 +939,7 @@ function ShopPasswordReset({
   onReset: (claimed: number) => void;
   onRejected: (message: string) => void;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   // undefined: still asking; null: could not ask (temporary failure), submitting still works.
   const [email, setEmail] = useState<string | null | undefined>(undefined);
   const [password, setPassword] = useState("");
@@ -962,7 +963,7 @@ function ShopPasswordReset({
         if (controller.signal.aborted) return;
         if (cause instanceof ShopApiError && cause.status === 400) {
           forgetLoginToken();
-          onRejected(shopError(cause, lang));
+          onRejected(describeShopError(cause, lang, t));
         } else {
           setEmail(null);
         }
@@ -972,7 +973,7 @@ function ShopPasswordReset({
 
   async function submit() {
     if (busy) return;
-    const problem = newPasswordProblem(password, again, lang);
+    const problem = newPasswordProblem(password, again, t);
     if (problem) return setError(problem);
     setBusy(true);
     setError("");
@@ -985,9 +986,9 @@ function ShopPasswordReset({
       // The form already checks the password, so a 400 means the link is used up, expired or not a reset link.
       if (cause instanceof ShopApiError && cause.status === 400) {
         forgetLoginToken();
-        onRejected(shopError(cause, lang));
+        onRejected(describeShopError(cause, lang, t));
       } else {
-        setError(shopError(cause, lang));
+        setError(describeShopError(cause, lang, t));
       }
     }
   }
@@ -1096,7 +1097,7 @@ function ShopGoogleFinish({
   onSignedIn: (claimed: number, created: boolean, linked: boolean) => void;
   onRejected: (message: string) => void;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   // In development the effect runs twice; the answer can only be handed over once, so the second run does nothing.
   const started = useRef(false);
 
@@ -1119,7 +1120,7 @@ function ShopGoogleFinish({
       })
       .catch((cause: unknown) => {
         forgetLoginToken();
-        onRejected(shopError(cause, lang));
+        onRejected(describeShopError(cause, lang, t));
       });
   }, [code, state, error, lang, onSignedIn, onRejected, t]);
 
@@ -1145,7 +1146,7 @@ function ShopGooglePanel({
   onUnlinked: () => void;
   onError: (message: string) => void;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const [busy, setBusy] = useState(false);
 
   async function link() {
@@ -1154,7 +1155,7 @@ function ShopGooglePanel({
     try {
       window.location.assign(await startGoogleLogin(lang, true));
     } catch (cause) {
-      onError(shopError(cause, lang));
+      onError(describeShopError(cause, lang, t));
       setBusy(false);
     }
   }
@@ -1166,7 +1167,7 @@ function ShopGooglePanel({
       await unlinkGoogle(lang);
       onUnlinked();
     } catch (cause) {
-      onError(shopError(cause, lang));
+      onError(describeShopError(cause, lang, t));
     } finally {
       setBusy(false);
     }

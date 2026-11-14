@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { copy } from "@/storefront/i18n";
+import { copy } from "@/storefront/copy";
 import { ADDRESS_STORAGE_KEY } from "@/storefront/lib/address";
 import { ApiError, type CdkInfo, type RedeemInput, type RedeemResult } from "@/storefront/lib/api";
 import { normalizeCdk } from "@/storefront/lib/onboard";

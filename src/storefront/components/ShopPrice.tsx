@@ -1,7 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { Lang } from "@/storefront/i18n";
-import { shopCopy } from "@/storefront/lib/shop-copy";
+import { useShopCopy } from "./copy/context";
 import { formatCredits, type ShopProduct } from "@/storefront/lib/shop";
 import { shopPriceAmountClass, shopPriceLineClass, shopPriceUnitClass } from "./ShopParts";
 
@@ -11,19 +10,17 @@ import { shopPriceAmountClass, shopPriceLineClass, shopPriceUnitClass } from "./
  */
 export function ShopPrice({
   item,
-  lang,
   purchase = false,
   unit,
   className,
 }: {
   item: Pick<ShopProduct, "originalPriceCents" | "discountPercent" | "priceCents" | "periodDays">;
-  lang: Lang;
   purchase?: boolean;
   /** What the amount is in, instead of the purchase unit: a seat plan's "LDC / mailbox / 30 days". */
   unit?: string;
   className?: string;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const discounted = item.discountPercent > 0;
   return (
     <div className={cn("my-[26px]", className)}>
