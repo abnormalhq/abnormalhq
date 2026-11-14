@@ -398,10 +398,13 @@ export function Shop({ lang }: { lang: Lang }) {
         {t.description}
       </ShopHero>
       {catalog?.trial && (
-        <Card className="p-6">
-          <h2 className={shopHeadingClass}>{trialCopy[lang].title}</h2>
-          <p className={shopTextClass}>{trialCopy[lang].description(catalog.trial.days, catalog.trial.quotaMb)}</p>
-          <ShopButton asChild>
+        // A banner above the plans: the offer on the left, its one action on the right; stacked on a phone.
+        <Card className="mb-12 flex-row flex-wrap items-center justify-between gap-x-8 gap-y-5 p-7 max-narrow:mb-10 max-narrow:px-5 max-narrow:py-[22px]">
+          <div className="max-w-[640px] min-w-0 flex-[1_1_320px]">
+            <h2 className={shopHeadingClass}>{trialCopy[lang].title}</h2>
+            <p className={shopTextClass}>{trialCopy[lang].description(catalog.trial.days, catalog.trial.quotaMb)}</p>
+          </div>
+          <ShopButton asChild className="shrink-0 max-narrow:w-full">
             <Link href={`/${LANG_PATHS[lang]}shop/account/`}>{trialCopy[lang].signin}</Link>
           </ShopButton>
         </Card>
@@ -459,27 +462,8 @@ export function Shop({ lang }: { lang: Lang }) {
             </h2>
             <p className={shopTextClass}>{t.pricing}</p>
           </div>
-          {plans.some((product) => product.periodDays) && (
-            <ShopField
-              htmlFor="shop-contact-email"
-              label={t.emailLabel}
-              hint={t.emailHint}
-              hintId="shop-contact-email-hint"
-            >
-              <Input
-                className={cn(shopInputClass, "max-w-[420px]")}
-                id="shop-contact-email"
-                type="email"
-                autoComplete="email"
-                maxLength={254}
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                aria-describedby="shop-contact-email-hint"
-              />
-            </ShopField>
-          )}
           {carried && (
-            <Alert className="my-5 max-w-[640px]">
+            <Alert className="mt-5 max-w-[640px]">
               <AlertDescription className="text-foreground">
                 {t.carriedAddress(`${carried.username}@${carried.domain}`)}
               </AlertDescription>
@@ -490,66 +474,90 @@ export function Shop({ lang }: { lang: Lang }) {
               </div>
             </Alert>
           )}
-          {couponsOffered && (
-            <details className="group/coupon my-5 max-w-[640px]">
-              <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current [&::-webkit-details-marker]:hidden">
-                {t.couponToggle}
-                <span
-                  className="text-muted-foreground no-underline transition-transform duration-150 group-open/coupon:rotate-45"
-                  aria-hidden="true"
-                >
-                  +
-                </span>
-              </summary>
-              <form
-                className="mt-1"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void applyCoupon();
-                }}
-              >
+          {/* The order's options, side by side above the tablet width: the contact email, then the discount code. */}
+          <div className="flex flex-wrap items-start gap-x-12 max-tablet:block">
+            {plans.some((product) => product.periodDays) && (
+              <div className="max-w-[420px] min-w-0 flex-[1_1_320px]">
                 <ShopField
-                  htmlFor="shop-coupon"
-                  label={t.couponLabel}
-                  hint={couponError || t.couponHint}
-                  hintId="shop-coupon-hint"
-                  invalid={Boolean(couponError)}
+                  htmlFor="shop-contact-email"
+                  label={t.emailLabel}
+                  hint={t.emailHint}
+                  hintId="shop-contact-email-hint"
                 >
-                  <div className="flex flex-wrap gap-2">
-                    <Input
-                      className={cn(shopInputClass, "max-w-[260px] min-w-0 flex-1 uppercase placeholder:normal-case")}
-                      id="shop-coupon"
-                      autoComplete="off"
-                      autoCapitalize="characters"
-                      spellCheck={false}
-                      maxLength={COUPON_MAX_LENGTH}
-                      value={coupon}
-                      onChange={(event) => changeCoupon(event.target.value)}
-                      aria-describedby="shop-coupon-hint"
-                      aria-invalid={couponError ? true : undefined}
-                    />
-                    <ShopButton variant="outline" type="submit" disabled={!typedCoupon || couponChecking}>
-                      {couponChecking ? t.couponChecking : t.couponApply}
-                    </ShopButton>
-                    {coupon !== "" && (
-                      <Button variant="link" className="text-sm" type="button" onClick={() => changeCoupon("")}>
-                        {t.couponRemove}
-                      </Button>
-                    )}
-                  </div>
+                  <Input
+                    className={cn(shopInputClass, "max-w-[420px]")}
+                    id="shop-contact-email"
+                    type="email"
+                    autoComplete="email"
+                    maxLength={254}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    aria-describedby="shop-contact-email-hint"
+                  />
                 </ShopField>
-                <p className="text-sm/[1.7]" role="status">
-                  {/* "Can't be used" only once every plan on offer was asked: an unchecked plan may still take the code. */}
-                  {applied &&
-                    {
-                      applied: t.couponApplied(applied.code),
-                      refused: t.couponInvalid,
-                      unchecked: t.couponUnchecked,
-                    }[couponVerdict(applied.quotes, applied.offered)]}
-                </p>
-              </form>
-            </details>
-          )}
+              </div>
+            )}
+            {couponsOffered && (
+              <details className="group/coupon mt-5 mb-6 max-w-[520px] max-tablet:mt-0 min-w-0 flex-[1_1_320px]">
+                <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current [&::-webkit-details-marker]:hidden">
+                  {t.couponToggle}
+                  <span
+                    className="text-muted-foreground no-underline transition-transform duration-150 group-open/coupon:rotate-45"
+                    aria-hidden="true"
+                  >
+                    +
+                  </span>
+                </summary>
+                <form
+                  className="mt-1"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void applyCoupon();
+                  }}
+                >
+                  <ShopField
+                    htmlFor="shop-coupon"
+                    label={t.couponLabel}
+                    hint={couponError || t.couponHint}
+                    hintId="shop-coupon-hint"
+                    invalid={Boolean(couponError)}
+                  >
+                    <div className="flex flex-wrap gap-2">
+                      <Input
+                        className={cn(shopInputClass, "max-w-[260px] min-w-0 flex-1 uppercase placeholder:normal-case")}
+                        id="shop-coupon"
+                        autoComplete="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        maxLength={COUPON_MAX_LENGTH}
+                        value={coupon}
+                        onChange={(event) => changeCoupon(event.target.value)}
+                        aria-describedby="shop-coupon-hint"
+                        aria-invalid={couponError ? true : undefined}
+                      />
+                      <ShopButton variant="outline" type="submit" disabled={!typedCoupon || couponChecking}>
+                        {couponChecking ? t.couponChecking : t.couponApply}
+                      </ShopButton>
+                      {coupon !== "" && (
+                        <Button variant="link" className="text-sm" type="button" onClick={() => changeCoupon("")}>
+                          {t.couponRemove}
+                        </Button>
+                      )}
+                    </div>
+                  </ShopField>
+                  <p className="text-sm/[1.7]" role="status">
+                    {/* "Can't be used" only once every plan on offer was asked: an unchecked plan may still take the code. */}
+                    {applied &&
+                      {
+                        applied: t.couponApplied(applied.code),
+                        refused: t.couponInvalid,
+                        unchecked: t.couponUnchecked,
+                      }[couponVerdict(applied.quotes, applied.offered)]}
+                  </p>
+                </form>
+              </details>
+            )}
+          </div>
           {checkoutError && (
             <ShopAlert ref={checkoutAlert} className={cn("scroll-mt-24", shopArriveClass)}>
               {checkoutError}
@@ -670,7 +678,7 @@ export function Shop({ lang }: { lang: Lang }) {
                         <p
                           className={cn(
                             "text-sm/body",
-                            catalog.payment.ldc ? "mt-auto pt-4 text-muted-foreground" : "font-semibold",
+                            catalog.payment.ldc ? "pt-4 text-muted-foreground" : "font-semibold",
                           )}
                         >
                           {seatPlan ? t.seatCardEach(cardPrice, days) : t.cardPrice(cardPrice, days)}
@@ -681,7 +689,7 @@ export function Shop({ lang }: { lang: Lang }) {
                           className={cn(
                             "flex flex-wrap items-center gap-x-2 gap-y-1 text-sm/body",
                             catalog.payment.ldc || cardPrice
-                              ? cn(cardPrice ? "pt-1" : "mt-auto pt-4", "text-muted-foreground")
+                              ? cn(cardPrice ? "pt-1" : "pt-4", "text-muted-foreground")
                               : "font-semibold",
                           )}
                         >
