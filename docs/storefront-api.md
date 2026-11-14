@@ -57,7 +57,7 @@ Wrangler connects the local `MAIL` binding by Worker name; when mail is not runn
 | `count_exceeded`   | 409     | count    | The batch size exceeds what the redeem code can still activate, or exceeds the limit of 20 per request   |
 | `domain_invalid`   | 400     | domain   | This redeem code does not allow activation on that domain                                                |
 | `username_invalid` | 400     | username | Does not meet the local-part rules (see below)                                                           |
-| `username_taken`   | 409     | username | Already exists under the same domain (in local records or already on the Stalwart server)                |
+| `username_taken`   | 409     | username | Already exists under the same domain (in local records or already on the mail server)                    |
 | `password_invalid` | 400     | password | Does not meet mailhq's password requirements                                                             |
 | `notify_invalid`   | 400     | notify   | The address that receives the account details is malformed or too long                                   |
 | `rate_limited`     | 429     | -        | Too many requests                                                                                        |
@@ -81,7 +81,7 @@ Response `200`:
 ```
 
 - `domains`: the domains on which this redeem code can activate mailboxes, at least one, the first being the default; only domains managed in "Settings" are listed.
-- `quotaSupportedByDomain`: per-mailbox hard quota capability returned per domain; only domains explicitly bound to a single active Stalwart connection return `true`. Contains no management connection credentials.
+- `quotaSupportedByDomain`: per-mailbox hard quota capability returned per domain; only domains explicitly bound to a single active mail server connection return `true`. Contains no management connection credentials.
 - `expiresAt`: ISO 8601, `null` means never expires. `usesLeft`: how many more mailboxes can be activated, always a non-negative integer (every redeem code has a limited number of uses, at most 1000 in mail; there is no "unlimited");
   the redeem page uses it to show the count dropdown (at most 20 per request), and treats a value that is not a non-negative integer as an invalid response format.
 - `turnstileSiteKey`: present only when mailhq has Cloudflare Turnstile human verification enabled. The redeem page uses it to render the verification widget above the submit button and sends the token when activating.
@@ -95,7 +95,7 @@ Response `200`: `{ "available": true, "email": "kunish@abnormalhq.com" }`; taken
 
 - The server first normalizes with mailhq's `normalizeUsername` (trim whitespace, lowercase, drop everything after @), then validates against `LOCAL_PART_PATTERN`
   (`^[a-z0-9](?:(?:[a-z0-9_-]|\.(?!\.)){0,62}[a-z0-9])?$`: starts and ends with a letter or digit, no two consecutive dots, at most 64 characters).
-- "Taken" is determined by mailhq's `existingUsernames` query against local records and by `listMailboxes(domain)` against the Stalwart server; existence in either means taken.
+- "Taken" is determined by mailhq's `existingUsernames` query against local records and by `listMailboxes(domain)` against the mail server; existence in either means taken.
 - The redeem page calls this 500ms after typing pauses, only as an early hint; the activation step is authoritative.
 
 ## `POST /api/onboard/redeem` Activate mailboxes
@@ -146,7 +146,7 @@ Response `201`:
   when the redeem code runs out midway, all the following ones are `code_used`. When all fail, the first one's reason is returned as a normal error response.
 - Password validation matches mailhq's `mailboxPasswordError` and `parsePassword`: 8-128 characters, no whitespace, no specific character classes required.
 - What the server does for each mailbox, in order: take one use from the redeem code (atomically) -> `createMailbox` (register locally as "pending", `cdk_id` records the origin, no note is written) ->
-  push to the Stalwart server bound to the domain to create it (using the redeem code's quota when it is configured with a positive quota and the domain supports it, otherwise the connection's default quota) -> mark as "active" -> write the redemption record (whose IP, which mailbox, when) ->
+  push to the mail server bound to the domain to create it (using the redeem code's quota when it is configured with a positive quota and the domain supports it, otherwise the connection's default quota) -> mark as "active" -> write the redemption record (whose IP, which mailbox, when) ->
   write the operation log (`action: "mailbox.redeem"`, `target` is the mailbox, `detail` carries the redeem code). A local registration collision or a push failure returns the use and deletes the local record,
   leaving no pending record; if the remote creation succeeds but the local status update or logging fails, the created mailbox is kept and the credentials are returned, without creating again or returning the use.
 - `imap` / `smtp` are resolved from the single active connection of the domain activated in this request. For a manually configured connection the IMAP / SMTP settings in "Settings" are used; other connections use their own TLS endpoints.
@@ -944,10 +944,10 @@ equal to mail's copy, and mail's `docs/shop.md` lists the same points as propose
 
 ## Self-hosted mail server and quotas
 
-mailhq currently uses only Stalwart; activation, password changes, quotas and domain ownership are handled server-side by active connection. Mail is sent, received and stored in Stalwart;
+Mailboxes live on self-hosted mail servers; activation, password changes, quotas and domain ownership are handled server-side by active connection. Mail is sent, received and stored on the mail server;
 the Worker provides the application and protocol connections, and PostgreSQL stores business records and a rebuildable reading cache, not the primary mailbox storage.
 
-`quotaSupportedByDomain` in `/api/onboard/cdk` and in public products and orders returns a boolean per domain; only a single, valid Stalwart binding promises a per-mailbox hard quota.
+`quotaSupportedByDomain` in `/api/onboard/cdk` and in public products and orders returns a boolean per domain; only a single, valid mail server binding promises a per-mailbox hard quota.
 `false` or mixed capability must not be read as unlimited storage; the UI shows that the quota is unavailable or that the selected domain's server settings apply, respectively.
 When `quotaMb > 0` and the domain supports quotas, the product / redeem code's capacity is used; `quotaMb = 0` means the connection's default quota, and only when the server default is also 0 is no capacity limit set.
 Orders keep `quotaMb` and the other sales terms from the time of purchase; `quotaSupportedByDomain` is recomputed at query time from the current domain bindings, and the actual activation follows the current server configuration.
