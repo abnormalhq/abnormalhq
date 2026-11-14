@@ -13,7 +13,7 @@ import { legalSections } from "@/lib/legal";
 import { legalStructuredData } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
-import { JsonLd } from "./JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 import { SectionToc } from "./SectionToc";
 
 export function LegalDocument({

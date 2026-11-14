@@ -6,7 +6,7 @@ import { useCopy } from "@/i18n";
 import { securityStructuredData } from "@/lib/structured-data";
 import { DocArticle } from "./DocArticle";
 import { Icon } from "./Icon";
-import { JsonLd } from "./JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 
 /**
  * The security and privacy overview (/security/, /zh/security/): what protects a mailbox, what is not offered, where data is

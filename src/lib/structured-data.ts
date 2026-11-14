@@ -412,8 +412,3 @@ export function storeStructuredData(lang: Lang, path: StoreMarkdownPath) {
     ...(howTo ? [howTo] : []),
   ]);
 }
-
-/** Written into <script type="application/ld+json">: escapes < so a </script> in the copy cannot end the script early. */
-export function serializeJsonLd(data: unknown): string {
-  return JSON.stringify(data).replace(/</g, "\\u003c");
-}

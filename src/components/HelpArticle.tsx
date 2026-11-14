@@ -9,7 +9,7 @@ import { fillTemplate } from "@/lib/template";
 import { DocArticle } from "./DocArticle";
 import { HelpLinks } from "./HelpLinks";
 import { Icon } from "./Icon";
-import { JsonLd } from "./JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 
 /** At most this many related articles under an article; a topic has up to five. */
 const RELATED_MAX = 3;

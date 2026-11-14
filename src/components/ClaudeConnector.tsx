@@ -6,7 +6,7 @@ import { useCopy } from "@/i18n";
 import { claudeStructuredData } from "@/lib/structured-data";
 import { DocArticle } from "./DocArticle";
 import { Icon } from "./Icon";
-import { JsonLd } from "./JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 
 /**
  * The Claude connector page (/claude/, /zh/claude/): how an administrator connects Claude to the admin console's MCP server,

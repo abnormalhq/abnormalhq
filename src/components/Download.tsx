@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { CommandLine } from "./CommandLine";
 import { ForThisComputer, PhoneNote } from "./DownloadHint";
 import { Icon } from "./Icon";
-import { JsonLd } from "./JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 
 /**
  * Desktop client download page: current version number, one card per platform, sign-in notes, past releases and checksums.

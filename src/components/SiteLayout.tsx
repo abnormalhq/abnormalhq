@@ -2,6 +2,7 @@
  * HTML skeleton shared by both languages: theme script, font preloads, skip link, header, footer and the inquiry dialog.
  * / (English) and /zh/ (Chinese) each have a root layout (the two route groups under src/app) that only hands the language to this.
  */
+import { SkipLink } from "@/components/ui/skip-link";
 import type { ReactNode } from "react";
 import { preload } from "react-dom";
 import type { Lang } from "@/data/site";
@@ -33,12 +34,7 @@ export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode
         <ThemeHead />
       </head>
       <body>
-        <a
-          className="fixed top-3 left-4 z-50 -translate-y-[160%] rounded-control bg-foreground px-3.5 py-2 text-background focus:translate-y-0"
-          href="#main"
-        >
-          {t.skipLink}
-        </a>
+        <SkipLink href="#main">{t.skipLink}</SkipLink>
         <InquiryProvider
           lang={lang}
           copy={t.inquiry}

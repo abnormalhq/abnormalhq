@@ -13,7 +13,7 @@ import { AddressCheck } from "./AddressCheck";
 import { HelpLinks } from "./HelpLinks";
 import { Icon } from "./Icon";
 import { Included } from "./Included";
-import { JsonLd } from "./JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 import { PlanCards, PlanComparison, PlanNotice } from "./PlanCards";
 
 /**

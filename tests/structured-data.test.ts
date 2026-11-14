@@ -13,7 +13,6 @@ import {
   homeStructuredData,
   legalStructuredData,
   pricingStructuredData,
-  serializeJsonLd,
   storeStructuredData,
 } from "../src/lib/structured-data.ts";
 import { catalog, seatCatalog } from "./support/catalog.ts";
@@ -207,10 +206,4 @@ test("every @id the graph refers to is defined in it", () => {
     const refs = JSON.stringify(graph).match(/\{"@id":"[^"]+"\}/g) ?? [];
     for (const ref of refs) assert.ok(defined.has(JSON.parse(ref)["@id"]), ref);
   }
-});
-
-test("serialized JSON-LD cannot close its script tag", () => {
-  const text = serializeJsonLd({ answer: "</script><script>alert(1)</script>" });
-  assert.ok(!text.includes("<"));
-  assert.deepEqual(JSON.parse(text), { answer: "</script><script>alert(1)</script>" });
 });

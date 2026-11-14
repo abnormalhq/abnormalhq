@@ -12,7 +12,7 @@ import { Features } from "./Features";
 import { Hero } from "./Hero";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
-import { JsonLd } from "./JsonLd";
+import { JsonLd } from "@/components/ui/json-ld";
 import { PricingSection } from "./PricingSection";
 import { Process } from "./Process";
 import { PromoVideo } from "./PromoVideo";
