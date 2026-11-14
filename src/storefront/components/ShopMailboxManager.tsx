@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupButton, InputGroupInput, InputGroupSuffix } from "@/components/ui/input-group";
@@ -647,21 +649,29 @@ function MailServers({ servers }: { servers: AccountMailboxes["servers"] }) {
   if (entries.length === 0) return null;
   const security = (value: string) => (value === "tls" ? "SSL/TLS" : value === "starttls" ? "STARTTLS" : value);
   return (
-    <details className="mt-6 border-t border-border pt-5">
-      <summary className="cursor-pointer text-sm/[1.7]">{t.mailServersTitle}</summary>
-      {entries.map(([domain, { imap, smtp }]) => (
-        <ShopMeta key={domain}>
-          <ShopMetaRow label={domain}>
-            {imap && (
-              <span className="block">{t.mailServerLine("IMAP", imap.host, imap.port, security(imap.security))}</span>
-            )}
-            {smtp && (
-              <span className="block">{t.mailServerLine("SMTP", smtp.host, smtp.port, security(smtp.security))}</span>
-            )}
-          </ShopMetaRow>
-        </ShopMeta>
-      ))}
-      <p className={shopTextClass}>{t.mailServersHint}</p>
-    </details>
+    <Collapsible className="group/servers mt-6 border-t border-border pt-5">
+      <CollapsibleTrigger className="inline-flex cursor-pointer items-center gap-1.5 text-sm/[1.7]">
+        <ChevronRightIcon
+          className="size-3.5 transition-transform duration-150 group-data-[state=open]/servers:rotate-90"
+          aria-hidden="true"
+        />
+        {t.mailServersTitle}
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {entries.map(([domain, { imap, smtp }]) => (
+          <ShopMeta key={domain}>
+            <ShopMetaRow label={domain}>
+              {imap && (
+                <span className="block">{t.mailServerLine("IMAP", imap.host, imap.port, security(imap.security))}</span>
+              )}
+              {smtp && (
+                <span className="block">{t.mailServerLine("SMTP", smtp.host, smtp.port, security(smtp.security))}</span>
+              )}
+            </ShopMetaRow>
+          </ShopMeta>
+        ))}
+        <p className={shopTextClass}>{t.mailServersHint}</p>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

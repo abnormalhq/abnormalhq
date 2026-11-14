@@ -42,6 +42,7 @@ import {
 } from "@/storefront/lib/address";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { IconTile } from "@/components/ui/icon-tile";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -498,64 +499,69 @@ export function Shop({ lang }: { lang: Lang }) {
               </div>
             )}
             {couponsOffered && (
-              <details className="group/coupon mt-5 mb-6 max-w-[520px] max-tablet:mt-0 min-w-0 flex-[1_1_320px]">
-                <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current [&::-webkit-details-marker]:hidden">
+              <Collapsible className="group/coupon mt-5 mb-6 max-w-[520px] max-tablet:mt-0 min-w-0 flex-[1_1_320px]">
+                <CollapsibleTrigger className="inline-flex min-h-9 cursor-pointer items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current">
                   {t.couponToggle}
                   <span
-                    className="text-muted-foreground no-underline transition-transform duration-150 group-open/coupon:rotate-45"
+                    className="text-muted-foreground no-underline transition-transform duration-150 group-data-[state=open]/coupon:rotate-45"
                     aria-hidden="true"
                   >
                     +
                   </span>
-                </summary>
-                <form
-                  className="mt-1"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void applyCoupon();
-                  }}
-                >
-                  <ShopField
-                    htmlFor="shop-coupon"
-                    label={t.couponLabel}
-                    hint={couponError || t.couponHint}
-                    hintId="shop-coupon-hint"
-                    invalid={Boolean(couponError)}
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <form
+                    className="mt-1"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void applyCoupon();
+                    }}
                   >
-                    <div className="flex flex-wrap gap-2">
-                      <Input
-                        className={cn(shopInputClass, "max-w-[260px] min-w-0 flex-1 uppercase placeholder:normal-case")}
-                        id="shop-coupon"
-                        autoComplete="off"
-                        autoCapitalize="characters"
-                        spellCheck={false}
-                        maxLength={COUPON_MAX_LENGTH}
-                        value={coupon}
-                        onChange={(event) => changeCoupon(event.target.value)}
-                        aria-describedby="shop-coupon-hint"
-                        aria-invalid={couponError ? true : undefined}
-                      />
-                      <ShopButton variant="outline" type="submit" disabled={!typedCoupon || couponChecking}>
-                        {couponChecking ? t.couponChecking : t.couponApply}
-                      </ShopButton>
-                      {coupon !== "" && (
-                        <Button variant="link" className="text-sm" type="button" onClick={() => changeCoupon("")}>
-                          {t.couponRemove}
-                        </Button>
-                      )}
-                    </div>
-                  </ShopField>
-                  <p className="text-sm/[1.7]" role="status">
-                    {/* "Can't be used" only once every plan on offer was asked: an unchecked plan may still take the code. */}
-                    {applied &&
-                      {
-                        applied: t.couponApplied(applied.code),
-                        refused: t.couponInvalid,
-                        unchecked: t.couponUnchecked,
-                      }[couponVerdict(applied.quotes, applied.offered)]}
-                  </p>
-                </form>
-              </details>
+                    <ShopField
+                      htmlFor="shop-coupon"
+                      label={t.couponLabel}
+                      hint={couponError || t.couponHint}
+                      hintId="shop-coupon-hint"
+                      invalid={Boolean(couponError)}
+                    >
+                      <div className="flex flex-wrap gap-2">
+                        <Input
+                          className={cn(
+                            shopInputClass,
+                            "max-w-[260px] min-w-0 flex-1 uppercase placeholder:normal-case",
+                          )}
+                          id="shop-coupon"
+                          autoComplete="off"
+                          autoCapitalize="characters"
+                          spellCheck={false}
+                          maxLength={COUPON_MAX_LENGTH}
+                          value={coupon}
+                          onChange={(event) => changeCoupon(event.target.value)}
+                          aria-describedby="shop-coupon-hint"
+                          aria-invalid={couponError ? true : undefined}
+                        />
+                        <ShopButton variant="outline" type="submit" disabled={!typedCoupon || couponChecking}>
+                          {couponChecking ? t.couponChecking : t.couponApply}
+                        </ShopButton>
+                        {coupon !== "" && (
+                          <Button variant="link" className="text-sm" type="button" onClick={() => changeCoupon("")}>
+                            {t.couponRemove}
+                          </Button>
+                        )}
+                      </div>
+                    </ShopField>
+                    <p className="text-sm/[1.7]" role="status">
+                      {/* "Can't be used" only once every plan on offer was asked: an unchecked plan may still take the code. */}
+                      {applied &&
+                        {
+                          applied: t.couponApplied(applied.code),
+                          refused: t.couponInvalid,
+                          unchecked: t.couponUnchecked,
+                        }[couponVerdict(applied.quotes, applied.offered)]}
+                    </p>
+                  </form>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </div>
           {checkoutError && (
