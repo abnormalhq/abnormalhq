@@ -5,11 +5,30 @@
  * The celebration on the order page is for a payment the buyer just made, not for every visit to a paid order: the page
  * notes an order it showed as pending (sessionStorage, so it survives the trip to the payment provider and back in the
  * same tab) and celebrates once when that order turns up paid.
+ *
+ * It also sets the pace at which the order page looks at an order paid by card or Linux DO Credit (cardPollDelay).
  */
 
 export const ORDER_AWAITING_KEY = "abnormal-order-awaiting";
 /** A tab rarely has more than one order open; a few are kept so a second purchase does not forget the first. */
 const REMEMBERED_ORDERS = 8;
+
+/** The first look at a pending order paid by card or Linux DO Credit, and the pace of the first minute. */
+export const CARD_POLL_MS = 5_000;
+/** How many looks are CARD_POLL_MS apart before the waits grow: most payments are confirmed within that first minute. */
+const CARD_POLL_QUICK = 12;
+/** The longest wait between two looks. */
+export const CARD_POLL_MAX_MS = 30_000;
+/**
+ * How long one round of looking lasts: long enough for a slow 3-D Secure check, a bank's redirect or a late webhook. When it
+ * runs out the page stops saying it is waiting, and the buyer coming back to the tab starts a new round.
+ */
+export const CARD_POLL_LIMIT_MS = 10 * 60 * 1000;
+
+/** The wait before the next look after `attempts` looks: CARD_POLL_MS for the first minute, then half as long again each time, up to CARD_POLL_MAX_MS. */
+export function cardPollDelay(attempts: number): number {
+  return Math.min(CARD_POLL_MAX_MS, Math.round(CARD_POLL_MS * 1.5 ** Math.max(0, attempts - CARD_POLL_QUICK)));
+}
 
 export type OrderStepStatus = "complete" | "current" | "upcoming";
 export type OrderStep = { key: "placed" | "pay" | "code" | "done"; status: OrderStepStatus };

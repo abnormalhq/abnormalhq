@@ -21,7 +21,14 @@ import {
   formatMoney,
 } from "@/storefront/lib/shop";
 import { orderCoupon, recallCoupon } from "@/storefront/lib/coupon";
-import { markAwaiting, orderSteps, takeAwaiting } from "@/storefront/lib/order-progress";
+import {
+  CARD_POLL_LIMIT_MS,
+  CARD_POLL_MS,
+  cardPollDelay,
+  markAwaiting,
+  orderSteps,
+  takeAwaiting,
+} from "@/storefront/lib/order-progress";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
@@ -101,6 +108,8 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const successMark = useRef<HTMLDivElement>(null);
   // This tab showed the order waiting for payment (now or before the trip to the payment page): its payment is celebrated.
   const awaited = useRef(false);
+  // Aborted when the page goes away, for what runs on after an event (refreshOrder's reads).
+  const lifetime = useRef<AbortController | null>(null);
   const order = result?.order;
   const paid = order?.status === "paid";
   const pending = order?.status === "pending";
@@ -122,6 +131,12 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const amount = (cents: number) => formatAmount(cents, order?.provider, order?.currency, lang);
 
   useEffect(() => {
+    const controller = new AbortController();
+    lifetime.current = controller;
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (!validId) return;
     const controller = new AbortController();
     getShopOrder(orderId, controller.signal, lang)
@@ -136,13 +151,19 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     // The USDT panel asks pay/usdt instead, which also has mail look at the chain.
     if (!pending || usdt) return;
     const controller = new AbortController();
+    let started = Date.now();
     let attempts = 0;
     let timer = 0;
+    // A read is on its way: coming back to the tab meanwhile does not send a second one.
+    let busy = false;
+    let ended = false;
 
     async function poll() {
-      if (controller.signal.aborted) return;
+      window.clearTimeout(timer);
+      if (controller.signal.aborted || busy) return;
       if (document.visibilityState === "visible" && !checkLock.current) {
         attempts += 1;
+        busy = true;
         try {
           const next = await getShopOrder(orderId, controller.signal, lang);
           if (controller.signal.aborted) return;
@@ -150,18 +171,39 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           setResult((current) => (current?.order.status === "paid" ? current : next));
           if (next.order.status === "paid") return;
         } catch {
-          // Transient background failures leave the manual check available.
+          // Transient background failures (a read that timed out among them) leave the manual check available.
           if (controller.signal.aborted) return;
+        } finally {
+          busy = false;
         }
       }
-      if (attempts < 12) timer = window.setTimeout(() => void poll(), 5000);
-      else setPollEnded(pollRound);
+      if (Date.now() - started < CARD_POLL_LIMIT_MS) {
+        timer = window.setTimeout(() => void poll(), cardPollDelay(attempts));
+        return;
+      }
+      ended = true;
+      setPollEnded(pollRound);
     }
 
-    timer = window.setTimeout(() => void poll(), 5000);
+    // The buyer is back (from the bank's page, a 3-D Secure app or another tab): look at once and at the quick pace again,
+    // with a new allowance, also when this round had already run out.
+    function resume() {
+      if (document.visibilityState !== "visible" || controller.signal.aborted) return;
+      started = Date.now();
+      attempts = 0;
+      if (ended) {
+        ended = false;
+        setPollEnded(-1);
+      }
+      void poll();
+    }
+
+    timer = window.setTimeout(() => void poll(), CARD_POLL_MS);
+    document.addEventListener("visibilitychange", resume);
     return () => {
       controller.abort();
       window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", resume);
     };
   }, [orderId, pending, usdt, lang, pollRound]);
 
@@ -212,18 +254,23 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
    * a replica answers with the order still pending) is tried again a few times before the error is shown.
    */
   async function refreshOrder() {
+    // The reads end with the page: leaving it (or opening another order) does not leave them running.
+    const signal = lifetime.current?.signal;
     for (let attempt = 1; ; attempt++) {
       try {
-        const next = await getShopOrder(orderId, undefined, lang);
+        const next = await getShopOrder(orderId, signal, lang);
+        if (signal?.aborted) return;
         setResult((current) => (current?.order.status === "paid" ? current : next));
         if (next.order.status === "paid" || attempt >= USDT_PAID_READS) return;
       } catch (cause) {
+        if (signal?.aborted) return;
         if (attempt >= USDT_PAID_READS) {
           setError(describeShopError(cause, lang, t, { notFound: t.notFound }));
           return;
         }
       }
       await new Promise((resolve) => setTimeout(resolve, USDT_PAID_READ_MS));
+      if (signal?.aborted) return;
     }
   }
 
