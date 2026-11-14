@@ -5,6 +5,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FieldMessage } from "@/components/ui/field-message";
 import { Label } from "@/components/ui/label";
 import { Eyebrow } from "@/components/ui/section-heading";
 import { Spinner } from "@/components/ui/spinner";
@@ -147,8 +148,9 @@ export function ShopMailboxes({ mailboxes }: { mailboxes: string[] }) {
 }
 
 /**
- * A labelled field with a hint below. hintId goes on the hint so the control can point at it with aria-describedby; with invalid the hint is the field's error:
- * it turns the error colour and is inserted anew as an alert, so it is read out even when the wording is the rule that was already shown.
+ * A labelled field with a hint below: the registry's Label and FieldMessage. hintId goes on the hint so the control can point at it
+ * with aria-describedby; with invalid the hint is the field's error: it takes the error tone and is inserted anew as an assertive
+ * alert, so it is read out even when the wording is the rule that was already shown.
  */
 export function ShopField({
   htmlFor,
@@ -172,14 +174,16 @@ export function ShopField({
       </Label>
       {children}
       {hint !== undefined && (
-        <p
+        <FieldMessage
           key={invalid ? "error" : "hint"}
-          className={cn("max-w-[560px] text-xs/[1.6]", invalid ? "text-destructive" : "text-muted-foreground")}
+          className="mt-0 max-w-[560px]"
+          tone={invalid ? "error" : "default"}
           id={hintId}
           role={invalid ? "alert" : undefined}
+          aria-live={invalid ? "assertive" : "polite"}
         >
           {hint}
-        </p>
+        </FieldMessage>
       )}
     </div>
   );
