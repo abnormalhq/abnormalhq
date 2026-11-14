@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
 import type { Lang } from "@/storefront/i18n";
@@ -24,8 +25,8 @@ import {
 import { formatDateTime, isRefusal } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
+import { writeClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
-import { CopyButton } from "./onboard/CopyButton";
 import {
   ShopActions,
   ShopAlert,
@@ -226,7 +227,17 @@ function CopyField({ id, label, value, hint }: { id: string; label: string; valu
           aria-describedby={hint ? `${id}-hint` : undefined}
           onFocus={(event) => event.currentTarget.select()}
         />
-        <CopyButton text={value} label={t.domainCopy} copiedLabel={t.domainCopied} />
+        <CopyButton
+          size="sm"
+          className="mr-1"
+          text={value}
+          label={t.domainCopy}
+          copiedLabel={t.domainCopied}
+          failedLabel={t.copyFailedShort}
+          write={writeClipboard}
+        >
+          {t.domainCopy}
+        </CopyButton>
       </InputGroup>
       {hint && (
         <p className="text-xs/[1.6] text-muted-foreground" id={`${id}-hint`}>

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
@@ -31,10 +32,10 @@ import {
 } from "@/storefront/lib/order-progress";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
+import { writeClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
 import { celebrate } from "./onboard/celebrate";
-import { copyText } from "./onboard/clipboard";
 import { ShopDetails } from "./ShopDetails";
 import {
   ShopActions,
@@ -103,8 +104,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
   const [pollRound, setPollRound] = useState(0);
   // The round of polling that ran out without a payment: until then the page says it is waiting for the payment.
   const [pollEnded, setPollEnded] = useState(-1);
-  // "Copied" on the button for a moment; the sentence below stays for screen readers and for a failed copy.
-  const [copied, setCopied] = useState(false);
   const successMark = useRef<HTMLDivElement>(null);
   // This tab showed the order waiting for payment (now or before the trip to the payment page): its payment is celebrated.
   const awaited = useRef(false);
@@ -222,12 +221,6 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     void celebrate(successMark.current, controller.signal);
     return () => controller.abort();
   }, [orderId, validId, status]);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
 
   async function reconcile() {
     if (checkLock.current) return;
@@ -517,18 +510,27 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   <p className={shopTextClass}>{t.expiryNote}</p>
                   {result.codeStatus === "available" && <p className={shopTextClass}>{t.setUpInAccountNote}</p>}
                   <ShopActions>
-                    <ShopButton
+                    <CopyButton
                       variant="outline"
-                      type="button"
-                      onClick={async () => {
-                        const done = await copyText(result.code!);
-                        setCopied(done);
-                        setCopyNotice(done ? t.copied : t.copyFailed);
+                      size="lg"
+                      className="h-auto min-h-10 gap-3 py-2 whitespace-normal"
+                      text={result.code}
+                      label={t.copy}
+                      copiedLabel={t.copied}
+                      failedLabel={t.copyFailed}
+                      // The button announces the outcome; the sentence below stays on the page, for a failed copy above all.
+                      write={async (text) => {
+                        try {
+                          await writeClipboard(text);
+                        } catch (error) {
+                          setCopyNotice(t.copyFailed);
+                          throw error;
+                        }
+                        setCopyNotice(t.copied);
                       }}
                     >
-                      {copied && <CheckIcon className="animate-pop text-success" aria-hidden="true" />}
-                      {copied ? t.copiedShort : t.copy}
-                    </ShopButton>
+                      {t.copy}
+                    </CopyButton>
                     {result.codeStatus === "available" && (
                       <>
                         <ShopButton asChild>
@@ -546,9 +548,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                       </>
                     )}
                   </ShopActions>
-                  <p className={shopTextClass} role="status">
-                    {copyNotice}
-                  </p>
+                  <p className={shopTextClass}>{copyNotice}</p>
                 </>
               ) : order.trial ? (
                 <>

@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { REDEEM_PATH, type Copy } from "@/storefront/i18n";
 import type { ServerEndpoint } from "@/storefront/lib/api";
+import { writeClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
 import { RichText, inlineLinkClass } from "@/storefront/components/RichText";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CopyButton } from "@/components/ui/copy-button";
 import { InputGroupButton } from "@/components/ui/input-group";
 import { Eyebrow } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
-import { CopyButton, inputActionClass } from "./CopyButton";
+import { inputActionClass } from "./AccountRow";
 import { Msg } from "./Msg";
 import { NO_NOTE, note, type Issued, type Outcome } from "./reducer";
 
@@ -104,10 +106,15 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
       </ul>
       <p className="mt-2" hidden={issued.length < 2}>
         <CopyButton
+          size="sm"
           label={t.buttons.copyAll}
           copiedLabel={t.buttons.copied}
-          text={() => issued.map((item) => `${item.email}\t${item.password}`).join("\n")}
-        />
+          failedLabel={t.buttons.copyFailed}
+          write={writeClipboard}
+          text={issued.map((item) => `${item.email}\t${item.password}`).join("\n")}
+        >
+          {t.buttons.copyAll}
+        </CopyButton>
       </p>
       <Msg
         className="mt-5"
@@ -186,11 +193,16 @@ function IssuedItem({ t, item }: { t: Copy; item: Issued }) {
       <span className={cn(issuedRowClass, "text-md/body font-medium max-narrow:text-base/body")}>
         <span className="min-w-0 wrap-anywhere">{item.email}</span>
         <CopyButton
+          size="sm"
           className={issuedActionClass}
           label={t.buttons.copy}
           copiedLabel={t.buttons.copied}
+          failedLabel={t.buttons.copyFailed}
+          write={writeClipboard}
           text={item.email}
-        />
+        >
+          {t.buttons.copy}
+        </CopyButton>
       </span>
       <span
         className={cn(
@@ -212,11 +224,16 @@ function IssuedItem({ t, item }: { t: Copy; item: Issued }) {
           {masked ? t.buttons.show : t.buttons.hide}
         </InputGroupButton>
         <CopyButton
+          size="sm"
           className={issuedActionClass}
           label={t.buttons.copy}
           copiedLabel={t.buttons.copied}
+          failedLabel={t.buttons.copyFailed}
+          write={writeClipboard}
           text={item.password}
-        />
+        >
+          {t.buttons.copy}
+        </CopyButton>
       </span>
     </li>
   );

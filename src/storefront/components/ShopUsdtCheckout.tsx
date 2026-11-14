@@ -9,17 +9,18 @@
  * When mail answers `paid` it tells the parent, which reads the order again and shows the code as for any other way of paying.
  * Nothing here holds a key or signs anything: the buyer pays from their own wallet.
  */
-import { CheckIcon, CopyIcon, TriangleAlertIcon } from "lucide-react";
+import { CheckIcon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { encode } from "uqr";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Spinner } from "@/components/ui/spinner";
+import { writeClipboard } from "@/lib/clipboard";
 import type { Lang } from "@/storefront/i18n";
 import { ShopApiError, startUsdtPayment, usdtDecimal, usdtUnits, type UsdtPaymentStart } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
-import { copyText } from "./onboard/clipboard";
 import {
   ShopActions,
   ShopAlert,
@@ -184,10 +185,15 @@ export function ShopUsdtCheckout({
     setRound((value) => value + 1);
   }
 
-  async function copy(value: string, done: string): Promise<boolean> {
-    const copied = await copyText(value);
-    setCopyNotice(copied ? done : t.usdtCopyFailed);
-    return copied;
+  /** CopyButton's write: the button announces the outcome, and the sentence stays on the page below. */
+  async function copy(value: string, done: string): Promise<void> {
+    try {
+      await writeClipboard(value);
+    } catch (error) {
+      setCopyNotice(t.usdtCopyFailed);
+      throw error;
+    }
+    setCopyNotice(done);
   }
 
   if (phase === "loading") {
@@ -243,8 +249,10 @@ export function ShopUsdtCheckout({
           <CopyRow
             label={t.usdtAmount}
             copyLabel={t.usdtCopyAmount}
-            copiedLabel={t.copiedShort}
-            onCopy={() => copy(payment.amount, t.usdtAmountCopied)}
+            copiedLabel={t.usdtAmountCopied}
+            failedLabel={t.usdtCopyFailed}
+            value={payment.amount}
+            write={(text) => copy(text, t.usdtAmountCopied)}
           >
             <span className="text-[28px] leading-[1.2] font-semibold tracking-[-0.02em] tabular-nums">
               {payment.amount}
@@ -254,8 +262,10 @@ export function ShopUsdtCheckout({
           <CopyRow
             label={t.usdtAddress}
             copyLabel={t.usdtCopyAddress}
-            copiedLabel={t.copiedShort}
-            onCopy={() => copy(payment.address, t.usdtAddressCopied)}
+            copiedLabel={t.usdtAddressCopied}
+            failedLabel={t.usdtCopyFailed}
+            value={payment.address}
+            write={(text) => copy(text, t.usdtAddressCopied)}
           >
             <code className="font-mono text-sm/[1.6] break-all select-all">{payment.address}</code>
           </CopyRow>
@@ -305,34 +315,31 @@ export function ShopUsdtCheckout({
           </ShopButton>
         </ShopActions>
       )}
-      <p className={shopTextClass} role="status">
-        {copyNotice}
-      </p>
+      {/* Not a live region: the copy button announces the same sentence itself. */}
+      <p className={shopTextClass}>{copyNotice}</p>
     </div>
   );
 }
 
-/** One fact to copy: its label, the value, and a button that says "Copied" for a moment. */
+/** One fact to copy: its label, the value, and a button that copies it and shows how that went. */
 function CopyRow({
   label,
   copyLabel,
   copiedLabel,
-  onCopy,
+  failedLabel,
+  value,
+  write,
   children,
 }: {
   label: string;
   copyLabel: string;
   copiedLabel: string;
-  onCopy: () => Promise<boolean>;
+  failedLabel: string;
+  value: string;
+  write: (text: string) => Promise<void>;
   children: ReactNode;
 }) {
-  const [copied, setCopied] = useState(false);
   const id = useId();
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
   return (
     <div className="grid gap-1.5">
       <dt className="text-xs/body text-muted-foreground" id={id}>
@@ -340,21 +347,19 @@ function CopyRow({
       </dt>
       <dd className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <span className="min-w-0">{children}</span>
-        <ShopButton
+        <CopyButton
           variant="outline"
           size="sm"
-          type="button"
-          className="min-h-9"
+          className="h-auto min-h-9 gap-3 py-2 whitespace-normal"
+          text={value}
+          label={copyLabel}
+          copiedLabel={copiedLabel}
+          failedLabel={failedLabel}
+          write={write}
           aria-describedby={id}
-          onClick={async () => setCopied(await onCopy())}
         >
-          {copied ? (
-            <CheckIcon className="animate-pop text-success" aria-hidden="true" />
-          ) : (
-            <CopyIcon aria-hidden="true" />
-          )}
-          {copied ? copiedLabel : copyLabel}
-        </ShopButton>
+          {copyLabel}
+        </CopyButton>
       </dd>
     </div>
   );

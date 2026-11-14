@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupButton, InputGroupInput, InputGroupSuffix } from "@/components/ui/input-group";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -23,8 +24,9 @@ import {
 import { describeShopError } from "@/storefront/lib/shop-error";
 import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
 import { useShopCopy } from "./copy/context";
+import { writeClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
-import { CopyButton, inputActionClass } from "./onboard/CopyButton";
+import { inputActionClass } from "./onboard/AccountRow";
 import {
   ShopActions,
   ShopAlert,
@@ -303,7 +305,17 @@ function MailboxGroup({
           <p className="text-sm/[1.7]">{t.mailboxCreated(created.email)}</p>
           <InputGroup size="lg" className="mt-3 max-w-[420px]">
             <InputGroupInput readOnly value={created.password} aria-label={t.mailboxCreatedPassword} />
-            <CopyButton text={created.password} label={t.mailboxCopy} copiedLabel={t.mailboxCopied} />
+            <CopyButton
+              size="sm"
+              className={cn(inputActionClass, "mr-1")}
+              text={created.password}
+              label={t.mailboxCopy}
+              copiedLabel={t.mailboxCopied}
+              failedLabel={t.copyFailedShort}
+              write={writeClipboard}
+            >
+              {t.mailboxCopy}
+            </CopyButton>
           </InputGroup>
           <p className="mt-2 text-xs/[1.6] text-muted-foreground">{t.mailboxCreatedOnce}</p>
         </div>

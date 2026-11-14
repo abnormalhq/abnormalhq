@@ -73,6 +73,7 @@ export const en: Copy = {
     submitting: "Creating…",
     copy: "Copy",
     copied: "Copied",
+    copyFailed: "Copy failed",
     copyAll: "Copy all",
     openWebmail: "Open webmail",
   },

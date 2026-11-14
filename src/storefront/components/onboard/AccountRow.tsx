@@ -5,9 +5,11 @@ import { InputGroup, InputGroupButton, InputGroupInput, InputGroupSuffix } from 
 import { Label } from "@/components/ui/label";
 import type { Copy } from "@/storefront/i18n";
 import { cn } from "@/lib/utils";
-import { inputActionClass } from "./CopyButton";
 import { Msg } from "./Msg";
 import type { Row } from "./reducer";
+
+/** The text button inside an input is tightened a little more on phones. */
+export const inputActionClass = "max-narrow:px-1.5 max-narrow:text-xs/body";
 
 /** Small field label, also used by the options on the redeem page. */
 export const fieldLabelClass = "mb-1.5 block text-sm/body text-muted-foreground";

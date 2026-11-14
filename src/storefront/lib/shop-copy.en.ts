@@ -18,6 +18,7 @@ export const en: ShopCopy = {
   stepDone: "Completed",
   watching: "Waiting for your payment. This page updates by itself once it arrives.",
   copiedShort: "Copied",
+  copyFailedShort: "Copy failed",
   retry: "Try again",
   closed: "The shop is not open yet",
   closedDescription:

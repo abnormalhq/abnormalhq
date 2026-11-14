@@ -19,6 +19,7 @@ export const zh = {
   stepDone: "已完成",
   watching: "正在等待支付结果，到账后本页会自动更新。",
   copiedShort: "已复制",
+  copyFailedShort: "复制失败",
   retry: "重新加载",
   closed: "商店暂未开放购买",
   closedDescription: "目前没有可购买的套餐，请稍后再来。已有兑换码仍可正常开通邮箱。",
