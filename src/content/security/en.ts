@@ -68,7 +68,7 @@ export const securityEn: SecurityContent = {
       blocks: [
         {
           ul: [
-            "**Mail**: your messages, folders and flags are stored on our own Stalwart mail servers. We don't analyse mail content for advertising and never sell it.",
+            "**Mail**: your messages, folders and flags are stored on our own mail servers. We don't analyse mail content for advertising and never sell it.",
             "**Passwords**: mailbox passwords are stored encrypted in our management system, rather than hashed, because webmail and mailbox management sign in to the mail server with them. Shop account passwords are stored only as a one-way hash.",
             "**Secrets**: payment credentials, merchant keys and other sensitive settings are stored encrypted. While an import from another provider runs, that mailbox's password is kept encrypted and is deleted when the import ends.",
             "**Sessions**: for the purchase session and the shop account session, our database stores only a digest of the token in your browser.",
