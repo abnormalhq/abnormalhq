@@ -251,6 +251,46 @@ test("shop client: the caller's abort still ends a request at once, also where A
   }
 });
 
+test("shop client: a body that stalls after the headers fails with the timeout, not as an empty answer", async () => {
+  vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+    const signal = init.signal!;
+    // Headers now; the body never finishes, and errors with the signal's reason when it aborts (as fetch's body reading does).
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"status":'));
+        signal.addEventListener("abort", () => controller.error(signal.reason), { once: true });
+      },
+    });
+    return new Response(body, { status: 200, headers: { "Content-Type": "application/json" } });
+  });
+  const { expire } = manualTimeouts();
+  const controller = new AbortController();
+  const order = getShopOrder(ORDER_ID, controller.signal, "en");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expire();
+  await expect(order).rejects.toMatchObject({ name: "TimeoutError" });
+  expect(controller.signal.aborted).toBe(false);
+  vi.mocked(AbortSignal.timeout).mockRestore();
+});
+
+test("shop client: without AbortSignal.any, a finished request leaves no listener on the caller's signal", async () => {
+  vi.stubGlobal("fetch", async () => Response.json({ error: "not found" }, { status: 404 }));
+  const any = AbortSignal.any;
+  Object.defineProperty(AbortSignal, "any", { value: undefined, configurable: true, writable: true });
+  try {
+    const controller = new AbortController();
+    const added = vi.spyOn(controller.signal, "addEventListener");
+    const removed = vi.spyOn(controller.signal, "removeEventListener");
+    for (let round = 0; round < 3; round++)
+      await expect(getShopOrder(ORDER_ID, controller.signal, "en")).rejects.toMatchObject({ status: 404 });
+    expect(added).toHaveBeenCalledTimes(3);
+    expect(removed).toHaveBeenCalledTimes(3);
+    for (const [index, call] of added.mock.calls.entries()) expect(removed.mock.calls[index]![1]).toBe(call[1]);
+  } finally {
+    Object.defineProperty(AbortSignal, "any", { value: any, configurable: true, writable: true });
+  }
+});
+
 test("shop client: keeps the domain quota capability and rejects non-boolean capability values", async () => {
   vi.stubGlobal("fetch", async () =>
     Response.json(
