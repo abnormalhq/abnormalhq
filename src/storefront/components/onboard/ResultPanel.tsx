@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { REDEEM_PATH, type Copy } from "@/storefront/i18n";
 import type { ServerEndpoint } from "@/storefront/lib/api";
@@ -72,19 +73,7 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
           className="grid size-[46px] shrink-0 place-items-center rounded-full bg-[color-mix(in_oklab,var(--success)_10%,var(--card))] text-success max-narrow:size-9"
           aria-hidden="true"
         >
-          <svg
-            className="max-narrow:size-[22px]"
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m5 12 4 4L19 6" />
-          </svg>
+          <CheckIcon className="size-7 max-narrow:size-[22px]" />
         </span>
         <div className="min-w-0">
           <Eyebrow className="text-success before:hidden">{t.result.eyebrow}</Eyebrow>

@@ -1,3 +1,4 @@
+import { BookOpenIcon, CheckIcon, LockIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,7 +52,11 @@ export function Onboard({ lang }: { lang: Lang }) {
                 className="inline-flex items-center gap-1.5 text-xs/body text-muted-foreground max-narrow:gap-1"
                 key={feature}
               >
-                <CheckIcon className="shrink-0 text-foreground max-narrow:size-3" />
+                <CheckIcon
+                  className="size-[15px] shrink-0 text-foreground max-narrow:size-3"
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
                 {feature}
               </li>
             ))}
@@ -102,18 +107,7 @@ export function Onboard({ lang }: { lang: Lang }) {
                 className="mb-5 size-10 max-narrow:mb-[18px] max-narrow:size-[38px]"
                 aria-hidden="true"
               >
-                <svg
-                  width="25"
-                  height="25"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 6v14M3 4h5a4 4 0 0 1 4 2 4 4 0 0 1 4-2h5v14h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3Z" />
-                </svg>
+                <BookOpenIcon className="size-[25px]" strokeWidth={1.5} />
               </IconTile>
               <h2 className="text-xl/[1.35]">{t.ui.guideTitle}</h2>
               <p className={cn("mt-2.5 max-narrow:max-w-[44ch]", asideTextClass)}>{t.ui.guideDescription}</p>
@@ -134,19 +128,7 @@ export function Onboard({ lang }: { lang: Lang }) {
           </Card>
           <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-2.5 gap-y-2 rounded-mark border border-border p-5">
             <span className="text-muted-foreground" aria-hidden="true">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="5" y="10" width="14" height="11" rx="3" />
-                <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" />
-              </svg>
+              <LockIcon className="size-5" strokeWidth={1.5} />
             </span>
             <h3 className={cn("self-center", asideTitleClass)}>{t.ui.reminderTitle}</h3>
             <p className={cn("col-start-2", asideTextClass)}>{t.ui.reminderDescription}</p>
@@ -220,25 +202,6 @@ function HelpToggle() {
   );
 }
 
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      aria-hidden="true"
-      width="15"
-      height="15"
-      viewBox="0 0 20 20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m4 10 4 4 8-8" />
-    </svg>
-  );
-}
-
 const mailCardClass = "absolute h-[244px] w-[254px] rounded-mark border border-border";
 const mailCardRowClass = "flex items-center justify-between text-[8px] tracking-[0.12em] text-muted-foreground";
 
@@ -281,7 +244,7 @@ function MailArtwork() {
         </div>
       </div>
       <span className="absolute right-8 bottom-[39px] grid size-11 -rotate-[7deg] place-items-center rounded-full border-[5px] border-background bg-foreground text-background">
-        <CheckIcon className="size-[23px]" />
+        <CheckIcon className="size-[23px]" strokeWidth={1.75} />
       </span>
     </div>
   );
