@@ -5,43 +5,11 @@
  * Uses the "interaction only" appearance: most visitors never see it, it only appears when Cloudflare asks for a click.
  * A token can be used once, so every submit must reset() to get a new one. If the script fails to load (blocked, offline) the submit is not held back; the backend decides.
  */
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { useTurnstile as useRegistryTurnstile } from "@/components/ui/use-turnstile";
 import type { Lang } from "@/storefront/i18n";
 import type { REDEEM_TURNSTILE_ACTION } from "@/storefront/lib/api";
 import type { LOGIN_TURNSTILE_ACTION } from "@/storefront/lib/shop";
-
-interface TurnstileApi {
-  render(container: HTMLElement, options: Record<string, unknown>): string | undefined;
-  reset(widgetId: string): void;
-  remove(widgetId: string): void;
-}
-
-declare global {
-  interface Window {
-    turnstile?: TurnstileApi;
-  }
-}
-
-const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-let scriptLoading: Promise<TurnstileApi> | null = null;
-
-function loadTurnstile(): Promise<TurnstileApi> {
-  if (window.turnstile) return Promise.resolve(window.turnstile);
-  scriptLoading ??= new Promise<TurnstileApi>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = SCRIPT_SRC;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => (window.turnstile ? resolve(window.turnstile) : reject(new Error("turnstile missing")));
-    script.onerror = () => reject(new Error("turnstile script failed to load"));
-    document.head.appendChild(script);
-  }).catch((error: unknown) => {
-    // Try again on the next mount (the network may be back).
-    scriptLoading = null;
-    throw error;
-  });
-  return scriptLoading;
-}
 
 /** Each form has its own action; mail only accepts tokens issued for the same form. */
 export type TurnstileAction = typeof REDEEM_TURNSTILE_ACTION | typeof LOGIN_TURNSTILE_ACTION;
@@ -57,79 +25,19 @@ export interface TurnstileHandle {
   reset: () => void;
 }
 
-/** With siteKey null (verification off, or not known yet) nothing is rendered and token() is always the empty string. */
+/**
+ * The registry's useTurnstile (script, widget, status and token), set up as these forms need it: interaction only, the system's
+ * theme, the page's language, and no hidden field, since the forms submit JSON with token().
+ * With siteKey null (verification off, or not known yet) nothing is rendered and token() is always the empty string.
+ */
 export function useTurnstile(siteKey: string | null, action: TurnstileAction, lang: Lang): TurnstileHandle {
-  const container = useRef<HTMLDivElement>(null);
-  const widget = useRef<string | null>(null);
-  const token = useRef("");
-  // The state remembers which site key it belongs to: a changed (or newly received) key naturally counts as "in progress" with no reset in an effect.
-  // Removing the widget forgets the key, so a widget created again with the same key (the redeem code was edited, the login form came back after signing out) waits for its own token too.
-  const [status, setStatusFor] = useState<{ key: string | null; value: "pending" | "ready" | "failed" }>({
-    key: null,
-    value: "pending",
+  const { mount, waiting, token, reset } = useRegistryTurnstile({
+    siteKey,
+    action,
+    appearance: "interaction-only",
+    theme: "auto",
+    language: lang === "zh" ? "zh-cn" : "en",
+    fieldName: false,
   });
-
-  useEffect(() => {
-    if (!siteKey) return;
-    let cancelled = false;
-    const setStatus = (value: "pending" | "ready" | "failed") => {
-      if (!cancelled) setStatusFor({ key: siteKey, value });
-    };
-    loadTurnstile().then(
-      (api) => {
-        if (cancelled || !container.current) return;
-        widget.current =
-          api.render(container.current, {
-            sitekey: siteKey,
-            action,
-            appearance: "interaction-only",
-            theme: "auto",
-            language: lang === "zh" ? "zh-cn" : "en",
-            // These forms submit JSON; no hidden field needed.
-            "response-field": false,
-            callback: (value: string) => {
-              token.current = value;
-              setStatus("ready");
-            },
-            "expired-callback": () => {
-              token.current = "";
-              setStatus("pending");
-            },
-            "timeout-callback": () => {
-              token.current = "";
-              setStatus("pending");
-            },
-            "error-callback": () => {
-              token.current = "";
-              setStatus("failed");
-              // Returning true means handled; the widget retries by itself.
-              return true;
-            },
-          }) ?? null;
-      },
-      () => setStatus("failed"),
-    );
-    return () => {
-      cancelled = true;
-      if (widget.current) window.turnstile?.remove(widget.current);
-      widget.current = null;
-      token.current = "";
-      setStatusFor({ key: null, value: "pending" });
-    };
-  }, [siteKey, action, lang]);
-
-  const reset = useCallback(() => {
-    token.current = "";
-    if (!widget.current || !window.turnstile) return;
-    setStatusFor((current) => ({ ...current, value: "pending" }));
-    window.turnstile.reset(widget.current);
-  }, []);
-  const read = useCallback(() => token.current, []);
-
-  return {
-    widget: siteKey ? <div ref={container} /> : null,
-    waiting: siteKey !== null && (status.key !== siteKey || status.value === "pending"),
-    token: read,
-    reset,
-  };
+  return { widget: siteKey ? <div ref={mount} /> : null, waiting, token, reset };
 }
