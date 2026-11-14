@@ -658,7 +658,6 @@ export interface Copy {
   legal: {
     effective: string;
     updated: string;
-    dateLocale: string;
     tocLabel: string;
     tocHint: string;
     /** English label next to the table of contents heading. */
