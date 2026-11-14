@@ -197,7 +197,7 @@ export const claudeEn: ConnectorContent = {
       title: "Support",
       blocks: [
         {
-          p: `For questions or problems with the connector, or a security concern, write to ${support} with your workspace, the time and what Claude answered. Never include passwords or tokens. For ongoing incidents, check the [service status page](https://console.abnormalhq.com/status).`,
+          p: `For questions or problems with the connector, or a security concern, write to ${support} with your workspace, the time and what Claude answered. Never include passwords or tokens. For ongoing incidents, check the [service status page](https://status.abnormalhq.com).`,
         },
       ],
     },

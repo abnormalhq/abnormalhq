@@ -89,7 +89,7 @@ export const helpEn: HelpContent = {
               ],
             },
             {
-              p: `If mail is not coming or going, check the [service status page](https://console.abnormalhq.com/status) first. For anything else write to ${support} with your mailbox address or order number. Never send passwords, verification codes or card details.`,
+              p: `If mail is not coming or going, check the [service status page](https://status.abnormalhq.com) first. For anything else write to ${support} with your mailbox address or order number. Never send passwords, verification codes or card details.`,
             },
           ],
         },
@@ -336,7 +336,7 @@ export const helpEn: HelpContent = {
                 "Check the username: it is the full address, not just the part before the @.",
                 "After a password change, every app needs the new password. With two-step verification on, apps need app passwords.",
                 "Compare the port and the encryption with what is shown for your mailbox; a mismatch between the two is the usual cause.",
-                `Check the [service status page](https://console.abnormalhq.com/status). If it still fails, write to ${support} with the address, the app and the error it shows, but not your password.`,
+                `Check the [service status page](https://status.abnormalhq.com). If it still fails, write to ${support} with the address, the app and the error it shows, but not your password.`,
               ],
             },
           ],
