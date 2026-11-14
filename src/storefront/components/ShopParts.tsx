@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FieldMessage } from "@/components/ui/field-message";
 import { Label } from "@/components/ui/label";
+import { DescriptionItem, DescriptionList } from "@/components/ui/description-list";
 import { Eyebrow } from "@/components/ui/section-heading";
 import { Spinner } from "@/components/ui/spinner";
 import { StatusLabel } from "@/components/ui/status-label";
@@ -121,17 +122,17 @@ export function ShopTestnetBadge({ children }: { children: ReactNode }) {
   );
 }
 
+/** An order's or a subscription's facts: the registry's receipt-style DescriptionList, each value at the end of its row. */
 export function ShopMeta({ children }: { children: ReactNode }) {
-  return <dl className="mt-6 border-t border-border pt-[18px] text-xs/body">{children}</dl>;
+  return (
+    <DescriptionList variant="spread" className="mt-6 border-t border-border text-xs/body">
+      {children}
+    </DescriptionList>
+  );
 }
 
 export function ShopMetaRow({ label, children }: { label: ReactNode; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-5 gap-y-2 py-[5px]">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
+  return <DescriptionItem label={label}>{children}</DescriptionItem>;
 }
 
 /** Order number and redeem code: one click selects all. */

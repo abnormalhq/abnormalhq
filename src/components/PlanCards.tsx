@@ -2,6 +2,12 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DescriptionDetails,
+  DescriptionItem,
+  DescriptionList,
+  DescriptionTerm,
+} from "@/components/ui/description-list";
 import { EmptyState, EmptyStateActions, EmptyStateDescription, EmptyStateTitle } from "@/components/ui/empty-state";
 import { IconTile } from "@/components/ui/icon-tile";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -73,7 +79,7 @@ export function PlanCards({
               {plan.card && <p className="mt-auto pt-3 text-sm/body text-muted-foreground">{plan.card}</p>}
               {plan.note && <p className="pt-3 text-xs/[1.7] text-muted-foreground">{plan.note}</p>}
             </div>
-            <dl className="mt-6 border-t border-border pt-5 text-sm/body">
+            <DescriptionList variant="spread" className="mt-6 border-t border-border text-sm/body">
               {cardRows
                 // "Your own domain" is listed on the plans that include it; the table says which do not.
                 .filter((row) => row !== "ownDomains" || plan.customDomains > 0)
@@ -82,7 +88,7 @@ export function PlanCards({
                     {plan.rows[row]}
                   </Fact>
                 ))}
-            </dl>
+            </DescriptionList>
             <div className="text-sm/body">
               <p className="text-muted-foreground">{copy.compare.rows.domains}</p>
               <ul className="mt-2.5 flex flex-wrap gap-2 wrap-anywhere">
@@ -115,12 +121,13 @@ export function PlanCards({
   );
 }
 
+/** A fact of the plan: a receipt row whose value, when it wraps under its name, still keeps to the right. */
 function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="mb-3.5 flex justify-between gap-3.5">
-      <dt className="shrink-0 text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
+    <DescriptionItem>
+      <DescriptionTerm>{label}</DescriptionTerm>
+      <DescriptionDetails className="ml-auto text-right">{children}</DescriptionDetails>
+    </DescriptionItem>
   );
 }
 
