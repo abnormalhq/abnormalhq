@@ -34,7 +34,10 @@ export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode
         <ThemeHead />
       </head>
       <body>
-        <SkipLink href="#main">{t.skipLink}</SkipLink>
+        {/* The registry skip link keeps its popover shadow while it waits above the top edge, where the shadow still shows; it takes the shadow only once it is in view. */}
+        <SkipLink href="#main" className="shadow-none focus:shadow-popover">
+          {t.skipLink}
+        </SkipLink>
         <InquiryProvider
           lang={lang}
           copy={t.inquiry}
