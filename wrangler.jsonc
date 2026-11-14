@@ -51,8 +51,9 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS",
     // The asset service answers a Range request with the whole file, and browsers need ranges to play video, so the promo videos
-    // go through the Worker, which cuts the ranges (src/lib/range.ts). Everything else is still served without running the Worker.
-    "run_worker_first": ["/video/*"],
+    // go through the Worker, which cuts the ranges (src/lib/range.ts). Everything else, the videos' poster images included, is still
+    // served without running the Worker (with html_handling "none" a file is answered at its exact path, so /video/*.jpg needs nothing more).
+    "run_worker_first": ["/video/*.mp4"],
     // OpenNext requires it once any path runs the Worker first: files are served at their exact path only, as Next.js does.
     // The assets hold no pages (those come from the Worker), so no address changes.
     "html_handling": "none",
@@ -73,6 +74,10 @@
     // mail's production address, used only as the URL of internal requests so mail's OpenNext recognises its own origin; requests always go
     // through the MAIL binding. For local integration override it in .dev.vars (see .dev.vars.example).
     "MAIL_ORIGIN": "https://console.abnormalhq.com",
+  },
+  // The deployment's version (CF_VERSION_METADATA.id): src/lib/edge-cache.ts keys its cached pages by it, so none outlives a deploy.
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA",
   },
   "observability": {
     "enabled": true,
