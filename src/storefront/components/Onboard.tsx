@@ -5,7 +5,8 @@ import { Disclosure, DisclosureContent, DisclosureList, DisclosureTrigger } from
 import { IconTile } from "@/components/ui/icon-tile";
 import { Eyebrow, HeadingMark } from "@/components/ui/section-heading";
 import { defaultDomain, supportEmail } from "@/storefront/config";
-import { LANG_PATHS, copy, type Lang } from "@/storefront/i18n";
+import { copy } from "@/storefront/copy";
+import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import { cn } from "@/lib/utils";
 import { shopCopy } from "@/storefront/lib/shop-copy";
 import { apiBase, withBase } from "@/storefront/site";

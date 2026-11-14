@@ -18,7 +18,9 @@ import {
   type RenewalSummary,
 } from "@/storefront/lib/shop";
 import { QuoteBoard, upgradePeriodPrices, viewOf } from "@/storefront/lib/quote";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
+import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
 import {
   ShopActions,
@@ -54,12 +56,12 @@ export function ShopRenew({ lang }: { lang: Lang }) {
 }
 
 /** When the renewal link cannot be opened (404) and the backend gives no explanation, say the link is no longer valid. */
-function renewalError(error: unknown, lang: Lang): string {
-  return shopError(error, lang, { notFound: shopCopy[lang].renewInvalid });
+function renewalError(error: unknown, lang: Lang, t: ShopCopy): string {
+  return describeShopError(error, lang, t, { notFound: t.renewInvalid });
 }
 
 function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const router = useRouter();
   const [summary, setSummary] = useState<RenewalSummary | null>(null);
   const [loadError, setLoadError] = useState(token ? "" : t.renewInvalid);
@@ -124,10 +126,10 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
     getRenewal(token, controller.signal, lang)
       .then(setSummary)
       .catch((cause: unknown) => {
-        if (!controller.signal.aborted) setLoadError(renewalError(cause, lang));
+        if (!controller.signal.aborted) setLoadError(renewalError(cause, lang, t));
       });
     return () => controller.abort();
-  }, [token, lang]);
+  }, [token, lang, t]);
 
   async function submit(provider: ShopPaymentProvider = "ldc") {
     if (lock.current) return;
@@ -146,7 +148,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
       );
       router.push(`/${LANG_PATHS[lang]}shop/orders/?id=${encodeURIComponent(id)}`);
     } catch (cause) {
-      setError(renewalError(cause, lang));
+      setError(renewalError(cause, lang, t));
       setCreating(false);
       lock.current = false;
     }

@@ -14,7 +14,8 @@ import { loadStripe } from "@stripe/stripe-js/pure";
 import { useEffect, useRef, useState } from "react";
 import type { Lang } from "@/storefront/i18n";
 import { startStripePayment } from "@/storefront/lib/shop";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
 import { ShopActions, ShopAlert, ShopButton, ShopSkeleton, shopArriveClass, shopTextClass } from "./ShopParts";
 import { Spinner } from "@/components/ui/spinner";
@@ -75,7 +76,7 @@ export function ShopStripeCheckout({
   /** This order goes to Stripe's hosted page (no publishable key, or an endpoint too old): the parent renders the "Pay" form instead. */
   onHosted: () => void;
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const resolvedTheme = useDocumentTheme();
   const [phase, setPhase] = useState<Phase>("loading");
   const [error, setError] = useState("");
@@ -149,7 +150,7 @@ export function ShopStripeCheckout({
     })().catch((cause: unknown) => {
       if (cancelled) return;
       // Backend answers such as "order not found" or a rate limit are shown as they are; when Stripe.js cannot load, only that the form cannot open.
-      setError(cause instanceof Error && cause.name === "ShopApiError" ? shopError(cause, lang) : "");
+      setError(cause instanceof Error && cause.name === "ShopApiError" ? describeShopError(cause, lang, t) : "");
       setPhase("unavailable");
     });
     return () => {
@@ -158,7 +159,7 @@ export function ShopStripeCheckout({
       checkoutRef.current = null;
       actionsRef.current = null;
     };
-  }, [orderId, lang]);
+  }, [orderId, lang, t]);
 
   async function pay() {
     const actions = actionsRef.current;

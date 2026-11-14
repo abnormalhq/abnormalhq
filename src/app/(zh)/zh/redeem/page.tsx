@@ -1,4 +1,5 @@
 import { Onboard } from "@/storefront/components/Onboard";
+import { OnboardCopyZh } from "@/storefront/components/copy/onboard-zh";
 import { JsonLd } from "@/components/JsonLd";
 import { storeStructuredData } from "@/lib/structured-data";
 import { StorePage } from "@/storefront/components/StorePage";
@@ -10,7 +11,10 @@ export default function ZhRedeemPage() {
   return (
     <StorePage>
       <JsonLd data={storeStructuredData("zh", "/redeem/")} />
-      <Onboard lang="zh" />
+      {/* The form reads its copy from here, so the page ships one language (see copy/context.tsx). */}
+      <OnboardCopyZh>
+        <Onboard lang="zh" />
+      </OnboardCopyZh>
     </StorePage>
   );
 }

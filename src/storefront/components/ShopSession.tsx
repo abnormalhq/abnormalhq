@@ -5,14 +5,15 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import { getAccount, logoutAccount } from "@/storefront/lib/shop";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import { useShopCopy } from "./copy/context";
 
 /**
  * The "Logged in: email · Log out" line at the top of every shop page. Orders and renewals placed while logged in belong to this account, so who is logged in must be visible before ordering:
  * a login that is not your own (say, from opening someone else's login link) is spotted here at a glance and logged out. Shows nothing when logged out or when the account cannot be read.
  */
 export function ShopSession({ lang, onSignedOut }: { lang: Lang; onSignedOut?: () => void }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const [email, setEmail] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -37,7 +38,7 @@ export function ShopSession({ lang, onSignedOut }: { lang: Lang; onSignedOut?: (
       setEmail(null);
       onSignedOut?.();
     } catch (cause) {
-      setError(shopError(cause, lang));
+      setError(describeShopError(cause, lang, t));
     } finally {
       setBusy(false);
     }

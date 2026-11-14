@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import type { Lang } from "@/storefront/i18n";
-import { shopCopy } from "@/storefront/lib/shop-copy";
+import { useShopCopy } from "./copy/context";
 import type { ReactNode } from "react";
 import { formatCredits, formatMoney, formatUsdt, type ShopProduct } from "@/storefront/lib/shop";
 
@@ -31,7 +31,7 @@ export function ShopDetails({
   /** A seat plan on the shop page: the buyer chooses how many mailboxes, and every price is for one of them. */
   seatRange?: { min: number; max: number };
 }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const noQuotaDomains = item.domains.filter((domain) => item.quotaSupportedByDomain?.[domain] === false);
   const quota =
     noQuotaDomains.length > 0 && noQuotaDomains.length === item.domains.length

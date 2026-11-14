@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import type { Lang } from "@/storefront/i18n";
 import { ShopApiError, startUsdtPayment, usdtDecimal, usdtUnits, type UsdtPaymentStart } from "@/storefront/lib/shop";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import { useShopCopy } from "./copy/context";
 import { copyText } from "./onboard/clipboard";
 import {
   ShopActions,
@@ -58,7 +59,8 @@ export function ShopUsdtCheckout({
   /** Whether the page is asking mail by itself right now: the order's status badge beats while it is. */
   onWatching?: (watching: boolean) => void;
 }) {
-  const t = shopCopy[lang];
+  // The page language's copy from its provider: the bundle carries one language (copy/context.tsx).
+  const t = useShopCopy();
   const [phase, setPhase] = useState<Phase>("loading");
   const [payment, setPayment] = useState<Open | null>(null);
   const [error, setError] = useState("");
@@ -121,13 +123,17 @@ export function ShopUsdtCheckout({
             // before is taken away unless mail is only out of reach (503): nothing should be sent to an order that cannot be paid.
             if (cause.status !== 503) setPayment(null);
             setPhase("unavailable");
-            setError(cause.status === 404 && !cause.message.trim() ? t.usdtUnavailable : shopError(cause, lang));
+            setError(
+              cause.status === 404 && !cause.message.trim() ? t.usdtUnavailable : describeShopError(cause, lang, t),
+            );
             return stop();
           } else if (!shown) {
             // Nothing to show yet and the request failed (offline, an outage, an answer that does not parse).
             setPhase("unavailable");
             setError(
-              cause instanceof ShopApiError && cause.message.trim() ? shopError(cause, lang) : t.usdtUnavailable,
+              cause instanceof ShopApiError && cause.message.trim()
+                ? describeShopError(cause, lang, t)
+                : t.usdtUnavailable,
             );
           }
           // Once the address is on screen a passing failure is not worth an alert: the next round asks again.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/metadata";
-import { copy, type Lang } from "./i18n";
+import { copy } from "./copy";
+import type { Lang } from "./i18n";
 import { shopCopy } from "./lib/shop-copy";
 
 /** The redeem page and the guide: title and description from the storefront copy, the rest (hreflang, social cards) as every page of the site. */

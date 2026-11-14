@@ -26,7 +26,9 @@ import {
 } from "@/storefront/lib/shop";
 import { COUPON_MAX_LENGTH, couponVerdict, normalizeCoupon, rememberCoupon } from "@/storefront/lib/coupon";
 import { QuoteBoard, seatFigure, seatRefusal, seatTerms, viewOf, type SeatFigure } from "@/storefront/lib/quote";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { takeEarlyCatalog } from "@/storefront/lib/catalog";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import { useShopCopy } from "./copy/context";
 import {
   ADDRESS_PARAM,
   PLAN_PARAM,
@@ -99,7 +101,7 @@ function sold(figure: SeatFigure | null): figure is Extract<SeatFigure, { kind: 
 }
 
 export function Shop({ lang }: { lang: Lang }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const router = useRouter();
   const [catalog, setCatalog] = useState<ShopCatalog | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -236,13 +238,16 @@ export function Shop({ lang }: { lang: Lang }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    getShopCatalog(controller.signal, lang)
-      .then(setCatalog)
+    // The page's inline script (ShopCatalogPrefetch) asked for the catalog while the HTML was parsed; only a retry asks again.
+    (takeEarlyCatalog(lang, controller.signal) ?? getShopCatalog(controller.signal, lang))
+      .then((value) => {
+        if (!controller.signal.aborted) setCatalog(value);
+      })
       .catch((error: unknown) => {
-        if (!controller.signal.aborted) setLoadError(shopError(error, lang));
+        if (!controller.signal.aborted) setLoadError(describeShopError(error, lang, t));
       });
     return () => controller.abort();
-  }, [attempt, lang]);
+  }, [attempt, lang, t]);
 
   // mail's catalog says whether to offer discount codes: `coupons: false` hides the field without a request. A mail before the
   // flag sends none: the field is then offered, and goes away when the preview answers 404.
@@ -330,7 +335,7 @@ export function Shop({ lang }: { lang: Lang }) {
                     : formatCredits(refusal.maxTotalCents),
               ),
         );
-      } else setCouponError(shopError(result.error, lang));
+      } else setCouponError(describeShopError(result.error, lang, t));
     }
     // What was answered before a failure still stands: the plans it covers show their price.
     if (Object.keys(quotes).length > 0) setApplied({ code, quotes, offered: offered.length });
@@ -373,7 +378,7 @@ export function Shop({ lang }: { lang: Lang }) {
       // mail's refusal in the page language. One about the quantity (the plan's range changed, the total is too large)
       // also corrects the card: the board takes its numbers and asks for the totals again.
       board.learn(error, productId);
-      setCheckoutError(shopError(error, lang));
+      setCheckoutError(describeShopError(error, lang, t));
       setBuying(null);
       checkoutLock.current = false;
     }
@@ -656,7 +661,6 @@ export function Shop({ lang }: { lang: Lang }) {
                       {catalog.payment.ldc && (
                         <ShopPrice
                           item={product}
-                          lang={lang}
                           purchase
                           unit={seatPlan ? t.seatUnit(days) : undefined}
                           className="my-0"

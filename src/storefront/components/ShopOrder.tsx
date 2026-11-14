@@ -22,7 +22,8 @@ import {
 } from "@/storefront/lib/shop";
 import { orderCoupon, recallCoupon } from "@/storefront/lib/coupon";
 import { markAwaiting, orderSteps, takeAwaiting } from "@/storefront/lib/order-progress";
-import { shopCopy, shopError } from "@/storefront/lib/shop-copy";
+import { describeShopError } from "@/storefront/lib/shop-error";
+import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
 import { celebrate } from "./onboard/celebrate";
@@ -80,7 +81,7 @@ const USDT_PAID_READS = 6;
 const USDT_PAID_READ_MS = 2_000;
 
 function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId: string; paymentError: boolean }) {
-  const t = shopCopy[lang];
+  const t = useShopCopy();
   const validId = /^[a-z0-9]{15}$/.test(orderId);
   const [result, setResult] = useState<PublicShopOrder | null>(null);
   const [error, setError] = useState("");
@@ -126,7 +127,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
     getShopOrder(orderId, controller.signal, lang)
       .then(setResult)
       .catch((cause: unknown) => {
-        if (!controller.signal.aborted) setError(shopError(cause, lang, { notFound: t.notFound }));
+        if (!controller.signal.aborted) setError(describeShopError(cause, lang, t, { notFound: t.notFound }));
       });
     return () => controller.abort();
   }, [orderId, validId, attempt, lang, t]);
@@ -198,7 +199,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
       setResult((current) => (current?.order.status === "paid" ? current : next));
       if (next.order.status !== "paid") setNotice(t.checked);
     } catch (cause) {
-      setError(shopError(cause, lang, { notFound: t.notFound }));
+      setError(describeShopError(cause, lang, t, { notFound: t.notFound }));
     } finally {
       setChecking(false);
       checkLock.current = false;
@@ -218,7 +219,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
         if (next.order.status === "paid" || attempt >= USDT_PAID_READS) return;
       } catch (cause) {
         if (attempt >= USDT_PAID_READS) {
-          setError(shopError(cause, lang, { notFound: t.notFound }));
+          setError(describeShopError(cause, lang, t, { notFound: t.notFound }));
           return;
         }
       }
@@ -410,7 +411,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                 <span className={shopPriceUnitClass}>USDT</span>
               </p>
             ) : (
-              <ShopPrice item={order} lang={lang} className={couponUsed ? "mb-0" : undefined} />
+              <ShopPrice item={order} className={couponUsed ? "mb-0" : undefined} />
             )}
             {couponUsed && (order.provider !== "stripe" || order.currency) && (
               // What the code took off, and the price before it: without this an order with a code looks like a plain
