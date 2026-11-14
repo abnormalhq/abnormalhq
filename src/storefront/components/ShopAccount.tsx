@@ -5,8 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import {
   ACCOUNT_PASSWORD_MAX,
@@ -89,6 +91,9 @@ function forgetLoginToken() {
  * "Sign in with Google" first goes to Google, which then sends the browser back to this page (?code=...&state=..., or ?error=... on cancel): the page hands that to mail to finish logging in.
  * That answer is only valid in the browser that started the login (mail checks it against this browser's state cookie), so such a link sent by someone else logs into nothing.
  */
+/** A text button inside a sentence ("Forgot your password?"): the registry's link Button, at the sentence's size, wrapping with it. */
+const inlineLinkButtonClass = "h-auto p-0 text-[length:inherit] leading-[inherit] whitespace-normal";
+
 export function ShopAccount({ lang }: { lang: Lang }) {
   const t = useShopCopy();
   const params = useSearchParams();
@@ -336,23 +341,26 @@ export function ShopAccount({ lang }: { lang: Lang }) {
         </Card>
       ) : account === null ? (
         <ShopPanel>
-          <div className="flex flex-wrap gap-2" role="group" aria-label={t.loginMethods}>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="lg"
+            aria-label={t.loginMethods}
+            // Forgot password and the email link both belong to "log in".
+            value={method === "register" ? "register" : "password"}
+            // Pressing the chosen one again comes back as no value: "log in" then returns from the link or reset form to the
+            // password form, as it always did, and "create an account" stays.
+            onValueChange={(value) =>
+              chooseMethod(value === "register" || (!value && method === "register") ? "register" : "password")
+            }
+            disabled={sending}
+          >
             {(["password", "register"] as const).map((option) => (
-              <ShopButton
-                key={option}
-                type="button"
-                // Forgot password and the email link both belong to "log in".
-                variant={
-                  (option === "register" ? method === "register" : method !== "register") ? "default" : "outline"
-                }
-                aria-pressed={option === "register" ? method === "register" : method !== "register"}
-                disabled={sending}
-                onClick={() => chooseMethod(option)}
-              >
+              <ToggleGroupItem key={option} value={option} className="flex-none px-4">
                 {option === "password" ? t.loginTab : t.registerTab}
-              </ShopButton>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
           <p className={shopTextClass}>
             {method === "link"
               ? t.loginHint
@@ -457,32 +465,20 @@ export function ShopAccount({ lang }: { lang: Lang }) {
             {method === "password" && (
               <p className={shopTextClass}>
                 {t.passwordForgot}{" "}
-                <button
-                  type="button"
-                  className="text-foreground underline underline-offset-4"
-                  onClick={() => chooseMethod("forgot")}
-                >
+                <Button variant="link" className={inlineLinkButtonClass} onClick={() => chooseMethod("forgot")}>
                   {t.forgotLink}
-                </button>
+                </Button>
                 <span aria-hidden="true"> · </span>
-                <button
-                  type="button"
-                  className="text-foreground underline underline-offset-4"
-                  onClick={() => chooseMethod("link")}
-                >
+                <Button variant="link" className={inlineLinkButtonClass} onClick={() => chooseMethod("link")}>
                   {t.passwordUseLink}
-                </button>
+                </Button>
               </p>
             )}
             {(method === "link" || method === "forgot") && (
               <p className={shopTextClass}>
-                <button
-                  type="button"
-                  className="text-foreground underline underline-offset-4"
-                  onClick={() => chooseMethod("password")}
-                >
+                <Button variant="link" className={inlineLinkButtonClass} onClick={() => chooseMethod("password")}>
                   ← {t.linkBack}
-                </button>
+                </Button>
               </p>
             )}
           </form>
