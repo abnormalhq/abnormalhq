@@ -782,10 +782,10 @@ export async function peekLoginWithRetry(
   }
 }
 
-/** A failure that may succeed on retry: the request never arrived (fetch TypeError), rate limited or a server fault. */
+/** A failure that may succeed on retry: the request never arrived (fetch TypeError) or timed out, rate limited or a server fault. */
 function transientFailure(error: unknown): boolean {
   if (error instanceof ShopApiError) return error.status === 429 || error.status >= 500;
-  return error instanceof TypeError;
+  return error instanceof TypeError || (error instanceof Error && error.name === "TimeoutError");
 }
 
 /** Waits ms milliseconds; ends at once with the abort reason when signal aborts. */

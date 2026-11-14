@@ -549,9 +549,16 @@ function requestInit(payload: unknown, lang: Lang | undefined, credentials: Requ
   };
 }
 
-/** The body of a shop API answer; a refusal throws ShopApiError. */
-async function readAnswer(response: Response, lang?: Lang): Promise<unknown> {
-  const body: unknown = await response.json().catch(() => null);
+/**
+ * The body of a shop API answer; a refusal throws ShopApiError. `signal`: the request's own. A body cut off by it (the timeout,
+ * or the caller's abort) throws that reason rather than passing for an empty answer, so a timeout mid-body is still a timeout to
+ * the callers that ask again after one.
+ */
+async function readAnswer(response: Response, lang?: Lang, signal?: AbortSignal): Promise<unknown> {
+  const body: unknown = await response.json().catch((error: unknown) => {
+    if (signal?.aborted) throw signal.reason ?? error;
+    return null;
+  });
   if (!response.ok) {
     const refusal = parseRefusal(body);
     throw new ShopApiError(
@@ -566,6 +573,34 @@ async function readAnswer(response: Response, lang?: Lang): Promise<unknown> {
   return body;
 }
 
+/**
+ * How long a shop API request may take, answer included, before it fails with a TimeoutError. The order page's polling only asks
+ * again once a request has settled, so one request that never ends would otherwise stop it for good.
+ */
+export const REQUEST_TIMEOUT_MS = 15_000;
+
+/**
+ * The caller's signal and the timeout as one signal. A timeout is not the caller's abort: the caller's own signal stays unaborted,
+ * so pollers that tell an unmount by it count a timeout as one more failed request and ask again.
+ */
+function withTimeout(signal?: AbortSignal): { signal: AbortSignal; release: () => void } {
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  if (!signal) return { signal: timeout, release: () => {} };
+  if (typeof AbortSignal.any === "function") return { signal: AbortSignal.any([signal, timeout]), release: () => {} };
+  // Safari before 17.4 (the supported browsers go back to 16.4) has no AbortSignal.any: one controller follows both. Its
+  // listeners are taken off again once the request is over: a poller passes the same signal to every request of a round.
+  const both = new AbortController();
+  const links = [signal, timeout].map((source) => ({ source, forward: () => both.abort(source.reason) }));
+  const release = () => {
+    for (const { source, forward } of links) source.removeEventListener("abort", forward);
+  };
+  for (const { source, forward } of links) {
+    if (source.aborted) both.abort(source.reason);
+    else source.addEventListener("abort", forward, { once: true });
+  }
+  return { signal: both.signal, release };
+}
+
 export async function request(
   path: string,
   payload?: unknown,
@@ -573,8 +608,17 @@ export async function request(
   lang?: Lang,
   credentials: RequestCredentials = "same-origin",
 ): Promise<unknown> {
-  const response = await fetch(`${shopApiRoot}/${path}`, { ...requestInit(payload, lang, credentials), signal });
-  return readAnswer(response, lang);
+  // The timeout covers the body as well: it is released only once the answer has been read.
+  const limit = withTimeout(signal);
+  try {
+    const response = await fetch(`${shopApiRoot}/${path}`, {
+      ...requestInit(payload, lang, credentials),
+      signal: limit.signal,
+    });
+    return await readAnswer(response, lang, limit.signal);
+  } finally {
+    limit.release();
+  }
 }
 
 /**

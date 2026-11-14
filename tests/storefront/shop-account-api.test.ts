@@ -326,7 +326,7 @@ test("shop client: asks read-only which mailbox a link belongs to before login; 
 });
 
 test("shop client: when the confirmation dialog asks for the link's mailbox, temporary failures are asked again, final answers are not", async () => {
-  /** Answers these responses in order (Error means the request never arrived) and counts the requests. */
+  /** Answers these responses in order (Error means the request never arrived or timed out) and counts the requests. */
   const sequence = (...answers: (Response | Error)[]) => {
     let calls = 0;
     vi.stubGlobal("fetch", async () => {
@@ -343,6 +343,8 @@ test("shop client: when the confirmation dialog asks for the link's mailbox, tem
     busy(),
     Response.json({ error: "请求太频繁" }, { status: 429 }),
     new TypeError("Failed to fetch"),
+    // The shop client's own timeout (REQUEST_TIMEOUT_MS).
+    new DOMException("The operation timed out.", "TimeoutError"),
   ]) {
     const calls = sequence(first, email());
     expect(await peekLoginWithRetry("token", undefined, "zh", 0)).toStrictEqual({

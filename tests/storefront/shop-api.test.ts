@@ -8,8 +8,10 @@ import {
   reconcileShopOrder,
   ShopApiError,
   startStripePayment,
+  startUsdtPayment,
   type ShopProduct,
 } from "@/storefront/lib/shop";
+import { REQUEST_TIMEOUT_MS } from "@/storefront/lib/catalog";
 
 const PRODUCT: ShopProduct = {
   id: "demoproduct0001",
@@ -150,7 +152,8 @@ test("shop client: the page language is used for catalog, orders, ordering and r
 
   for (const lang of ["zh", "en"] as const) {
     calls.length = 0;
-    const signal = new AbortController().signal;
+    const controller = new AbortController();
+    const signal = controller.signal;
     await getShopCatalog(signal, lang);
     await getShopOrder(ORDER_ID, signal, lang);
     await createShopOrder(PRODUCT.id, lang);
@@ -161,14 +164,130 @@ test("shop client: the page language is used for catalog, orders, ordering and r
       expect(new Headers(init.headers).get("Accept-Language")).toBe(lang);
       expect(init.credentials).toBe("same-origin");
     }
-    expect(calls[0]!.init.signal).toBe(signal);
-    expect(calls[1]!.init.signal).toBe(signal);
+    // The request's signal follows the caller's (combined with the timeout); a request without one still has the timeout.
+    for (const { init } of calls) expect(init.signal?.aborted).toBe(false);
+    controller.abort();
+    expect(calls[0]!.init.signal?.aborted).toBe(true);
+    expect(calls[1]!.init.signal?.aborted).toBe(true);
+    expect(calls[2]!.init.signal?.aborted).toBe(false);
     expect(JSON.parse(String(calls[2]!.init.body))).toStrictEqual({
       productId: PRODUCT.id,
     });
     expect(JSON.parse(String(calls[3]!.init.body))).toStrictEqual({
       orderId: ORDER_ID,
     });
+  }
+});
+
+/** A fetch that never answers, as a request stuck on a dead connection: it ends only when its signal aborts. */
+function hangingFetch(sent: RequestInit[]) {
+  return (_url: string, init: RequestInit) =>
+    new Promise<Response>((_resolve, reject) => {
+      sent.push(init);
+      const signal = init.signal!;
+      if (signal.aborted) reject(signal.reason);
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    });
+}
+
+/** AbortSignal.timeout answered by hand: `expire()` ends every timeout handed out so far, as REQUEST_TIMEOUT_MS passing would. */
+function manualTimeouts() {
+  const pending: AbortController[] = [];
+  const asked = vi.spyOn(AbortSignal, "timeout").mockImplementation(() => {
+    const controller = new AbortController();
+    pending.push(controller);
+    return controller.signal;
+  });
+  const expire = () => {
+    for (const controller of pending) controller.abort(new DOMException("The operation timed out.", "TimeoutError"));
+  };
+  return { asked, expire };
+}
+
+test("shop client: a request that hangs fails with a TimeoutError after REQUEST_TIMEOUT_MS, and the caller's signal stays unaborted", async () => {
+  const sent: RequestInit[] = [];
+  vi.stubGlobal("fetch", hangingFetch(sent));
+  const { asked, expire } = manualTimeouts();
+
+  // The order page's polling: its own signal tells an unmount from a timeout, so it asks again after this one.
+  const controller = new AbortController();
+  const order = getShopOrder(ORDER_ID, controller.signal, "en");
+  const usdt = startUsdtPayment(ORDER_ID, "en", controller.signal);
+  // A request made without a signal (reconcile) has the timeout all the same.
+  const reconcile = reconcileShopOrder(ORDER_ID, "en");
+  expect(sent).toHaveLength(3);
+  expect(asked).toHaveBeenCalledWith(REQUEST_TIMEOUT_MS);
+  expect(REQUEST_TIMEOUT_MS).toBe(15_000);
+
+  expire();
+  for (const pending of [order, usdt, reconcile]) await expect(pending).rejects.toMatchObject({ name: "TimeoutError" });
+  expect(controller.signal.aborted).toBe(false);
+});
+
+test("shop client: the caller's abort still ends a request at once, also where AbortSignal.any is missing (Safari before 17.4)", async () => {
+  for (const withoutAny of [false, true]) {
+    const sent: RequestInit[] = [];
+    vi.stubGlobal("fetch", hangingFetch(sent));
+    const any = AbortSignal.any;
+    if (withoutAny) Object.defineProperty(AbortSignal, "any", { value: undefined, configurable: true, writable: true });
+    try {
+      const controller = new AbortController();
+      const order = getShopOrder(ORDER_ID, controller.signal, "en");
+      controller.abort();
+      await expect(order).rejects.toMatchObject({ name: "AbortError" });
+      expect(sent[0]!.signal?.aborted).toBe(true);
+
+      // The timeout ends it too, without aborting the caller's signal.
+      const { expire } = manualTimeouts();
+      const later = new AbortController();
+      const again = getShopOrder(ORDER_ID, later.signal, "en");
+      expire();
+      await expect(again).rejects.toMatchObject({ name: "TimeoutError" });
+      expect(later.signal.aborted).toBe(false);
+      vi.mocked(AbortSignal.timeout).mockRestore();
+    } finally {
+      Object.defineProperty(AbortSignal, "any", { value: any, configurable: true, writable: true });
+    }
+  }
+});
+
+test("shop client: a body that stalls after the headers fails with the timeout, not as an empty answer", async () => {
+  vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+    const signal = init.signal!;
+    // Headers now; the body never finishes, and errors with the signal's reason when it aborts (as fetch's body reading does).
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"status":'));
+        signal.addEventListener("abort", () => controller.error(signal.reason), { once: true });
+      },
+    });
+    return new Response(body, { status: 200, headers: { "Content-Type": "application/json" } });
+  });
+  const { expire } = manualTimeouts();
+  const controller = new AbortController();
+  const order = getShopOrder(ORDER_ID, controller.signal, "en");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expire();
+  await expect(order).rejects.toMatchObject({ name: "TimeoutError" });
+  expect(controller.signal.aborted).toBe(false);
+  vi.mocked(AbortSignal.timeout).mockRestore();
+});
+
+test("shop client: without AbortSignal.any, a finished request leaves no listener on the caller's signal", async () => {
+  vi.stubGlobal("fetch", async () => Response.json({ error: "not found" }, { status: 404 }));
+  const any = AbortSignal.any;
+  Object.defineProperty(AbortSignal, "any", { value: undefined, configurable: true, writable: true });
+  try {
+    const controller = new AbortController();
+    const added = vi.spyOn(controller.signal, "addEventListener");
+    const removed = vi.spyOn(controller.signal, "removeEventListener");
+    for (let round = 0; round < 3; round++)
+      await expect(getShopOrder(ORDER_ID, controller.signal, "en")).rejects.toMatchObject({ status: 404 });
+    expect(added).toHaveBeenCalledTimes(3);
+    expect(removed).toHaveBeenCalledTimes(3);
+    for (const [index, call] of added.mock.calls.entries()) expect(removed.mock.calls[index]![1]).toBe(call[1]);
+  } finally {
+    Object.defineProperty(AbortSignal, "any", { value: any, configurable: true, writable: true });
   }
 });
 

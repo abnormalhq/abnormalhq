@@ -4,7 +4,8 @@
  * A USDT order paid on the order page itself: mail's pay/usdt gives the TRON address that belongs to this order alone and the exact
  * amount to send (USDT, TRC-20), and every call has mail look at the chain. This component shows both with copy buttons and a QR
  * code of the address (wallets scan an address; amounts in payment URIs are not the same across wallets), warns about the network,
- * and asks pay/usdt again every POLL_MS while the tab is visible, for up to POLL_LIMIT_MS; then it stops and offers "Check again".
+ * and asks pay/usdt again every POLL_MS while the tab is visible (and at once when the buyer comes back to it), for up to
+ * POLL_LIMIT_MS; then, after one last look made while the tab is visible, it stops and offers "Check again".
  * When mail answers `paid` it tells the parent, which reads the order again and shows the code as for any other way of paying.
  * Nothing here holds a key or signs anything: the buyer pays from their own wallet.
  */
@@ -31,7 +32,10 @@ import {
 
 /** How often pay/usdt is asked while the page is visible: mail expects about this and throttles its own look at the chain. */
 export const USDT_POLL_MS = 5_000;
-/** How long the page keeps asking by itself before it stops and offers "Check again". */
+/**
+ * How long the page keeps asking by itself before it stops and offers "Check again". Time in a hidden tab counts too; when it
+ * runs out there, the page asks once more when the buyer comes back and stops after that answer.
+ */
 export const USDT_POLL_LIMIT_MS = 2 * 60 * 60 * 1000;
 
 type Open = Extract<UsdtPaymentStart, { status: "open" }>;
@@ -85,21 +89,34 @@ export function ShopUsdtCheckout({
     let timer = 0;
     // Whether the address has been shown in this round: a passing failure after that leaves it on screen and asks again.
     let shown = false;
+    // A request is on its way: coming back to the tab meanwhile does not send a second one.
+    let busy = false;
+    // Paid or stopped: nothing more is asked in this round, whatever the tab does.
+    let done = false;
+    // When mail may be asked again: the buyer coming back to the tab sooner waits for the timer (mail's 429 asks for a pause).
+    let notBefore = 0;
 
     const stop = () => {
+      done = true;
       if (!controller.signal.aborted) setStopped(round);
     };
 
     async function check() {
-      if (controller.signal.aborted) return;
-      if (Date.now() - started >= USDT_POLL_LIMIT_MS) return stop();
+      if (controller.signal.aborted || done || busy) return;
+      window.clearTimeout(timer);
+      const visible = document.visibilityState === "visible";
+      // The time is up, but the stop comes after one more look at the chain, made while the buyer is here to see it: a
+      // withdrawal from an exchange can take hours, and a buyer coming back to the tab after it should see it counted.
+      const last = Date.now() - started >= USDT_POLL_LIMIT_MS;
       let wait = USDT_POLL_MS;
       // A hidden tab asks nothing; it picks up again when the buyer comes back (the wallet is often in another tab or on the phone).
-      if (document.visibilityState === "visible") {
+      if (visible) {
+        busy = true;
         try {
           const answer = await startUsdtPayment(orderId, lang, controller.signal);
           if (controller.signal.aborted) return;
           if (answer.status === "paid") {
+            done = true;
             setPhase("paid");
             setError("");
             await callbacks.current.onPaid();
@@ -136,16 +153,28 @@ export function ShopUsdtCheckout({
                 : t.usdtUnavailable,
             );
           }
-          // Once the address is on screen a passing failure is not worth an alert: the next round asks again.
+          // Once the address is on screen a passing failure (a request that timed out among them) is not worth an alert:
+          // the next round asks again.
+        } finally {
+          busy = false;
         }
+        notBefore = Date.now() + wait;
+        if (last) return stop();
       }
       timer = window.setTimeout(() => void check(), wait);
     }
 
+    // The buyer is back (often from their wallet or an exchange): ask at once rather than at the next tick.
+    function resume() {
+      if (document.visibilityState === "visible" && Date.now() >= notBefore) void check();
+    }
+
     void check();
+    document.addEventListener("visibilitychange", resume);
     return () => {
       controller.abort();
       window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", resume);
     };
   }, [orderId, lang, round, t]);
 

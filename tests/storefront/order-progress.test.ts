@@ -1,5 +1,14 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { markAwaiting, ORDER_AWAITING_KEY, orderSteps, takeAwaiting } from "@/storefront/lib/order-progress";
+import {
+  CARD_POLL_LIMIT_MS,
+  CARD_POLL_MAX_MS,
+  CARD_POLL_MS,
+  cardPollDelay,
+  markAwaiting,
+  ORDER_AWAITING_KEY,
+  orderSteps,
+  takeAwaiting,
+} from "@/storefront/lib/order-progress";
 import { shopCopy } from "@/storefront/lib/shop-copy";
 
 function memoryStorage(): Storage {
@@ -74,4 +83,28 @@ test("only the latest few orders are remembered, and broken or blocked storage i
   });
   expect(() => markAwaiting("aaaaaaaaaaaaaaa")).not.toThrow();
   expect(takeAwaiting("aaaaaaaaaaaaaaa")).toBe(false);
+});
+
+test("a card order is looked at every 5 s for the first minute, then further apart up to 30 s, for ten minutes a round", () => {
+  expect(CARD_POLL_MS).toBe(5_000);
+  expect(CARD_POLL_MAX_MS).toBe(30_000);
+  expect(CARD_POLL_LIMIT_MS).toBe(10 * 60 * 1000);
+  // The first minute keeps the quick pace the page always had: a payment confirmed in seconds shows in seconds.
+  for (let attempts = 0; attempts <= 12; attempts++) expect(cardPollDelay(attempts)).toBe(CARD_POLL_MS);
+  const delays = Array.from({ length: 40 }, (_, attempts) => cardPollDelay(attempts));
+  for (let index = 1; index < delays.length; index++) expect(delays[index]).toBeGreaterThanOrEqual(delays[index - 1]!);
+  expect(cardPollDelay(13)).toBe(7_500);
+  expect(cardPollDelay(16)).toBeLessThan(CARD_POLL_MAX_MS);
+  expect(cardPollDelay(17)).toBe(CARD_POLL_MAX_MS);
+  expect(cardPollDelay(1_000)).toBe(CARD_POLL_MAX_MS);
+
+  // A round (looking while the tab is visible) lasts ten minutes, not the twelve looks of a minute it used to.
+  let elapsed = CARD_POLL_MS;
+  let looks = 0;
+  while (elapsed < CARD_POLL_LIMIT_MS) {
+    looks += 1;
+    elapsed += cardPollDelay(looks);
+  }
+  expect(looks).toBeGreaterThan(12);
+  expect(looks).toBeLessThan(40);
 });
