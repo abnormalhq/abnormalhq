@@ -1,19 +1,30 @@
 /**
  * Short caching of the two pages that render on the Worker on every request (/pricing/ and /download/, both languages): their HTML is the same
  * for every visitor who gets it (prices and the release list, no cookies, no session), so it is kept for a minute in the Worker's cache
- * (caches.default) and in browsers, sparing a render and two upstream reads on every view.
+ * (caches.default), sparing a render and two upstream reads on every view. Browsers still revalidate every time (max-age=0): HTML from
+ * before a deploy names script and style files the new deployment no longer has (see cache.ts), and a browser copy could outlive it.
  *
  * What is not the same for every visitor is whether they get this page or a redirect to the other language: lang.ts decides that from the
  * cookie and Accept-Language before this runs, so the edge copy is only ever served to a request that would have rendered the same page.
- * Browsers and any shared cache on the way get Vary: Cookie, Accept-Language, so a stored copy is not reused once the language choice changes.
+ * Responses also carry Vary: Cookie, Accept-Language, so no cache on the way reuses a copy once the language choice changes.
  *
  * The edge copy is keyed by the deployment's version as well: HTML from before a deploy names script and style files the new deployment no
  * longer has (see cache.ts), so it must never outlive the deploy.
  */
 import { langs, localePath } from "../i18n/paths.ts";
 
-/** A minute fresh, then up to five minutes served while a fresh copy is fetched. */
-export const livePageCacheControl = "public, max-age=60, s-maxage=60, stale-while-revalidate=300";
+/** What browsers get: revalidate every time, so a page never outlives the deployment whose script and style files it names. */
+export const livePageCacheControl = "public, max-age=0, must-revalidate";
+
+/** What the copy in the Worker's cache is stored with: a minute; the key carries the deployment, so it never outlives one either. */
+export const livePageEdgeCacheControl = "public, s-maxage=60";
+
+/** The response as browsers get it, whether rendered or from the edge copy. */
+function forBrowser(response: Response): Response {
+  const browser = new Response(response.body, response);
+  browser.headers.set("Cache-Control", livePageCacheControl);
+  return browser;
+}
 
 const livePageUrls = new Set(
   langs.flatMap((lang) => ["/pricing/", "/download/"].map((path) => localePath(lang, path))),
@@ -75,13 +86,15 @@ export async function serveLivePage(
   const key = cache && version ? cacheKey(request, version) : null;
   if (key) {
     const hit = await cache!.match(key).catch(() => undefined);
-    if (hit) return hit;
+    if (hit) return forBrowser(hit);
   }
   const rendered = await render();
   const cacheable = cacheableLivePage(rendered);
   if (!cacheable) return rendered;
   if (key) {
-    const stored = cache!.put(key, cacheable.clone()).catch(() => {});
+    const edgeCopy = cacheable.clone();
+    edgeCopy.headers.set("Cache-Control", livePageEdgeCacheControl);
+    const stored = cache!.put(key, edgeCopy).catch(() => {});
     if (waitUntil) waitUntil(stored);
     else await stored;
   }

@@ -5,6 +5,7 @@ import {
   cacheableLivePage,
   isLivePageRequest,
   livePageCacheControl,
+  livePageEdgeCacheControl,
   serveLivePage,
   type EdgeCache,
 } from "../src/lib/edge-cache.ts";
@@ -55,7 +56,7 @@ test("only whole-page loads of the pages rendered on every request are cached", 
   }
 });
 
-test("a cached page is public for a minute and varies on what decides the language", () => {
+test("browsers revalidate a live page every time, and it varies on what decides the language", () => {
   const response = cacheableLivePage(html())!;
   assert.equal(response.headers.get("cache-control"), livePageCacheControl);
   assert.equal(response.headers.get("vary"), "RSC, Accept, Cookie, Accept-Language");
@@ -84,6 +85,9 @@ test("the edge copy is served until it expires, and never across deployments", a
   assert.equal(renders, 1);
   assert.equal(entries.size, 1);
   assert.match([...entries.keys()][0]!, /__deployment=v1/);
+  // Only the edge copy is kept for a minute; browsers revalidate, so no browser copy outlives a deployment.
+  assert.equal([...entries.values()][0]!.headers.get("cache-control"), livePageEdgeCacheControl);
+  assert.equal(first.headers.get("cache-control"), livePageCacheControl);
 
   // A new deployment renders afresh: the old HTML names files it no longer has.
   await serveLivePage(page("/pricing/"), render, { ...options, version: "v2" });
