@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Eyebrow } from "@/components/ui/section-heading";
 import { Spinner } from "@/components/ui/spinner";
+import { StatusLabel } from "@/components/ui/status-label";
 import { Stepper, StepperContent, StepperIndicator, StepperItem, StepperTitle } from "@/components/ui/stepper";
 import { TextLink } from "@/components/ui/text-link";
 import { cn } from "@/lib/utils";
@@ -84,16 +85,21 @@ export function ShopActions({ children }: { children: ReactNode }) {
   return <div className="mt-6 flex flex-wrap items-center gap-4 max-narrow:gap-3">{children}</div>;
 }
 
-/** Order and subscription status: small grey badge whose text turns the success colour once paid or active. */
+/** Order, subscription, mailbox and domain status: the registry's status label, in the success tone once paid, active or live. */
 export function ShopStatus({ active, children }: { active?: boolean; children: ReactNode }) {
   return (
-    <Badge
-      className={cn("h-auto w-auto shrink border-0 py-[3px] text-xs/body whitespace-normal", active && "text-success")}
+    <StatusLabel
+      tone={active ? "success" : "muted"}
+      // Long statuses wrap on a phone rather than push the heading beside them.
+      className="h-auto min-h-6 shrink py-[3px] text-xs/body whitespace-normal"
     >
       {children}
-    </Badge>
+    </StatusLabel>
   );
 }
+
+/** A small grey chip beside a heading that is not a status, or that draws its own indicator. */
+export const shopChipClass = "h-auto w-auto shrink border-0 py-[3px] text-xs/body whitespace-normal";
 
 /**
  * "Testnet (Nile)" beside a USDT price or payment panel while the shop takes USDT on TRON's test network: what is sent there is

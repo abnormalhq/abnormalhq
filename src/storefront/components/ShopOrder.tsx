@@ -48,7 +48,7 @@ import {
   ShopOrderCode,
   ShopPanel,
   ShopProgress,
-  ShopStatus,
+  shopChipClass,
   ShopSuccessMark,
   ShopTextLink,
   shopArriveClass,
@@ -418,7 +418,8 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           <ShopPanel>
             <div className={shopHeadingRowClass}>
               <h2 className={shopHeadingClass}>{order.productName}</h2>
-              <ShopStatus active={paid}>
+              {/* Not StatusLabel: this badge draws its own indicator, a tick that pops or a beating dot. */}
+              <Badge className={cn(shopChipClass, paid && "text-success")}>
                 {/* A paid order ticks; one that is being watched for its payment shows a beating dot. */}
                 {paid ? (
                   <CheckIcon className="size-3 animate-pop" strokeWidth={3} aria-hidden="true" />
@@ -431,7 +432,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   )
                 )}
                 {order.trial ? trialCopy[lang].title : paid ? t.paid : t.pending}
-              </ShopStatus>
+              </Badge>
             </div>
             {order.trial ? (
               <p className={shopTextClass}>{trialCopy[lang].title}</p>

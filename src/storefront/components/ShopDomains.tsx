@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupInput } from "@/components/ui/input-group";
@@ -34,6 +35,7 @@ import {
   ShopField,
   ShopPanel,
   ShopStatus,
+  shopChipClass,
   shopAccountItemClass,
   shopHeadingClass,
   shopHeadingRowClass,
@@ -119,7 +121,9 @@ export function ShopDomains({
     <ShopPanel>
       <div className={shopHeadingRowClass}>
         <h2 className={shopHeadingClass}>{t.domainsTitle}</h2>
-        {data && data.limit > 0 && <ShopStatus>{t.domainsCount(data.domains.length, data.limit)}</ShopStatus>}
+        {data && data.limit > 0 && (
+          <Badge className={shopChipClass}>{t.domainsCount(data.domains.length, data.limit)}</Badge>
+        )}
       </div>
       <p className={shopTextClass}>{data && data.limit === 0 ? t.domainsNotIncluded : t.domainsHint}</p>
       {loadError && (
