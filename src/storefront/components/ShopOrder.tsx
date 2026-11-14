@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, EmptyStateActions, EmptyStateDescription } from "@/components/ui/empty-state";
 import { CopyButton } from "@/components/ui/copy-button";
+import { PricingPrice } from "@/components/ui/pricing-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,9 +59,6 @@ import {
   shopInputClass,
   shopNoteClass,
   shopOrderPageClass,
-  shopPriceAmountClass,
-  shopPriceLineClass,
-  shopPriceUnitClass,
   shopTextClass,
 } from "./ShopParts";
 import { ShopPrice } from "./ShopPrice";
@@ -437,18 +435,18 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             ) : order.provider === "stripe" ? (
               // Without the currency the amount cannot be read: show none rather than a guessed one.
               order.currency && (
-                <p className={cn(shopPriceLineClass, "mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}>
-                  <strong className={shopPriceAmountClass}>
-                    {formatMoney(order.priceCents, order.currency, lang)}
-                  </strong>
-                </p>
+                <PricingPrice
+                  className={cn("mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}
+                  price={formatMoney(order.priceCents, order.currency, lang)}
+                />
               )
             ) : order.provider === "usdt" ? (
               // Hundredths of a USDT, written with two decimals and the token's name (USDT is not an ISO 4217 currency).
-              <p className={cn(shopPriceLineClass, "mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}>
-                <strong className={shopPriceAmountClass}>{formatCredits(order.priceCents)}</strong>
-                <span className={shopPriceUnitClass}>USDT</span>
-              </p>
+              <PricingPrice
+                className={cn("mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}
+                price={formatCredits(order.priceCents)}
+                period="USDT"
+              />
             ) : (
               <ShopPrice item={order} className={couponUsed ? "mb-0" : undefined} />
             )}

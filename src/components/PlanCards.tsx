@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/description-list";
 import { EmptyState, EmptyStateActions, EmptyStateDescription, EmptyStateTitle } from "@/components/ui/empty-state";
 import { IconTile } from "@/components/ui/icon-tile";
+import { PricingPrice } from "@/components/ui/pricing-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Copy } from "@/i18n/types";
 import { planRows, planRowsFor, type PlanRow, type PlanView } from "@/lib/pricing";
@@ -61,21 +62,14 @@ export function PlanCards({
               )}
             </div>
             <div className="flex flex-col pt-6">
-              <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <strong className="text-[2.5rem] leading-[1.1] font-semibold tracking-[-0.03em]">{plan.amount}</strong>
-                <span className="text-xs/body text-muted-foreground">{plan.unit}</span>
-              </p>
-              {plan.discount && (
-                <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-xs/body text-muted-foreground">
-                  <Badge variant="brand" className="h-auto border-0 py-[3px] text-xs/body font-semibold">
-                    {plan.discount.label}
-                  </Badge>
-                  <span>
-                    <span className="sr-only">{copy.plan.originalPrice} </span>
-                    <s>{plan.discount.original}</s>
-                  </span>
-                </p>
-              )}
+              <PricingPrice
+                price={plan.amount}
+                period={plan.unit}
+                discount={plan.discount?.label}
+                {...(plan.discount
+                  ? { originalPrice: plan.discount.original, originalPriceLabel: copy.plan.originalPrice }
+                  : { originalPrice: undefined })}
+              />
               {plan.card && <p className="mt-auto pt-3 text-sm/body text-muted-foreground">{plan.card}</p>}
               {plan.note && <p className="pt-3 text-xs/[1.7] text-muted-foreground">{plan.note}</p>}
             </div>
@@ -184,12 +178,19 @@ export function PlanComparison({
               </TableHead>
               {plans.map((plan) => (
                 <TableCell className={cn(cell, "wrap-anywhere")} key={plan.id}>
-                  {plan.rows[row]}
-                  {row === "price" && plan.discount && (
-                    <span className="mt-1 block text-xs/body text-muted-foreground">
-                      {plan.discount.label} · <span className="sr-only">{copy.plan.originalPrice} </span>
-                      <s>{plan.discount.original}</s>
-                    </span>
+                  {/* The LDC price as the cards write it, smaller; a plan without one says so in words. */}
+                  {row === "price" && plan.rows.price !== copy.compare.none ? (
+                    <PricingPrice
+                      size="sm"
+                      price={plan.amount}
+                      period={plan.unit}
+                      discount={plan.discount?.label}
+                      {...(plan.discount
+                        ? { originalPrice: plan.discount.original, originalPriceLabel: copy.plan.originalPrice }
+                        : { originalPrice: undefined })}
+                    />
+                  ) : (
+                    plan.rows[row]
                   )}
                 </TableCell>
               ))}
