@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronRightIcon } from "lucide-react";
+import { TextLink } from "@/components/ui/text-link";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -175,9 +176,9 @@ export function ShopMailboxManager({
       ) : data.groups.length === 0 ? (
         <p className={shopTextClass}>
           {t.mailboxesEmpty}{" "}
-          <Link className="text-foreground underline underline-offset-4" href={`/${LANG_PATHS[lang]}shop/`}>
-            {t.mailboxesGoShop}
-          </Link>
+          <TextLink variant="inline" asChild>
+            <Link href={`/${LANG_PATHS[lang]}shop/`}>{t.mailboxesGoShop}</Link>
+          </TextLink>
         </p>
       ) : (
         <div className="mt-6">

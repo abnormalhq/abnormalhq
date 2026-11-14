@@ -1,5 +1,6 @@
 import { BookOpenIcon, CheckIcon, LockIcon } from "lucide-react";
 import Link from "next/link";
+import { TextLink } from "@/components/ui/text-link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Disclosure, DisclosureContent, DisclosureList, DisclosureTrigger } from "@/components/ui/disclosure";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { shopCopy } from "@/storefront/lib/shop-copy";
 import { apiBase, withBase } from "@/storefront/site";
 import { OnboardForm } from "./onboard/OnboardForm";
-import { RichText, inlineLinkClass } from "./RichText";
+import { RichText } from "./RichText";
 
 /** Sidebar subheading: heading font, but body size and tracking. */
 const asideTitleClass = "text-sm font-medium tracking-normal";
@@ -159,9 +160,9 @@ export function Onboard({ lang }: { lang: Lang }) {
           </h2>
           <p className={cn("mt-4 max-w-[27ch] wrap-anywhere max-narrow:mt-3 max-narrow:max-w-none", asideTextClass)}>
             {t.help.contact[0]}
-            <a className={inlineLinkClass} href={`mailto:${supportEmail}`}>
+            <TextLink variant="inline" href={`mailto:${supportEmail}`}>
               {supportEmail}
-            </a>
+            </TextLink>
             {t.help.contact[1]}
           </p>
         </div>
@@ -181,7 +182,7 @@ export function Onboard({ lang }: { lang: Lang }) {
               </DisclosureTrigger>
               <DisclosureContent className="m-0 text-base/[1.75] wrap-anywhere max-narrow:text-sm/[1.75]">
                 <p className="pr-10 pb-[22px] pl-[30px] max-narrow:pr-3 max-narrow:pl-6">
-                  <RichText text={item.a} base={homePath} linkClassName={inlineLinkClass} />
+                  <RichText text={item.a} base={homePath} inlineLinks />
                 </p>
               </DisclosureContent>
             </Disclosure>

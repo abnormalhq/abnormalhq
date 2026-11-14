@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { REDEEM_PATH, type Copy } from "@/storefront/i18n";
 import type { ServerEndpoint } from "@/storefront/lib/api";
 import { cn } from "@/lib/utils";
-import { RichText, inlineLinkClass } from "@/storefront/components/RichText";
+import { RichText } from "@/storefront/components/RichText";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -134,13 +134,13 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
       </Button>
       <p className={noteClass}>
         {t.result.note[0]}
-        <a className={inlineLinkClass} href={`mailto:${supportEmail}`}>
+        <TextLink variant="inline" href={`mailto:${supportEmail}`}>
           {supportEmail}
-        </a>
+        </TextLink>
         {t.result.note[1]}
       </p>
       <p className={noteClass}>
-        <RichText text={t.result.next} base={homePath} linkClassName={inlineLinkClass} />
+        <RichText text={t.result.next} base={homePath} inlineLinks />
       </p>
       <p>
         <TextLink

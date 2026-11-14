@@ -5,6 +5,7 @@
  * dialog first opens, or when a pointer or focus reaches an inquiry button, so no page ships it up front.
  */
 import { Fragment, useRef, useState, type RefObject } from "react";
+import { TextLink } from "@/components/ui/text-link";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -19,8 +20,6 @@ import type { InquiryProps } from "./InquiryDialog";
 import { Icon } from "./Icon";
 
 const fieldClass = "block min-w-0 text-sm/body font-medium";
-const linkClass =
-  "underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current";
 
 /**
  * The copy button's `write`: the dialog shows the outcome as a sentence under its buttons, and CopyButton does not say how a copy
@@ -239,10 +238,10 @@ export function InquiryForm({
               typeof part === "string" ? (
                 <Fragment key={index}>{part}</Fragment>
               ) : (
-                <a className={linkClass} href={part.href} target="_blank" rel="noopener noreferrer" key={index}>
+                <TextLink variant="inline" href={part.href} target="_blank" rel="noopener noreferrer" key={index}>
                   {part.label}
                   <span className="sr-only">{copy.newWindow}</span>
-                </a>
+                </TextLink>
               ),
             )}
           </p>
