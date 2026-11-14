@@ -697,8 +697,42 @@ export function Shop({ lang }: { lang: Lang }) {
                           {usdtPayment?.network === "nile" && <ShopTestnetBadge>{t.usdtTestnet}</ShopTestnetBadge>}
                         </p>
                       ) : null}
+                      {couponLines.length > 0 && (
+                        <ul
+                          className={cn("mt-4 grid gap-1 border-t border-border pt-4 text-sm/[1.7]", shopArriveClass)}
+                        >
+                          {couponLines.map((line, index) => (
+                            <li
+                              className={
+                                index <
+                                Number(Boolean(ldcQuote)) + Number(Boolean(cardQuote)) + Number(Boolean(usdtQuote))
+                                  ? "font-semibold"
+                                  : "text-muted-foreground"
+                              }
+                              key={line}
+                            >
+                              {line}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <div>
+                      <ShopDetails
+                        item={product}
+                        lang={lang}
+                        seatRange={range ? { min: range.minQuantity, max: range.maxQuantity } : undefined}
+                      />
+                      {carried && !product.domains.includes(carried.domain) && (
+                        <p className="mt-3 text-xs/body text-muted-foreground">{t.planWithoutDomain(carried.domain)}</p>
+                      )}
+                    </div>
+                    {/* The order row: a seat plan's quantity and total sit with the buttons they price, so the rows above
+                        (heading, price, details) stay as short as their content in every card. Top-aligned: a card whose
+                        row is taller leaves its room below the other cards' buttons instead of stretching them. */}
+                    <div className="pt-6">
                       {seatPlan && range && (
-                        <div className="mt-4 border-t border-border pt-4">
+                        <div className="mb-6 border-b border-border pb-5 [&>div:first-child]:mt-0">
                           <ShopField
                             htmlFor={`shop-seats-${product.id}`}
                             label={t.seatQuantity}
@@ -810,77 +844,46 @@ export function Shop({ lang }: { lang: Lang }) {
                           </p>
                         </div>
                       )}
-                      {couponLines.length > 0 && (
-                        <ul
-                          className={cn("mt-4 grid gap-1 border-t border-border pt-4 text-sm/[1.7]", shopArriveClass)}
-                        >
-                          {couponLines.map((line, index) => (
-                            <li
-                              className={
-                                index <
-                                Number(Boolean(ldcQuote)) + Number(Boolean(cardQuote)) + Number(Boolean(usdtQuote))
-                                  ? "font-semibold"
-                                  : "text-muted-foreground"
-                              }
-                              key={line}
-                            >
-                              {line}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    <div>
-                      <ShopDetails
-                        item={product}
-                        lang={lang}
-                        seatRange={range ? { min: range.minQuantity, max: range.maxQuantity } : undefined}
-                      />
-                      {carried && !product.domains.includes(carried.domain) && (
-                        <p className="mt-3 text-xs/body text-muted-foreground">{t.planWithoutDomain(carried.domain)}</p>
-                      )}
-                    </div>
-                    {/* Top-aligned: a card whose buttons wrap onto two lines makes the shared row taller, and the
-                        buttons of the other cards keep their own height instead of stretching to it. */}
-                    <div className="flex flex-wrap content-start items-start gap-2 pt-6">
-                      {catalog.payment.ldc && (
-                        <ShopButton
-                          type="button"
-                          loading={buying === `${product.id}:ldc`}
-                          disabled={buying !== null || !open.ldc}
-                          onClick={() => void checkout(product.id)}
-                          aria-label={`${t.buy} · ${product.name}`}
-                        >
-                          {buying === `${product.id}:ldc` ? t.buying : t.buy}
-                          {buying !== `${product.id}:ldc` && <span aria-hidden="true">↗</span>}
-                        </ShopButton>
-                      )}
-                      {cardPrice ? (
-                        <ShopButton
-                          variant={catalog.payment.ldc ? "outline" : "default"}
-                          type="button"
-                          loading={buying === `${product.id}:stripe`}
-                          disabled={buying !== null || !open.card}
-                          onClick={() => void checkout(product.id, "stripe")}
-                          aria-label={`${t.payCard} · ${product.name}`}
-                        >
-                          {buying === `${product.id}:stripe` ? t.buying : t.payCard}
-                          {buying !== `${product.id}:stripe` && <span aria-hidden="true">↗</span>}
-                        </ShopButton>
-                      ) : null}
-                      {usdtPrice ? (
-                        <ShopButton
-                          variant={catalog.payment.ldc || cardPrice ? "outline" : "default"}
-                          type="button"
-                          loading={buying === `${product.id}:usdt`}
-                          disabled={buying !== null || !open.usdt}
-                          onClick={() => void checkout(product.id, "usdt")}
-                          aria-label={`${t.payUsdt} · ${product.name}`}
-                        >
-                          {buying === `${product.id}:usdt` ? t.buying : t.payUsdt}
-                          {buying !== `${product.id}:usdt` && <span aria-hidden="true">↗</span>}
-                        </ShopButton>
-                      ) : null}
+                      <div className="flex flex-wrap content-start items-start gap-2">
+                        {catalog.payment.ldc && (
+                          <ShopButton
+                            type="button"
+                            loading={buying === `${product.id}:ldc`}
+                            disabled={buying !== null || !open.ldc}
+                            onClick={() => void checkout(product.id)}
+                            aria-label={`${t.buy} · ${product.name}`}
+                          >
+                            {buying === `${product.id}:ldc` ? t.buying : t.buy}
+                            {buying !== `${product.id}:ldc` && <span aria-hidden="true">↗</span>}
+                          </ShopButton>
+                        )}
+                        {cardPrice ? (
+                          <ShopButton
+                            variant={catalog.payment.ldc ? "outline" : "default"}
+                            type="button"
+                            loading={buying === `${product.id}:stripe`}
+                            disabled={buying !== null || !open.card}
+                            onClick={() => void checkout(product.id, "stripe")}
+                            aria-label={`${t.payCard} · ${product.name}`}
+                          >
+                            {buying === `${product.id}:stripe` ? t.buying : t.payCard}
+                            {buying !== `${product.id}:stripe` && <span aria-hidden="true">↗</span>}
+                          </ShopButton>
+                        ) : null}
+                        {usdtPrice ? (
+                          <ShopButton
+                            variant={catalog.payment.ldc || cardPrice ? "outline" : "default"}
+                            type="button"
+                            loading={buying === `${product.id}:usdt`}
+                            disabled={buying !== null || !open.usdt}
+                            onClick={() => void checkout(product.id, "usdt")}
+                            aria-label={`${t.payUsdt} · ${product.name}`}
+                          >
+                            {buying === `${product.id}:usdt` ? t.buying : t.payUsdt}
+                            {buying !== `${product.id}:usdt` && <span aria-hidden="true">↗</span>}
+                          </ShopButton>
+                        ) : null}
+                      </div>
                     </div>
                   </article>
                 </Card>
