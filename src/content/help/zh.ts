@@ -35,7 +35,7 @@ export const helpZh: HelpContent = {
             {
               ol: [
                 "在[我的账户](shop/account/?mode=register)用邮箱和密码注册，并打开确认邮件里的链接。链接 15 分钟内有效。",
-                "在[商店](shop/)选择套餐，用 Linux DO Credit、银行卡或 USDT（TRON、BNB Smart Chain 或 Ethereum）支付。付款前可以先核对订单。",
+                "在[商店](shop/)选择套餐，用 Linux DO Credit、银行卡或 USDT（TRON、BNB Smart Chain、Ethereum 或 Solana）支付。付款前可以先核对订单。",
                 "支付确认后，打开[我的账户](shop/account/)里的「我的邮箱」，选好用户名和密码，邮箱即刻开通。",
                 `用完整的邮箱地址和这个密码登录网页邮箱：${webmail}。`,
               ],

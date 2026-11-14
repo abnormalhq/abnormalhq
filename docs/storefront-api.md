@@ -303,9 +303,10 @@ The platform notification is handled as plain text, the payment endpoint as form
 ### USDT payments
 
 `shop.usdt` in `docs/onboard-contract.json` (mail's docs/shop.md, "USDT payments"). The buyer sends USDT on TRON (TRC-20), BNB Smart Chain
-(BEP-20) or Ethereum (ERC-20), whichever of those the shop offers they choose, to an address that belongs to their order alone (mail derives it
+(BEP-20), Ethereum (ERC-20) or Solana (SPL), whichever of those the shop offers they choose, to an address that belongs to their order alone (mail derives it
 from the shop's extended public key for that chain); mail reads the chain through Tatum and the order is paid, and its code issued, once the
-final total at that address reaches the amount: about a minute after sending on TRON and BNB Smart Chain, about 15 minutes on Ethereum.
+final total at that address reaches the amount: seconds after sending on Solana, about a minute on TRON and BNB Smart Chain, about 15 minutes
+on Ethereum.
 
 - **Units.** Every amount of a USDT order, quote, plan or seat subscription is in hundredths of a USDT with `currency: "usdt"` (four letters, not
   ISO 4217). The pages write it `12.34 USDT` (two decimals, no Intl currency style). Like a card price a USDT price has no plan discount
@@ -313,9 +314,9 @@ final total at that address reaches the amount: about a minute after sending on 
   (`shop.seats.maxTotalCentsUnit.usdt`).
 - **Catalog.** `payment.usdt` is `{ currency: "usdt", network: "mainnet" | "nile", contract, chains }` while USDT is on, and `null` or absent
   otherwise; `nile` is TRON's testnet (mail offers TRON only there), and the pages show a "Testnet (Nile)" badge next to the USDT price and on the
-  payment panel. `chains` lists the chains the buyer may choose, in the order to offer them, each `{ chain: "tron" | "bsc" | "ethereum", name,
+  payment panel. `chains` lists the chains the buyer may choose, in the order to offer them, each `{ chain: "tron" | "bsc" | "ethereum" | "solana", name,
 standard, contract }` (`shop.usdt.catalogChainFields`); `contract` is the first chain's. A mail that offers TRON only sends no `chains`: the page
-  takes TRON as the one chain. A chain the page does not know, or whose contract is no address of it (TRON's `T…`, the EVM chains' `0x…`), is left
+  takes TRON as the one chain. A chain the page does not know, or whose contract is no address of it (TRON's `T…`, the EVM chains' `0x…`, Solana's base58 of 32 bytes; on Solana `contract` is the USDT mint and `standard` is `SPL`), is left
   out; a `payment.usdt` with an unknown network or no usable chain counts as off, like a card with an unusable currency. A plan offers USDT when
   `payment.usdt` is there and its `usdtPriceMinor` is above 0; a seat plan's `unitUsdtPriceMinor` (one seat; `shop.usdt.seatPlanFields`) falls back to
   `usdtPriceMinor` the way `unitFiatPriceMinor` falls back to `fiatPriceMinor`. The shop page shows a third button, "Pay with USDT", with its price

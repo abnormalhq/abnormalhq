@@ -93,14 +93,29 @@ export type UsdtNetwork = (typeof USDT_NETWORKS)[number];
 export const TRON_ADDRESS = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
 /** An EVM address (BNB Smart Chain, Ethereum): 0x and 40 hex digits. */
 export const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+/** A Solana address: 32 bytes in base58, 32 to 44 characters. */
+export const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+/** Whether a base58 string decodes to exactly 32 bytes (a TRON address, 25 bytes, does not, though it looks alike). */
+function isSolanaAddress(value: string): boolean {
+  if (!SOLANA_ADDRESS.test(value)) return false;
+  let number = 0n;
+  for (const char of value) number = number * 58n + BigInt(BASE58.indexOf(char));
+  const zeros = value.length - value.replace(/^1+/, "").length;
+  const hex = number === 0n ? "" : number.toString(16);
+  return zeros + Math.ceil(hex.length / 2) === 32;
+}
 
 /** The chains mail takes USDT on (`shop.usdt.chains`), in the order it offers them. */
-export const USDT_CHAINS = ["tron", "bsc", "ethereum"] as const;
+export const USDT_CHAINS = ["tron", "bsc", "ethereum", "solana"] as const;
 export type UsdtChain = (typeof USDT_CHAINS)[number];
 
-/** Whether a string is an address of the chain: TRON's base58 T… addresses, or the EVM chains' 0x ones. */
+/** Whether a string is an address of the chain: TRON's base58 T… addresses, the EVM chains' 0x ones, Solana's base58 ones. */
 export function isUsdtAddress(chain: UsdtChain, value: unknown): value is string {
-  return typeof value === "string" && (chain === "tron" ? TRON_ADDRESS : EVM_ADDRESS).test(value);
+  if (typeof value !== "string") return false;
+  if (chain === "solana") return isSolanaAddress(value);
+  return (chain === "tron" ? TRON_ADDRESS : EVM_ADDRESS).test(value);
 }
 
 /** A chain the buyer may pay USDT on (`shop.usdt.catalogChainFields`): its name, token standard and the only token that pays. */
@@ -724,7 +739,7 @@ function parseUsdtPayment(value: unknown): UsdtPayment | null {
         !entry.name.trim() ||
         entry.name.length > 40 ||
         !isString(entry.standard) ||
-        !/^[A-Z]{2,5}-[0-9]{2,4}$/.test(entry.standard) ||
+        !/^(?:[A-Z]{2,5}-[0-9]{2,4}|SPL)$/.test(entry.standard) ||
         !isUsdtAddress(entry.chain as UsdtChain, entry.contract)
       )
         return [];

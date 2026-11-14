@@ -39,7 +39,7 @@ export const helpEn: HelpContent = {
             {
               ol: [
                 "Create an account in [My account](shop/account/?mode=register) with your email and a password, and open the link in the confirmation email. The link works for 15 minutes.",
-                "Pick a plan in the [shop](shop/) and pay with Linux DO Credit, by card or with USDT (TRON, BNB Smart Chain or Ethereum). You review the order before paying.",
+                "Pick a plan in the [shop](shop/) and pay with Linux DO Credit, by card or with USDT (TRON, BNB Smart Chain, Ethereum or Solana). You review the order before paying.",
                 "Once the payment is confirmed, open My mailboxes in [My account](shop/account/), choose a username and a password, and the mailbox is set up.",
                 `Sign in to webmail at ${webmail} with the full address and that password.`,
               ],

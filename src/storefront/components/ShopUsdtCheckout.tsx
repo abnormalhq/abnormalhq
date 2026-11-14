@@ -2,7 +2,7 @@
 
 /**
  * A USDT order paid on the order page itself: mail's pay/usdt gives the address that belongs to this order alone, on the chain the
- * buyer chose (TRON, BNB Smart Chain or Ethereum), and the exact amount to send, and every call has mail look at the chain. Before
+ * buyer chose (TRON, BNB Smart Chain, Ethereum or Solana), and the exact amount to send, and every call has mail look at the chain. Before
  * the order has an address, a shop that offers more than one chain lets the buyer choose first (the catalog's
  * `payment.usdt.chains`): the address is for that chain alone, and the choice is the order's for good. This component shows both with copy buttons and a QR
  * code of the address (wallets scan an address; amounts in payment URIs are not the same across wallets), warns about the network,
@@ -52,7 +52,12 @@ export const USDT_POLL_LIMIT_MS = 2 * 60 * 60 * 1000;
 type Open = Extract<UsdtPaymentStart, { status: "open" }>;
 
 /** The chains' names, for an answer whose chain the catalog did not list (an address handed out before it stopped). */
-const CHAIN_NAMES: Record<UsdtChain, string> = { tron: "TRON", bsc: "BNB Smart Chain", ethereum: "Ethereum" };
+const CHAIN_NAMES: Record<UsdtChain, string> = {
+  tron: "TRON",
+  bsc: "BNB Smart Chain",
+  ethereum: "Ethereum",
+  solana: "Solana",
+};
 
 /**
  * Which chain pay/usdt is asked for: `ready` once known (the order's own, the only one offered, or the one the buyer chose;

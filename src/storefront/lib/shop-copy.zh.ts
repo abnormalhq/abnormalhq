@@ -323,7 +323,7 @@ export const zh = {
   orderDescriptionUsdt: "核对套餐信息后，在下方用 USDT 付款。",
   usdtTitle: "用 USDT 支付",
   usdtNote:
-    "通过下方标明的网络，向这个地址转入准确金额的 USDT。这个地址只属于这笔订单；转账在链上最终确认后（TRON 和 BNB Smart Chain 约 1 分钟，Ethereum 约 15 分钟），这里会显示兑换码。",
+    "通过下方标明的网络，向这个地址转入准确金额的 USDT。这个地址只属于这笔订单；转账在链上最终确认后（Solana 几秒，TRON 和 BNB Smart Chain 约 1 分钟，Ethereum 约 15 分钟），这里会显示兑换码。",
   usdtNetwork: (name: string, standard: string) => `${name} · ${standard}`,
   usdtChoose: "选择转账网络",
   usdtChooseHint: "请选择你的钱包或交易所发送 USDT 所用的网络。收款地址只适用于这个网络，选定后不能更改。",

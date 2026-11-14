@@ -1011,7 +1011,7 @@ export async function startStripePayment(orderId: string, lang?: Lang): Promise<
 /**
  * Paying a USDT order on the order page (mail's pay/usdt, `shop.usdt` in docs/onboard-contract.json). `chain` is the chain the
  * buyer chose, sent on the first call (mail gives the address on it then and ignores it later; absent: mail's first chain):
- * - open: the order is waiting for USDT on `chain` (`standard`: TRC-20, BEP-20, ERC-20). `address` belongs to this order alone, `amount` is exactly what to send
+ * - open: the order is waiting for USDT on `chain` (`standard`: TRC-20, BEP-20, ERC-20, SPL). `address` belongs to this order alone, `amount` is exactly what to send
  *   (a decimal string, what the buyer copies; `amountMinor` the same in hundredths of a USDT), `received` what has been confirmed
  *   on chain to the address so far and `confirming` what has been seen there but is not confirmed yet (decimal strings, up to six
  *   decimals). The order is paid once the confirmed total reaches the amount, so a buyer who sent too little sends the rest.
@@ -1077,7 +1077,7 @@ export async function startUsdtPayment(
     body.status !== "open" ||
     !(USDT_CHAINS as readonly unknown[]).includes(paidOn) ||
     !isString(standard) ||
-    !/^[A-Z]{2,5}-[0-9]{2,4}$/.test(standard) ||
+    !/^(?:[A-Z]{2,5}-[0-9]{2,4}|SPL)$/.test(standard) ||
     !(USDT_NETWORKS as readonly unknown[]).includes(body.network) ||
     body.token !== "USDT" ||
     !isUsdtAddress(paidOn as UsdtChain, body.contract) ||

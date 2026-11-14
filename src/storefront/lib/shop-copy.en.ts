@@ -353,7 +353,7 @@ export const en: ShopCopy = {
   orderDescriptionUsdt: "Check your plan details, then pay with USDT below.",
   usdtTitle: "Pay with USDT",
   usdtNote:
-    "Send exactly the amount below in USDT to this address, on the network shown. The address belongs to this order alone. Once the transfer is final on chain (about a minute on TRON and BNB Smart Chain, about 15 minutes on Ethereum), your code appears here.",
+    "Send exactly the amount below in USDT to this address, on the network shown. The address belongs to this order alone. Once the transfer is final on chain (seconds on Solana, about a minute on TRON and BNB Smart Chain, about 15 minutes on Ethereum), your code appears here.",
   usdtNetwork: (name: string, standard: string) => `${name} · ${standard}`,
   usdtChoose: "Choose the network you send from",
   usdtChooseHint:

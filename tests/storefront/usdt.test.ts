@@ -137,7 +137,7 @@ test("catalog: payment.usdt is read when usable, and is absent when off, missing
   expect(
     read({
       ...usdtCatalogChains,
-      chains: [{ ...tron, chain: "solana" }, { ...bsc, contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" }, bsc],
+      chains: [{ ...tron, chain: "dogecoin" }, { ...bsc, contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t" }, bsc],
     }).usdt,
   ).toStrictEqual({ ...usdtCatalogChains, contract: bsc.contract, chains: [bsc] });
   // A mail before USDT (no key), USDT switched off (null), and anything the page could not show: off, and not there at all.
@@ -151,6 +151,8 @@ test("catalog: payment.usdt is read when usable, and is absent when off, missing
     { ...tronOnly, contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeB0" },
     { ...tronOnly, contract: undefined },
     { ...usdtCatalogPayment, chains: [] },
+    { ...usdtCatalogPayment, chains: [{ ...tron, chain: "dogecoin" }] },
+    // A TRON address looks like base58 but is no Solana address (25 bytes, not 32).
     { ...usdtCatalogPayment, chains: [{ ...tron, chain: "solana" }] },
     { ...usdtCatalogPayment, chains: "tron" },
     "usdt",
@@ -474,6 +476,19 @@ test("pay/usdt client: an open order's address and exact amount, paid, and every
     contract: "0x55d398326f99059fF775485246999027B3197955",
     address: "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
   };
+  // Solana: a base58 address of the order's own, paid in the USDT mint.
+  const solanaAnswer = {
+    ...usdtPayResponse,
+    chain: "solana",
+    standard: "SPL",
+    network: "mainnet",
+    contract: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    address: "BarYJFM3886mZZ11rDXajH6Rajs76vzvrEYwe4ZJ3ysY",
+  };
+  respond(solanaAnswer);
+  await expect(startUsdtPayment(ORDER_ID, "en", undefined, "solana")).resolves.toStrictEqual(solanaAnswer);
+  respond({ ...solanaAnswer, address: "0x9858EfFD232B4033E47d90003D41EC34EcaEda94" });
+  await expect(startUsdtPayment(ORDER_ID)).rejects.toBeInstanceOf(ShopApiError);
   const chosen = respond(bscAnswer);
   await expect(startUsdtPayment(ORDER_ID, "en", undefined, "bsc")).resolves.toStrictEqual(bscAnswer);
   expect(chosen).toStrictEqual([{ url: "/api/shop/pay/usdt", body: { orderId: ORDER_ID, chain: "bsc" } }]);
@@ -501,7 +516,8 @@ test("pay/usdt client: an open order's address and exact amount, paid, and every
     { contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7" },
     // An address of another chain than the one said, or a chain this page does not know.
     { chain: "bsc", standard: "BEP-20" },
-    { chain: "solana" },
+    { chain: "dogecoin" },
+    { chain: "solana", standard: "SPL" },
     { standard: "TRC20" },
     { standard: undefined },
     { address: "TUEZSdKsoDHQMeZwihtdoBiN46zxhGWYd" },

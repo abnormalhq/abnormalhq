@@ -169,7 +169,7 @@ export const usdtCatalogPayment = {
   chains: [{ chain: "tron", name: "TRON", standard: "TRC-20", contract: "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf" }],
 };
 
-/** The same on mainnet with BNB Smart Chain and Ethereum offered too. */
+/** The same on mainnet with BNB Smart Chain, Ethereum and Solana offered too. */
 export const usdtCatalogChains = {
   currency: "usdt",
   network: "mainnet",
@@ -183,6 +183,7 @@ export const usdtCatalogChains = {
       contract: "0x55d398326f99059fF775485246999027B3197955",
     },
     { chain: "ethereum", name: "Ethereum", standard: "ERC-20", contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7" },
+    { chain: "solana", name: "Solana", standard: "SPL", contract: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" },
   ],
 };
 
