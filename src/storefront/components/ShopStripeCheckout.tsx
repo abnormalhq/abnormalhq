@@ -17,7 +17,8 @@ import { startStripePayment } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
 import { cn } from "@/lib/utils";
-import { ShopActions, ShopAlert, ShopButton, ShopSkeleton, shopArriveClass, shopTextClass } from "./ShopParts";
+import { ShopActions, ShopAlert, ShopButton, shopArriveClass, shopTextClass } from "./ShopParts";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { useDocumentTheme } from "./useDocumentTheme";
 
@@ -208,12 +209,12 @@ export function ShopStripeCheckout({
         // The outline of the card form while Stripe loads; the form itself mounts below, unseen until it is ready.
         <div role="status" aria-busy="true">
           <span className="sr-only">{t.cardLoading}</span>
-          <ShopSkeleton className="h-11 w-full" />
+          <Skeleton className="h-11 w-full" />
           <div className="mt-3 grid grid-cols-2 gap-3">
-            <ShopSkeleton className="h-11" />
-            <ShopSkeleton className="h-11" />
+            <Skeleton className="h-11" />
+            <Skeleton className="h-11" />
           </div>
-          <ShopSkeleton className="mt-6 h-10 w-36" />
+          <Skeleton className="mt-6 h-10 w-36" />
         </div>
       )}
       {/* Hidden by visibility, not display: Stripe measures the place it mounts in, and it must have its width. */}

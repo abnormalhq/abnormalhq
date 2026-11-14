@@ -44,13 +44,13 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ShopDetails } from "./ShopDetails";
 import {
   ShopAlert,
   ShopButton,
   ShopField,
   ShopHero,
-  ShopSkeleton,
   ShopTestnetBadge,
   ShopTextLink,
   shopArriveClass,
@@ -438,14 +438,14 @@ export function Shop({ lang }: { lang: Lang }) {
           <span className="sr-only">{t.loading}</span>
           {[0, 1, 2].map((index) => (
             <Card className="block p-7 max-narrow:px-5 max-narrow:py-[22px]" key={index}>
-              <ShopSkeleton className="mb-[22px] size-[38px]" />
-              <ShopSkeleton className="h-6 w-3/5" />
-              <ShopSkeleton className="mt-4 h-4 w-full" />
-              <ShopSkeleton className="mt-2 h-4 w-4/5" />
-              <ShopSkeleton className="mt-[30px] h-11 w-2/5" />
-              <ShopSkeleton className="mt-[30px] h-4 w-full" />
-              <ShopSkeleton className="mt-2 h-4 w-2/3" />
-              <ShopSkeleton className="mt-8 h-10 w-36" />
+              <Skeleton className="mb-[22px] size-[38px]" />
+              <Skeleton className="h-6 w-3/5" />
+              <Skeleton className="mt-4 h-4 w-full" />
+              <Skeleton className="mt-2 h-4 w-4/5" />
+              <Skeleton className="mt-[30px] h-11 w-2/5" />
+              <Skeleton className="mt-[30px] h-4 w-full" />
+              <Skeleton className="mt-2 h-4 w-2/3" />
+              <Skeleton className="mt-8 h-10 w-36" />
             </Card>
           ))}
         </div>

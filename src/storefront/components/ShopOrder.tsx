@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { LANG_PATHS, storePath, type Lang } from "@/storefront/i18n";
 import {
@@ -47,7 +48,6 @@ import {
   ShopOrderCode,
   ShopPanel,
   ShopProgress,
-  ShopSkeleton,
   ShopStatus,
   ShopSuccessMark,
   ShopTextLink,
@@ -375,19 +375,19 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           <span className="sr-only">{t.loading}</span>
           <ShopPanel>
             <div className={shopHeadingRowClass}>
-              <ShopSkeleton className="h-6 w-2/5" />
-              <ShopSkeleton className="h-5 w-16" />
+              <Skeleton className="h-6 w-2/5" />
+              <Skeleton className="h-5 w-16" />
             </div>
-            <ShopSkeleton className="mt-[30px] h-11 w-1/3" />
-            <ShopSkeleton className="mt-[30px] h-4 w-4/5" />
-            <ShopSkeleton className="mt-2 h-4 w-3/5" />
-            <ShopSkeleton className="mt-8 h-4 w-full" />
-            <ShopSkeleton className="mt-2 h-4 w-full" />
+            <Skeleton className="mt-[30px] h-11 w-1/3" />
+            <Skeleton className="mt-[30px] h-4 w-4/5" />
+            <Skeleton className="mt-2 h-4 w-3/5" />
+            <Skeleton className="mt-8 h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-full" />
           </ShopPanel>
           <ShopPanel>
-            <ShopSkeleton className="h-6 w-1/3" />
-            <ShopSkeleton className="mt-4 h-4 w-4/5" />
-            <ShopSkeleton className="mt-6 h-10 w-40" />
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="mt-4 h-4 w-4/5" />
+            <Skeleton className="mt-6 h-10 w-40" />
           </ShopPanel>
         </div>
       ) : order ? (

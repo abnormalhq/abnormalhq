@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Eyebrow } from "@/components/ui/section-heading";
+import { Spinner } from "@/components/ui/spinner";
 import { Stepper, StepperContent, StepperIndicator, StepperItem, StepperTitle } from "@/components/ui/stepper";
 import { TextLink } from "@/components/ui/text-link";
 import { cn } from "@/lib/utils";
@@ -178,9 +179,19 @@ export function ShopField({
   );
 }
 
-/** A grey block standing in for content that is loading; it breathes, and holds still under reduced motion. */
-export function ShopSkeleton({ className }: { className?: string }) {
-  return <span className={cn("block animate-pulse rounded-control bg-control", className)} aria-hidden="true" />;
+/**
+ * What a session page shows until it hydrates (it reads the query string in the browser): the sentence with a spinner, which turns
+ * without JavaScript, so the prerendered page is seen to be waiting.
+ */
+export function ShopPageLoading({ children }: { children: ReactNode }) {
+  return (
+    <div className={shopPageClass}>
+      <p role="status" className="flex items-center gap-2.5">
+        <Spinner />
+        {children}
+      </p>
+    </div>
+  );
 }
 
 /**

@@ -15,21 +15,14 @@ import { encode } from "uqr";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/ui/copy-button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { writeClipboard } from "@/lib/clipboard";
 import type { Lang } from "@/storefront/i18n";
 import { ShopApiError, startUsdtPayment, usdtDecimal, usdtUnits, type UsdtPaymentStart } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/context";
-import {
-  ShopActions,
-  ShopAlert,
-  ShopButton,
-  ShopSkeleton,
-  ShopTestnetBadge,
-  shopArriveClass,
-  shopTextClass,
-} from "./ShopParts";
+import { ShopActions, ShopAlert, ShopButton, ShopTestnetBadge, shopArriveClass, shopTextClass } from "./ShopParts";
 
 /** How often pay/usdt is asked while the page is visible: mail expects about this and throttles its own look at the chain. */
 export const USDT_POLL_MS = 5_000;
@@ -201,12 +194,12 @@ export function ShopUsdtCheckout({
       <div className="mt-6" role="status" aria-busy="true">
         <span className="sr-only">{t.usdtLoading}</span>
         <div className="flex flex-wrap gap-6">
-          <ShopSkeleton className="size-[176px]" />
+          <Skeleton className="size-[176px]" />
           <div className="min-w-[220px] flex-1">
-            <ShopSkeleton className="h-4 w-1/3" />
-            <ShopSkeleton className="mt-2 h-8 w-1/2" />
-            <ShopSkeleton className="mt-6 h-4 w-1/3" />
-            <ShopSkeleton className="mt-2 h-6 w-full" />
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="mt-2 h-8 w-1/2" />
+            <Skeleton className="mt-6 h-4 w-1/3" />
+            <Skeleton className="mt-2 h-6 w-full" />
           </div>
         </div>
       </div>

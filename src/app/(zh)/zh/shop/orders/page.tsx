@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { ShopOrder } from "@/storefront/components/ShopOrder";
-import { shopPageClass } from "@/storefront/components/ShopParts";
+import { ShopPageLoading } from "@/storefront/components/ShopParts";
 import { StorePage } from "@/storefront/components/StorePage";
 import { shopMetadata } from "@/storefront/metadata";
 
@@ -10,13 +10,7 @@ export const metadata = shopMetadata("zh", "orders");
 export default function ZhOrdersPage() {
   return (
     <StorePage>
-      <Suspense
-        fallback={
-          <div className={shopPageClass}>
-            <p role="status">正在加载订单…</p>
-          </div>
-        }
-      >
+      <Suspense fallback={<ShopPageLoading>正在加载订单…</ShopPageLoading>}>
         <ShopOrder lang="zh" />
       </Suspense>
     </StorePage>
