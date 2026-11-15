@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { Eyebrow } from "@/components/ui/section-heading";
+import { Marker } from "@/components/ui/marker";
+import { Eyebrow, HeadingMark } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
@@ -31,14 +32,15 @@ export function Hero({ lang }: { lang: Lang }) {
             {h.eyebrow}
           </Eyebrow>
           <h1
-            className="my-[1.4rem] animate-rise text-[clamp(2.5rem,4.4vw,3.5rem)] leading-[1.25] font-semibold tracking-[-0.02em] max-hero:text-[2.5rem] max-md:my-6 max-md:text-[clamp(2.35rem,8.2vw,3.6rem)] [animation-delay:70ms]"
+            className="my-[1.4rem] animate-rise font-heading text-[clamp(2.5rem,4.4vw,3.5rem)] leading-[1.25] font-semibold tracking-[-0.02em] max-hero:text-[2.5rem] max-md:my-6 max-md:text-[clamp(2.35rem,8.2vw,3.6rem)] [animation-delay:70ms]"
             id="hero-title"
           >
             {h.titleLines[0]}
             <br />
             <span className="text-muted-foreground">
               {h.titleLines[1]}
-              <span className="-ml-[0.12em] text-signal">{t.dot}</span>
+              <Marker>{h.titleLines[2]}</Marker>
+              <HeadingMark className="-ml-[0.12em]">{t.dot}</HeadingMark>
             </span>
           </h1>
           <p className="max-w-[500px] animate-rise text-md/prose text-muted-foreground max-hero:text-base/prose max-md:mx-auto [animation-delay:140ms]">
@@ -94,30 +96,20 @@ export function Hero({ lang }: { lang: Lang }) {
           role="img"
           aria-label={h.visualLabel}
         >
+          {/* Soft highlighter wash behind the showcase: atmosphere from the brand yellow, not a flat card stack. */}
           <div
-            className="absolute inset-x-[4%] inset-y-[2%] rounded-full border border-border"
+            className="pointer-events-none absolute -inset-[8%] -z-1 rounded-full bg-[radial-gradient(ellipse_at_70%_30%,color-mix(in_oklab,var(--highlight)_42%,transparent),transparent_62%)] opacity-90 dark:opacity-50"
             aria-hidden="true"
-          ></div>
-          <span
-            className="absolute top-[6%] left-[13%] text-[1.4rem] font-light text-muted-foreground"
-            aria-hidden="true"
-          >
-            +
-          </span>
-          <span
-            className="absolute right-[5%] bottom-[1%] text-[1.4rem] font-light text-muted-foreground"
-            aria-hidden="true"
-          >
-            +
-          </span>
+          />
+          <div className="absolute inset-x-[4%] inset-y-[2%] rounded-full border border-border/70" aria-hidden="true" />
           {/* The yellow block and the address card float slowly, out of step with each other; the inbox between them stays put. */}
-          {/* The hero showcase: a big highlight-yellow block with ink on top throughout. */}
+          {/* Brand tile first: the highlighter-yellow "a" is the showcase's loudest signal. */}
           <div
-            className="absolute top-0 right-[1%] z-2 h-[143px] w-[125px] rotate-10 animate-drift rounded-mark bg-highlight p-4 text-highlight-foreground max-hero:right-[2%] max-hero:h-[125px] max-hero:w-[108px] max-md:-top-2 max-md:h-[127px] max-md:w-[110px] max-phone:h-[112px] max-phone:w-[96px] max-phone:p-[0.8rem] [animation-delay:-2s]"
+            className="absolute -top-1 right-0 z-2 h-[158px] w-[138px] rotate-10 animate-drift rounded-mark bg-highlight p-[1.15rem] text-highlight-foreground shadow-[3px_3px_0_0_var(--highlight-foreground)] max-hero:right-[1%] max-hero:h-[138px] max-hero:w-[120px] max-md:-top-3 max-md:h-[140px] max-md:w-[122px] max-phone:h-[122px] max-phone:w-[106px] max-phone:p-[0.85rem] [animation-delay:-2s]"
             aria-hidden="true"
           >
-            <span className="mb-[0.55rem] flex items-start justify-between text-[2rem] leading-none font-semibold">
-              a<Icon name="up-right" className="size-[0.9rem]" />
+            <span className="mb-[0.55rem] flex items-start justify-between font-heading text-[2.15rem] leading-none font-semibold tracking-[-0.04em]">
+              a<Icon name="up-right" className="mt-1 size-[0.95rem]" />
             </span>
             <span className="text-[0.65rem] leading-[1.6] font-medium tracking-[0.08em] max-phone:text-[0.55rem]">
               GOOD MAIL.

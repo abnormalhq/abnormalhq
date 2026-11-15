@@ -1,6 +1,5 @@
 import { Container } from "@/components/ui/container";
 import { IconTile } from "@/components/ui/icon-tile";
-import { Marker } from "@/components/ui/marker";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
@@ -38,13 +37,16 @@ export function Process({ lang }: { lang: Lang }) {
           {t.process.steps.map((step, index) => (
             <article className="min-w-0" key={step.title} {...reveal(index)}>
               <div className="mb-[1.3rem] flex items-center gap-5 md:mb-7">
-                {/* The number is highlighted with the registry's Marker: a band of yellow across its lower half, dim yellow in dark mode. */}
-                <Marker
-                  className="text-[2.75rem] leading-none font-light tracking-[-0.04em] text-foreground md:text-[3.25rem]"
+                {/*
+                 * Step index only: the page's one Marker lives on the hero title word, so these keep a signal-colored
+                 * underline instead of a second highlighter stroke.
+                 */}
+                <span
+                  className="border-b-2 border-highlight pb-1 font-heading text-[2.75rem] leading-none font-light tracking-[-0.04em] text-foreground md:text-[3.25rem]"
                   aria-hidden="true"
                 >
                   {String(index + 1).padStart(2, "0")}
-                </Marker>
+                </span>
                 <span className="h-px flex-1 bg-border" aria-hidden="true"></span>
                 <IconTile variant="outline">
                   <Icon name={step.icon} />

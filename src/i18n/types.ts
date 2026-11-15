@@ -152,7 +152,11 @@ export interface Copy {
   };
   hero: {
     eyebrow: string;
-    titleLines: readonly [string, string];
+    /**
+     * Three parts: first line, the lead of the second line, and the single word that takes the Marker
+     * (highlighter stroke). The brand allows the Marker once on a screen, on a number or one word.
+     */
+    titleLines: readonly [string, string, string];
     description: readonly [string, string];
     buy: string;
     register: string;

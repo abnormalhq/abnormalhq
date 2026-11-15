@@ -44,7 +44,7 @@ export const en: Copy = {
   },
   hero: {
     eyebrow: "Email, made personal",
-    titleLines: ["Good email,", "simple conversations"],
+    titleLines: ["Good email,", "simple ", "conversations"],
     description: [
       "Create an account, buy @abnormalhq.com mailboxes online, and set them up and manage them from your account.",
       "Read and send from webmail or the mail app you already use.",
