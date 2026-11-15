@@ -15,13 +15,15 @@ const texts = (sections: readonly DocSection[]) =>
 const whole = (lang: "en" | "zh") =>
   [claudeContent[lang].title, claudeContent[lang].summary, ...texts(claudeContent[lang].sections)].join("\n");
 const kind = (block: DocBlock) =>
-  "code" in block
-    ? `code:${block.code}`
-    : "p" in block
-      ? "p"
-      : "ol" in block
-        ? `ol${block.ol.length}`
-        : `ul${block.ul.length}`;
+  "image" in block
+    ? "image"
+    : "code" in block
+      ? `code:${block.code}`
+      : "p" in block
+        ? "p"
+        : "ol" in block
+          ? `ol${block.ol.length}`
+          : `ul${block.ul.length}`;
 const commands = (lang: "en" | "zh") =>
   claudeContent[lang].sections.flatMap((section) =>
     section.blocks.flatMap((block) => ("code" in block ? [block.code] : [])),

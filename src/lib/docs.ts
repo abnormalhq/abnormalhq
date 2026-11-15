@@ -42,6 +42,7 @@ export function plainText(text: string): string {
  * is not prose either: its label is the block's text.
  */
 export function blockTexts(block: DevDocBlock): readonly string[] {
+  if ("image" in block) return [block.image.alt, block.image.caption];
   if ("language" in block) return [];
   if ("code" in block) return [block.label];
   if ("p" in block) return [block.p];
@@ -49,6 +50,10 @@ export function blockTexts(block: DevDocBlock): readonly string[] {
 }
 
 function blockMarkdown(block: DevDocBlock, lang: Lang): string {
+  if ("image" in block) {
+    const { src, alt, caption } = block.image;
+    return `![${alt}](${site.url}${src})\n\n${withAbsoluteLinks(caption, lang)}`;
+  }
   if ("language" in block) return `\`\`\`${block.language}\n${block.code}\n\`\`\``;
   if ("code" in block) return `${withAbsoluteLinks(block.label, lang)}\n\n\`\`\`sh\n${block.code}\n\`\`\``;
   if ("p" in block) return withAbsoluteLinks(block.p, lang);

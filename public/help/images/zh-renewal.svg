@@ -1,0 +1,46 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="720"
+  height="544"
+  viewBox="0 0 720 544"
+  lang="zh"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">付费订阅到期后的时间线</title>
+  <desc id="desc">
+    付费订阅到期后先有 7 天宽限期，可正常使用；随后停用 30
+    天，保留数据并继续收信；之后邮箱可能被删除。免费试用没有宽限期。
+  </desc>
+  <rect width="720" height="544" fill="#f6f6f1" />
+  <g
+    fill="#141412"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
+  >
+    <text x="36" y="37" font-size="14" letter-spacing="2" fill="#575750">ABNORMAL / 帮助图解</text>
+    <text x="36" y="82" font-size="30" font-weight="600">付费订阅到期后的时间线</text>
+    <g transform="translate(0 120)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">1</text>
+      <text x="120" y="40" font-size="25" font-weight="600">宽限期 · 7 天</text>
+      <text x="120" y="78" font-size="21" fill="#575750">邮箱照常使用</text>
+    </g>
+    <g transform="translate(0 252)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">2</text>
+      <text x="120" y="40" font-size="25" font-weight="600">停用期 · 30 天</text>
+      <text x="120" y="78" font-size="21" fill="#575750">无法登录；继续收信并保留邮件与数据</text>
+    </g>
+    <g transform="translate(0 384)">
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">3</text>
+      <text x="120" y="40" font-size="25" font-weight="600">保留期结束之后</text>
+      <text x="120" y="78" font-size="21" fill="#575750">邮箱及其中的邮件可能被删除</text>
+    </g>
+  </g>
+</svg>

@@ -3,6 +3,7 @@
  * 服务器地址）一律不写在这里，只说明读者在哪里能看到自己的。mail 调整了这里提到的上限时，两种语言一起改。
  */
 import { site } from "../../data/site.ts";
+import { helpIllustration, helpScreenshot } from "./illustrations.ts";
 import type { HelpContent } from "./types.ts";
 
 const support = `[${site.contact.email}](mailto:${site.contact.email})`;
@@ -77,6 +78,12 @@ export const helpZh: HelpContent = {
             {
               p: `网页邮箱在 ${webmail}：用完整的邮箱地址（例如 yourname@abnormalhq.com）和邮箱密码登录。已有的 @abnormal.bid 邮箱继续用原来的地址登录。`,
             },
+            helpScreenshot(
+              "zh",
+              "inbox",
+              "网页邮箱桌面界面：左侧为文件夹和标签，中间是邮件列表，右侧打开一封邮件。",
+              "登录后可以在收件箱查看邮件，选择一封即可阅读。截图中的邮件和联系人均为示例数据。",
+            ),
             {
               ul: [
                 "把邮箱添加到邮件客户端：[Apple 邮件](help/apple-mail/)、[Outlook](help/outlook/)、[Thunderbird](help/thunderbird/)、[Gmail 与 Android](help/gmail-android/)，或[其他客户端](help/imap-smtp/)。",
@@ -102,6 +109,7 @@ export const helpZh: HelpContent = {
           title: "用描述文件一步设置",
           howTo: true,
           blocks: [
+            helpIllustration("zh", "apple-profile"),
             {
               ol: [
                 `登录网页邮箱 ${webmail}，打开「设置 → 应用与同步 → 邮件客户端自动设置」。`,
@@ -155,6 +163,7 @@ export const helpZh: HelpContent = {
           title: "把邮箱添加到 Outlook",
           howTo: true,
           blocks: [
+            helpIllustration("zh", "mail-client"),
             {
               ol: [
                 "在 Outlook 里选择「添加账户」，输入完整的邮箱地址。",
@@ -194,6 +203,7 @@ export const helpZh: HelpContent = {
           title: "把邮箱添加到 Thunderbird",
           howTo: true,
           blocks: [
+            helpIllustration("zh", "mail-client"),
             {
               ol: [
                 "在 Thunderbird 里打开「账户设置」，选择「账户操作 → 添加邮件账户」。",
@@ -231,6 +241,7 @@ export const helpZh: HelpContent = {
           title: "把邮箱添加到 Gmail 应用",
           howTo: true,
           blocks: [
+            helpIllustration("zh", "mail-client"),
             {
               ol: [
                 "打开 Gmail 应用，点右上角的头像，选择「再添加一个账号」，然后选「其他」。",
@@ -284,6 +295,7 @@ export const helpZh: HelpContent = {
         {
           title: "邮件：IMAP 和 SMTP",
           blocks: [
+            helpIllustration("zh", "mail-client"),
             {
               ul: [
                 "**用户名**：完整的邮箱地址，收件和发件都一样。",
@@ -350,6 +362,7 @@ export const helpZh: HelpContent = {
         {
           title: "开启之后的变化",
           blocks: [
+            helpIllustration("zh", "security"),
             {
               ul: [
                 "网页邮箱登录时先输入密码，再输入验证器里的验证码。",
@@ -417,6 +430,7 @@ export const helpZh: HelpContent = {
           title: "从其他邮箱导入",
           howTo: true,
           blocks: [
+            helpIllustration("zh", "migration"),
             {
               ol: [
                 "在网页邮箱里打开「设置 → 应用与同步」，找到「导入与导出」。",
@@ -512,6 +526,12 @@ export const helpZh: HelpContent = {
             {
               p: "标签是文件夹之外的标记：邮件仍留在原来的文件夹里，可以同时带有多个标签。每个邮箱最多 30 个标签，每个标签有一个名称和八种颜色中的一种。",
             },
+            helpScreenshot(
+              "zh",
+              "inbox",
+              "收件箱左侧显示家人、工作和旅行标签，邮件列表中显示对应的彩色标签。",
+              "标签位于左侧文件夹下方，邮件列表中的彩色标记帮助区分不同主题。截图使用示例邮件和标签。",
+            ),
             {
               ul: [
                 "给邮件加标签：在邮件的操作栏里选「标签」，或在列表的右键菜单里选，也可以按 L 键。",
@@ -576,6 +596,12 @@ export const helpZh: HelpContent = {
             {
               p: "「日历」在网页邮箱左侧栏的顶部。它有日、周、月、年和日程视图；邮件里收到的日程邀请可以直接在邮件中答复。在日历列表下方可以新建日历；日历的菜单可以重命名或删除它，勾选框控制显示或隐藏。",
             },
+            helpScreenshot(
+              "zh",
+              "calendar",
+              "网页邮箱日历的周视图，左侧是日历列表，右侧按日期和时间排列彩色日程。",
+              "周视图按时间排列日程；左侧可以选择显示哪些日历。截图中的日程均为示例数据。",
+            ),
           ],
         },
         {
@@ -668,6 +694,7 @@ export const helpZh: HelpContent = {
         {
           title: "如果没有续费",
           blocks: [
+            helpIllustration("zh", "renewal"),
             {
               ol: [
                 "**宽限期，7 天**：一切照常使用。此时续费，新周期从原到期时间接着算。",
@@ -701,6 +728,7 @@ export const helpZh: HelpContent = {
           title: "使用优惠码",
           howTo: true,
           blocks: [
+            helpIllustration("zh", "discount"),
             {
               ol: [
                 "在[商店](shop/)的套餐上方选择「我有优惠码」。",
@@ -795,6 +823,7 @@ export const helpZh: HelpContent = {
           title: "为团队购买邮箱",
           howTo: true,
           blocks: [
+            helpIllustration("zh", "team"),
             {
               ol: [
                 "先登录[我的账户](shop/account/)，没有账户就先注册，这样订单和邮箱都归在这个账户下。",
@@ -911,6 +940,7 @@ export const helpZh: HelpContent = {
           title: "接入你的域名",
           howTo: true,
           blocks: [
+            helpIllustration("zh", "domain"),
             {
               ol: [
                 "在[我的账户](shop/account/)里找到「使用自己的域名」，填写域名，点「接入域名」。",
@@ -1017,6 +1047,7 @@ export const helpZh: HelpContent = {
         {
           title: "删除之前",
           blocks: [
+            helpIllustration("zh", "deletion"),
             {
               ul: [
                 "删除邮箱会删除其中的邮件。请先导出想保留的内容，见[把邮件搬进来，也能带走](help/import-and-export/)。",
@@ -1060,6 +1091,7 @@ export const helpZh: HelpContent = {
             {
               p: "下面这些功能会把相关内容经 Cloudflare AI Gateway 发送给第三方大模型服务商（目前为 DeepSeek）生成结果。除这些情形外，邮件内容不会发送给大模型服务商。本页只是转述[隐私政策](privacy/)的内容，以隐私政策为准。",
             },
+            helpIllustration("zh", "ai"),
           ],
         },
         {

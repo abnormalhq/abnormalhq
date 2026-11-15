@@ -1,0 +1,45 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="720"
+  height="544"
+  viewBox="0 0 720 544"
+  lang="zh"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">从购买席位到开通团队邮箱</title>
+  <desc id="desc">
+    团队开通流程：购买者登录账户，选择席位数量并付款，然后在我的账户中开通邮箱。已购席位可以留待需要时使用。
+  </desc>
+  <rect width="720" height="544" fill="#f6f6f1" />
+  <g
+    fill="#141412"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
+  >
+    <text x="36" y="37" font-size="14" letter-spacing="2" fill="#575750">ABNORMAL / 帮助图解</text>
+    <text x="36" y="82" font-size="30" font-weight="600">从购买席位到开通团队邮箱</text>
+    <g transform="translate(0 120)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">1</text>
+      <text x="120" y="40" font-size="25" font-weight="600">购买者先登录账户</text>
+      <text x="120" y="78" font-size="21" fill="#575750">这个账户管理订单和团队邮箱</text>
+    </g>
+    <g transform="translate(0 252)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">2</text>
+      <text x="120" y="40" font-size="25" font-weight="600">选择席位数量并付款</text>
+      <text x="120" y="78" font-size="21" fill="#575750">核对所选数量对应的合计金额</text>
+    </g>
+    <g transform="translate(0 384)">
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">3</text>
+      <text x="120" y="40" font-size="25" font-weight="600">为团队开通邮箱</text>
+      <text x="120" y="78" font-size="21" fill="#575750">我的账户 → 我的邮箱；空闲席位可稍后使用</text>
+    </g>
+  </g>
+</svg>

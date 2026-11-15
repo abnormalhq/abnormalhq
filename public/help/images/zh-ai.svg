@@ -1,0 +1,46 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="720"
+  height="544"
+  viewBox="0 0 720 544"
+  lang="zh"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">AI 生成请求会发到哪里</title>
+  <desc id="desc">
+    AI 生成请求路径：相关功能需要的内容经 Cloudflare AI Gateway 发送给大模型服务商，目前为
+    DeepSeek；帮助检索与联网查询另见下文说明。
+  </desc>
+  <rect width="720" height="544" fill="#f6f6f1" />
+  <g
+    fill="#141412"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
+  >
+    <text x="36" y="37" font-size="14" letter-spacing="2" fill="#575750">ABNORMAL / 帮助图解</text>
+    <text x="36" y="82" font-size="30" font-weight="600">AI 生成请求会发到哪里</text>
+    <g transform="translate(0 120)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">1</text>
+      <text x="120" y="40" font-size="25" font-weight="600">功能需要的相关内容</text>
+      <text x="120" y="78" font-size="21" fill="#575750">具体内容请看下方各项功能的说明</text>
+    </g>
+    <g transform="translate(0 252)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">2</text>
+      <text x="120" y="40" font-size="25" font-weight="600">Cloudflare AI Gateway</text>
+      <text x="120" y="78" font-size="21" fill="#575750">转发生成请求</text>
+    </g>
+    <g transform="translate(0 384)">
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">3</text>
+      <text x="120" y="40" font-size="25" font-weight="600">大模型服务商 · 目前为 DeepSeek</text>
+      <text x="120" y="78" font-size="21" fill="#575750">处理请求并生成结果</text>
+    </g>
+  </g>
+</svg>

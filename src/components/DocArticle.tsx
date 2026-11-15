@@ -18,6 +18,7 @@ import { docBase, sectionId } from "@/lib/docs";
 import { cn } from "@/lib/utils";
 import { RichText } from "@/components/RichText";
 import { CommandLine } from "./CommandLine";
+import { DocFigure } from "./DocFigure";
 import { SectionToc } from "./SectionToc";
 
 /**
@@ -107,7 +108,7 @@ export function DocArticle({
               <section aria-labelledby={sectionId(index)} key={section.title}>
                 <h2 id={sectionId(index)}>{section.title}</h2>
                 {section.blocks.map((block, blockIndex) => (
-                  <Block block={block} base={base} commands={t.download} key={blockIndex} />
+                  <Block block={block} base={base} lang={lang} commands={t.download} key={blockIndex} />
                 ))}
                 {"slot" in section && section.slot ? slots?.[section.slot] : null}
               </section>
@@ -123,13 +124,16 @@ export function DocArticle({
 function Block({
   block,
   base,
+  lang,
   commands,
 }: {
   block: DevDocBlock;
   base: string;
+  lang: Lang;
   /** The copy button's words, the download page's: a command is copied the same way there. */
   commands: { copyCommand: string; copiedCommand: string; copyFailed: string };
 }) {
+  if ("image" in block) return <DocFigure image={block.image} base={base} lang={lang} />;
   if ("language" in block) {
     // Multi-line code (the developer documentation). Prose gives every <code> the inline chip; inside a block the panel is
     // the frame, so the chip is taken off again.

@@ -6,6 +6,7 @@
  * articles say where the reader sees their own. When mail changes a limit named here, change it in both languages.
  */
 import { site } from "../../data/site.ts";
+import { helpIllustration, helpScreenshot } from "./illustrations.ts";
 import type { HelpContent } from "./types.ts";
 
 const support = `[${site.contact.email}](mailto:${site.contact.email})`;
@@ -81,6 +82,12 @@ export const helpEn: HelpContent = {
             {
               p: `Webmail is at ${webmail}: sign in with the full address (yourname@abnormalhq.com, for example) and the mailbox password. Existing @abnormal.bid mailboxes keep signing in with their original address.`,
             },
+            helpScreenshot(
+              "en",
+              "inbox",
+              "Desktop webmail with folders and labels on the left, the message list in the middle and an open message on the right.",
+              "After signing in, choose a message in the inbox to read it. Mail and contacts in this screenshot are sample data.",
+            ),
             {
               ul: [
                 "Add the mailbox to a mail app: [Apple Mail](help/apple-mail/), [Outlook](help/outlook/), [Thunderbird](help/thunderbird/), [Gmail and Android](help/gmail-android/), or [any other app](help/imap-smtp/).",
@@ -107,6 +114,7 @@ export const helpEn: HelpContent = {
           title: "Set up with the configuration profile",
           howTo: true,
           blocks: [
+            helpIllustration("en", "apple-profile"),
             {
               ol: [
                 `Sign in to webmail at ${webmail} and open Settings → Apps & sync → Automatic setup for mail apps.`,
@@ -160,6 +168,7 @@ export const helpEn: HelpContent = {
           title: "Add your mailbox to Outlook",
           howTo: true,
           blocks: [
+            helpIllustration("en", "mail-client"),
             {
               ol: [
                 "In Outlook, choose Add account and enter your full mailbox address.",
@@ -200,6 +209,7 @@ export const helpEn: HelpContent = {
           title: "Add your mailbox to Thunderbird",
           howTo: true,
           blocks: [
+            helpIllustration("en", "mail-client"),
             {
               ol: [
                 "In Thunderbird, open Account Settings and choose Account Actions → Add Mail Account.",
@@ -238,6 +248,7 @@ export const helpEn: HelpContent = {
           title: "Add the mailbox to the Gmail app",
           howTo: true,
           blocks: [
+            helpIllustration("en", "mail-client"),
             {
               ol: [
                 "Open the Gmail app, tap your profile picture and choose Add another account, then Other.",
@@ -304,6 +315,7 @@ export const helpEn: HelpContent = {
         {
           title: "Mail: IMAP and SMTP",
           blocks: [
+            helpIllustration("en", "mail-client"),
             {
               ul: [
                 "**Username**: the full mailbox address, for incoming and outgoing alike.",
@@ -371,6 +383,7 @@ export const helpEn: HelpContent = {
         {
           title: "What changes afterwards",
           blocks: [
+            helpIllustration("en", "security"),
             {
               ul: [
                 "Webmail asks for your password, then for a code from the authenticator app.",
@@ -437,6 +450,7 @@ export const helpEn: HelpContent = {
           title: "Import from another mailbox",
           howTo: true,
           blocks: [
+            helpIllustration("en", "migration"),
             {
               ol: [
                 "In webmail, open Settings → Apps & sync and find Import and export.",
@@ -534,6 +548,12 @@ export const helpEn: HelpContent = {
             {
               p: "A label is a tag on top of folders: a message stays in its folder and can carry any number of labels. A mailbox can have up to 30 labels, each with a name and one of eight colours.",
             },
+            helpScreenshot(
+              "en",
+              "inbox",
+              "The inbox shows Family, Work and Travel labels in the left column and matching coloured labels in the message list.",
+              "Labels sit below the folders on the left; coloured tags in the message list distinguish topics. Mail and labels shown here are samples.",
+            ),
             {
               ul: [
                 "Put labels on mail with Labels in a message's actions, in the list's right-click menu, or with the L key.",
@@ -610,6 +630,12 @@ export const helpEn: HelpContent = {
             {
               p: "Calendar is at the top of webmail's left column. It has day, week, month, year and agenda views, and invitations you receive by mail can be answered right in the message. Under the list of calendars you can create a new calendar; a calendar's menu renames or deletes it, and its checkbox shows or hides it.",
             },
+            helpScreenshot(
+              "en",
+              "calendar",
+              "The webmail calendar in week view, with the calendar list on the left and coloured events arranged by date and time.",
+              "Week view arranges events by time; the list on the left chooses which calendars to show. Events in this screenshot are samples.",
+            ),
           ],
         },
         {
@@ -703,6 +729,7 @@ export const helpEn: HelpContent = {
         {
           title: "If a subscription is not renewed",
           blocks: [
+            helpIllustration("en", "renewal"),
             {
               ol: [
                 "**Grace period, 7 days**: everything keeps working as usual. If you renew now, the new period continues from the original expiry date.",
@@ -736,6 +763,7 @@ export const helpEn: HelpContent = {
           title: "Use a code",
           howTo: true,
           blocks: [
+            helpIllustration("en", "discount"),
             {
               ol: [
                 "In the [shop](shop/), choose I have a discount code above the plans.",
@@ -830,6 +858,7 @@ export const helpEn: HelpContent = {
           title: "Buy mailboxes for your team",
           howTo: true,
           blocks: [
+            helpIllustration("en", "team"),
             {
               ol: [
                 "Sign in to [My account](shop/account/), or create an account first, so the order and its mailboxes belong to it.",
@@ -946,6 +975,7 @@ export const helpEn: HelpContent = {
           title: "Connect your domain",
           howTo: true,
           blocks: [
+            helpIllustration("en", "domain"),
             {
               ol: [
                 "In [My account](shop/account/), find Use my own domain, enter the domain and choose Connect domain.",
@@ -1055,6 +1085,7 @@ export const helpEn: HelpContent = {
         {
           title: "Before you delete",
           blocks: [
+            helpIllustration("en", "deletion"),
             {
               ul: [
                 "Deleting a mailbox deletes its mail. Export what you want to keep first: see [Move your mail in, and take it out](help/import-and-export/).",
@@ -1099,6 +1130,7 @@ export const helpEn: HelpContent = {
             {
               p: "The features below send the relevant content through Cloudflare AI Gateway to a third-party large language model provider, currently DeepSeek, to generate a result. Apart from these cases, your mail is not sent to a language model provider. This page repeats what the [Privacy Policy](privacy/) says; the policy is the authoritative text.",
             },
+            helpIllustration("en", "ai"),
           ],
         },
         {
