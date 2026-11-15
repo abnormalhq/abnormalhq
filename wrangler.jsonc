@@ -30,9 +30,8 @@
       "enabled": true,
       "previews_enabled": false,
     },
-    // The retired standalone storefront (abnormalhq/onboard): src/storefront/worker/legacy.ts 301s its pages to the same pages here and
-    // keeps proxying its /api, so payment notifications still sent there arrive. Bind it only after removing it from the old
-    // abnormalhq-onboard Worker (see "Retiring onboard" in the README).
+    // The retired standalone storefront (onboard): src/storefront/worker/legacy.ts 301s its pages to the same pages here and
+    // keeps proxying its /api, so payment notifications still sent there arrive.
     {
       "pattern": "onboard.abnormalhq.com",
       "custom_domain": true,

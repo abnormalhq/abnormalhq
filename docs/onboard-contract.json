@@ -20,7 +20,7 @@
       "other": { "status": 400, "field": null }
     },
     "fields": ["code", "domain", "count", "username", "password", "notify"],
-    "storefrontOrigins": ["https://abnormalhq.com", "https://onboard.abnormalhq.com"],
+    "storefrontOrigins": ["https://abnormalhq.com"],
     "originForbiddenStatus": 403,
     "maxMailboxes": 20,
     "code": {

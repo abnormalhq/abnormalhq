@@ -24,8 +24,8 @@ so when one side changes and the other does not follow, one side's tests fail. W
   `field` says which field the error should be shown next to; errors without `field` are shown at the bottom of the form. The redeem page picks local copy (in both languages) by `kind`, and shows `error` as-is when the `kind`
   is unknown.
 - Origin check: the browser-to-this-site API request is same-origin and needs no CORS preflight. This site's Worker preserves `Origin`, and mailhq still verifies the origin against `ONBOARD_ORIGIN`,
-  so that variable must include this site's actual origin; separate multiple origins with spaces or commas. Production lists `https://abnormalhq.com` and the retired
-  `https://onboard.abnormalhq.com` (the contract's `redeem.storefrontOrigins`; the old one can go once its domain only redirects here), and the local Wrangler preview is
+  so that variable must include this site's actual origin; separate multiple origins with spaces or commas. Production lists only `https://abnormalhq.com`
+  (the contract's `redeem.storefrontOrigins`), and the local Wrangler preview is
   `http://localhost:8786`. mailhq's existing CORS handling stays in place, but the browser no longer talks to mailhq directly.
 - Rate limiting: limited per source IP, with the exact quotas defined by mailhq's `ONBOARD_RULES`; exceeding them returns `429` + `kind: "rate_limited"` and `Retry-After`. The redeem code space is
   32<sup>16</sup>, so brute force is infeasible; rate limiting only prevents harassment and consumption of the provider's API write quota. This site's Worker preserves `CF-Connecting-IP`, so that mailhq
@@ -911,7 +911,7 @@ The storefront address and the mailbox redeem page in the sales settings are `ht
 `https://onboard.abnormalhq.com` it still builds that site's layout, Chinese at the root and English under `/en/`).
 The Credit application home page is `https://abnormalhq.com/shop/`, the notification URL is `https://abnormalhq.com/api/shop/notify`,
 and the callback URI is `https://abnormalhq.com/shop/orders/`. The current Yipay-compatible mode needs no Ed25519 public key.
-Until those are changed, the old addresses keep working: the `onboard.abnormalhq.com` domain is bound to this Worker, which still answers its `/api` and 301s its pages here.
+Old links keep working: the `onboard.abnormalhq.com` domain is bound to this Worker, which still answers its `/api` and 301s its pages here.
 
 The buyer's purchase, payment return, order lookup, renewal, account and code collection all happen on this site; mail handles sales management and the internal business API.
 
