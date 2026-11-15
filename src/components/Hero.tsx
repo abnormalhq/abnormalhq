@@ -101,9 +101,12 @@ export function Hero({ lang }: { lang: Lang }) {
           role="img"
           aria-label={h.visualLabel}
         >
-          {/* Soft highlighter wash: behind the cards via z-0, fades out past the box so the arc is never cropped. */}
+          {/*
+           * Soft highlighter wash. Sized a little past the box, but the gradient itself reaches full transparency
+           * before any parent clip (grid min-w-0 / compositing), so no hard arc or straight cut shows.
+           */}
           <div
-            className="pointer-events-none absolute -inset-x-[20%] -top-[16%] -bottom-[28%] z-0 rounded-full bg-[radial-gradient(ellipse_at_68%_32%,color-mix(in_oklab,var(--highlight)_40%,transparent)_0%,transparent_72%)] opacity-90 dark:opacity-45"
+            className="pointer-events-none absolute -inset-[12%] z-0 bg-[radial-gradient(ellipse_70%_60%_at_68%_34%,color-mix(in_oklab,var(--highlight)_42%,transparent)_0%,transparent_68%)] opacity-90 dark:opacity-50"
             aria-hidden="true"
           />
           {/* Rise animation lives on an inner layer so it does not create a clipping compositing root for the wash. */}
