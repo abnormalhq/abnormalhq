@@ -105,6 +105,9 @@ export async function checkContracts(args: string[]): Promise<void> {
     lock,
   );
   const errors = compatibilityErrors(provider, consumer);
+  const baselinePath = option("--baseline", "");
+  if (args.includes("--baseline") && !baselinePath) throw new Error("Missing baseline contract path");
+  if (baselinePath) errors.push(...compatibilityErrors(provider, JSON.parse(readFileSync(baselinePath, "utf8"))));
   if (args.includes("--latest"))
     errors.push(...compatibilityErrors(provider, JSON.parse(await remoteContract("main"))));
   if (errors.length) throw new Error(`Incompatible storefront contract:\n${[...new Set(errors)].join("\n")}`);

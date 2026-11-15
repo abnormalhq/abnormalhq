@@ -2,7 +2,7 @@
 
 This public repository is the canonical source of `docs/onboard-contract.json` and `scripts/contract-compat.ts`. The private mail repository pins both to an immutable commit of this repository. Its CI checks the provider against that published snapshot and the current public storefront contract. This works without sharing credentials for the private mail repository.
 
-The storefront lock pins the previously published baseline. CI verifies its checksum and requires the current contract to preserve it. Keep the existing fixture tests: they connect each application's actual constants and routes to the contract; the new gate connects the repositories.
+The storefront lock pins the previously published baseline. CI verifies its checksum and requires the current contract to preserve it. It also checks the contract from the PR's exact base commit (the previous commit on pushes, or the selected commit on manual runs), passed through `--baseline`. This protects additions published after the locked snapshot without requiring a lock update for each addition. Fetching or reading that baseline must succeed. Keep the existing fixture tests: they connect each application's actual constants and routes to the contract; the new gate connects the repositories.
 
 To extend the API, publish a compatible contract change here first, then implement the provider and advance its pin. Additive response fields and routes are permitted. New enums, removed fields, changed validation and request-field changes fail the gate. These checks are intentionally conservative and do not prove runtime behavior.
 

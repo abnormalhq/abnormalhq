@@ -39,6 +39,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Preserve the published storefront contract
-        run: node scripts/contract-compat.ts
+        env:
+          CONTRACT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$CONTRACT_BASE_SHA"
+          git show "$CONTRACT_BASE_SHA:docs/onboard-contract.json" > "$RUNNER_TEMP/onboard-contract-base.json"
+          node scripts/contract-compat.ts --baseline "$RUNNER_TEMP/onboard-contract-base.json"
       - name: Lint, typecheck, test, format check, build and validate Worker
         run: pnpm cf:build

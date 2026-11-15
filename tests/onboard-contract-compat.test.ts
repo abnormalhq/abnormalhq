@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
-import { compatibilityErrors, verifyArtifact } from "../scripts/contract-compat.ts";
+import { checkContracts, compatibilityErrors, verifyArtifact } from "../scripts/contract-compat.ts";
 
 const published = JSON.parse(readFileSync("docs/onboard-contract.json", "utf8"));
 test("additive routes and response fields preserve a deployed consumer", () => {
@@ -68,4 +70,35 @@ test("a substituted snapshot fails its pinned checksum", () => {
   lock.sha256 = createHash("sha256").update(snapshot).digest("hex");
   assert.equal(verifyArtifact(snapshot, lock).version, 3);
   assert.throws(() => verifyArtifact("{}", lock), /checksum/);
+});
+
+test("the PR base protects later additions even when the pinned snapshot still passes", async (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "storefront-contract-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const source = JSON.stringify(published);
+  const lock = JSON.parse(readFileSync("docs/onboard-contract.lock.json", "utf8"));
+  lock.sha256 = createHash("sha256").update(source).digest("hex");
+  const baseline = structuredClone(published);
+  baseline.shop.routes["published-later"] = ["GET"];
+  baseline.shop.publicOrderFields.push("publishedLaterField");
+  const lockPath = join(directory, "lock.json");
+  const consumerPath = join(directory, "consumer.json");
+  const providerPath = join(directory, "provider.json");
+  const baselinePath = join(directory, "base.json");
+  writeFileSync(lockPath, JSON.stringify(lock));
+  writeFileSync(consumerPath, source);
+  writeFileSync(providerPath, source);
+  writeFileSync(baselinePath, JSON.stringify(baseline));
+  const args = ["--lock", lockPath, "--consumer", consumerPath, "--provider", providerPath];
+
+  await checkContracts(args);
+  await assert.rejects(checkContracts([...args, "--baseline", baselinePath]), (error: Error) => {
+    assert.match(error.message, /contract.shop.routes.published-later/);
+    assert.match(error.message, /contract.shop.publicOrderFields/);
+    return true;
+  });
+  writeFileSync(providerPath, JSON.stringify(baseline));
+  await checkContracts([...args, "--baseline", baselinePath]);
+  await assert.rejects(checkContracts([...args, "--baseline", join(directory, "missing.json")]), /ENOENT/);
+  await assert.rejects(checkContracts([...args, "--baseline"]), /Missing baseline contract path/);
 });
