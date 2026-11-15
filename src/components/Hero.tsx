@@ -102,11 +102,11 @@ export function Hero({ lang }: { lang: Lang }) {
           aria-label={h.visualLabel}
         >
           {/*
-           * Soft highlighter wash. Sized a little past the box, but the gradient itself reaches full transparency
-           * before any parent clip (grid min-w-0 / compositing), so no hard arc or straight cut shows.
+           * Soft highlighter wash, kept inside the showcase box. The ellipse is smaller than the box and ends at
+           * full transparency, so a grid/compositing clip on this column cannot leave a straight edge.
            */}
           <div
-            className="pointer-events-none absolute -inset-[12%] z-0 bg-[radial-gradient(ellipse_70%_60%_at_68%_34%,color-mix(in_oklab,var(--highlight)_42%,transparent)_0%,transparent_68%)] opacity-90 dark:opacity-50"
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_58%_52%_at_66%_36%,color-mix(in_oklab,var(--highlight)_48%,transparent)_0%,transparent_100%)] opacity-90 dark:opacity-55"
             aria-hidden="true"
           />
           {/* Rise animation lives on an inner layer so it does not create a clipping compositing root for the wash. */}
