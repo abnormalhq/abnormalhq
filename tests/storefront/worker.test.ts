@@ -1272,7 +1272,7 @@ test("contract: the Worker's cookies, order number, order page and payment desti
 });
 
 test("contract: every storefront origin in the contract is a custom domain of this Worker", () => {
-  // mail's ONBOARD_ORIGIN lists only storefrontOrigins: the site itself, and the retired onboard domain whose /api this Worker still answers.
+  // mail's ONBOARD_ORIGIN lists only storefrontOrigins: the site itself.
   const source = readFileSync("wrangler.jsonc", "utf8")
     .replace(/"(?:\\.|[^"\\])*"|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (token) => (token.startsWith('"') ? token : ""))
     .replace(/,(\s*[}\]])/g, "$1");

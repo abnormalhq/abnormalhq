@@ -1,5 +1,5 @@
 /**
- * The retired standalone storefront (abnormalhq/onboard) at onboard.abnormalhq.com. Its custom domain now points at this
+ * The retired standalone storefront (onboard) at onboard.abnormalhq.com. Its custom domain now points at this
  * Worker: the API under /api keeps being proxied there (worker.ts handles it before this), so Linux DO Credit
  * notifications and anything else still sent to the old address keep working, and every other request is 301-redirected
  * to the same page on the main site.

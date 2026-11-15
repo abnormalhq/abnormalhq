@@ -22,7 +22,7 @@ English used to live under `/en/`: `/en/`, `/en/privacy/`, `/en/terms/` and the 
 
 ## Storefront: shop, redeem page, account and guide
 
-The storefront used to be its own site, [onboard](https://github.com/abnormalhq/onboard) at `onboard.abnormalhq.com`; it now lives here, under `src/storefront/`, with the same pages, flows and API. Merchant credentials, products, orders, redeem codes and mailboxes all stay in [mail](https://github.com/abnormalhq/mail) (mailhq); this site renders the pages and proxies the API.
+The storefront used to be its own site, onboard, at `onboard.abnormalhq.com`; it now lives here, under `src/storefront/`, with the same pages, flows and API. Merchant credentials, products, orders, redeem codes and mailboxes all stay in [mail](https://github.com/abnormalhq/mail) (mailhq); this site renders the pages and proxies the API.
 
 | Page                                                                   | English              | Chinese                 |
 | ---------------------------------------------------------------------- | -------------------- | ----------------------- |
@@ -132,13 +132,9 @@ To try the real API against a local mail: in mail set `ONBOARD_ORIGIN=http://loc
 
 `onboard.abnormalhq.com` (and `onboard.abnormal.bid`) are custom domains of this Worker (`routes` in `wrangler.jsonc`). `src/storefront/worker/legacy.ts` 301s every page there to the same page here (`/` → `/zh/redeem/`, `/en/shop/orders/?id=…` → `/shop/orders/?id=…` and so on, with the query string), and the API under `/api` keeps answering on that host, so Credit notifications and links in mail already sent keep working. Buyers' purchase and login sessions were host cookies of the old domain, so they sign in again once.
 
-The order of the switch:
-
-1. Deploy mail with `ONBOARD_ORIGIN` listing both `https://abnormalhq.com` and `https://onboard.abnormalhq.com` (mail's links for the old host keep the old layout).
-2. Free the domains `onboard.abnormalhq.com` and `onboard.abnormal.bid` from the `abnormalhq-onboard` Worker: merge the onboard change that empties its `routes` (its deploy detaches them), or remove them in the Cloudflare dashboard. Then merge this change right away, so its deploy binds them here along with the new pages and API; the old domain is down only in between. If Workers Builds says a domain is still attached to the other Worker, detach it and retry the build.
-3. On mailhq's sales page set the storefront address to `https://abnormalhq.com` and the redeem page to `https://abnormalhq.com/redeem/`; in the Credit application settings change the home page, notification URL and callback URI to the addresses above.
-4. Point the `onboard.abnormal.bid` Redirect Rule at `https://abnormalhq.com` directly, delete the `abnormalhq-onboard` Worker and disconnect its Workers Builds, and archive the onboard repository.
-5. Later, once nothing reaches the old host, remove `https://onboard.abnormalhq.com` from mail's `ONBOARD_ORIGIN` and from `redeem.storefrontOrigins` in both copies of `docs/onboard-contract.json`.
+The switch is done: the `abnormalhq-onboard` Worker and its repository are deleted, mail's sales settings and the Credit application point here,
+the `onboard.abnormal.bid` Redirect Rule goes straight to `https://abnormalhq.com`, and mail's `ONBOARD_ORIGIN` (with `redeem.storefrontOrigins` in both copies of
+`docs/onboard-contract.json`) lists only `https://abnormalhq.com`. The old domains stay bound here so links already sent keep landing on the right page.
 
 ## Pricing and the address check
 
