@@ -8,7 +8,7 @@ import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { planViews } from "@/lib/pricing";
 import { pricingStructuredData } from "@/lib/structured-data";
-import { catalogDomains, type ShopCatalog } from "@/storefront/lib/catalog";
+import { catalogDomains, type ShopCatalog } from "@/storefront";
 import { AddressCheck } from "./AddressCheck";
 import { HelpLinks } from "./HelpLinks";
 import { Icon } from "./Icon";

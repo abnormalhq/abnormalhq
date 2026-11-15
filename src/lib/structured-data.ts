@@ -22,9 +22,7 @@ import { plainText, sectionId } from "./docs.ts";
 import { socialImage } from "./metadata.ts";
 import type { PlanView } from "./pricing.ts";
 import { linuxDownload, releaseDate, type DesktopReleases } from "./releases.ts";
-import { copy as storeCopy } from "../storefront/copy.ts";
-import { shopCopy } from "../storefront/lib/shop-copy.ts";
-import { storeTitle, type StoreMarkdownPath } from "../storefront/lib/markdown.ts";
+import { copy as storeCopy, shopCopy, storeTitle, type StoreMarkdownPath } from "../storefront/content.ts";
 
 type Node = Record<string, unknown>;
 

@@ -22,6 +22,28 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // The storefront (src/storefront/) is used from the rest of the site only through its entry points: index.ts (catalog,
+    // address check, username rules), content.ts (copy and Markdown), server.ts (live catalog, metadata) and its page
+    // components. Its dev-only mock API is for the route.dev.ts handlers, and worker.ts reaches its Worker code directly.
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/storefront/**", "src/app/**/route.dev.ts"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex:
+                "^(?:@/|(?:\\.\\./)+)storefront/(?!(?:index|content|server)(?:\\.ts)?$|components/(?:StorePage|Guide|Onboard|Shop|ShopAccount|ShopOrder|ShopRenew|ShopParts|ShopCatalogPrefetch|copy/[a-z-]+)$)",
+              message:
+                "Import the storefront through @/storefront, @/storefront/content, @/storefront/server or one of its page components.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   globalIgnores([
     ".next/**",
     ".open-next/**",

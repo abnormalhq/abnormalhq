@@ -15,8 +15,8 @@ import {
   type SeatProduct,
   type ShopCatalog,
   type ShopProduct,
-} from "../storefront/lib/catalog.ts";
-import { shopHref } from "../storefront/lib/address.ts";
+  shopHref,
+} from "../storefront/index.ts";
 import { fillTemplate, type Template } from "./template.ts";
 
 type PlanCopy = Copy["pricing"]["plan"];

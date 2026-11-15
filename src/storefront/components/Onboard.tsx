@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { shopCopy } from "@/storefront/lib/shop-copy";
 import { apiBase, withBase } from "@/storefront/site";
 import { OnboardForm } from "./onboard/OnboardForm";
-import { RichText } from "./RichText";
+import { RichText } from "@/components/RichText";
 
 /** Sidebar subheading: heading font, but body size and tracking. */
 const asideTitleClass = "text-sm font-medium tracking-normal";

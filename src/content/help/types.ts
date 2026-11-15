@@ -4,7 +4,7 @@
  * This file is imported by src/lib/pages.ts (and through it by next.config.ts), so it must stay free of runtime side effects
  * and of TypeScript syntax Node cannot run directly.
  *
- * Text may use the two markup forms of the storefront copy (src/storefront/components/RichText.tsx): **bold** and
+ * Text may use the two markup forms of the storefront copy (src/components/RichText.tsx): **bold** and
  * [text](link). A link without a protocol is a site path relative to the language root: (shop/account/) is /shop/account/ on
  * the English pages and /zh/shop/account/ on the Chinese ones.
  */

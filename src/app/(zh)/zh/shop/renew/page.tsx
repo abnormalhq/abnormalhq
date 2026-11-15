@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { ShopRenew } from "@/storefront/components/ShopRenew";
 import { ShopPageLoading } from "@/storefront/components/ShopParts";
 import { StorePage } from "@/storefront/components/StorePage";
-import { shopMetadata } from "@/storefront/metadata";
+import { shopMetadata } from "@/storefront/server";
 
 export const metadata = shopMetadata("zh", "renew");
 

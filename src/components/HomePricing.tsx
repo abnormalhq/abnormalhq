@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { Lang } from "@/data/site";
 import type { Copy } from "@/i18n/types";
 import { planViews } from "@/lib/pricing";
-import { sharedCatalog } from "@/storefront/lib/catalog-shared";
-import type { ShopCatalog } from "@/storefront/lib/catalog";
+import { sharedCatalog, type ShopCatalog } from "@/storefront";
 import { Icon } from "./Icon";
 import { PlanCards, PlanNotice, type PlanCopy } from "./PlanCards";
 

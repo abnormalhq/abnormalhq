@@ -1,7 +1,7 @@
 import { llmsFullTxt } from "@/lib/markdown";
 import { pageMarkdown } from "@/lib/page-markdown";
 import { fetchDesktopReleases } from "@/lib/releases";
-import { liveCatalog } from "@/storefront/lib/catalog-live";
+import { liveCatalog } from "@/storefront/server";
 
 // It carries the pricing and download pages, which read the catalog and the release list on every request, so it is not prerendered either.
 export const dynamic = "force-dynamic";

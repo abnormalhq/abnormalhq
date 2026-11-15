@@ -10,10 +10,19 @@ import type { Lang } from "@/data/site";
 import type { Copy } from "@/i18n/types";
 import { fillText } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
-import { rememberAddress, shopHref, type ChosenAddress } from "@/storefront/lib/address";
-import { catalogDomains, checkAddress, ShopApiError, type ShopCatalog } from "@/storefront/lib/catalog";
-import { sharedCatalog, subscribeCatalog } from "@/storefront/lib/catalog-shared";
-import { normalizeUsername, usernameProblem } from "@/storefront/lib/onboard";
+import {
+  rememberAddress,
+  shopHref,
+  type ChosenAddress,
+  catalogDomains,
+  checkAddress,
+  ShopApiError,
+  type ShopCatalog,
+  sharedCatalog,
+  subscribeCatalog,
+  normalizeUsername,
+  usernameProblem,
+} from "@/storefront";
 import { Icon } from "./Icon";
 
 /** The pause after typing before the server is asked, the same as the redeem form's username check. */
