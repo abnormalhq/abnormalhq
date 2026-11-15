@@ -8,6 +8,7 @@ import { useCopy } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { AddressCheck } from "./AddressCheck";
 import { Icon } from "./Icon";
+import { InquiryButton } from "./InquiryDialog";
 import { ServiceStatus } from "./ServiceStatus";
 
 const avatars = [
@@ -61,17 +62,17 @@ export function Hero({ lang }: { lang: Lang }) {
             <p className="max-w-[500px] animate-rise text-md/prose text-muted-foreground max-hero:text-base/prose max-md:mx-auto [animation-delay:140ms]">
               {h.description.join(" ")}
             </p>
-            <div className="mt-7 flex animate-rise flex-wrap items-center gap-3 max-md:justify-center max-phone:[&>a]:w-full [animation-delay:210ms]">
+            <div className="mt-7 flex animate-rise flex-wrap items-center gap-3 max-md:justify-center max-phone:[&>a]:w-full max-phone:[&>button]:w-full [animation-delay:210ms]">
               <Button asChild size="lg">
-                <a href={links.shop}>
-                  {h.buy} <Icon name="arrow" className="size-4" />
+                <a href="#services">
+                  {h.explore} <Icon name="arrow" className="size-4" />
                 </a>
               </Button>
-              <Button asChild variant="outline" size="lg">
-                <a href={links.register}>
-                  {h.register} <Icon name="up-right" className="size-4" />
-                </a>
-              </Button>
+              <InquiryButton>
+                <Button variant="outline" size="lg">
+                  {h.inquire} <Icon name="up-right" className="size-4" />
+                </Button>
+              </InquiryButton>
             </div>
           </div>
 

@@ -6,14 +6,12 @@ export const en: Copy = {
   dot: ".",
   space: " ",
   meta: {
-    title: "Abnormal — Email service",
+    title: "Abnormal — Thoughtful digital services",
     description:
-      "Abnormal email service: buy an @abnormalhq.com mailbox online, set it up yourself with a redeem code, and read and send from webmail or any mail app. Plans for a team are sold per mailbox, plans that include it let you connect your own domain yourself, and setup help is available on request.",
-    socialTitle: "Abnormal — Good email, simple conversations.",
-    socialDescription:
-      "Buy and set up an @abnormalhq.com mailbox yourself, then read and send from webmail or your mail app.",
-    socialImageAlt:
-      "Abnormal email service: good email, simple conversations. Buy and set up an @abnormalhq.com mailbox online.",
+      "Abnormal creates thoughtful digital services that make everyday life and work simpler. Explore our services and find the one that fits your needs.",
+    socialTitle: "Abnormal — Useful services, simpler days.",
+    socialDescription: "Thoughtful digital services designed to make everyday life and work simpler.",
+    socialImageAlt: "Abnormal: thoughtful digital services for everyday life and work.",
   },
   skipLink: "Skip to main content",
   brandLabel: "Abnormal home",
@@ -43,19 +41,19 @@ export const en: Copy = {
     options: { system: "System", light: "Light", dark: "Dark" },
   },
   hero: {
-    eyebrow: "Email, made personal",
-    titleLines: ["Good email,", "simple ", "conversations"],
+    eyebrow: "Thoughtful digital services",
+    titleLines: ["Useful tools,", "simpler ", "days"],
     description: [
-      "Create an account, buy @abnormalhq.com mailboxes online, and set them up and manage them from your account.",
-      "Read and send from webmail or the mail app you already use.",
+      "Abnormal creates thoughtful digital services for everyday life and work.",
+      "Explore what we offer and find the service that fits your needs.",
     ],
-    buy: "Buy a mailbox",
-    register: "Create an account",
+    explore: "Explore services",
+    inquire: "Talk to us",
     loginPrompt: "Have an account?",
     loginLink: "Manage your mailboxes",
     webmailLink: "Log in to webmail",
     promises: ["Orders and mailboxes in one account", "Set up in your account once paid", "Pick your own username"],
-    visualLabel: "Concept illustration of the email service: a tidy inbox and an address on your own domain.",
+    visualLabel: "A sample of an Abnormal service, designed to make everyday communication simpler.",
     mock: {
       overline: "A LITTLE MORE CONNECTED",
       heading: "Every email has a home",
@@ -83,9 +81,9 @@ export const en: Copy = {
     },
   },
   valueStrip: {
-    lead: "Less setup hassle.",
-    strong: "More time to talk.",
-    labels: ["Your account", "Buy online", "Self-service setup", "Webmail"],
+    lead: "Thoughtfully built.",
+    strong: "Useful every day.",
+    labels: ["For everyday life", "For work and beyond", "Simple to get started", "Here when you need us"],
   },
   video: {
     eyebrow: "See it in action",

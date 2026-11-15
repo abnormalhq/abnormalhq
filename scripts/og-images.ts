@@ -47,8 +47,8 @@ const mark = `<svg viewBox="0 0 48 48" width="56" height="56" style="border-radi
 function card(lang: Lang): string {
   const t = copies[lang];
   // titleLines is [line1, line2 lead, marked word]; join the last two without a separator (EN lead already ends in a space).
-  const [first, lead, mark] = t.hero.titleLines;
-  const second = `${lead}${mark}`;
+  const [first, lead, highlighted] = t.hero.titleLines;
+  const second = `${lead}${highlighted}`;
   return `<!doctype html>
 <html lang="${t.htmlLang}">
 <head>
@@ -86,7 +86,7 @@ function card(lang: Lang): string {
 <body>
   <div class="frame">
     <div class="rings" aria-hidden="true"><span>@</span></div>
-    <div class="tag">@abnormalhq.com</div>
+    <div class="tag">DIGITAL SERVICES</div>
     <div class="content">
       <div class="brand">${mark}<span>abnormal<span>.</span></span></div>
       <div class="eyebrow">${escape(t.hero.eyebrow)}</div>
