@@ -42,7 +42,7 @@ export const zh: Copy = {
   },
   hero: {
     eyebrow: "Email, made personal",
-    titleLines: ["好用的邮箱，", "沟通更简单"],
+    titleLines: ["好用的邮箱，", "沟通更", "简单"],
     description: [
       "注册账户，在线选购 @abnormalhq.com 邮箱，在账户里直接开通和管理。",
       "网页邮箱和常用邮件客户端都能收发，连接日常与工作。",
