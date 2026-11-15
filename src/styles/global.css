@@ -25,12 +25,15 @@
 
   /*
    * The site's own motion, beside the theme's short enter and exit animations (abnormal.css):
-   * rise is how content arrives (the hero on load, sections as they are scrolled to), drift is the hero showcase's idle float.
-   * Both use transform, like the theme's, so they do not fight the translate and rotate utilities on the same element.
-   * The theme's reduced-motion rule turns both off.
+   * rise is how content arrives (the hero on load, sections as they are scrolled to), drift is the hero showcase's idle float,
+   * mark draws the highlighter band under the hero's one marked word.
+   * Rise and drift use transform, like the theme's, so they do not fight the translate and rotate utilities on the same element.
+   * Mark animates background-size on the Marker gradient; the resting class keeps size at 100% so reduced-motion still shows the band.
+   * The theme's reduced-motion rule turns all three off.
    */
   --animate-rise: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-drift: drift 7s ease-in-out infinite alternate;
+  --animate-mark: mark 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 
   @keyframes rise {
     from {
@@ -48,6 +51,14 @@
     }
     to {
       transform: translateY(-5px);
+    }
+  }
+  @keyframes mark {
+    from {
+      background-size: 0% 100%;
+    }
+    to {
+      background-size: 100% 100%;
     }
   }
 }

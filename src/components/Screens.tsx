@@ -12,6 +12,7 @@ const byKey = (key: ScreenKey) => screens.find((screen) => screen.key === key)!;
 /**
  * "Take a look": WebMail's real screens, in the page's language. The inbox runs the full width; the calendar and the phone share the row
  * below at the same height, so their columns are in the ratio of their widths at equal height (1440×900 beside 390×844).
+ * The shots sit as paper windows in one ink shell — one product plane, not a wall of separate cards.
  * Plain <img> with srcset (the site runs on a Worker without an image service); width and height hold the layout while they load.
  */
 export function Screens({ lang }: { lang: Lang }) {
@@ -35,32 +36,32 @@ export function Screens({ lang }: { lang: Lang }) {
           <p className="max-w-[34rem] pb-[0.2rem] text-md/prose text-muted-foreground">{s.description}</p>
         </div>
 
-        <Shot
-          lang={lang}
-          screen={byKey("inbox")}
-          copy={s.inbox}
-          sizes="(min-width: 1264px) 1184px, 100vw"
-          {...reveal(1)}
-        />
-        <div className="mt-6 grid items-start gap-6 md:grid-cols-[1fr_0.289fr] md:gap-5 lg:gap-6">
-          <Shot
-            lang={lang}
-            screen={byKey("calendar")}
-            copy={s.calendar}
-            sizes="(min-width: 1264px) 900px, (min-width: 768px) 75vw, 100vw"
-            {...reveal(1)}
-          />
-          <Shot
-            lang={lang}
-            screen={byKey("phone")}
-            copy={s.phone}
-            sizes="(min-width: 1264px) 260px, (min-width: 768px) 22vw, 280px"
-            className="max-md:mx-auto max-md:w-[min(100%,280px)]"
-            frameClassName="rounded-[20px]"
-            {...reveal(2)}
-          />
+        {/*
+         * Ink shell around one paper sheet: same brand frame as the closing CTA. Shots share that plane with hairline
+         * gaps instead of each floating as its own card.
+         */}
+        <div className="rounded-panel bg-ink p-2 md:p-2.5" {...reveal(1)}>
+          <div className="space-y-5 overflow-hidden rounded-[calc(var(--radius-panel)-0.35rem)] bg-background p-4 md:space-y-5 md:p-5 lg:p-6">
+            <Shot lang={lang} screen={byKey("inbox")} copy={s.inbox} sizes="(min-width: 1264px) 1136px, 100vw" />
+            <div className="grid items-start gap-5 md:grid-cols-[1fr_0.289fr] md:gap-5 lg:gap-5">
+              <Shot
+                lang={lang}
+                screen={byKey("calendar")}
+                copy={s.calendar}
+                sizes="(min-width: 1264px) 860px, (min-width: 768px) 72vw, 100vw"
+              />
+              <Shot
+                lang={lang}
+                screen={byKey("phone")}
+                copy={s.phone}
+                sizes="(min-width: 1264px) 248px, (min-width: 768px) 20vw, 280px"
+                className="max-md:mx-auto max-md:w-[min(100%,280px)]"
+                frameClassName="rounded-[1.15rem]"
+              />
+            </div>
+            <p className="text-sm/body text-muted-foreground">{s.note}</p>
+          </div>
         </div>
-        <p className="mt-6 text-sm/body text-muted-foreground">{s.note}</p>
       </Container>
     </section>
   );
@@ -73,7 +74,6 @@ function Shot({
   sizes,
   className,
   frameClassName,
-  ...props
 }: {
   lang: Lang;
   screen: Screen;
@@ -81,11 +81,11 @@ function Shot({
   sizes: string;
   className?: string;
   frameClassName?: string;
-} & ReturnType<typeof reveal>) {
+}) {
   return (
-    <figure className={cn("min-w-0", className)} {...props}>
-      {/* Same treatment as the video: a thin border, no shadow. */}
-      <div className={cn("overflow-hidden rounded-panel border border-border bg-card", frameClassName)}>
+    <figure className={cn("min-w-0", className)}>
+      {/* Window into the product: thin border only, no card fill or shadow — the ink shell already frames the sheet. */}
+      <div className={cn("overflow-hidden rounded-mark border border-border bg-card", frameClassName)}>
         {/* next/image would need an image service on the Worker; the widths are made ahead of time instead (src/lib/screens.ts). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
