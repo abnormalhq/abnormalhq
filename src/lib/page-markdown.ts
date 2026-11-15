@@ -20,8 +20,8 @@ import {
 } from "./markdown";
 import type { Page } from "./pages";
 import type { DesktopReleases } from "./releases";
-import type { ShopCatalog } from "@/storefront/lib/catalog";
-import { storeMarkdown, storeMarkdownPaths, type StoreMarkdownPath } from "@/storefront/lib/markdown";
+import type { ShopCatalog } from "@/storefront";
+import { storeMarkdown, storeMarkdownPaths, type StoreMarkdownPath } from "@/storefront/content";
 
 /** What the two per-request pages read: the catalog of each language (null when it could not be read) and the release list. */
 export interface LiveData {

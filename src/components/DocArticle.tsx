@@ -16,7 +16,7 @@ import type { Lang } from "@/data/site";
 import { useCopy } from "@/i18n";
 import { docBase, sectionId } from "@/lib/docs";
 import { cn } from "@/lib/utils";
-import { RichText } from "@/storefront/components/RichText";
+import { RichText } from "@/components/RichText";
 import { CommandLine } from "./CommandLine";
 import { SectionToc } from "./SectionToc";
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Pricing } from "@/components/Pricing";
 import { copies } from "@/i18n";
 import { pageMetadata } from "@/lib/metadata";
-import { liveCatalog } from "@/storefront/lib/catalog-live";
+import { liveCatalog } from "@/storefront/server";
 
 const t = copies.zh.pricing;
 

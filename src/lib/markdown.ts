@@ -39,8 +39,8 @@ import {
 } from "./releases.ts";
 import { pageFor, pagePaths, pages } from "./pages.ts";
 import { planRowsFor, planViews } from "./pricing.ts";
-import type { ShopCatalog } from "../storefront/lib/catalog.ts";
-import { storeMarkdownPaths, storeTitle } from "../storefront/lib/markdown.ts";
+import type { ShopCatalog } from "../storefront/index.ts";
+import { storeMarkdownPaths, storeTitle } from "../storefront/content.ts";
 
 const absolute = (path: string) => `${site.url}${path}`;
 /** linksFor gives site paths for the storefront pages; Markdown needs full addresses. */

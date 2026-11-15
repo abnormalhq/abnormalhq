@@ -9,7 +9,7 @@ import { copy } from "@/storefront/copy";
 import { LANG_PATHS, storePath, type GuideBlock, type Lang } from "@/storefront/i18n";
 import { withBase } from "@/storefront/site";
 import { Toc } from "@/components/ui/toc";
-import { RichText } from "./RichText";
+import { RichText } from "@/components/RichText";
 
 export function Guide({ lang }: { lang: Lang }) {
   const t = copy[lang].guide;

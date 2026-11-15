@@ -1,5 +1,5 @@
 import type { Lang } from "@/data/site";
-import { liveCatalog } from "@/storefront/lib/catalog-live";
+import { liveCatalog } from "@/storefront/server";
 import { pricingMarkdown } from "./markdown";
 import { markdownResponse } from "./markdown-response";
 import { pageFor } from "./pages";

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { REDEEM_PATH, type Copy } from "@/storefront/i18n";
 import type { ServerEndpoint } from "@/storefront/lib/api";
 import { cn } from "@/lib/utils";
-import { RichText } from "@/storefront/components/RichText";
+import { RichText } from "@/components/RichText";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
