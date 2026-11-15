@@ -33,7 +33,7 @@ export const en: Copy = {
     account: "My account",
     buy: "Buy a mailbox",
     haveCode: "I have a code",
-    loginWebmail: "Log in to webmail",
+    loginWebmail: "Log in to Abnormal Mail",
   },
   theme: {
     ariaTemplate: "Change theme, currently {label}",
@@ -51,7 +51,7 @@ export const en: Copy = {
     inquire: "Talk to us",
     loginPrompt: "Have an account?",
     loginLink: "Manage your mailboxes",
-    webmailLink: "Log in to webmail",
+    webmailLink: "Log in to Abnormal Mail",
     promises: ["Orders and mailboxes in one account", "Set up in your account once paid", "Pick your own username"],
     visualLabel: "A sample of an Abnormal service, designed to make everyday communication simpler.",
     mock: {
@@ -107,7 +107,7 @@ export const en: Copy = {
   screens: {
     eyebrow: "Take a look",
     title: "What you get once it's set up",
-    description: "This is webmail as it really looks: mail and your calendar, as easy on a phone as on a computer.",
+    description: "A look at Abnormal Mail in the browser: mail and your calendar, as easy on a phone as on a computer.",
     note: "The mail and events in the screenshots are samples.",
     inbox: {
       title: "Inbox",
@@ -118,22 +118,22 @@ export const en: Copy = {
     calendar: {
       title: "Calendar",
       description:
-        "A calendar built into webmail: answer invitations right in the message, and sync it to your phone and computer.",
-      alt: "The webmail calendar's week view: meetings, a lunch and a flight across the week.",
+        "A calendar built into Abnormal Mail: answer invitations right in the message, and sync it to your phone and computer.",
+      alt: "Abnormal Mail's calendar week view: meetings, a lunch and a flight across the week.",
     },
     phone: {
       title: "On your phone",
       description: "Just as easy in a phone's browser, and it can go on your home screen to open like an app.",
-      alt: "The webmail inbox on a phone, with Mail, Later, Calendar and Contacts along the bottom.",
+      alt: "Abnormal Mail's inbox on a phone, with Mail, Later, Calendar and Contacts along the bottom.",
     },
   },
   demo: {
     eyebrow: "Try it yourself",
     title: "Have a go",
     description:
-      "A webmail you can use right here: open mail, star it, filter by category and label, search, check the calendar, or write a message.",
+      "Try Abnormal Mail in your browser: open mail, star it, filter by category and label, search, check the calendar, or write a message.",
     note: "The demo runs only in your browser with sample content. It never sends any mail.",
-    label: "Interactive webmail demo",
+    label: "Interactive Abnormal Mail demo",
     ui: {
       compose: "Compose",
       inbox: "Inbox",
@@ -309,7 +309,7 @@ export const en: Copy = {
   features: {
     eyebrow: "What's inside",
     title: "Everything a mailbox should do",
-    intro: ["Sorting, calendars, safety and moving in:", "all there in webmail the day you activate."],
+    intro: ["Sorting, calendars, safety and moving in:", "all there in Abnormal Mail the day you activate."],
     items: [
       {
         icon: "inbox",
@@ -327,7 +327,7 @@ export const en: Copy = {
         icon: "calendar",
         title: "Calendar and contacts",
         description:
-          "Webmail has a calendar and an address book built in, with invitations answered right in the message; CalDAV and CardDAV sync them to your phone and computer.",
+          "Abnormal Mail has a calendar and an address book built in, with invitations answered right in the message; CalDAV and CardDAV sync them to your phone and computer.",
       },
       {
         icon: "search",
@@ -363,16 +363,16 @@ export const en: Copy = {
         icon: "install",
         title: "Install it as an app",
         description:
-          "Add webmail to your desktop or home screen and open it like an app; mail it has saved stays readable offline.",
+          "Add Abnormal Mail to your desktop or home screen and open it like an app; mail it has saved stays readable offline.",
       },
     ],
     platformsTitle: "Use it anywhere",
     platforms: [
       {
         icon: "globe",
-        name: "Webmail",
+        name: "Abnormal Mail",
         description: "Nothing to install. Sign in to several mailboxes at once and switch between them in one click.",
-        action: "Log in to webmail",
+        action: "Log in to Abnormal Mail",
         link: "webmail",
       },
       {
@@ -427,11 +427,11 @@ export const en: Copy = {
       {
         icon: "mail",
         eyebrow: "Already set up",
-        title: "Webmail",
+        title: "Abnormal Mail",
         description:
           "Read and send in the browser. Sign in with your full address and password, with several mailboxes at once.",
         link: "webmail",
-        action: "Log in",
+        action: "Log in to Abnormal Mail",
       },
     ],
     secondary: [
@@ -677,9 +677,9 @@ export const en: Copy = {
         icon: "mail",
         title: "Sign in and send",
         description:
-          "Log in to webmail with your full address, or follow the guide to add it to a mail app over IMAP / SMTP.",
+          "Log in to Abnormal Mail with your full address, or follow the guide to add it to a mail app over IMAP / SMTP.",
         link: "webmail",
-        action: "Log in to webmail",
+        action: "Log in to Abnormal Mail",
       },
     ],
   },
@@ -703,7 +703,7 @@ export const en: Copy = {
       {
         question: "Where do I sign in afterwards?",
         answer:
-          "Webmail is at webmail.abnormalhq.com. Sign in with your full email address and the password you set when redeeming. Existing @abnormal.bid mailboxes continue to use their original address to sign in. You can also add the account to a mail app on your phone or computer; the server settings are in your redeem result and the guide.",
+          "Abnormal Mail is at webmail.abnormalhq.com. Sign in with your full email address and the password you set when redeeming. Existing @abnormal.bid mailboxes continue to use their original address to sign in. You can also add the account to a mail app on your phone or computer; the server settings are in your redeem result and the guide.",
       },
       {
         question: "Where do I manage mailboxes, orders and renewals?",
@@ -799,7 +799,7 @@ export const en: Copy = {
       { link: "shop", label: "Buy a mailbox" },
       { link: "pricing", label: "Pricing" },
       { link: "redeem", label: "Redeem" },
-      { link: "webmail", label: "Webmail" },
+      { link: "webmail", label: "Abnormal Mail" },
       { link: "guide", label: "Guide" },
       { link: "developers", label: "Developers" },
     ],
@@ -875,13 +875,13 @@ export const en: Copy = {
     forThisComputer: "For this computer",
     phone: {
       title: "On a phone or tablet?",
-      body: "The desktop app runs on computers. On this device, read your mail in webmail, or add the mailbox to the mail app you already have.",
-      webmail: "Open webmail",
+      body: "The desktop app runs on computers. On this device, read your mail in Abnormal Mail in your browser, or add the mailbox to the mail app you already have.",
+      webmail: "Open Abnormal Mail",
       apps: "Set up a mail app",
     },
     historyMore: "Show {count} earlier versions",
     webmailNote: "Rather not install anything?",
-    webmailLink: "Use webmail in your browser",
+    webmailLink: "Use Abnormal Mail in your browser",
   },
   inquiry: {
     kicker: "Let's get you started",

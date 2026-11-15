@@ -10,7 +10,7 @@ import { helpIllustration, helpScreenshot } from "./illustrations.ts";
 import type { HelpContent } from "./types.ts";
 
 const support = `[${site.contact.email}](mailto:${site.contact.email})`;
-const webmail = "[webmail.abnormalhq.com](https://webmail.abnormalhq.com/)";
+const webmail = "[Abnormal Mail](https://webmail.abnormalhq.com/)";
 /** Where a reader finds the server settings of their own mailbox. */
 const whereSettings =
   "Your server settings are shown in three places: on the page right after the mailbox is set up, under My mailboxes in [My account](shop/account/), and in webmail under Settings → Apps & sync";

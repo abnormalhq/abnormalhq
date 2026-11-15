@@ -236,7 +236,7 @@ export const zh = {
   mailboxesHint: "用你的订单开出的邮箱都在这里：可以直接开通新邮箱、重设邮箱密码、停用或删除。",
   mailboxesEmpty: "还没有已付款的订单。",
   mailboxesGoShop: "去商店选购",
-  openWebmail: "打开网页邮箱",
+  openWebmail: "打开 Abnormal Mail",
   mailboxesUsed: (n: number, max: number) => `已开通 ${n} / ${max}`,
   mailboxesLeft: "还能开通",
   mailboxesLeftValue: (n: number) => `${n} 个`,

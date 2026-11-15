@@ -33,7 +33,7 @@ export const zh: Copy = {
     account: "我的账户",
     buy: "购买邮箱",
     haveCode: "我有兑换码",
-    loginWebmail: "登录网页邮箱",
+    loginWebmail: "登录 Abnormal Mail",
   },
   theme: {
     ariaTemplate: "切换主题，当前{label}",
@@ -51,7 +51,7 @@ export const zh: Copy = {
     inquire: "联系咨询",
     loginPrompt: "已有账户？",
     loginLink: "登录管理邮箱",
-    webmailLink: "登录网页邮箱",
+    webmailLink: "登录 Abnormal Mail",
     promises: ["订单与邮箱一个账户管理", "付款后在账户里直接开通", "用户名自己取"],
     visualLabel: "Abnormal 服务示意：设计简洁、易于使用，让日常沟通更轻松。",
     mock: {
@@ -106,30 +106,30 @@ export const zh: Copy = {
   screens: {
     eyebrow: "Take a look",
     title: "开通后，你看到的就是这样",
-    description: "下面是网页邮箱的真实界面：收发邮件、管理日程，在电脑和手机上都顺手。",
+    description: "下面是 Abnormal Mail 网页版的真实界面：收发邮件、管理日程，在电脑和手机上都顺手。",
     note: "截图中的邮件和日程均为示例。",
     inbox: {
       title: "收件箱",
       description: "主要邮件、订阅和通知自动分开，标签一眼可见，阅读区旁边就是发件人的往来记录。",
-      alt: "网页邮箱的收件箱：左侧是文件夹和标签，中间是按日期分组的邮件列表，右侧打开了一封带标签的邮件。",
+      alt: "Abnormal Mail 的收件箱：左侧是文件夹和标签，中间是按日期分组的邮件列表，右侧打开了一封带标签的邮件。",
     },
     calendar: {
       title: "日历",
-      description: "日历内置在网页邮箱里，邮件里的邀请直接回复，还能同步到手机和电脑。",
-      alt: "网页邮箱的日历周视图：一周里的会议、午餐和航班等日程。",
+      description: "Abnormal Mail 内置日历，邮件里的邀请可以直接回复，还能同步到手机和电脑。",
+      alt: "Abnormal Mail 的日历周视图：一周里的会议、午餐和航班等日程。",
     },
     phone: {
       title: "手机上",
       description: "在手机浏览器里同样好用，还能添加到主屏幕，像应用一样打开。",
-      alt: "手机上的网页邮箱收件箱，底部是邮件、稍后处理、日历和通讯录的导航。",
+      alt: "手机上的 Abnormal Mail 收件箱，底部是邮件、稍后处理、日历和通讯录的导航。",
     },
   },
   demo: {
     eyebrow: "Try it yourself",
     title: "上手试一试",
-    description: "一个可以直接操作的网页邮箱演示：打开邮件、加星、按分类和标签筛选、搜索、看日历，或者写一封信。",
+    description: "在浏览器里试用 Abnormal Mail：打开邮件、加星、按分类和标签筛选、搜索、看日历，或者写一封信。",
     note: "演示只在你的浏览器里运行，内容都是示例，不会发送任何邮件。",
-    label: "网页邮箱交互演示",
+    label: "Abnormal Mail 交互演示",
     ui: {
       compose: "写邮件",
       inbox: "收件箱",
@@ -296,7 +296,7 @@ export const zh: Copy = {
   features: {
     eyebrow: "What's inside",
     title: "一个邮箱，该有的都有",
-    intro: ["不只是能收发：分类、日程、安全与搬家，", "开通后都在网页邮箱里等你。"],
+    intro: ["不只是能收发：分类、日程、安全与搬家，", "开通后都在 Abnormal Mail 里等你。"],
     items: [
       {
         icon: "inbox",
@@ -311,7 +311,8 @@ export const zh: Copy = {
       {
         icon: "calendar",
         title: "日历与通讯录",
-        description: "网页邮箱里自带日历和通讯录，会议邀请在邮件里直接回复；通过 CalDAV / CardDAV 同步到手机和电脑。",
+        description:
+          "Abnormal Mail 自带日历和通讯录，会议邀请在邮件里可以直接回复；通过 CalDAV / CardDAV 同步到手机和电脑。",
       },
       {
         icon: "search",
@@ -342,16 +343,16 @@ export const zh: Copy = {
       {
         icon: "install",
         title: "安装成应用",
-        description: "网页邮箱可以安装到桌面或手机主屏，像应用一样打开；离线时也能翻看已保存的邮件。",
+        description: "Abnormal Mail 可以安装到桌面或手机主屏，像应用一样打开；离线时也能翻看已保存的邮件。",
       },
     ],
     platformsTitle: "在哪里都能用",
     platforms: [
       {
         icon: "globe",
-        name: "网页邮箱",
+        name: "Abnormal Mail",
         description: "打开浏览器就能用，可同时登录多个邮箱，在它们之间一键切换。",
-        action: "登录网页邮箱",
+        action: "登录 Abnormal Mail",
         link: "webmail",
       },
       {
@@ -403,10 +404,10 @@ export const zh: Copy = {
       {
         icon: "mail",
         eyebrow: "已经开通",
-        title: "网页邮箱",
+        title: "Abnormal Mail",
         description: "在浏览器里收发邮件，用完整邮箱地址和密码登录，可同时登录多个邮箱。",
         link: "webmail",
-        action: "登录邮箱",
+        action: "登录 Abnormal Mail",
       },
     ],
     secondary: [
@@ -636,9 +637,9 @@ export const zh: Copy = {
       {
         icon: "mail",
         title: "登录收发",
-        description: "用完整邮箱地址登录网页邮箱，或按教程在邮件客户端里通过 IMAP / SMTP 收发。",
+        description: "用完整邮箱地址登录 Abnormal Mail 网页版，或按教程在邮件客户端里通过 IMAP / SMTP 收发。",
         link: "webmail",
-        action: "登录网页邮箱",
+        action: "登录 Abnormal Mail",
       },
     ],
   },
@@ -662,7 +663,7 @@ export const zh: Copy = {
       {
         question: "开通之后在哪里登录？",
         answer:
-          "网页邮箱地址是 webmail.abnormalhq.com，登录名是完整的邮箱地址，密码是开通时设置的那一个。既有 @abnormal.bid 邮箱继续使用原地址登录。也可以在手机或电脑的邮件客户端里添加账号，服务器地址见开通结果与使用教程。",
+          "Abnormal Mail 网页版地址是 webmail.abnormalhq.com，登录名是完整的邮箱地址，密码是开通时设置的那一个。既有 @abnormal.bid 邮箱继续使用原地址登录。也可以在手机或电脑的邮件客户端里添加账号，服务器地址见开通结果与使用教程。",
       },
       {
         question: "邮箱、订单和续费在哪里管理？",
@@ -757,7 +758,7 @@ export const zh: Copy = {
       { link: "shop", label: "购买邮箱" },
       { link: "pricing", label: "套餐与价格" },
       { link: "redeem", label: "兑换开通" },
-      { link: "webmail", label: "网页邮箱" },
+      { link: "webmail", label: "Abnormal Mail" },
       { link: "guide", label: "使用教程" },
       { link: "developers", label: "开发者" },
     ],
@@ -829,13 +830,13 @@ export const zh: Copy = {
     forThisComputer: "适合这台电脑",
     phone: {
       title: "在用手机或平板？",
-      body: "桌面客户端只能装在电脑上。在这台设备上，可以用网页邮箱收发邮件，或者把邮箱添加到已有的邮件 App。",
-      webmail: "打开网页邮箱",
+      body: "桌面客户端只能装在电脑上。在这台设备上，可以使用浏览器版 Abnormal Mail 收发邮件，或者把邮箱添加到已有的邮件 App。",
+      webmail: "打开 Abnormal Mail",
       apps: "设置邮件 App",
     },
     historyMore: "显示更早的 {count} 个版本",
     webmailNote: "不想安装？",
-    webmailLink: "在浏览器里使用网页邮箱",
+    webmailLink: "在浏览器里使用 Abnormal Mail",
   },
   inquiry: {
     kicker: "Let's get you started",
