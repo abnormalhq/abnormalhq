@@ -158,8 +158,8 @@ export interface Copy {
      */
     titleLines: readonly [string, string, string];
     description: readonly [string, string];
-    buy: string;
-    register: string;
+    explore: string;
+    inquire: string;
     loginPrompt: string;
     /** Sign in to the buyer account (manage mailboxes and orders). */
     loginLink: string;

@@ -29,6 +29,24 @@ test("the homepage shares the social copy of its language", () => {
   assert.equal(metadata.alternates?.canonical, "/zh/");
 });
 
+test("the homepage introduction positions Abnormal beyond email services", () => {
+  for (const [lang, copy] of Object.entries({ en, zh }) as ["en" | "zh", typeof en][]) {
+    const introduction = [
+      copy.meta.title,
+      copy.meta.description,
+      copy.meta.socialTitle,
+      copy.meta.socialDescription,
+      copy.hero.eyebrow,
+      ...copy.hero.titleLines,
+      ...copy.hero.description,
+      copy.valueStrip.lead,
+      copy.valueStrip.strong,
+      ...copy.valueStrip.labels,
+    ].join(" ");
+    assert.doesNotMatch(introduction, lang === "en" ? /\b(?:email|mailbox|webmail)\b/i : /邮箱|邮件/);
+  }
+});
+
 test("every page shares a large card with its language's image, alt text and site name", () => {
   for (const lang of ["zh", "en"] as const) {
     const metadata = pageMetadata({ lang, path: "/terms/", title: "T", description: "D" });
