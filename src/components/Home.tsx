@@ -28,13 +28,16 @@ export function Home({ lang }: { lang: Lang }) {
       <JsonLd data={homeStructuredData(lang)} />
       <ScrollReveal />
       <Hero lang={lang} />
-      <Container className="flex flex-wrap items-center justify-between gap-4 border-t border-border py-6 text-muted-foreground max-lg:justify-center max-md:flex-col">
+      {/*
+       * Value strip sits on the same content axis as the hero: one lead line, then signal labels with the same
+       * eyebrow dots — tight gap so it reads as a bridge, not a second marketing band.
+       */}
+      <Container className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-border py-5 text-muted-foreground max-lg:justify-center max-md:flex-col max-md:gap-y-3.5">
         <p className="text-sm/body">
           {t.valueStrip.lead}
           <strong className="ml-2 font-medium text-foreground max-phone:ml-[0.15rem]">{t.valueStrip.strong}</strong>
         </p>
-        {/* Signal dots match the section Eyebrow: one brand cue, no generic spark icons. */}
-        <div className="flex items-center gap-8 max-lg:gap-6 max-md:flex-wrap max-md:justify-center max-md:gap-x-5 max-md:gap-y-3">
+        <div className="flex items-center gap-6 max-lg:gap-5 max-md:flex-wrap max-md:justify-center max-md:gap-x-5 max-md:gap-y-2.5">
           {t.valueStrip.labels.map((label) => (
             <span className="inline-flex items-center gap-2 text-xs/body" key={label}>
               <span className="size-1.5 shrink-0 rounded-full bg-signal" aria-hidden="true" />
