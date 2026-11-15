@@ -28,20 +28,20 @@ export function Hero({ lang }: { lang: Lang }) {
        * do not compete with that composition.
        */}
       <section
-        className="pt-20 pb-10 max-hero:pt-[3.75rem] max-md:pt-[2.8rem] max-md:pb-8 max-phone:pt-[2.3rem] wide:pt-[5.5rem]"
+        className="pt-14 pb-10 max-hero:pt-12 max-md:pt-10 max-md:pb-8 max-phone:pt-8 wide:pt-16"
         aria-labelledby="hero-title"
       >
         {/*
-         * Own the first viewport on desktop: the primary grid fills the space under the header so the secondary
-         * band (address check, login, promises) starts below the fold instead of stacking into the composition.
+         * Keep the composition content-sized. A viewport-height grid with centered items pushes the headline
+         * far below the header on tall windows and leaves the useful secondary band out of reach.
          */}
-        <div className="grid grid-cols-2 items-center gap-8 max-hero:gap-4 max-md:grid-cols-1 max-md:gap-12 max-phone:gap-10 md:min-h-[calc(100svh-5.75rem)] wide:gap-16">
-          <div className="relative z-1 max-md:text-center">
+        <div className="grid grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] items-center gap-10 max-hero:gap-6 max-md:grid-cols-1 max-md:gap-12 max-phone:gap-10 md:min-h-[32rem] wide:gap-12">
+          <div className="relative z-1 min-w-0 max-md:text-center">
             <Eyebrow className="inline-flex animate-rise" lang="en">
               {h.eyebrow}
             </Eyebrow>
             <h1
-              className="my-[1.4rem] animate-rise font-heading text-[clamp(2.5rem,4.4vw,3.5rem)] leading-[1.25] font-semibold tracking-[-0.02em] max-hero:text-[2.5rem] max-md:my-6 max-md:text-[clamp(2.35rem,8.2vw,3.6rem)] [animation-delay:70ms]"
+              className="my-6 animate-rise font-heading text-[clamp(2.5rem,4.4vw,3.5rem)] leading-[1.15] font-semibold tracking-[-0.02em] max-hero:text-[2.5rem] max-md:text-[clamp(2.35rem,8.2vw,3.6rem)] [animation-delay:70ms]"
               id="hero-title"
             >
               {h.titleLines[0]}
@@ -59,11 +59,9 @@ export function Hero({ lang }: { lang: Lang }) {
               </span>
             </h1>
             <p className="max-w-[500px] animate-rise text-md/prose text-muted-foreground max-hero:text-base/prose max-md:mx-auto [animation-delay:140ms]">
-              {h.description[0]}
-              <br />
-              {h.description[1]}
+              {h.description.join(" ")}
             </p>
-            <div className="mt-8 flex animate-rise flex-wrap items-center gap-3 max-md:justify-center [animation-delay:210ms]">
+            <div className="mt-7 flex animate-rise flex-wrap items-center gap-3 max-md:justify-center max-phone:[&>a]:w-full [animation-delay:210ms]">
               <Button asChild size="lg">
                 <a href={links.shop}>
                   {h.buy} <Icon name="arrow" className="size-4" />
@@ -83,7 +81,7 @@ export function Hero({ lang }: { lang: Lang }) {
            * border box (the hard cut at the bottom of the halo).
            */}
           <div
-            className="group/visual relative h-[475px] min-w-0 max-hero:h-[450px] max-md:mx-auto max-md:h-[445px] max-md:w-[min(100%,470px)] max-phone:h-[425px]"
+            className="group/visual relative h-[475px] min-w-0 max-hero:h-[425px] max-md:mx-auto max-md:h-[425px] max-md:w-[min(100%,470px)] max-phone:h-[405px]"
             role="img"
             aria-label={h.visualLabel}
           >
@@ -197,14 +195,19 @@ export function Hero({ lang }: { lang: Lang }) {
         </div>
 
         {/*
-         * Secondary band: useful, but not the first-viewport story. Compact so it reads as one strip under the
-         * composition rather than another column of competing blocks.
+         * Put address discovery and existing-account links side by side when there is room. Flex wrapping also
+         * lets the account links fill the band when address checking is unavailable and its form renders nothing.
          */}
-        <div className="mt-14 animate-rise border-t border-border pt-7 max-md:mt-12 max-md:pt-6 [animation-delay:280ms]">
-          <AddressCheck className="max-w-[440px] max-md:mx-auto" lang={lang} copy={t.pricing.check} shop={links.shop} />
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-base/body text-muted-foreground max-md:justify-center max-md:gap-x-4">
-            <p className="flex flex-wrap items-center gap-2 max-md:justify-center">
-              {h.loginPrompt}
+        <div className="mt-12 flex animate-rise flex-wrap items-center gap-x-12 gap-y-6 border-t border-border pt-7 max-lg:flex-col max-lg:items-stretch max-md:mt-14 max-md:pt-6 [animation-delay:280ms]">
+          <AddressCheck
+            className="w-full max-w-[440px] min-w-0 flex-1 basis-[400px] max-lg:mx-auto max-lg:basis-auto"
+            lang={lang}
+            copy={t.pricing.check}
+            shop={links.shop}
+          />
+          <div className="min-w-0 flex-1 basis-[480px] text-muted-foreground max-lg:basis-auto">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm/body max-lg:justify-center">
+              <span>{h.loginPrompt}</span>
               <TextLink href={links.account}>
                 {h.loginLink} <Icon name="up-right" className="size-3.5" />
               </TextLink>
@@ -213,8 +216,7 @@ export function Hero({ lang }: { lang: Lang }) {
                 {h.webmailLink} <Icon name="up-right" className="size-3.5" />
               </TextLink>
             </p>
-            <span className="hidden h-3 w-px bg-border sm:block" aria-hidden="true" />
-            <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs/body max-md:justify-center max-phone:gap-x-4">
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs/body max-lg:justify-center max-phone:gap-x-4">
               {h.promises.map((promise) => (
                 <span className="inline-flex items-center gap-1.5" key={promise}>
                   <Icon name="check" className="size-3.5 text-foreground" />
@@ -222,10 +224,10 @@ export function Hero({ lang }: { lang: Lang }) {
                 </span>
               ))}
             </div>
-          </div>
-          {/* The line keeps its height while the status is unknown, so the strip does not jump when it arrives. */}
-          <div className="mt-4 flex min-h-6 text-xs/body max-md:justify-center">
-            <ServiceStatus copy={t.serviceStatus} href={links.status} />
+            {/* Reserve the line while status is loading so the strip does not jump when it arrives. */}
+            <div className="mt-3 flex min-h-6 text-xs/body max-lg:justify-center">
+              <ServiceStatus copy={t.serviceStatus} href={links.status} />
+            </div>
           </div>
         </div>
       </section>
