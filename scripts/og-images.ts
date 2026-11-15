@@ -46,7 +46,9 @@ const mark = `<svg viewBox="0 0 48 48" width="56" height="56" style="border-radi
 
 function card(lang: Lang): string {
   const t = copies[lang];
-  const [first, second] = t.hero.titleLines;
+  // titleLines is [line1, line2 lead, marked word]; join the last two without a separator (EN lead already ends in a space).
+  const [first, lead, mark] = t.hero.titleLines;
+  const second = `${lead}${mark}`;
   return `<!doctype html>
 <html lang="${t.htmlLang}">
 <head>
