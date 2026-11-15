@@ -3,7 +3,7 @@ import { homepage, supportEmail, webmailUrl } from "./config.ts";
 import { withoutPeriod, type Copy } from "./i18n.ts";
 
 /** Static help copy uses the shared portal; activation results use the entry returned by the backend instead. */
-const webmailLinkEn = `[Abnormal webmail](${webmailUrl})`;
+const webmailLinkEn = `[Abnormal Mail](${webmailUrl})`;
 
 const usernameRuleEn =
   "Usernames use lowercase letters, digits and . _ -, start and end with a letter or digit, have no two dots in a row, and are at most 64 characters.";
@@ -75,7 +75,7 @@ export const en: Copy = {
     copied: "Copied",
     copyFailed: "Copy failed",
     copyAll: "Copy all",
-    openWebmail: "Open webmail",
+    openWebmail: "Open Abnormal Mail",
   },
   submitNote: "Passwords are shown once, right after creation. Save them then.",
   noscript: "This page needs JavaScript to redeem a code.",
@@ -191,7 +191,7 @@ export const en: Copy = {
   footer: {
     links: [
       { label: "Website", href: homepage.en },
-      { label: "Webmail", href: webmailUrl },
+      { label: "Abnormal Mail", href: webmailUrl },
       { label: supportEmail, href: `mailto:${supportEmail}` },
     ],
   },
@@ -224,10 +224,10 @@ export const en: Copy = {
         ],
       },
       {
-        title: "Webmail",
+        title: "Abnormal Mail",
         blocks: [
           {
-            p: `Use Open webmail in your creation result, or visit ${webmailLinkEn}. Sign in with your full email address and the password you set. Our own mail servers send, receive and store your mail; webmail and mail apps access the same mailbox.`,
+            p: `Use Open Abnormal Mail in your creation result, or visit ${webmailLinkEn}. Sign in with your full email address and the password you set. Our own mail servers send, receive and store your mail; webmail and mail apps access the same mailbox.`,
           },
           {
             p: "It works in a phone browser as well; if you read mail on your phone often, set up a mail app once, as in the next section.",

@@ -6,7 +6,7 @@ import { site } from "../../data/site.ts";
 import type { HelpContent } from "./types.ts";
 
 const support = `[${site.contact.email}](mailto:${site.contact.email})`;
-const webmail = "[webmail.abnormalhq.com](https://webmail.abnormalhq.com/)";
+const webmail = "[Abnormal Mail](https://webmail.abnormalhq.com/)";
 /** 读者在哪里能看到自己邮箱的服务器设置。 */
 const whereSettings =
   "服务器设置在三个地方可以看到：邮箱开通后的结果页、[我的账户](shop/account/)里的「我的邮箱」，以及网页邮箱的「设置 → 应用与同步」";

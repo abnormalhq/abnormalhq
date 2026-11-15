@@ -3,7 +3,7 @@ import { homepage, supportEmail, webmailUrl } from "./config.ts";
 import { withoutPeriod, type Copy } from "./i18n.ts";
 
 /** Static help copy uses the shared portal; activation results use the entry returned by the backend instead. */
-const webmailLinkZh = `[Abnormal 网页邮箱](${webmailUrl})`;
+const webmailLinkZh = `[Abnormal Mail](${webmailUrl})`;
 
 const usernameRuleZh = "用户名只能是小写字母、数字和 . _ -，首尾必须是字母或数字，不能有连续的点，最多 64 位。";
 
@@ -72,7 +72,7 @@ export const zh: Copy = {
     copied: "已复制",
     copyFailed: "复制失败",
     copyAll: "复制全部",
-    openWebmail: "打开网页邮箱",
+    openWebmail: "打开 Abnormal Mail",
   },
   submitNote: "开通后密码只显示一次，请立即保存。",
   noscript: "这个页面需要启用 JavaScript 才能兑换。",
@@ -184,7 +184,7 @@ export const zh: Copy = {
   footer: {
     links: [
       { label: "官网", href: homepage.zh },
-      { label: "网页邮箱", href: webmailUrl },
+      { label: "Abnormal Mail", href: webmailUrl },
       { label: supportEmail, href: `mailto:${supportEmail}` },
     ],
   },
@@ -217,10 +217,10 @@ export const zh: Copy = {
         ],
       },
       {
-        title: "网页邮箱",
+        title: "Abnormal Mail",
         blocks: [
           {
-            p: `点击开通结果中的「打开网页邮箱」，或直接访问 ${webmailLinkZh}。登录名是完整邮箱地址，密码是开通时设置的邮箱密码。邮件由我们自建的邮件服务器收发与存储，网页邮箱与邮件客户端使用同一个邮箱。`,
+            p: `点击开通结果中的「打开 Abnormal Mail」，或直接访问 ${webmailLinkZh}。登录名是完整邮箱地址，密码是开通时设置的邮箱密码。邮件由我们自建的邮件服务器收发与存储，网页邮箱与邮件客户端使用同一个邮箱。`,
           },
           {
             p: "手机浏览器里也能用；要经常在手机上收信，还是按下一节配一次邮件客户端。",
