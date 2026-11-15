@@ -38,5 +38,7 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Preserve the published storefront contract
+        run: node scripts/contract-compat.ts
       - name: Lint, typecheck, test, format check, build and validate Worker
         run: pnpm cf:build
