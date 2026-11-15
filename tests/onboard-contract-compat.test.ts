@@ -37,6 +37,23 @@ test("USDT payment request fields remain closed to new required inputs", () => {
   next.shop.usdt.payRequestFields.push("requiredNetworkSignature");
   assert.ok(compatibilityErrors(next, published).length);
 });
+test("new validation constraints and unknown error enums require migration", () => {
+  for (const change of [
+    (next: typeof published) => {
+      next.redeem.username.minLength = 2;
+    },
+    (next: typeof published) => {
+      next.redeem.errorKinds.new_error = { status: 400, field: null };
+    },
+    (next: typeof published) => {
+      next.shop.refusalCodes.new_refusal = { status: 400, details: [] };
+    },
+  ]) {
+    const next = structuredClone(published);
+    change(next);
+    assert.ok(compatibilityErrors(next, published).length);
+  }
+});
 test("a version bump cannot authorize removal, while versioned replacement routes allow staged migration", () => {
   const next = structuredClone(published);
   next.version++;

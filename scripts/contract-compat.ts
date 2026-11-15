@@ -52,9 +52,18 @@ export function compatibilityErrors(provider: unknown, consumer: unknown, path =
   }
   if (consumer && typeof consumer === "object") {
     if (!provider || typeof provider !== "object" || Array.isArray(provider)) return [`${path}: missing object`];
-    return Object.entries(consumer).flatMap(([key, value]) =>
-      compatibilityErrors((provider as Document)[key], value, `${path}.${key}`),
-    );
+    // New keys can be a stricter validation rule or a new error enum. Only route maps are open capabilities.
+    const added = path.endsWith(".routes")
+      ? []
+      : Object.keys(provider)
+          .filter((key) => key !== "$comment" && !Object.hasOwn(consumer, key))
+          .map((key) => `${path}.${key}: new constraint or closed value requires review`);
+    return [
+      ...added,
+      ...Object.entries(consumer).flatMap(([key, value]) =>
+        compatibilityErrors((provider as Document)[key], value, `${path}.${key}`),
+      ),
+    ];
   }
   return provider === consumer ? [] : [`${path}: removed or changed value`];
 }
