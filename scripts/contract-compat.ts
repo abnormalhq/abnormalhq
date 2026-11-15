@@ -12,6 +12,27 @@ interface ContractLock {
 }
 const REPOSITORY = "abnormalhq/abnormalhq";
 const ARTIFACT = "docs/onboard-contract.json";
+// Extensibility is explicit: e.g. payRequestFields is input, despite its Fields suffix.
+const RESPONSE_FIELD_LISTS = new Set([
+  "contract.shop.publicOrderFields",
+  "contract.shop.seats.planFields",
+  "contract.shop.seats.accountFields",
+  "contract.shop.quote.fields",
+  "contract.shop.quote.priceFields",
+  "contract.shop.quote.couponFields",
+  "contract.shop.quote.unavailableFields",
+  "contract.shop.buyerDomains.domainFields",
+  "contract.shop.buyerDomains.ownershipFields",
+  "contract.shop.buyerDomains.recordFields",
+  "contract.shop.usdt.catalogFields",
+  "contract.shop.usdt.catalogChainFields",
+  "contract.shop.usdt.orderAnswerFields",
+  "contract.shop.usdt.productFields",
+  "contract.shop.usdt.seatPlanFields",
+  "contract.shop.usdt.payFields",
+  "contract.shop.refusalFields",
+  "contract.status.fields",
+]);
 
 /** A provider must preserve everything the deployed consumer knows. Unknown enum values and input constraints need a migration. */
 export function compatibilityErrors(provider: unknown, consumer: unknown, path = "contract"): string[] {
@@ -21,10 +42,7 @@ export function compatibilityErrors(provider: unknown, consumer: unknown, path =
   if (Array.isArray(consumer)) {
     if (!Array.isArray(provider)) return [`${path}: missing array`];
     // Only routes/methods and response field lists are open to additions. Request fields and enums remain closed.
-    const extensible =
-      path.endsWith(".routes") ||
-      path.includes(".routes.") ||
-      (/(?:Fields|\.fields)$/.test(path) && !path.endsWith(".requestFields") && path !== "contract.redeem.fields");
+    const extensible = path.endsWith(".routes") || path.includes(".routes.") || RESPONSE_FIELD_LISTS.has(path);
     const wanted = consumer.map((value) => JSON.stringify(value));
     const offered = provider.map((value) => JSON.stringify(value));
     return wanted.every((value) => offered.includes(value)) &&

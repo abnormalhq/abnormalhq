@@ -32,6 +32,11 @@ test("route removal, changed validation, new required input and unknown enums re
     assert.ok(compatibilityErrors(next, published).length);
   }
 });
+test("USDT payment request fields remain closed to new required inputs", () => {
+  const next = structuredClone(published);
+  next.shop.usdt.payRequestFields.push("requiredNetworkSignature");
+  assert.ok(compatibilityErrors(next, published).length);
+});
 test("a version bump cannot authorize removal, while versioned replacement routes allow staged migration", () => {
   const next = structuredClone(published);
   next.version++;
