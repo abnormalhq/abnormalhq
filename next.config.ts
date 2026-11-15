@@ -63,12 +63,6 @@ const nextConfig: NextConfig = {
     // English and Chinese each have their own root layout with no shared root, so the 404 has to be src/app/global-not-found.tsx.
     globalNotFound: true,
   },
-  turbopack: {
-    rules: {
-      // The Worker runtime cannot read project files with fs, so the theme script is bundled as a string at build time.
-      "**/scripts/theme-init.js": { loaders: ["raw-loader"], as: "*.js" },
-    },
-  },
 };
 
 // Turbopack requires plugins to be written as package-name strings; the list is in src/content/legal/mdx.ts, and the tests compile the legal documents with the same one.

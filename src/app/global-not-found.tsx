@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
-import { ThemeHead } from "@/components/ThemeHead";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { TextLink } from "@/components/ui/text-link";
+import { ThemeScript } from "@/components/ui/theme-script";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import "@/styles/global.css";
 
@@ -26,7 +26,7 @@ export default function GlobalNotFound() {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <ThemeHead />
+        <ThemeScript />
       </head>
       <body>
         <Container asChild className={sectionSpaceClassName}>

@@ -3,6 +3,7 @@
  * / (English) and /zh/ (Chinese) each have a root layout (the two route groups under src/app) that only hands the language to this.
  */
 import { SkipLink } from "@/components/ui/skip-link";
+import { ThemeScript } from "@/components/ui/theme-script";
 import type { ReactNode } from "react";
 import { preload } from "react-dom";
 import type { Lang } from "@/data/site";
@@ -11,7 +12,6 @@ import { Brand } from "./Brand";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { InquiryProvider } from "./InquiryDialog";
-import { ThemeHead } from "./ThemeHead";
 import "@/styles/global.css";
 
 const fontOptions = { as: "font", type: "font/woff2", crossOrigin: "anonymous" } as const;
@@ -26,12 +26,12 @@ export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode
   preload("/fonts/BricolageGrotesque-Variable.woff2", fontOptions);
 
   return (
-    // suppressHydrationWarning: theme-init.js rewrites data-theme and color-scheme on <html> before hydration.
+    // suppressHydrationWarning: ThemeScript rewrites data-theme and color-scheme on <html> before hydration.
     <html lang={t.htmlLang} data-scroll-behavior="smooth" suppressHydrationWarning>
       {/* This is the App Router root layout skeleton; it only lives under components/, so the path-based rule mistakes it for Pages Router. */}
       {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
-        <ThemeHead />
+        <ThemeScript />
       </head>
       <body>
         <SkipLink href="#main">{t.skipLink}</SkipLink>
