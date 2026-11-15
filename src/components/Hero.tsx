@@ -106,7 +106,7 @@ export function Hero({ lang }: { lang: Lang }) {
            * full transparency, so a grid/compositing clip on this column cannot leave a straight edge.
            */}
           <div
-            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_58%_52%_at_66%_36%,color-mix(in_oklab,var(--highlight)_48%,transparent)_0%,transparent_100%)] opacity-90 dark:opacity-55"
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_50%_44%_at_64%_42%,color-mix(in_oklab,var(--highlight)_40%,transparent)_0%,transparent_80%)] opacity-90 dark:opacity-50"
             aria-hidden="true"
           />
           {/* Rise animation lives on an inner layer so it does not create a clipping compositing root for the wash. */}
