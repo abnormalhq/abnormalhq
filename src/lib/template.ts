@@ -12,14 +12,14 @@ export type Template<Slot extends string> = string & { readonly [slotNames]?: Sl
 export type TemplateSlot<T> = T extends Template<infer Slot> ? Slot : never;
 
 /**
- * Fills a copy template, swapping each {name} for the given part (a string, or a link or any other node). Spacing and
+ * Fills a copy template, swapping each {name} (letters, digits, _ and -) for the given part (a string, or a link or any other node). Spacing and
  * word order stay in each language's copy, so components add no spaces of their own. A name the template uses but the
  * caller does not pass throws: in a server component that fails the prerender, but in a client-only string it would
  * only throw in the browser, which is why the Template type checks the names before anything renders.
  */
 export function fillTemplate<Slot extends string, T>(template: Template<Slot>, slots: Record<Slot, T>): (string | T)[] {
   const parts: (string | T)[] = [];
-  template.split(/\{(\w+)\}/).forEach((part, index) => {
+  template.split(/\{([\w-]+)\}/).forEach((part, index) => {
     if (index % 2 === 0) {
       if (part) parts.push(part);
     } else if (Object.hasOwn(slots, part)) {
