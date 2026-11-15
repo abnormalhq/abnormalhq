@@ -1,0 +1,46 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="720"
+  height="544"
+  viewBox="0 0 720 544"
+  lang="en"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">Choose the right sign-in method</title>
+  <desc id="desc">
+    With two-step verification enabled: webmail uses the mailbox password and authenticator code; mail apps use
+    individual app passwords; recovery codes are saved separately.
+  </desc>
+  <rect width="720" height="544" fill="#f6f6f1" />
+  <g
+    fill="#141412"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
+  >
+    <text x="36" y="37" font-size="14" letter-spacing="2" fill="#575750">ABNORMAL / ILLUSTRATED HELP</text>
+    <text x="36" y="82" font-size="30" font-weight="600">Choose the right sign-in method</text>
+    <g transform="translate(0 120)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">1</text>
+      <text x="120" y="40" font-size="25" font-weight="600">Webmail</text>
+      <text x="120" y="78" font-size="21" fill="#575750">Mailbox password + authenticator code</text>
+    </g>
+    <g transform="translate(0 252)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">2</text>
+      <text x="120" y="40" font-size="25" font-weight="600">Mail, calendar and contacts apps</text>
+      <text x="120" y="78" font-size="21" fill="#575750">Create a separate app password for each app</text>
+    </g>
+    <g transform="translate(0 384)">
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">3</text>
+      <text x="120" y="40" font-size="25" font-weight="600">Lost your authenticator?</text>
+      <text x="120" y="78" font-size="21" fill="#575750">Sign in with a saved, single-use recovery code</text>
+    </g>
+  </g>
+</svg>

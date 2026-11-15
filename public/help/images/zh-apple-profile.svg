@@ -1,0 +1,45 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="720"
+  height="544"
+  viewBox="0 0 720 544"
+  lang="zh"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">在 Apple 设备上完成设置</title>
+  <desc id="desc">
+    Apple 设置流程：在应用与同步中下载或扫描描述文件，安装后输入邮箱密码；开启两步验证时使用应用专用密码。
+  </desc>
+  <rect width="720" height="544" fill="#f6f6f1" />
+  <g
+    fill="#141412"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif"
+  >
+    <text x="36" y="37" font-size="14" letter-spacing="2" fill="#575750">ABNORMAL / 帮助图解</text>
+    <text x="36" y="82" font-size="30" font-weight="600">在 Apple 设备上完成设置</text>
+    <g transform="translate(0 120)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">1</text>
+      <text x="120" y="40" font-size="25" font-weight="600">打开「应用与同步」</text>
+      <text x="120" y="78" font-size="21" fill="#575750">网页邮箱 → 设置 → 应用与同步</text>
+    </g>
+    <g transform="translate(0 252)">
+      <path d="M58 76v58m-6-6 6 6 6-6" fill="none" stroke="#aaa99e" stroke-width="2" />
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">2</text>
+      <text x="120" y="40" font-size="25" font-weight="600">获取描述文件</text>
+      <text x="120" y="78" font-size="21" fill="#575750">Mac 下载；iPhone 或 iPad 扫描二维码</text>
+    </g>
+    <g transform="translate(0 384)">
+      <rect x="100" y="0" width="584" height="108" rx="12" fill="#fff" stroke="#ddddd4" />
+      <circle cx="58" cy="40" r="22" fill="#ffe14d" />
+      <text x="58" y="48" text-anchor="middle" font-size="22" font-weight="600">3</text>
+      <text x="120" y="40" font-size="25" font-weight="600">安装并输入密码</text>
+      <text x="120" y="78" font-size="21" fill="#575750">开启两步验证时，使用应用专用密码</text>
+    </g>
+  </g>
+</svg>

@@ -25,7 +25,15 @@ const cjk = /[㐀-鿿]/;
 const texts = (sections: readonly DocSection[]) =>
   sections.flatMap((section) => [section.title, ...section.blocks.flatMap((block) => blockTexts(block))]);
 const kind = (block: DocBlock) =>
-  "code" in block ? "code" : "p" in block ? "p" : "ol" in block ? `ol${block.ol.length}` : `ul${block.ul.length}`;
+  "image" in block
+    ? "image"
+    : "code" in block
+      ? "code"
+      : "p" in block
+        ? "p"
+        : "ol" in block
+          ? `ol${block.ol.length}`
+          : `ul${block.ul.length}`;
 
 test("help: every article exists once in each language, in the order of the slug list, in a known topic", () => {
   for (const lang of langs) {
@@ -97,6 +105,43 @@ test("help: every article is written to be found and read", () => {
             section.blocks.some((block) => "ol" in block && block.ol.length >= 2),
             `${where}: ${section.title} is marked howTo without steps`,
           );
+      }
+    }
+  }
+});
+
+test("help: illustrated articles use existing, localized assets with captions and absolute Markdown image URLs", () => {
+  for (const slug of helpSlugs) {
+    const images = (lang: "en" | "zh") =>
+      helpArticle(lang, slug).sections.flatMap((section) =>
+        section.blocks.flatMap((block) => ("image" in block ? [block.image] : [])),
+      );
+    const en = images("en");
+    const zh = images("zh");
+    assert.ok(en.length > 0, `${slug}: no illustrations`);
+    assert.deepEqual(
+      en.map((image) => image.src.replace("/en-", "/{lang}-")),
+      zh.map((image) => image.src.replace("/zh-", "/{lang}-")),
+      `${slug}: illustrations differ between languages`,
+    );
+    for (const lang of langs) {
+      const markdown = helpArticleMarkdown(lang, slug);
+      for (const image of images(lang)) {
+        const where = `${lang}/${slug}: ${image.src}`;
+        assert.ok(image.alt.length > 10 && image.caption.length > 10, where);
+        assert.ok(image.width > 0 && image.height > 0, where);
+        assert.ok(readFileSync(`public${image.src}`).length > 0, where);
+        assert.match(image.src, new RegExp(`^/(help/images|screens)/${lang}-`), where);
+        assert.ok(markdown.includes(`![${image.alt}](${site.url}${image.src})`), where);
+        assert.ok(markdown.includes(image.caption), where);
+        if (image.src.endsWith(".svg")) {
+          const svg = readFileSync(`public${image.src}`, "utf8");
+          assert.ok(svg.includes(`viewBox="0 0 ${image.width} ${image.height}"`), where);
+          assert.match(svg, /<title id="title">.+<\/title>/, where);
+          assert.doesNotMatch(svg, /<script|<foreignObject|\bhref=/i, where);
+        } else {
+          assert.ok(image.srcSet?.includes("2880w"), `${where}: missing high-resolution screenshot`);
+        }
       }
     }
   }

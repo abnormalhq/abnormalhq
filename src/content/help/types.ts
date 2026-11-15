@@ -35,11 +35,25 @@ export const helpCategoryIds = ["start", "apps", "security", "mail", "billing", 
 export type HelpCategoryId = (typeof helpCategoryIds)[number];
 
 /**
- * A paragraph, a numbered or bulleted list, or a command to type, shown with a copy button (`label` says where to type it).
- * The help articles use only the first three; the Claude connector page (/claude/) also has commands.
+ * A local illustration or screenshot, with localized alternative text and a visible caption.
+ * Dimensions reserve its space before loading; srcSet is for screenshots saved at more than one resolution.
  */
+export interface DocImage {
+  src: `/help/images/${string}.svg` | `/screens/${string}.webp`;
+  width: number;
+  height: number;
+  alt: string;
+  caption: string;
+  srcSet?: string;
+}
+
+/** Paragraphs, lists, captioned images, or commands with a copy button (`label` says where to type them). */
 export type DocBlock =
-  { p: string } | { ol: readonly string[] } | { ul: readonly string[] } | { code: string; label: string };
+  | { p: string }
+  | { ol: readonly string[] }
+  | { ul: readonly string[] }
+  | { image: DocImage }
+  | { code: string; label: string };
 
 export interface DocSection {
   title: string;
