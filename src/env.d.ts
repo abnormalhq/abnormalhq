@@ -1,16 +1,3 @@
-interface Window {
-  abnormalTheme: {
-    getPreference(): "system" | "light" | "dark";
-    setPreference(preference: "system" | "light" | "dark"): void;
-  };
-}
-
-// next.config.ts bundles the theme script as a string with raw-loader: the Worker runtime cannot read project files with fs.
-declare module "@/scripts/theme-init.js" {
-  const source: string;
-  export default source;
-}
-
 // The remark / rehype plugins in next.config.ts export frontmatter and tableOfContents from the legal documents.
 // frontmatter is exported as raw YAML without validation; the pages and the Markdown route read it through parseLegalFrontmatter (src/lib/legal.ts) first.
 declare module "@/content/legal/*.mdx" {

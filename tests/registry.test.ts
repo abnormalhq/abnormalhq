@@ -42,7 +42,7 @@ test("smooth scrolling respects reduced motion", () => {
 });
 
 test("dark: utilities follow the system preference like the theme tokens", () => {
-  // Process.tsx darkens the step band with dark:, which must still apply on a dark system when theme-init.js has not run.
+  // Process.tsx darkens the step band with dark:, which must still apply on a dark system when ThemeScript has not run.
   const theme = readFileSync("src/styles/abnormal.css", "utf8");
   const variant = theme.slice(theme.indexOf("@custom-variant dark"), theme.indexOf("@custom-variant data-open"));
   assert.match(variant, /&:where\(\[data-theme="dark"\], \[data-theme="dark"\] \*\)/);

@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * The theme in effect, read from <html data-theme>, which the site's theme-init.js sets before first paint and updates when the
+ * The theme in effect, read from <html data-theme>, which the registry's ThemeScript sets before first paint and updates when the
  * header's theme picker or the system appearance changes. "light" during prerendering, where there is no document.
  */
 export function useDocumentTheme(): "light" | "dark" {
