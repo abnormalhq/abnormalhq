@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { compatibilityErrors, verifyArtifact } from "../scripts/contract-compat.ts";
@@ -41,6 +42,8 @@ test("a version bump cannot authorize removal, while versioned replacement route
 });
 test("a substituted snapshot fails its pinned checksum", () => {
   const lock = JSON.parse(readFileSync("docs/onboard-contract.lock.json", "utf8"));
-  assert.equal(verifyArtifact(readFileSync("docs/onboard-contract.json", "utf8"), lock).version, 3);
+  const snapshot = '{"version":3}';
+  lock.sha256 = createHash("sha256").update(snapshot).digest("hex");
+  assert.equal(verifyArtifact(snapshot, lock).version, 3);
   assert.throws(() => verifyArtifact("{}", lock), /checksum/);
 });
