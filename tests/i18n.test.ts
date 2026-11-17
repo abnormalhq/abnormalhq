@@ -89,7 +89,7 @@ test("the English inquiry message is written in English", () => {
   };
   assert.equal(
     formatInquiry(inquiry, "en"),
-    "Hi, I'd like to ask about your email service.\nService: Domain mailbox\nTerm: 3 months\nPlease let me know the plan, total cost, setup time and what support is included.",
+    "Hi, I'd like to ask about an Abnormal product.\nService: Domain mailbox\nTerm: 3 months\nPlease let me know the plan, total cost, setup time and what support is included.",
   );
   assert.match(describeContact({ wechat: "", email: "", telegram: "" }, "en"), /coming soon/);
 });
@@ -256,8 +256,8 @@ test("the header's entries are home page sections or pages, and the widest bar i
 });
 
 test("the copyright line takes the year through a template slot", () => {
-  assert.equal(fillTemplate(zh.footer.copyright, { year: 2027 }).join(""), "© 2027 Abnormal. 让沟通更简单。");
-  assert.equal(fillTemplate(en.footer.copyright, { year: 2027 }).join(""), "© 2027 Abnormal. Mail made simple.");
+  assert.equal(fillTemplate(zh.footer.copyright, { year: 2027 }).join(""), "© 2027 Abnormal. 用心服务日常。");
+  assert.equal(fillTemplate(en.footer.copyright, { year: 2027 }).join(""), "© 2027 Abnormal. Thoughtfully made.");
 });
 
 test("the old English addresses under /en/ redirect permanently to the root", async () => {

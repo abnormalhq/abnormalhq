@@ -57,6 +57,10 @@ export function linksFor(lang: Lang) {
     /** The developer documentation on its own site (developersSite below); this site's /developers/ redirects there. */
     developers: lang === "en" ? `${developersSite}/` : `${developersSite}/${lang}/`,
     webmail: "https://webmail.abnormalhq.com/",
+    /** Product detail on this page; the existing Mail feature and purchase anchors remain stable. */
+    mail: `${root}#mail`,
+    /** Doppel has no separate marketing site; link to its maintained product documentation. */
+    doppel: "https://github.com/abnormalhq/doppel",
     status: "https://status.abnormalhq.com",
   } as const;
 }

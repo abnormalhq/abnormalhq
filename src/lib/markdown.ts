@@ -60,6 +60,16 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
   return `${paragraphs([
     `# ${t.meta.title}`,
     t.meta.description,
+    `## ${t.products.eyebrow}`,
+    ...t.products.items.flatMap((product) => [
+      `### ${product.name}`,
+      product.description,
+      product.note,
+      `[${product.action}](${links[product.link]})`,
+    ]),
+    `[${t.products.status}](${links.status})`,
+    `## ${t.mailIntro.title}`,
+    t.mailIntro.description,
     // The promo video appears only when an address is configured (promoVideos in src/data/site.ts).
     ...(video ? [`## ${t.video.title}`, `${t.video.description} [${t.video.label}](${absoluteUrl(video.src)})`] : []),
     `## ${t.features.title}`,
@@ -341,6 +351,7 @@ function llmsSection(lang: Lang, heading: string): string {
     `## ${heading}`,
     list([
       `[${t.meta.title}](${absolute(pageFor(lang, "/").markdown)})`,
+      ...t.products.items.map((product) => `[${product.name}](${links[product.link]})`),
       `[${t.pricing.metaTitle}](${absolute(pageFor(lang, "/pricing/").markdown)})`,
       ...storeMarkdownPaths.map((path) => `[${storeTitle(lang, path)}](${absolute(pageFor(lang, path).markdown)})`),
       `[${t.help.navLabel}](${absolute(pageFor(lang, "/help/").markdown)})`,

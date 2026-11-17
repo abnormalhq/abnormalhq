@@ -9,12 +9,12 @@ export interface Inquiry {
 /** Inquiry copy: the email sent to us and the copied text use the language of the visitor's current page. */
 const text = {
   zh: {
-    greeting: "你好，我想咨询邮箱服务。",
+    greeting: "你好，我想咨询 Abnormal 产品。",
     product: "服务类型：",
     duration: "使用时长：",
     notes: "需求：",
-    closing: "请帮我确认邮箱方案、总费用、开通时间与支持范围。",
-    subject: "邮箱服务咨询 · ",
+    closing: "请帮我确认适合的方案、总费用、使用方式与支持范围。",
+    subject: "Abnormal 产品咨询 · ",
     telegram: "在 Telegram 咨询",
     email: "通过邮件咨询",
     wechatLabel: "微信：",
@@ -25,12 +25,12 @@ const text = {
     noContact: "咨询渠道即将公布。你可以先复制需求，稍后再来联系我们。",
   },
   en: {
-    greeting: "Hi, I'd like to ask about your email service.",
+    greeting: "Hi, I'd like to ask about an Abnormal product.",
     product: "Service: ",
     duration: "Term: ",
     notes: "Details: ",
     closing: "Please let me know the plan, total cost, setup time and what support is included.",
-    subject: "Email service inquiry · ",
+    subject: "Abnormal product inquiry · ",
     telegram: "Ask on Telegram",
     email: "Ask by email",
     wechatLabel: "WeChat: ",

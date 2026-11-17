@@ -166,18 +166,17 @@ export interface Copy {
     /** Sign in to webmail (read and send mail). */
     webmailLink: string;
     promises: readonly string[];
-    visualLabel: string;
-    mock: {
-      overline: string;
-      heading: string;
-      inbox: string;
-      starred: string;
-      mails: readonly { title: string; body: string; time: string }[];
-      domainNote: string;
-      demoLabel: string;
-    };
+    note: readonly [string, string];
+    noteLabel: string;
   };
-  valueStrip: { lead: string; strong: string; labels: readonly string[] };
+  products: {
+    title: string;
+    eyebrow: string;
+    items: readonly { name: string; description: string; note: string; action: string; link: LinkKey }[];
+    principle: string;
+    status: string;
+  };
+  mailIntro: { eyebrow: string; title: string; description: string; tryDemo: string };
   /** The promo video section (src/components/PromoVideo.tsx); the video address is promoVideo in src/data/site.ts, and the section is not rendered without one. */
   video: {
     eyebrow: string;

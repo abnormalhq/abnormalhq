@@ -407,6 +407,12 @@ MAIL_DIR=../mail node scripts/screenshots.mjs
 
 Playwright comes from that checkout and sharp from `next`, so this repository depends on neither; `E2E_CHROMIUM` names another Chromium.
 
+## Family entrance
+
+The home page introduces Mail and Doppel as peer products before the Mail detail sections. The family hero uses one marked phrase and a static ink frame around theme-aware paper; it is not a product screenshot. Product descriptions and the Mail introduction are bilingual (`products` and `mailIntro` in `src/i18n/`), and the product links are also available in the footer and home page Markdown. Doppel links to its maintained GitHub documentation; Mail links to the existing home page detail, with its demo, address check, account, pricing and purchase paths preserved. The existing `#services` anchor still identifies mailbox types.
+
+This follows the family contract in [abnormalhq/ui#37](https://github.com/abnormalhq/ui/pull/37) without depending on its unpublished workspace components: the marketing page uses the already-installed theme, fonts and controls, not a product workbench.
+
 ## Interactive demo
 
 Under the screenshots, the "Try it yourself" section (`src/components/Demo.tsx`) holds a small WebMail that runs in the visitor's browser (`src/components/WebmailDemo.tsx`, a client component): folders (Inbox, Starred, Sent, Calendar), the inbox's categories with their unread counts, labels, search over sender, subject and body, opening a message (which marks it read), starring, "Mark as unread", replying and composing, and the week's calendar, where choosing an event shows its details. On a phone the folders become a row of tabs and an open message takes the list's place, with a back button.
@@ -474,7 +480,7 @@ pnpm cf:deploy
 - Uses native `<dialog>` and `<details>`, with keyboard operation, Esc to close, focus restoration and the reduced motion preference.
 - Contains no analytics scripts or customer data storage; the only cookie is `abnormal_lang`, written when the language is switched by hand (see "Chinese and English") and described in the privacy policy. An address picked in the address check stays in the tab's `sessionStorage` until the mailbox is created or the tab closes, which the privacy policy describes too. So does the discount code of an order placed with one (with the price before it, for the order page of a backend that does not publish the code with the order), until the tab closes. "Use my own domain" stores nothing in the browser; what mail keeps about a buyer's domain (the name with the account, the ownership record, its state, the activity log entries) is in the privacy policy under "Your own domain", and both languages of that text should be read by whoever is responsible for the policy before the feature is switched on in production.
 - Fonts are self-hosted with the site; no third-party font service is requested.
-- The mailbox interface and address card in the hero are a conceptual illustration of the service, not an actual mail client interface.
+- The hero is a brand composition, not a mail client interface. The Mail screenshots and browser-only interactive demo remain in their own sections below the family product entrance.
 
 ## License
 
