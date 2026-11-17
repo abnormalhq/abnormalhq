@@ -23,13 +23,25 @@ export function Footer({ lang }: { lang: Lang }) {
   return (
     <footer className="mt-4 border-t border-border">
       <Container>
-        <div className="grid grid-cols-2 gap-8 py-10 md:grid-cols-[1.3fr_0.8fr_0.8fr_1fr] md:items-start md:py-14">
+        <div className="grid grid-cols-2 gap-8 py-10 md:grid-cols-3 md:items-start md:py-14 lg:grid-cols-[1.2fr_0.65fr_0.8fr_1fr_1fr]">
           <div className="col-span-full md:col-auto">
             <Brand lang={lang} />
             <p className="mt-4 text-sm/body text-muted-foreground" lang="en">
               {f.tagline}
             </p>
           </div>
+          <nav aria-label={t.products.title}>
+            <p className={labelClass}>{t.products.title}</p>
+            <ul className="grid gap-2">
+              {t.products.items.map((product) => (
+                <li key={product.name}>
+                  <a className={linkClass} href={links[product.link]} lang="en">
+                    {product.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
           <nav aria-label={f.productLabel}>
             <p className={labelClass}>{f.productLabel}</p>
             <ul className="grid gap-2">
@@ -64,7 +76,7 @@ export function Footer({ lang }: { lang: Lang }) {
               </li>
             </ul>
           </nav>
-          <div className="col-span-full md:col-auto md:justify-self-end">
+          <div className="col-span-full md:col-auto lg:justify-self-end">
             <p className={labelClass}>{f.contactLabel}</p>
             {supportEmail && (
               <TextLink

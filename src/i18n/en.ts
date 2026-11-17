@@ -8,7 +8,7 @@ export const en: Copy = {
   meta: {
     title: "Abnormal — Thoughtful digital services",
     description:
-      "Abnormal creates thoughtful digital services that make everyday life and work simpler. Explore our services and find the one that fits your needs.",
+      "Meet Mail for email, calendars and contacts, and Doppel for persistent browser profiles for AI agents. Thoughtful digital tools by Abnormal.",
     socialTitle: "Abnormal — Useful services, simpler days.",
     socialDescription: "Thoughtful digital services designed to make everyday life and work simpler.",
     socialImageAlt: "Abnormal: thoughtful digital services for everyday life and work.",
@@ -20,11 +20,11 @@ export const en: Copy = {
     navLabel: "Main navigation",
     mobileNavLabel: "Mobile navigation",
     nav: [
-      { anchor: "features", wide: "card", label: "Features" },
-      { path: "/pricing/", label: "Pricing" },
-      { anchor: "start", label: "Get started" },
-      { anchor: "services", label: "Services" },
-      { anchor: "how-it-works", wide: "bar", label: "How it works" },
+      { anchor: "products", label: "Products" },
+      { anchor: "mail", label: "Mail" },
+      { path: "/pricing/", label: "Mail pricing" },
+      { anchor: "start", wide: "card", label: "Get started" },
+      { anchor: "services", wide: "bar", label: "Mailbox types" },
       { path: "/help/", label: "Help" },
     ],
     openMenu: "Open menu",
@@ -44,46 +44,48 @@ export const en: Copy = {
     eyebrow: "Thoughtful digital services",
     titleLines: ["Useful tools,", "simpler ", "days"],
     description: [
-      "Abnormal creates thoughtful digital services for everyday life and work.",
-      "Explore what we offer and find the service that fits your needs.",
+      "From your everyday mail to a persistent browser workspace for AI agents.",
+      "Meet Mail and Doppel: different tools, thoughtfully made.",
     ],
-    explore: "Explore services",
+    explore: "Explore our products",
     inquire: "Talk to us",
     loginPrompt: "Have an account?",
     loginLink: "Manage your mailboxes",
     webmailLink: "Log in to Abnormal Mail",
     promises: ["Orders and mailboxes in one account", "Set up in your account once paid", "Pick your own username"],
-    visualLabel: "A sample of an Abnormal service, designed to make everyday communication simpler.",
-    mock: {
-      overline: "A LITTLE MORE CONNECTED",
-      heading: "Every email has a home",
-      inbox: "Inbox",
-      starred: "Starred",
-      mails: [
-        {
-          title: "New connections, new possibilities.",
-          body: "Make every conversation a good start.",
-          time: "09:41",
-        },
-        {
-          title: "About our next plan",
-          body: "Ideas, plans and the news we've waited for.",
-          time: "Yesterday",
-        },
-        {
-          title: "All set. Let's begin.",
-          body: "Your day starts with a mailbox that just works.",
-          time: "Yesterday",
-        },
-      ],
-      domainNote: "Your name, your address",
-      demoLabel: "Concept",
-    },
+    note: ["Less noise.", "More room to focus."],
+    noteLabel: "abnormal / everyday tools",
   },
-  valueStrip: {
-    lead: "Thoughtfully built.",
-    strong: "Useful every day.",
-    labels: ["For everyday life", "For work and beyond", "Simple to get started", "Here when you need us"],
+  products: {
+    title: "Products",
+    eyebrow: "Our products",
+    items: [
+      {
+        name: "Mail",
+        description:
+          "A calm home for your mail, calendar and contacts. One address for everyday life, a team or your own domain.",
+        note: "Browser, desktop and your favourite mail client.",
+        action: "Explore Mail",
+        link: "mail",
+      },
+      {
+        name: "Doppel",
+        description:
+          "Persistent, independent browser profiles for AI agents. Keep each workspace's identity, cookies and login state.",
+        note: "A desktop client for macOS, Windows and Linux.",
+        action: "Explore Doppel on GitHub",
+        link: "doppel",
+      },
+    ],
+    principle: "Different tools. The same care for the everyday.",
+    status: "Mail service status",
+  },
+  mailIntro: {
+    eyebrow: "Meet Abnormal Mail",
+    title: "Your mail, with room to breathe",
+    description:
+      "Read, write and organise without the noise. Explore Mail below, from your first address to a mailbox on your own domain.",
+    tryDemo: "Try the mail demo",
   },
   video: {
     eyebrow: "See it in action",
@@ -792,7 +794,7 @@ export const en: Copy = {
   },
   footer: {
     tagline: "Abnormally good.",
-    productLabel: "Product",
+    productLabel: "Mail",
     supportLabel: "Support",
     contactLabel: "Contact",
     productLinks: [
@@ -813,7 +815,7 @@ export const en: Copy = {
     ],
     faq: "FAQ",
     emailAria: (email) => `Support email: ${email}`,
-    copyright: "© {year} Abnormal. Mail made simple.",
+    copyright: "© {year} Abnormal. Thoughtfully made.",
     buyOnline: "Buy a mailbox online",
     legalLabel: "Legal",
   },

@@ -58,6 +58,12 @@ for (const lang of ["zh", "en"] as const) {
     const t = copies[lang];
     const markdown = homeMarkdown(lang);
     assert.ok(markdown.startsWith(`# ${t.meta.title}\n`));
+    for (const product of t.products.items) {
+      assert.ok(markdown.includes(`### ${product.name}`));
+      assert.ok(markdown.includes(product.description));
+      assert.ok(markdown.includes(`[${product.action}](${absoluteUrl(linksFor(lang)[product.link])})`));
+    }
+    assert.ok(markdown.indexOf("### Doppel") < markdown.indexOf(`## ${t.mailIntro.title}`));
     for (const entry of t.start.entries) assert.ok(markdown.includes(entry.description));
     for (const product of t.services.products) assert.ok(markdown.includes(`### ${product.name}`));
     for (const step of t.process.steps) assert.ok(markdown.includes(step.description));
