@@ -747,9 +747,11 @@ function parseUsdtPayment(value: unknown): UsdtPayment | null {
         { chain: entry.chain as UsdtChain, name: entry.name, standard: entry.standard, contract: entry.contract },
       ];
     });
-    if (!chains.length) return null;
   }
-  return { currency: USDT_CURRENCY, network: value.network as UsdtNetwork, contract: chains[0].contract, chains };
+  // The first chain's contract is the default; an empty list (no valid entry) is rejected.
+  const [first] = chains;
+  if (!first) return null;
+  return { currency: USDT_CURRENCY, network: value.network as UsdtNetwork, contract: first.contract, chains };
 }
 
 export async function getShopCatalog(signal?: AbortSignal, lang?: Lang): Promise<ShopCatalog> {

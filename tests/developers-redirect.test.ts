@@ -17,8 +17,8 @@ test("the developer documentation lives on its own site: every old address redir
     ["/md/en/developers/", "/md/"],
     ["/md/zh/developers/", "/md/zh/"],
     ["/developers/openapi.json", "/openapi.json"],
-  ]) {
-    const redirect = target(source!);
+  ] as const) {
+    const redirect = target(source);
     assert.equal(redirect?.destination, `${developersSite}${destination}`, source);
     assert.equal((redirect as { statusCode?: number }).statusCode, 301, source);
   }

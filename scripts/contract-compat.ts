@@ -95,7 +95,8 @@ async function remoteContract(revision: string): Promise<string> {
 export async function checkContracts(args: string[]): Promise<void> {
   const option = (name: string, fallback: string) => {
     const index = args.indexOf(name);
-    return index < 0 ? fallback : args[index + 1];
+    // A flag given last, with no value, reads as empty: --baseline reports it below, the file options fail to read "".
+    return index < 0 ? fallback : (args[index + 1] ?? "");
   };
   const lock = JSON.parse(readFileSync(option("--lock", "docs/onboard-contract.lock.json"), "utf8")) as ContractLock;
   const provider = JSON.parse(readFileSync(option("--provider", ARTIFACT), "utf8")) as Document;

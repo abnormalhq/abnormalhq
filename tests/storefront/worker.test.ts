@@ -321,7 +321,7 @@ test("Worker: does not follow mailhq redirects, and writes neither internal exce
 const buyerToken = "a1".repeat(32);
 
 function shopRequest(route: string, init: RequestInit = {}, origin = siteOrigin): Request {
-  const mutation = ["checkout", "reconcile", "pay"].includes(route.split("?")[0].replace(/\/$/, ""));
+  const mutation = ["checkout", "reconcile", "pay"].includes((route.split("?")[0] ?? "").replace(/\/$/, ""));
   return new Request(`${origin}/api/shop/${route}`, {
     ...(mutation
       ? {
@@ -516,7 +516,7 @@ test("shop proxy: public catalog requests drop arbitrary parameters, orders carr
     ["catalog/?admin=1&secret=private", ""],
     ["orders/?id=order123&secret=private&admin=1", "?id=order123"],
     [`notify/${notificationQuery}`, notificationQuery],
-  ]) {
+  ] as const) {
     const response = await worker.fetch(
       shopRequest(route, {
         headers: {
@@ -822,7 +822,7 @@ test("shop proxy: rejects HTML or wrong content types, keeps JSON business error
     ["checkout", "application/jsonp"],
     ["pay", "text/html; charset=utf-8"],
     ["notify", "application/json"],
-  ]) {
+  ] as const) {
     let calls = 0;
     const response = await worker.fetch(
       shopRequest(route),

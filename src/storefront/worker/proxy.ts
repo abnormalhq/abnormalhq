@@ -37,7 +37,7 @@ export function unavailableMessage(localize: Localize): string {
 }
 
 export function mediaType(headers: Headers): string | undefined {
-  return headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+  return headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
 }
 
 /** Only the allowlisted request headers; cookies are added by the caller where a route needs them. */

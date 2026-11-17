@@ -101,7 +101,7 @@ test("contract: USDT is the third way of paying, with its route, currency, netwo
     seatProducts: [{ ...seat, usdtPriceMinor: 60, unitUsdtPriceMinor: 60 }],
   });
   expect(Object.keys(catalog.payment.usdt!).toSorted()).toStrictEqual(contract.shop.usdt.catalogFields.toSorted());
-  expect(Object.keys(catalog.payment.usdt!.chains[0]).toSorted()).toStrictEqual(
+  expect(Object.keys(catalog.payment.usdt!.chains[0] ?? {}).toSorted()).toStrictEqual(
     contract.shop.usdt.catalogChainFields.toSorted(),
   );
   for (const field of contract.shop.usdt.productFields) expect(catalog.products[0]).toHaveProperty(field, 120);
@@ -134,6 +134,7 @@ test("catalog: payment.usdt is read when usable, and is absent when off, missing
   expect(read(usdtCatalogChains).usdt).toStrictEqual(usdtCatalogChains);
   // A chain this page does not know, or whose token is no address of it, is left out.
   const [, bsc] = usdtCatalogChains.chains;
+  if (!bsc) throw new Error("the fixture needs a second chain");
   expect(
     read({
       ...usdtCatalogChains,

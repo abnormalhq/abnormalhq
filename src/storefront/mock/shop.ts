@@ -348,21 +348,21 @@ function failure(status: number, error: string): Response {
 }
 
 function buyerToken(request: Request): string | null {
-  const values = (request.headers.get("cookie") ?? "")
+  const [value, ...others] = (request.headers.get("cookie") ?? "")
     .split(";")
     .map((part) => part.trim())
     .filter((part) => part.startsWith(`${COOKIE}=`))
     .map((part) => part.slice(COOKIE.length + 1));
-  return values.length === 1 && TOKEN.test(values[0]) ? values[0] : null;
+  return value !== undefined && !others.length && TOKEN.test(value) ? value : null;
 }
 
 function cookieValue(request: Request, name: string, pattern: RegExp): string | null {
-  const values = (request.headers.get("cookie") ?? "")
+  const [value, ...others] = (request.headers.get("cookie") ?? "")
     .split(";")
     .map((part) => part.trim())
     .filter((part) => part.startsWith(`${name}=`))
     .map((part) => part.slice(name.length + 1));
-  return values.length === 1 && pattern.test(values[0]) ? values[0] : null;
+  return value !== undefined && !others.length && pattern.test(value) ? value : null;
 }
 
 function hash(token: string): string {
@@ -723,7 +723,7 @@ export class MockShopStore {
       );
     }
     const form = route === "pay";
-    const type = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+    const type = request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
     if (type !== (form ? "application/x-www-form-urlencoded" : "application/json")) {
       return failure(415, badFormat);
     }

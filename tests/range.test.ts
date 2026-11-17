@@ -79,7 +79,7 @@ test("a range request gets 206 with exactly those bytes, and the asset service n
   // The asset service's max-age=0 gives way to the videos' own rule.
   assert.equal(response.headers.get("cache-control"), videoCacheControl);
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), file.subarray(100, 200));
-  assert.equal(seen[0].headers.has("range"), false);
+  assert.equal(seen[0]?.headers.has("range"), false);
 
   // What a browser sends first, and what it sends to resume after reading the metadata.
   const first = await serveByteRanges(get({ Range: "bytes=0-" }), assets());

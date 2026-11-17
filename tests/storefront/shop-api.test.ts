@@ -300,7 +300,7 @@ test("shop client: keeps the domain quota capability and rejects non-boolean cap
       }),
     ),
   );
-  expect((await getShopCatalog()).products[0].quotaSupportedByDomain).toStrictEqual({ "abnormal.bid": false });
+  expect((await getShopCatalog()).products[0]?.quotaSupportedByDomain).toStrictEqual({ "abnormal.bid": false });
   vi.stubGlobal("fetch", async () =>
     Response.json(
       catalog({

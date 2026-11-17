@@ -162,7 +162,7 @@ for (const lang of ["zh", "en"] as const) {
     assert.match(markdown, /^\| --- \| --- \| --- \|$/m);
     for (const item of p.included.items) assert.ok(markdown.includes(item.description));
     assert.ok(!markdown.includes("undefined"));
-    for (const [, href] of markdown.matchAll(/\]\(([^)\s]+)\)/g)) assert.match(href!, /^https:\/\//, href);
+    for (const [, href = ""] of markdown.matchAll(/\]\(([^)\s]+)\)/g)) assert.match(href, /^https:\/\//, href);
   });
 
   test(`${lang} pricing Markdown lists a plan sold per mailbox with per-mailbox amounts and its own-domain allowance`, () => {

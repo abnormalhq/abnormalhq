@@ -22,8 +22,8 @@ test("old onboard paths map to the same page here: Chinese from the root to /zh/
     ["/md/shop.md", "/md/zh/shop/"],
     ["/llms.txt", "/llms.txt"],
     ["/sitemap.xml", "/sitemap.xml"],
-  ]) {
-    assert.equal(legacyPath(old!), current, old);
+  ] as const) {
+    assert.equal(legacyPath(old), current, old);
   }
 });
 

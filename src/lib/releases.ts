@@ -136,8 +136,9 @@ export function parseReleaseIndex(value: unknown): DesktopReleases {
   const latest = str(value.latest, "latest");
   const releases = value.releases.map(parseRelease);
   const index = releases.findIndex((release) => release.version === latest);
-  if (index === -1) throw new Error(`desktop releases: the latest version ${latest} is not in the list`);
-  return { current: releases[index], previous: releases.slice(index + 1) };
+  const current = releases[index];
+  if (!current) throw new Error(`desktop releases: the latest version ${latest} is not in the list`);
+  return { current, previous: releases.slice(index + 1) };
 }
 
 /** Parses a single version's latest.json, used as the fallback when there is no releases.json. */

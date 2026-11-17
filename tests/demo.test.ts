@@ -7,7 +7,9 @@ const demos = langs.map((lang) => [lang, copies[lang].demo] as const);
 
 test("the demo's sample content behaves the same in both languages", () => {
   // Only the words differ: which mail is unread, starred, where it is filed and which labels it has must not depend on the language.
-  const [[, first], ...rest] = demos;
+  const [head, ...rest] = demos;
+  assert.ok(head, "no languages");
+  const [, first] = head;
   const shape = (demo: typeof first) => ({
     labels: demo.labels.map(({ id, color }) => ({ id, color })),
     mails: demo.mails.map(({ id, day, category, labels, unread, starred, attachment }) => ({

@@ -61,7 +61,6 @@ function matches(actual: Version, comparator: string): boolean {
   }
 }
 
-function compare(a: Version, b: Version): number {
-  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] - b[i];
-  return 0;
+function compare([a0, a1, a2]: Version, [b0, b1, b2]: Version): number {
+  return a0 - b0 || a1 - b1 || a2 - b2;
 }

@@ -1,0 +1,36 @@
+name: PR title
+
+# Pull requests are squash-merged, so the title becomes the commit message on main. The commit-msg hook only checks
+# commits made locally (and can be skipped with --no-verify), so the title is checked here against the same
+# commitlint config. It runs again when the title is edited.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check the title against commitlint.config.mjs
+        env:
+          # Passed through the environment, never interpolated into the script: the title is untrusted input.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint
