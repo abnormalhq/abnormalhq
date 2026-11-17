@@ -268,8 +268,8 @@ test("the old English addresses under /en/ redirect permanently to the root", as
     for (const [legacy, current] of [
       [`/en${page.url}`, page.url],
       [`/md/en${page.url}`, page.markdown],
-    ]) {
-      const rule = moved(legacy!);
+    ] as const) {
+      const rule = moved(legacy);
       assert.ok(rule, `${legacy} has no redirect`);
       assert.deepEqual([rule.destination, "statusCode" in rule && rule.statusCode], [current, 301], legacy);
     }

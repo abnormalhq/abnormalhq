@@ -51,7 +51,7 @@ function request(
     "account/mailboxes/password",
     "account/mailboxes/status",
     "account/mailboxes/delete",
-  ].includes(route.split("?")[0]);
+  ].includes(route.split("?")[0] ?? "");
   const headers = new Headers(options.headers);
   if (options.cookie) headers.set("Cookie", options.cookie);
   if (post) {
@@ -87,7 +87,7 @@ async function checkout(store: MockShopStore, cookie?: string, base?: string) {
   expect(orderId).toMatch(/^[a-z0-9]{15}$/);
   const setCookie = response.headers.get("set-cookie");
   expect(setCookie).toMatch(/^mailhq_shop=[a-f0-9]{64}; Path=\/; Max-Age=31536000; HttpOnly; SameSite=Lax$/);
-  return { orderId: orderId as string, cookie: setCookie!.split(";")[0] };
+  return { orderId: orderId as string, cookie: setCookie!.split(";")[0]! };
 }
 
 async function getOrder(store: MockShopStore, orderId: string, cookie?: string) {
@@ -180,7 +180,7 @@ test("dev shop: an amount sent by the client cannot override the backend's disco
   );
   expect(response.status).toBe(201);
   const { orderId } = await response.json();
-  const cookie = response.headers.get("Set-Cookie")!.split(";")[0];
+  const cookie = response.headers.get("Set-Cookie")!.split(";")[0]!;
   const { order } = await (await getOrder(store, orderId, cookie)).json();
   expect(order.originalPriceCents).toBe(1000);
   expect(order.discountPercent).toBe(25);
@@ -314,7 +314,7 @@ test("dev shop: after paying for a subscription plan the order carries a renewal
   const store = new MockShopStore(() => now);
   const bought = await store.fetch("checkout", request("checkout", { body: { productId: "demoproduct0002" } }));
   const { orderId } = await bought.json();
-  const cookie = bought.headers.get("set-cookie")!.split(";")[0];
+  const cookie = bought.headers.get("set-cookie")!.split(";")[0]!;
   await store.fetch("pay", request("pay", { cookie, body: { orderId } }));
   const paid = await (await getOrder(store, orderId, cookie)).json();
   expect(paid.code).toBe("ABCD-EFGH-JKLM-NPQR");
@@ -344,7 +344,7 @@ test("dev shop: after login the account lists this browser's orders and subscrip
   const store = new MockShopStore(() => NOW);
   const bought = await store.fetch("checkout", request("checkout", { body: { productId: "demoproduct0002" } }));
   const { orderId } = await bought.json();
-  const buyer = bought.headers.get("set-cookie")!.split(";")[0];
+  const buyer = bought.headers.get("set-cookie")!.split(";")[0]!;
   await store.fetch("pay", request("pay", { cookie: buyer, body: { orderId } }));
   expect((await store.fetch("account", request("account", { cookie: buyer }))).status).toBe(401);
 
@@ -364,7 +364,7 @@ test("dev shop: after login the account lists this browser's orders and subscrip
   const verified = await store.fetch("account/verify", request("account/verify", { cookie: buyer, body: { token } }));
   expect(await verified.json()).toStrictEqual({ email: "buyer@example.test", claimed: 1 });
   expect((await store.fetch("account/peek", request("account/peek", { body: { token } }))).status).toBe(400);
-  const session = verified.headers.get("set-cookie")!.split(";")[0];
+  const session = verified.headers.get("set-cookie")!.split(";")[0]!;
   expect((await store.fetch("account/verify", request("account/verify", { body: { token } }))).status).toBe(400);
 
   const account = await (await store.fetch("account", request("account", { cookie: session }))).json();
@@ -387,7 +387,7 @@ test("dev shop: like mail, a password can be set within 10 minutes of a login li
     await store.fetch("account/login", request("account/login", { cookie, body: { email: "buyer@example.test" } }));
     const token = /login=([A-Za-z0-9_-]{43})/.exec(String(info.mock.calls.at(-1)?.[0] ?? ""))![1];
     const verified = await store.fetch("account/verify", request("account/verify", { cookie, body: { token } }));
-    return verified.headers.get("set-cookie")!.split(";")[0];
+    return verified.headers.get("set-cookie")!.split(";")[0]!;
   };
   const login = (password: string, cookie?: string) =>
     store.fetch(
@@ -417,10 +417,10 @@ test("dev shop: like mail, a password can be set within 10 minutes of a login li
   expect((await login("first password")).status).toBe(401);
 
   const bought = await store.fetch("checkout", request("checkout", { body: { productId: "demoproduct0002" } }));
-  const buyer = bought.headers.get("set-cookie")!.split(";")[0];
+  const buyer = bought.headers.get("set-cookie")!.split(";")[0]!;
   const signedIn = await login("second password", buyer);
   expect(await signedIn.json()).toStrictEqual({ email: "buyer@example.test", claimed: 1 });
-  const session = signedIn.headers.get("set-cookie")!.split(";")[0];
+  const session = signedIn.headers.get("set-cookie")!.split(";")[0]!;
   expect(session).toMatch(/^mailhq_customer=[A-Za-z0-9_-]{43}$/);
   // A session that logged in with a password always needs the current password to change it.
   expect((await setPassword(session, { password: "third password" })).status).toBe(403);
@@ -447,7 +447,7 @@ test("dev shop: card orders are recorded as Stripe orders at the fiat price, the
     request("checkout", { body: { productId: "demoproduct0002", provider: "stripe" } }),
   );
   const { orderId } = await bought.json();
-  const buyer = bought.headers.get("set-cookie")!.split(";")[0];
+  const buyer = bought.headers.get("set-cookie")!.split(";")[0]!;
   const pending = await (await getOrder(store, orderId, buyer)).json();
   expect(pending.order).toMatchObject({ provider: "stripe", currency: "usd", priceCents: 299, discountPercent: 0 });
   await store.fetch("pay", request("pay", { cookie: buyer, body: { orderId } }));
@@ -472,7 +472,7 @@ test("dev shop: card orders are recorded as Stripe orders at the fiat price, the
   );
   const token = /login=([A-Za-z0-9_-]{43})/.exec(String(info.mock.calls.at(-1)?.[0]))![1];
   const verified = await store.fetch("account/verify", request("account/verify", { cookie: buyer, body: { token } }));
-  const session = verified.headers.get("set-cookie")!.split(";")[0];
+  const session = verified.headers.get("set-cookie")!.split(";")[0]!;
   const account = await (await store.fetch("account", request("account", { cookie: session }))).json();
   expect(account.subscriptions[0]).toMatchObject({ provider: "stripe", autoRenew: true, renewToken: null });
   const portal = await store.fetch(
@@ -492,7 +492,7 @@ async function signIn(store: MockShopStore, email: string, requester?: string, u
   const verified = await store.fetch("account/verify", request("account/verify", { cookie: user, body: { token } }));
   return {
     claimed: ((await verified.json()) as { claimed: number }).claimed,
-    session: verified.headers.get("set-cookie")!.split(";")[0],
+    session: verified.headers.get("set-cookie")!.split(";")[0]!,
   };
 }
 
@@ -543,7 +543,7 @@ test("dev shop: payment returns to the order page in the form's language (the or
     request("checkout", { headers: { "Accept-Language": "en" }, body: { productId: "demoproduct0001" } }),
   );
   const englishOrder = ((await bought.json()) as { orderId: string }).orderId;
-  const englishCookie = bought.headers.get("set-cookie")!.split(";")[0];
+  const englishCookie = bought.headers.get("set-cookie")!.split(";")[0]!;
   const legacy = await store.fetch("pay", request("pay", { cookie: englishCookie, body: { orderId: englishOrder } }));
   expect(legacy.headers.get("location")).toBe(`/shop/orders/?id=${englishOrder}`);
   const legacyChinese = await store.fetch(

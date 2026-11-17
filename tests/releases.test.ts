@@ -19,14 +19,14 @@ test("the release index splits into the current version and the previous ones", 
     previous.map((release) => release.version),
     ["0.1.0"],
   );
-  assert.equal(releaseDate(previous[0]), "2026-11-07");
-  assert.equal(previous[0].manifestUrl, "https://downloads.abnormalhq.com/desktop/0.1.0/latest.json");
+  assert.equal(releaseDate(previous[0]!), "2026-11-07");
+  assert.equal(previous[0]!.manifestUrl, "https://downloads.abnormalhq.com/desktop/0.1.0/latest.json");
 });
 
 test("files show macOS, then Windows x64, then Windows Arm", () => {
   const { current } = parseReleaseIndex(releaseIndex);
   assert.deepEqual(current.files.map(fileLabel), ["macOS", "Windows x64", "Windows Arm"]);
-  assert.equal(formatSize(current.files[0].size), "20.4 MB");
+  assert.equal(formatSize(current.files[0]!.size), "20.4 MB");
 });
 
 test("Linux .deb packages are read, labelled, and listed after Windows", () => {
@@ -82,7 +82,7 @@ test("a version newer than latest (such as a pre-release) is not listed as a pre
 });
 
 test("files for a platform or package kind the page does not know yet are left out", () => {
-  const release = structuredClone(releaseIndex.releases[1]);
+  const release = structuredClone(releaseIndex.releases[1]!);
   release.files.push(
     {
       ...release.files[0]!,
@@ -114,7 +114,7 @@ test("a single latest.json, from before releases.json existed, gives the current
   delete manifest.manifest_url;
   const { current, previous } = parseManifest({
     ...manifest,
-    files: releaseIndex.releases[1].files.map((file) => ({
+    files: releaseIndex.releases[1]!.files.map((file) => ({
       ...file,
       latest_url: "https://downloads.abnormalhq.com/desktop/latest/x",
     })),

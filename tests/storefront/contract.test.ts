@@ -102,7 +102,7 @@ test("contract: rules for redeem codes, usernames, passwords and notification ad
   for (const [key, { usesLeft }] of Object.entries(codes)) {
     expect(Number.isSafeInteger(usesLeft) && usesLeft >= 0 && usesLeft <= code.maxUses, key).toBe(true);
   }
-  expect(codes.TEAMTEAMTEAMTEAM.usesLeft).toBe(code.maxUses);
+  expect(codes.TEAMTEAMTEAMTEAM?.usesLeft).toBe(code.maxUses);
   const readme = readFileSync("README.md", "utf8");
   expect(readme).toMatch(new RegExp(`^\\| \`TEAM-TEAM-TEAM-TEAM\` \\| Usable ${code.maxUses} times`, "m"));
 });

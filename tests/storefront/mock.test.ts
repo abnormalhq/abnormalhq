@@ -27,7 +27,7 @@ test("mock API: checks the redeem code in each of its states", () => {
 test("mock API: the README redeem code table lists exactly the mock API's redeem codes", () => {
   const readme = readFileSync("README.md", "utf8");
   const listed = [...readme.matchAll(/^\| `([A-Z0-9]{4}(?:-[A-Z0-9]{4}){3})` \|/gm)].map(([, code]) =>
-    code.replaceAll("-", ""),
+    code!.replaceAll("-", ""),
   );
   expect(listed.toSorted()).toEqual(Object.keys(sampleCodes(NOW)).toSorted());
 });

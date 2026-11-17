@@ -49,7 +49,7 @@ test("trial reads and claims use the account endpoint, without collecting paymen
   vi.stubGlobal("fetch", fetcher);
   expect(await getTrial(new AbortController().signal, "en")).toMatchObject({ claimed: false, days: 7 });
   expect(await claimTrial("en")).toBe("trialorder00001");
-  expect(fetcher.mock.calls[1][1]).toMatchObject({ method: "POST", body: "{}", credentials: "same-origin" });
+  expect(fetcher.mock.calls[1]?.[1]).toMatchObject({ method: "POST", body: "{}", credentials: "same-origin" });
 });
 
 test("a backend without the trial route offers no trial: the Worker answers a JSON 404 and the page shows nothing", async () => {

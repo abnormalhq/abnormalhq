@@ -187,12 +187,12 @@ function failure(status: number, error: string, notify = false, headers: Record<
 
 /** Ignore other cookies and ambiguous duplicates of the one we look for. */
 function requestCookie(request: Request, name: string, pattern: RegExp): string | null {
-  const values = (request.headers.get("cookie") ?? "")
+  const [value, ...others] = (request.headers.get("cookie") ?? "")
     .split(";")
     .map((part) => part.trim())
     .filter((part) => part.startsWith(`${name}=`))
     .map((part) => part.slice(name.length + 1));
-  return values.length === 1 && pattern.test(values[0]) ? `${name}=${values[0]}` : null;
+  return value !== undefined && !others.length && pattern.test(value) ? `${name}=${value}` : null;
 }
 
 /** Only the purchase session and account session cookies are forwarded (plus the Google state cookie when completing Google login); admin credentials etc. never are. */
@@ -209,32 +209,32 @@ function shopCookies(request: Request, route: string): string | null {
 
 /** Rebuild the one browser credential we accept; never inherit Domain or Path. */
 function checkoutCookie(headers: Headers, secure: boolean): string | null {
-  const values = headers
+  const [value, ...others] = headers
     .getSetCookie()
     .filter((cookie) => cookie.startsWith(`${BUYER_COOKIE}=`))
-    .map((cookie) => cookie.split(";")[0].slice(BUYER_COOKIE.length + 1));
-  if (values.length !== 1 || !BUYER_TOKEN.test(values[0])) return null;
-  return `${BUYER_COOKIE}=${values[0]}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
+    .map((cookie) => (cookie.split(";")[0] ?? "").slice(BUYER_COOKIE.length + 1));
+  if (value === undefined || others.length || !BUYER_TOKEN.test(value)) return null;
+  return `${BUYER_COOKIE}=${value}; Path=/; Max-Age=${COOKIE_MAX_AGE}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
 /** Rebuilds the account session cookie on successful login, again without inheriting the upstream Domain or Path. */
 function customerCookie(headers: Headers, secure: boolean): string | null {
-  const values = headers
+  const [value, ...others] = headers
     .getSetCookie()
     .filter((cookie) => cookie.startsWith(`${CUSTOMER_COOKIE}=`))
-    .map((cookie) => cookie.split(";")[0].slice(CUSTOMER_COOKIE.length + 1));
-  if (values.length !== 1 || !CUSTOMER_TOKEN.test(values[0])) return null;
-  return `${CUSTOMER_COOKIE}=${values[0]}; Path=/; Max-Age=${CUSTOMER_MAX_AGE}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
+    .map((cookie) => (cookie.split(";")[0] ?? "").slice(CUSTOMER_COOKIE.length + 1));
+  if (value === undefined || others.length || !CUSTOMER_TOKEN.test(value)) return null;
+  return `${CUSTOMER_COOKIE}=${value}; Path=/; Max-Age=${CUSTOMER_MAX_AGE}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
 /** Rebuilds the state cookie when Google login starts: sent only to account/google, 10 minutes, again without inheriting the upstream Domain or Path. */
 function googleCookie(headers: Headers, secure: boolean): string | null {
-  const values = headers
+  const [value, ...others] = headers
     .getSetCookie()
     .filter((cookie) => cookie.startsWith(`${GOOGLE_COOKIE}=`))
-    .map((cookie) => cookie.split(";")[0].slice(GOOGLE_COOKIE.length + 1));
-  if (values.length !== 1 || !GOOGLE_TOKEN.test(values[0])) return null;
-  return `${GOOGLE_COOKIE}=${values[0]}; Path=${GOOGLE_COOKIE_PATH}; Max-Age=${GOOGLE_MAX_AGE}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
+    .map((cookie) => (cookie.split(";")[0] ?? "").slice(GOOGLE_COOKIE.length + 1));
+  if (value === undefined || others.length || !GOOGLE_TOKEN.test(value)) return null;
+  return `${GOOGLE_COOKIE}=${value}; Path=${GOOGLE_COOKIE_PATH}; Max-Age=${GOOGLE_MAX_AGE}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
 /**
@@ -277,8 +277,8 @@ function redirectTarget(location: string | null, origin: string): string {
  * page in the form's language with the payment error shown (mail does the same once it has read the order id).
  */
 function paymentFailed(fields: URLSearchParams | null, origin: string, english: boolean): Response {
-  const ids = fields?.getAll("orderId") ?? [];
-  const id = ids.length === 1 && ORDER_ID.test(ids[0]) ? ids[0] : null;
+  const [first, ...others] = fields?.getAll("orderId") ?? [];
+  const id = first !== undefined && !others.length && ORDER_ID.test(first) ? first : null;
   const lang = fields?.get("lang");
   const prefix = lang === "zh" || (lang !== "en" && !english) ? "/zh" : "";
   const location = new URL(`${prefix}/shop/orders/${id ? `?id=${id}&error=payment` : "?error=payment"}`, origin);
