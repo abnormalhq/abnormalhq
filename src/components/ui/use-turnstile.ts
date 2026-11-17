@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Fo
 
 /*
  * Cloudflare Turnstile, the human check in front of a form, as a hook: the script, the widget's life and its token.
- * It lives in a file without "use client", so a form of the page's own can call it; Turnstile (turnstile.tsx) is the
- * same hook as a component.
+ * It lives in a file without "use client", so a form of the page's own can call it.
  */
 
 /** The part of window.turnstile this hook uses. */
