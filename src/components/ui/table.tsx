@@ -18,7 +18,6 @@ const TableVariantContext = React.createContext<TableVariant>("default");
  * do not focus a scroller by themselves (Safari); a table that fits adds no tab stop. A focusable region needs a
  * name, and the words are the page's: name the table with `aria-label` or `aria-labelledby` and the container
  * becomes a region with the same name.
- * The row helpers (`rowActionClassName`, `rowClickHandler`) are in table-row.ts: this module is "use client", so it exports components only.
  */
 function Table({
   className,
