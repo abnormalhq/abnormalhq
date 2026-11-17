@@ -351,6 +351,7 @@ function llmsSection(lang: Lang, heading: string): string {
     `## ${heading}`,
     list([
       `[${t.meta.title}](${absolute(pageFor(lang, "/").markdown)})`,
+      ...t.products.items.map((product) => `[${product.name}](${links[product.link]})`),
       `[${t.pricing.metaTitle}](${absolute(pageFor(lang, "/pricing/").markdown)})`,
       ...storeMarkdownPaths.map((path) => `[${storeTitle(lang, path)}](${absolute(pageFor(lang, path).markdown)})`),
       `[${t.help.navLabel}](${absolute(pageFor(lang, "/help/").markdown)})`,

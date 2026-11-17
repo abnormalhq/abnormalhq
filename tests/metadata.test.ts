@@ -29,8 +29,8 @@ test("the homepage shares the social copy of its language", () => {
   assert.equal(metadata.alternates?.canonical, "/zh/");
 });
 
-test("the homepage introduction positions Abnormal beyond email services", () => {
-  for (const [lang, copy] of Object.entries({ en, zh }) as ["en" | "zh", typeof en][]) {
+test("the homepage introduces both family products instead of only mailbox offers", () => {
+  for (const copy of [en, zh]) {
     const introduction = [
       copy.meta.title,
       copy.meta.description,
@@ -39,11 +39,12 @@ test("the homepage introduction positions Abnormal beyond email services", () =>
       copy.hero.eyebrow,
       ...copy.hero.titleLines,
       ...copy.hero.description,
-      copy.valueStrip.lead,
-      copy.valueStrip.strong,
-      ...copy.valueStrip.labels,
+      ...copy.products.items.flatMap(({ name, description }) => [name, description]),
     ].join(" ");
-    assert.doesNotMatch(introduction, lang === "en" ? /\b(?:email|mailbox|webmail)\b/i : /邮箱|邮件/);
+    assert.match(introduction, /Mail/);
+    assert.match(introduction, /Doppel/);
+    assert.match(copy.meta.description, /Mail/);
+    assert.match(copy.meta.description, /Doppel/);
   }
 });
 
