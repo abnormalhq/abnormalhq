@@ -899,10 +899,10 @@ export const en: Copy = {
     otherProduct: "Something else",
     undecidedProduct: "Not sure yet",
     undecidedLabel: "Not sure yet, I'd like to ask first",
-    notesLabel: "Number of mailboxes, domain or mail app needs",
+    notesLabel: "What you need from Mail or Doppel",
     optional: "Optional",
     notesPlaceholder:
-      "For example: 3 mailboxes, I already own a domain, and I want mail on my phone and laptop. Never include passwords or codes.",
+      "For example: 3 mailboxes on my own domain, or persistent browser profiles for an AI agent. Never include passwords or codes.",
     previewLabel: "Your message",
     copy: "Copy message",
     note: "This dialog only helps you write your request. It doesn't place an order or charge you.",

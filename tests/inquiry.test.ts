@@ -12,7 +12,7 @@ const inquiry = {
 test("consultation text keeps the selected product, duration and trimmed notes", () => {
   assert.equal(
     formatInquiry(inquiry, "zh"),
-    "你好，我想咨询邮箱服务。\n服务类型：域名邮箱\n使用时长：3 个月\n需求：日常通信 & 工作往来\n需要 3 个邮箱\n请帮我确认邮箱方案、总费用、开通时间与支持范围。",
+    "你好，我想咨询 Abnormal 产品。\n服务类型：域名邮箱\n使用时长：3 个月\n需求：日常通信 & 工作往来\n需要 3 个邮箱\n请帮我确认适合的方案、总费用、使用方式与支持范围。",
   );
   assert.ok(!formatInquiry({ ...inquiry, notes: "  " }, "zh").includes("需求："));
 });
@@ -51,7 +51,7 @@ test("invalid Telegram falls back to the configured email and escapes inquiry te
   assert.ok(link);
   const url = new URL(link.href);
   assert.equal(decodeURIComponent(url.pathname), "hello+mail@example.com");
-  assert.equal(url.searchParams.get("subject"), "邮箱服务咨询 · 域名邮箱");
+  assert.equal(url.searchParams.get("subject"), "Abnormal 产品咨询 · 域名邮箱");
   assert.equal(url.searchParams.get("body"), formatInquiry(inquiry, "zh"));
 });
 
