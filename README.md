@@ -475,3 +475,7 @@ pnpm cf:deploy
 - Contains no analytics scripts or customer data storage; the only cookie is `abnormal_lang`, written when the language is switched by hand (see "Chinese and English") and described in the privacy policy. An address picked in the address check stays in the tab's `sessionStorage` until the mailbox is created or the tab closes, which the privacy policy describes too. So does the discount code of an order placed with one (with the price before it, for the order page of a backend that does not publish the code with the order), until the tab closes. "Use my own domain" stores nothing in the browser; what mail keeps about a buyer's domain (the name with the account, the ownership record, its state, the activity log entries) is in the privacy policy under "Your own domain", and both languages of that text should be read by whoever is responsible for the policy before the feature is switched on in production.
 - Fonts are self-hosted with the site; no third-party font service is requested.
 - The mailbox interface and address card in the hero are a conceptual illustration of the service, not an actual mail client interface.
+
+## License
+
+The code is under the [MIT License](LICENSE). It does not cover the Abnormal name, logo and other brand assets, the site's copy and screenshots, or the fonts in `public/fonts` (Bricolage Grotesque, Inter, JetBrains Mono), which keep their own SIL Open Font License.
