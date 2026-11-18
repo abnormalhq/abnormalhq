@@ -92,7 +92,7 @@ export const en: Copy = {
     title: "Doppel access waitlist",
     description:
       "Doppel is not publicly available. When registration opens, joining the waitlist requests future access updates; it does not grant access or guarantee an invitation.",
-    checking: "Checking registration availability…",
+    checking: "Email registration appears only when availability is confirmed. Enable JavaScript to check the status.",
     closedTitle: "Registration is not open yet",
     closedDescription: "We are not accepting email addresses right now. Check back here for waitlist availability.",
     statusUnavailable:

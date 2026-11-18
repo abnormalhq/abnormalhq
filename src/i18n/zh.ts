@@ -83,7 +83,7 @@ export const zh: Copy = {
     title: "Doppel 访问候补名单",
     description:
       "Doppel 目前尚未公开。登记开放后，加入候补名单可申请接收后续访问通知，但不会开通产品，也不保证获得邀请。",
-    checking: "正在确认登记是否开放…",
+    checking: "确认登记开放后才会显示邮箱输入框；请启用 JavaScript 以查看登记状态。",
     closedTitle: "候补登记尚未开放",
     closedDescription: "我们目前不接收邮箱地址，请稍后回到这里查看登记状态。",
     statusUnavailable: "暂时无法确认登记状态，因此不会向你索要邮箱，请稍后再来查看。",
