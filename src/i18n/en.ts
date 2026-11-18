@@ -8,7 +8,7 @@ export const en: Copy = {
   meta: {
     title: "Abnormal — Thoughtful digital services",
     description:
-      "Meet Mail for email, calendars and contacts, and Doppel for persistent browser profiles for AI agents. Thoughtful digital tools by Abnormal.",
+      "Meet Mail for email, calendars and contacts. Doppel, our browser workspace for AI agents, is not public yet. Check its waitlist status.",
     socialTitle: "Abnormal — Useful services, simpler days.",
     socialDescription: "Thoughtful digital services designed to make everyday life and work simpler.",
     socialImageAlt: "Abnormal: thoughtful digital services for everyday life and work.",
@@ -45,7 +45,7 @@ export const en: Copy = {
     titleLines: ["Useful tools,", "simpler ", "days"],
     description: [
       "From your everyday mail to a persistent browser workspace for AI agents.",
-      "Meet Mail and Doppel: different tools, thoughtfully made.",
+      "Use Mail today. Doppel is not public yet; check its waitlist status below.",
     ],
     explore: "Explore our products",
     inquire: "Talk to us",
@@ -72,8 +72,8 @@ export const en: Copy = {
         name: "Doppel",
         description:
           "Persistent, independent browser profiles for AI agents. Keep each workspace's identity, cookies and login state.",
-        note: "A desktop client for macOS, Windows and Linux.",
-        action: "Explore Doppel on GitHub",
+        note: "Not public yet. See the waitlist for registration availability.",
+        action: "Doppel waitlist",
         link: "doppel",
       },
     ],
@@ -86,6 +86,41 @@ export const en: Copy = {
     description:
       "Read, write and organise without the noise. Explore Mail below, from your first address to a mailbox on your own domain.",
     tryDemo: "Try the mail demo",
+  },
+  waitlist: {
+    eyebrow: "Doppel / private access",
+    title: "Doppel access waitlist",
+    description:
+      "Doppel is not publicly available. When registration opens, joining the waitlist requests future access updates; it does not grant access or guarantee an invitation.",
+    checking: "Email registration appears only when availability is confirmed. Enable JavaScript to check the status.",
+    closedTitle: "Registration is not open yet",
+    closedDescription: "We are not accepting email addresses right now. Check back here for waitlist availability.",
+    statusUnavailable:
+      "Registration availability could not be confirmed. No email is requested; please check back later.",
+    openDescription: "Registration is open. Leave your email to request future access updates.",
+    email: "Email address",
+    submit: "Join waitlist",
+    submitting: "Joining…",
+    privacy: "We will use your email only for Doppel access updates.",
+    privacyLink: "Privacy policy",
+    success:
+      "Your access request is saved. No confirmation email is sent. This does not grant access or guarantee an invitation.",
+    invalid: "Enter a valid email address.",
+    rateLimited: "Too many requests. Wait a minute and try again.",
+    unavailable:
+      "We couldn't confirm your request was saved. Please try again later; repeat requests won't create duplicates.",
+    preview: {
+      description:
+        "Local simulation only. Use an example.com test address. This does not join the real waitlist or send email.",
+      email: "Test email address (@example.com)",
+      submit: "Simulate registration",
+      submitting: "Simulating…",
+      privacy: "Test data stays in this local simulation and is discarded when it restarts.",
+      success: "Simulation complete. You have not joined the real waitlist, and no email will be sent.",
+      invalid: "Use a valid example.com test email address.",
+      rateLimited: "Too many simulation requests. Wait a minute and try the simulation again.",
+      unavailable: "The simulation could not be completed. No real registration was created. Please try again.",
+    },
   },
   video: {
     eyebrow: "See it in action",
@@ -899,10 +934,10 @@ export const en: Copy = {
     otherProduct: "Something else",
     undecidedProduct: "Not sure yet",
     undecidedLabel: "Not sure yet, I'd like to ask first",
-    notesLabel: "What you need from Mail or Doppel",
+    notesLabel: "What you need from Mail",
     optional: "Optional",
     notesPlaceholder:
-      "For example: 3 mailboxes on my own domain, or persistent browser profiles for an AI agent. Never include passwords or codes.",
+      "For example: 3 mailboxes on my own domain, with mail on my phone and laptop. Never include passwords or codes.",
     previewLabel: "Your message",
     copy: "Copy message",
     note: "This dialog only helps you write your request. It doesn't place an order or charge you.",

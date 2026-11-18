@@ -59,8 +59,8 @@ export function linksFor(lang: Lang) {
     webmail: "https://webmail.abnormalhq.com/",
     /** Product detail on this page; the existing Mail feature and purchase anchors remain stable. */
     mail: `${root}#mail`,
-    /** Doppel has no separate marketing site; link to its maintained product documentation. */
-    doppel: "https://github.com/abnormalhq/doppel",
+    /** Doppel is not public. Every product link goes to the access waitlist, never to the private product. */
+    doppel: `${root}#doppel-waitlist`,
     status: "https://status.abnormalhq.com",
   } as const;
 }

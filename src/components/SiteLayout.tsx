@@ -39,7 +39,9 @@ export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode
           lang={lang}
           copy={t.inquiry}
           dot={t.dot}
-          products={[...t.products.items, ...t.services.products].map(({ name }) => name)}
+          products={[...t.products.items.filter(({ link }) => link === "mail"), ...t.services.products].map(
+            ({ name }) => name,
+          )}
           termsPage={legalPage("/terms/")}
           privacyPage={legalPage("/privacy/")}
         >

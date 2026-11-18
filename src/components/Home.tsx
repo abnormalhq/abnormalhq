@@ -10,6 +10,7 @@ import { Faq } from "./Faq";
 import { Features } from "./Features";
 import { Hero } from "./Hero";
 import { Products } from "./Products";
+import { DoppelWaitlist } from "./DoppelWaitlist";
 import { MailIntro } from "./MailIntro";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
@@ -31,6 +32,7 @@ export function Home({ lang }: { lang: Lang }) {
       <ScrollReveal />
       <Hero lang={lang} />
       <Products lang={lang} />
+      <DoppelWaitlist lang={lang} copy={t.waitlist} />
       <MailIntro lang={lang} />
       <PromoVideo lang={lang} />
       <Screens lang={lang} />

@@ -10,6 +10,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
+      // CI tests run before OpenNext generates this file; never resolve a local build artifact.
+      "./.open-next/worker.js": path.resolve(import.meta.dirname, "tests/support/open-next-worker.ts"),
     },
   },
   test: {

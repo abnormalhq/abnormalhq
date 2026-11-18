@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Type-generation / local-review example only. Never deploy this file.
+  // Copy these bindings into the real configuration ONLY after collection is approved.
+  "name": "abnormal-waitlist-example",
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": { "DOPPEL_WAITLIST_ENABLED": "false" },
+  "d1_databases": [
+    {
+      "binding": "DOPPEL_WAITLIST_DB",
+      "database_name": "doppel-waitlist-placeholder",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations/waitlist",
+    },
+  ],
+  "ratelimits": [
+    {
+      "name": "DOPPEL_WAITLIST_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 5, "period": 60 },
+    },
+  ],
+}
