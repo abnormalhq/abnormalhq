@@ -8,7 +8,7 @@ export const en: Copy = {
   meta: {
     title: "Abnormal — Thoughtful digital services",
     description:
-      "Meet Mail for email, calendars and contacts, and Doppel for persistent browser profiles for AI agents. Thoughtful digital tools by Abnormal.",
+      "Meet Mail for email, calendars and contacts. Doppel, our browser workspace for AI agents, is not public yet: join the access waitlist.",
     socialTitle: "Abnormal — Useful services, simpler days.",
     socialDescription: "Thoughtful digital services designed to make everyday life and work simpler.",
     socialImageAlt: "Abnormal: thoughtful digital services for everyday life and work.",
@@ -45,7 +45,7 @@ export const en: Copy = {
     titleLines: ["Useful tools,", "simpler ", "days"],
     description: [
       "From your everyday mail to a persistent browser workspace for AI agents.",
-      "Meet Mail and Doppel: different tools, thoughtfully made.",
+      "Use Mail today. Doppel is not public yet; join its access waitlist.",
     ],
     explore: "Explore our products",
     inquire: "Talk to us",
@@ -72,8 +72,8 @@ export const en: Copy = {
         name: "Doppel",
         description:
           "Persistent, independent browser profiles for AI agents. Keep each workspace's identity, cookies and login state.",
-        note: "A desktop client for macOS, Windows and Linux.",
-        action: "Explore Doppel on GitHub",
+        note: "Not public yet. Join the waitlist to request access.",
+        action: "Join the Doppel waitlist",
         link: "doppel",
       },
     ],
@@ -86,6 +86,23 @@ export const en: Copy = {
     description:
       "Read, write and organise without the noise. Explore Mail below, from your first address to a mailbox on your own domain.",
     tryDemo: "Try the mail demo",
+  },
+  waitlist: {
+    eyebrow: "Doppel / private access",
+    title: "Be first to hear about Doppel",
+    description:
+      "Leave your email to request access. Doppel is not publicly available, and joining this waitlist does not grant product access or guarantee an invitation.",
+    email: "Email address",
+    submit: "Join waitlist",
+    submitting: "Joining…",
+    privacy: "We will use your email only for Doppel access updates.",
+    privacyLink: "Privacy policy",
+    success:
+      "You're on the list. We will email you when access is available. This is not an invitation or product access.",
+    invalid: "Enter a valid email address.",
+    rateLimited: "Too many requests. Wait a minute and try again.",
+    unavailable: "We couldn't save your request. Please try again later.",
+    preview: "Local preview only. Use an example.com address; no real signup or email is sent.",
   },
   video: {
     eyebrow: "See it in action",
@@ -899,10 +916,10 @@ export const en: Copy = {
     otherProduct: "Something else",
     undecidedProduct: "Not sure yet",
     undecidedLabel: "Not sure yet, I'd like to ask first",
-    notesLabel: "What you need from Mail or Doppel",
+    notesLabel: "What you need from Mail",
     optional: "Optional",
     notesPlaceholder:
-      "For example: 3 mailboxes on my own domain, or persistent browser profiles for an AI agent. Never include passwords or codes.",
+      "For example: 3 mailboxes on my own domain, with mail on my phone and laptop. Never include passwords or codes.",
     previewLabel: "Your message",
     copy: "Copy message",
     note: "This dialog only helps you write your request. It doesn't place an order or charge you.",

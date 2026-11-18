@@ -48,6 +48,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     ".open-next/**",
     "next-env.d.ts",
+    "waitlist-bindings.d.ts",
     ".wrangler/**",
     ".artifacts/**",
     // Claude Code worktrees are full copies of the repository

@@ -177,6 +177,21 @@ export interface Copy {
     status: string;
   };
   mailIntro: { eyebrow: string; title: string; description: string; tryDemo: string };
+  waitlist: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    email: string;
+    submit: string;
+    submitting: string;
+    privacy: string;
+    privacyLink: string;
+    success: string;
+    invalid: string;
+    rateLimited: string;
+    unavailable: string;
+    preview: string;
+  };
   /** The promo video section (src/components/PromoVideo.tsx); the video address is promoVideo in src/data/site.ts, and the section is not rendered without one. */
   video: {
     eyebrow: string;

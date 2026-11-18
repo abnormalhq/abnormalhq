@@ -35,8 +35,8 @@ export function Footer({ lang }: { lang: Lang }) {
             <ul className="grid gap-2">
               {t.products.items.map((product) => (
                 <li key={product.name}>
-                  <a className={linkClass} href={links[product.link]} lang="en">
-                    {product.name}
+                  <a className={linkClass} href={links[product.link]}>
+                    {product.link === "doppel" ? product.action : product.name}
                   </a>
                 </li>
               ))}

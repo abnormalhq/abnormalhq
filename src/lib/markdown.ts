@@ -68,6 +68,10 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
       `[${product.action}](${links[product.link]})`,
     ]),
     `[${t.products.status}](${links.status})`,
+    `## ${t.waitlist.title}`,
+    t.waitlist.description,
+    `[${t.waitlist.submit}](${links.doppel})`,
+    `${t.waitlist.privacy} [${t.waitlist.privacyLink}](${absolute(localePath(lang, "/privacy/"))})`,
     `## ${t.mailIntro.title}`,
     t.mailIntro.description,
     // The promo video appears only when an address is configured (promoVideos in src/data/site.ts).

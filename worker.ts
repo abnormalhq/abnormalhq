@@ -9,20 +9,23 @@
  * The pages rendered on every request (/pricing/, /download/) are kept for a minute in the Worker's cache and in browsers (src/lib/edge-cache.ts).
  */
 import handler from "./.open-next/worker.js";
+import type { DoppelWaitlistBindings } from "./waitlist-bindings";
 import { revalidateInBrowser } from "./src/lib/cache.ts";
 import { isLivePageRequest, serveLivePage, type EdgeCache } from "./src/lib/edge-cache.ts";
 import { languageRedirect } from "./src/lib/lang.ts";
 import { markdownUrl, varyOnAccept } from "./src/lib/negotiate.ts";
 import { isRangedAsset, serveByteRanges } from "./src/lib/range.ts";
 import { withSecurityHeaders } from "./src/lib/security.ts";
+import { handleWaitlist, waitlistServices } from "./src/lib/waitlist.ts";
 import { isStorefrontApi, storefrontApi, type StorefrontEnv } from "./src/storefront/worker/index.ts";
 import { legacyRedirect } from "./src/storefront/worker/legacy.ts";
 
 /** The bindings of wrangler.jsonc this entry uses: the storefront's, the static asset service and the deployment's version. */
-type Env = StorefrontEnv & {
-  ASSETS: { fetch(request: Request): Promise<Response> };
-  CF_VERSION_METADATA?: { id: string };
-};
+type Env = StorefrontEnv &
+  Partial<DoppelWaitlistBindings> & {
+    ASSETS: { fetch(request: Request): Promise<Response> };
+    CF_VERSION_METADATA?: { id: string };
+  };
 
 /** The part of the Worker's ExecutionContext used here (OpenNext receives it whole). */
 type Context = { waitUntil(promise: Promise<unknown>): void };
@@ -30,6 +33,9 @@ type Context = { waitUntil(promise: Promise<unknown>): void };
 /** The response before the headers every response shares. */
 async function respond(request: Request, env: Env, ctx: Context): Promise<Response> {
   const { pathname } = new URL(request.url);
+  if (pathname === "/api/waitlist" || pathname === "/api/waitlist/") {
+    return handleWaitlist(request, waitlistServices(env), request.headers.get("cf-connecting-ip") ?? "unknown");
+  }
   // The API answers on the old storefront domain too, so payment notifications sent there keep arriving.
   if (isStorefrontApi(pathname)) return storefrontApi.fetch(request, env);
   const legacy = legacyRedirect(request);
