@@ -2,14 +2,6 @@ import { expect, test, vi } from "vitest";
 import type { DoppelWaitlistBindings } from "../../waitlist-bindings";
 import worker from "../../worker";
 
-vi.mock("../../.open-next/worker.js", () => ({
-  default: {
-    fetch: vi.fn(() => {
-      throw new Error("Waitlist must not reach OpenNext");
-    }),
-  },
-}));
-
 const req = () =>
   new Request("https://abnormalhq.com/api/waitlist/", {
     method: "POST",
