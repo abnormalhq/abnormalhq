@@ -203,6 +203,7 @@ export interface Copy {
       privacy: string;
       success: string;
       invalid: string;
+      rateLimited: string;
       unavailable: string;
     };
   };

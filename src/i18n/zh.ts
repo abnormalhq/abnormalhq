@@ -105,6 +105,7 @@ export const zh: Copy = {
       privacy: "测试数据仅保存在本地模拟中，重启后即丢弃。",
       success: "模拟完成。你没有加入真实候补名单，也不会收到邮件。",
       invalid: "请使用有效的 example.com 测试邮箱。",
+      rateLimited: "模拟请求过于频繁，请等待一分钟后再试；这不是真实登记。",
       unavailable: "模拟暂时未能完成，未创建真实登记，请重试。",
     },
   },

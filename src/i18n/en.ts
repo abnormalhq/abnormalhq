@@ -118,6 +118,7 @@ export const en: Copy = {
       privacy: "Test data stays in this local simulation and is discarded when it restarts.",
       success: "Simulation complete. You have not joined the real waitlist, and no email will be sent.",
       invalid: "Use a valid example.com test email address.",
+      rateLimited: "Too many simulation requests. Wait a minute and try the simulation again.",
       unavailable: "The simulation could not be completed. No real registration was created. Please try again.",
     },
   },
