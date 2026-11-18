@@ -21,14 +21,16 @@ export function DoppelWaitlist({ lang, copy: w }: { lang: Lang; copy: Copy["wait
 
   useEffect(() => {
     const controller = new AbortController();
+    let active = true;
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
     async function availability() {
       try {
         const response = await fetch("/api/waitlist/", {
           cache: "no-store",
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
+          signal: controller.signal,
         });
         const result: unknown = await response.json();
-        if (controller.signal.aborted) return;
+        if (!active) return;
         if (
           response.ok &&
           result &&
@@ -41,11 +43,17 @@ export function DoppelWaitlist({ lang, copy: w }: { lang: Lang; copy: Copy["wait
           setMode("unavailable");
         }
       } catch {
-        if (!controller.signal.aborted) setMode("unavailable");
+        if (active) setMode("unavailable");
+      } finally {
+        window.clearTimeout(timeout);
       }
     }
     void availability();
-    return () => controller.abort();
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
