@@ -47,10 +47,38 @@ test("email normalization accepts aliases and rejects malformed or oversized add
   }
 });
 
+test("availability uses the submission gate and never writes or rate-limits", async () => {
+  let calls = 0;
+  const services: WaitlistServices = {
+    mode: "open",
+    async limit() {
+      calls++;
+      return { success: true };
+    },
+    async add() {
+      calls++;
+    },
+  };
+  for (const [backend, mode] of [
+    [undefined, "closed"],
+    [waitlistServices({ DOPPEL_WAITLIST_ENABLED: "false" }), "closed"],
+    [waitlistServices({ DOPPEL_WAITLIST_ENABLED: "true" }), "closed"],
+    [createWaitlistMock(), "preview"],
+    [services, "open"],
+  ] as const) {
+    const response = await handleWaitlist(request(null, {}, "GET"), backend);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { mode });
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  }
+  assert.equal(calls, 0);
+});
+
 test("migration and API persist normalized registrations without duplicates or disclosing membership", async () => {
   const db = new DatabaseSync(":memory:");
   db.exec(readFileSync("migrations/waitlist/0001_doppel_waitlist.sql", "utf8"));
   const services: WaitlistServices = {
+    mode: "open",
     async limit() {
       return { success: true };
     },
@@ -66,8 +94,8 @@ test("migration and API persist normalized registrations without duplicates or d
     const duplicate = await handleWaitlist(request({ email: " TEST+ACCESS@example.com ", lang: "zh" }), services);
     assert.equal(first.status, 200);
     assert.equal(first.headers.get("Cache-Control"), "no-store");
-    assert.deepEqual(await first.json(), { ok: true });
-    assert.deepEqual(await duplicate.json(), { ok: true });
+    assert.deepEqual(await first.json(), { ok: true, mode: "open" });
+    assert.deepEqual(await duplicate.json(), { ok: true, mode: "open" });
     const rows = db.prepare("SELECT * FROM doppel_waitlist").all();
     assert.equal(rows.length, 1);
     assert.equal(rows[0]!.email, "test+access@example.com");
@@ -82,6 +110,7 @@ test("migration and API persist normalized registrations without duplicates or d
 test("invalid and unsafe requests never reach persistence", async () => {
   let writes = 0;
   const services: WaitlistServices = {
+    mode: "open",
     async limit() {
       return { success: true };
     },
@@ -90,7 +119,7 @@ test("invalid and unsafe requests never reach persistence", async () => {
     },
   };
   for (const [req, status] of [
-    [request(null, {}, "GET"), 405],
+    [request(null, {}, "PATCH"), 405],
     [request({}, { Origin: "https://evil.example" }), 403],
     [request({}, { "Sec-Fetch-Site": "cross-site" }), 403],
     [request({}, { "Content-Type": "text/plain" }), 415],
@@ -112,6 +141,7 @@ test("invalid and unsafe requests never reach persistence", async () => {
 test("rate limits, storage errors and disabled collection fail closed without false acknowledgement", async () => {
   let writes = 0;
   const limited = await handleWaitlist(request(), {
+    mode: "open",
     async limit() {
       return { success: false };
     },
@@ -123,14 +153,15 @@ test("rate limits, storage errors and disabled collection fail closed without fa
   assert.equal(limited.headers.get("Retry-After"), "60");
   assert.equal(writes, 0);
   for (const services of [
-    undefined,
     {
+      mode: "open" as const,
       async limit() {
         throw new Error("private rate-limit error");
       },
       async add() {},
     },
     {
+      mode: "open" as const,
       async limit() {
         return { success: true };
       },
@@ -145,12 +176,17 @@ test("rate limits, storage errors and disabled collection fail closed without fa
   }
   assert.equal(waitlistServices({}), undefined);
   assert.equal(waitlistServices({ DOPPEL_WAITLIST_ENABLED: "true" }), undefined);
+  const closed = await handleWaitlist(request());
+  assert.equal(closed.status, 503);
+  assert.deepEqual(await closed.json(), { error: "registration_closed", mode: "closed" });
 });
 
 test("local preview accepts only reserved test addresses and limits requests", async () => {
   const mock = createWaitlistMock();
-  assert.equal((await handleWaitlist(request({ email: "someone@example.org", lang: "en" }), mock)).status, 503);
-  assert.equal((await handleWaitlist(request(), mock)).status, 200);
+  assert.equal((await handleWaitlist(request({ email: "someone@example.org", lang: "en" }), mock)).status, 400);
+  const simulated = await handleWaitlist(request(), mock);
+  assert.equal(simulated.status, 200);
+  assert.deepEqual(await simulated.json(), { ok: true, mode: "preview" });
   assert.equal((await handleWaitlist(request(), mock)).status, 200);
   await handleWaitlist(request(), mock);
   await handleWaitlist(request(), mock);

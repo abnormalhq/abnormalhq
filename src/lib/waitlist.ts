@@ -1,7 +1,10 @@
 import type { DoppelWaitlistBindings } from "../../waitlist-bindings";
 
 /** Shared request contract. No account creation, invitations, product URLs or mail sending. */
+export type WaitlistMode = "closed" | "preview" | "open";
+
 export interface WaitlistServices {
+  readonly mode: Exclude<WaitlistMode, "closed">;
   add(email: string, lang: "en" | "zh"): Promise<void>;
   limit(key: string): Promise<{ success: boolean }>;
 }
@@ -59,7 +62,11 @@ export async function handleWaitlist(
   services?: WaitlistServices,
   clientKey = "local",
 ): Promise<Response> {
-  if (request.method !== "POST") return reply(405, "method_not_allowed", { Allow: "POST" });
+  // Public availability is safe to read and uses exactly the same runtime gate as submissions.
+  if (request.method === "GET") {
+    return Response.json({ mode: services?.mode ?? "closed" }, { headers: HEADERS });
+  }
+  if (request.method !== "POST") return reply(405, "method_not_allowed", { Allow: "GET, POST" });
   const origin = request.headers.get("origin");
   if ((origin && origin !== new URL(request.url).origin) || request.headers.get("sec-fetch-site") === "cross-site") {
     return reply(403, "origin_forbidden");
@@ -69,7 +76,8 @@ export async function handleWaitlist(
   }
   if (Number(request.headers.get("content-length")) > MAX_BODY) return reply(413, "body_too_large");
   // Missing/disabled bindings fail closed; never acknowledge a request that was not saved.
-  if (!services) return reply(503, "unavailable");
+  if (!services)
+    return Response.json({ error: "registration_closed", mode: "closed" }, { status: 503, headers: HEADERS });
   try {
     if (!(await services.limit(clientKey)).success) return reply(429, "rate_limited", { "Retry-After": "60" });
     let payload: unknown;
@@ -84,9 +92,10 @@ export async function handleWaitlist(
     const { email: value, lang } = payload as Record<string, unknown>;
     const email = normalizeWaitlistEmail(value);
     if (!email || (lang !== "en" && lang !== "zh")) return reply(400, "invalid_request");
+    if (services.mode === "preview" && !email.endsWith("@example.com")) return reply(400, "invalid_test_email");
     await services.add(email, lang);
     // New and duplicate registrations have exactly the same response, with no echoed email.
-    return Response.json({ ok: true }, { headers: HEADERS });
+    return Response.json({ ok: true, mode: services.mode }, { headers: HEADERS });
   } catch {
     // Never log the request, email, IP, SQL error or exception: those can contain personal data.
     return reply(503, "unavailable");
@@ -99,6 +108,7 @@ export function waitlistServices(env: Partial<DoppelWaitlistBindings>): Waitlist
   const limiter = env.DOPPEL_WAITLIST_LIMITER;
   if (env.DOPPEL_WAITLIST_ENABLED !== "true" || !db || !limiter) return undefined;
   return {
+    mode: "open",
     limit: (key) => limiter.limit({ key: `doppel:${key}` }),
     async add(email, lang) {
       const result = await db

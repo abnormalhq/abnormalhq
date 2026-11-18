@@ -181,6 +181,11 @@ export interface Copy {
     eyebrow: string;
     title: string;
     description: string;
+    checking: string;
+    closedTitle: string;
+    closedDescription: string;
+    statusUnavailable: string;
+    openDescription: string;
     email: string;
     submit: string;
     submitting: string;
@@ -190,7 +195,16 @@ export interface Copy {
     invalid: string;
     rateLimited: string;
     unavailable: string;
-    preview: string;
+    preview: {
+      description: string;
+      email: string;
+      submit: string;
+      submitting: string;
+      privacy: string;
+      success: string;
+      invalid: string;
+      unavailable: string;
+    };
   };
   /** The promo video section (src/components/PromoVideo.tsx); the video address is promoVideo in src/data/site.ts, and the section is not rendered without one. */
   video: {

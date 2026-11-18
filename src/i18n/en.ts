@@ -8,7 +8,7 @@ export const en: Copy = {
   meta: {
     title: "Abnormal — Thoughtful digital services",
     description:
-      "Meet Mail for email, calendars and contacts. Doppel, our browser workspace for AI agents, is not public yet: join the access waitlist.",
+      "Meet Mail for email, calendars and contacts. Doppel, our browser workspace for AI agents, is not public yet. Check its waitlist status.",
     socialTitle: "Abnormal — Useful services, simpler days.",
     socialDescription: "Thoughtful digital services designed to make everyday life and work simpler.",
     socialImageAlt: "Abnormal: thoughtful digital services for everyday life and work.",
@@ -45,7 +45,7 @@ export const en: Copy = {
     titleLines: ["Useful tools,", "simpler ", "days"],
     description: [
       "From your everyday mail to a persistent browser workspace for AI agents.",
-      "Use Mail today. Doppel is not public yet; join its access waitlist.",
+      "Use Mail today. Doppel is not public yet; check its waitlist status below.",
     ],
     explore: "Explore our products",
     inquire: "Talk to us",
@@ -72,8 +72,8 @@ export const en: Copy = {
         name: "Doppel",
         description:
           "Persistent, independent browser profiles for AI agents. Keep each workspace's identity, cookies and login state.",
-        note: "Not public yet. Join the waitlist to request access.",
-        action: "Join the Doppel waitlist",
+        note: "Not public yet. See the waitlist for registration availability.",
+        action: "Doppel waitlist",
         link: "doppel",
       },
     ],
@@ -89,20 +89,37 @@ export const en: Copy = {
   },
   waitlist: {
     eyebrow: "Doppel / private access",
-    title: "Be first to hear about Doppel",
+    title: "Doppel access waitlist",
     description:
-      "Leave your email to request access. Doppel is not publicly available, and joining this waitlist does not grant product access or guarantee an invitation.",
+      "Doppel is not publicly available. When registration opens, joining the waitlist requests future access updates; it does not grant access or guarantee an invitation.",
+    checking: "Checking registration availability…",
+    closedTitle: "Registration is not open yet",
+    closedDescription: "We are not accepting email addresses right now. Check back here for waitlist availability.",
+    statusUnavailable:
+      "Registration availability could not be confirmed. No email is requested; please check back later.",
+    openDescription: "Registration is open. Leave your email to request future access updates.",
     email: "Email address",
     submit: "Join waitlist",
     submitting: "Joining…",
     privacy: "We will use your email only for Doppel access updates.",
     privacyLink: "Privacy policy",
     success:
-      "You're on the list. We will email you when access is available. This is not an invitation or product access.",
+      "Your access request is saved. No confirmation email is sent. This does not grant access or guarantee an invitation.",
     invalid: "Enter a valid email address.",
     rateLimited: "Too many requests. Wait a minute and try again.",
-    unavailable: "We couldn't save your request. Please try again later.",
-    preview: "Local preview only. Use an example.com address; no real signup or email is sent.",
+    unavailable:
+      "We couldn't confirm your request was saved. Please try again later; repeat requests won't create duplicates.",
+    preview: {
+      description:
+        "Local simulation only. Use an example.com test address. This does not join the real waitlist or send email.",
+      email: "Test email address (@example.com)",
+      submit: "Simulate registration",
+      submitting: "Simulating…",
+      privacy: "Test data stays in this local simulation and is discarded when it restarts.",
+      success: "Simulation complete. You have not joined the real waitlist, and no email will be sent.",
+      invalid: "Use a valid example.com test email address.",
+      unavailable: "The simulation could not be completed. No real registration was created. Please try again.",
+    },
   },
   video: {
     eyebrow: "See it in action",

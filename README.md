@@ -409,11 +409,11 @@ Playwright comes from that checkout and sharp from `next`, so this repository de
 
 ## Family entrance
 
-The home page introduces Mail and Doppel before the Mail detail sections. Mail is available; Doppel is not public and every Doppel link leads to the bilingual `#doppel-waitlist` email form, never the private product. Joining requests future access updates, not an account, invitation or entitlement. The family hero uses one marked phrase and a static ink frame around theme-aware paper. Product links and availability are synchronized in the footer, metadata and home Markdown. Mail's demo, address check, account, pricing and purchase paths are unchanged.
+The home page introduces Mail and Doppel before the Mail detail sections. Mail is available; Doppel is not public and every Doppel link leads to the bilingual `#doppel-waitlist` registration status, never the private product. When open, joining requests future access updates, not an account, invitation or entitlement. The family hero uses one marked phrase and a static ink frame around theme-aware paper. Product links and availability are synchronized in the footer, metadata and home Markdown. Mail's demo, address check, account, pricing and purchase paths are unchanged.
 
 ### Doppel waitlist (review only; collection disabled)
 
-See [the waitlist API and activation notes](docs/doppel-waitlist.md). `pnpm dev` uses a clearly labeled in-memory mock accepting only `@example.com` addresses; it does not persist real data or send email. Production responds with 503 until collection is separately approved and the enable flag, D1 database and rate limiter are all configured. The live Wrangler configuration is unchanged. Do not deploy the example configuration.
+See [the waitlist API and activation notes](docs/doppel-waitlist.md). `pnpm dev` uses a clearly labeled in-memory mock accepting only `@example.com` addresses; its action/result explicitly describe a simulation, not real membership or future email. Runtime GET availability gates the form: when closed, checking or unavailable, no email is requested. Production GET reports closed and POST returns 503 until collection is separately approved and the enable flag, D1 database and rate limiter are all configured. The live Wrangler configuration is unchanged. Do not deploy the example configuration.
 
 This follows the family contract in [abnormalhq/ui#37](https://github.com/abnormalhq/ui/pull/37) without depending on its unpublished workspace components: the marketing page uses the already-installed theme, fonts and controls, not a product workbench.
 

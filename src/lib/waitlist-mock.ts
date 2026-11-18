@@ -6,6 +6,7 @@ export function createWaitlistMock(): WaitlistServices {
   let windowStart = 0;
   let count = 0;
   return {
+    mode: "preview",
     async add(email) {
       if (!email.endsWith("@example.com")) throw new Error("test_addresses_only");
       emails.add(email);

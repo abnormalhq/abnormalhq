@@ -5,25 +5,27 @@ Doppel is not public. The website takes a request for future access updates only
 ## Review without collecting real data
 
 - Run `pnpm dev`. Both homepages link to their own `#doppel-waitlist`.
-- The local banner explicitly says this is a simulation; only `@example.com` addresses can be accepted. The mock keeps these in memory until restart and sends nothing.
+- The local form, action and result explicitly say this is a simulation; only `@example.com` addresses can be accepted. Its result never claims real membership or promises email. The mock keeps these in memory until restart and sends nothing.
 - Local rate limiting is five attempts per minute across the mock. Reloading does not reset it; restart or wait a minute.
-- The production Worker intercepts `/api/waitlist[/]` before the storefront catch-all. With the unchanged live configuration it returns JSON 503 with no-store, not a false success.
+- The production Worker intercepts `/api/waitlist[/]` before the storefront catch-all. The UI checks runtime availability before showing any email field. With the unchanged live configuration, GET reports closed and no email field or submission action is shown; POST returns 503, not a false success.
 - No Cloudflare resource, deployment, migration or real registration was made for this change.
 
 ## Contract
 
+`GET /api/waitlist/` returns `{"mode":"closed"}`, `{"mode":"preview"}` or `{"mode":"open"}`, using the same runtime services gate as POST. It never reads registrations, writes data or uses a rate-limit attempt. Both the response and client fetch are no-store. While checking, on failure, or when closed, no form is rendered. Static product/footer/Markdown links are availability-neutral. A closed response during submission removes the form too.
+
 `POST /api/waitlist/`, same-origin JSON: `{"email":"person@example.com","lang":"en"}` (`zh` also supported).
 
-| Status | Meaning                                                                                 |
-| ------ | --------------------------------------------------------------------------------------- |
-| 200    | `{"ok":true}`: new or existing normalized address successfully stored                   |
-| 400    | Invalid JSON, email or locale                                                           |
-| 403    | Cross-origin request                                                                    |
-| 405    | Unsupported method; Allow: POST                                                         |
-| 413    | Body exceeds 2 KiB, including chunked bodies                                            |
-| 415    | Not application/json                                                                    |
-| 429    | Rate limited; Retry-After: 60                                                           |
-| 503    | Disabled, missing bindings, persistence/limiter failure or non-test email in local mock |
+| Status | Meaning                                                                                                                                |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 200    | `{"ok":true,"mode":"open"}`: new or existing normalized address stored; mock uses `"preview"`                                          |
+| 400    | Invalid JSON, email or locale, or non-test email in the local mock                                                                     |
+| 403    | Cross-origin request                                                                                                                   |
+| 405    | Unsupported method; Allow: GET, POST                                                                                                   |
+| 413    | Body exceeds 2 KiB, including chunked bodies                                                                                           |
+| 415    | Not application/json                                                                                                                   |
+| 429    | Rate limited; Retry-After: 60                                                                                                          |
+| 503    | Closed/missing bindings (`{"error":"registration_closed","mode":"closed"}`) or persistence/limiter failure (`{"error":"unavailable"}`) |
 
 Addresses are trimmed and lowercased, limited to 254 ASCII characters, and validated on the server. The database uses a unique email key and a parameterized insert with conflict-do-nothing: retries do not change the original locale/date, add duplicates or reveal membership. Success and failure responses never echo personal data. There is no public list/read/export endpoint and no automatic invitation or email.
 

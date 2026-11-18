@@ -19,9 +19,12 @@ const otherBindings = {
 };
 
 test("production waitlist is routed before the API catch-all, stays disabled and receives security headers", async () => {
+  const availability = await worker.fetch(new Request(req().url), otherBindings, { waitUntil() {} });
+  expect(availability.status).toBe(200);
+  expect(await availability.json()).toEqual({ mode: "closed" });
   const response = await worker.fetch(req(), otherBindings, { waitUntil() {} });
   expect(response.status).toBe(503);
-  expect(await response.json()).toEqual({ error: "unavailable" });
+  expect(await response.json()).toEqual({ error: "registration_closed", mode: "closed" });
   expect(response.headers.get("cache-control")).toBe("no-store");
   expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 });
@@ -63,6 +66,10 @@ test("enabled adapter awaits the bound D1 write and never sends access credentia
     DOPPEL_WAITLIST_LIMITER: { limit },
   };
   let answered = false;
+  const availability = await worker.fetch(new Request(req().url), env, { waitUntil() {} });
+  expect(await availability.json()).toEqual({ mode: "open" });
+  expect(prepare).not.toHaveBeenCalled();
+  expect(limit).not.toHaveBeenCalled();
   const pending = worker.fetch(req(), env, { waitUntil() {} }).then((response) => {
     answered = true;
     return response;
@@ -77,7 +84,7 @@ test("enabled adapter awaits the bound D1 write and never sends access credentia
   expect(response.status).toBe(200);
   expect(response.headers.has("set-cookie")).toBe(false);
   expect(response.headers.has("location")).toBe(false);
-  expect(await response.json()).toEqual({ ok: true });
+  expect(await response.json()).toEqual({ ok: true, mode: "open" });
   run.mockRejectedValueOnce(new Error("storage failed"));
   const failed = await worker.fetch(req(), env, { waitUntil() {} });
   expect(failed.status).toBe(503);

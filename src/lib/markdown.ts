@@ -70,7 +70,7 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
     `[${t.products.status}](${links.status})`,
     `## ${t.waitlist.title}`,
     t.waitlist.description,
-    `[${t.waitlist.submit}](${links.doppel})`,
+    `[${t.waitlist.title}](${links.doppel})`,
     `${t.waitlist.privacy} [${t.waitlist.privacyLink}](${absolute(localePath(lang, "/privacy/"))})`,
     `## ${t.mailIntro.title}`,
     t.mailIntro.description,
