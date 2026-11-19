@@ -1,0 +1,24 @@
+name: Registry drift
+
+# Compares the vendored @abnormal copies with the live registry. A new ui release
+# fails this until the project reinstalls, so run it on a schedule or by hand —
+# not on every pull request (ui README, "Versions and updates").
+on:
+  schedule:
+    # Weekly Monday 06:17 UTC; offset minutes avoid the top-of-hour schedule pile-up.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: registry-drift-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  registry:
+    uses: abnormalhq/ui/.github/workflows/registry-drift.yml@main
+    with:
+      # components.json is at the repository root.
+      working-directory: .
