@@ -395,7 +395,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               steps={orderSteps(order).map((step) => ({ ...step, title: t.progress[step.key] }))}
             />
           )}
-          {!paid && paymentError && !embeddedCard && (
+          {!paid && paymentError && (
             <ShopAlert>
               {t.paymentError}
               {/* mail publishes an order that adds seats as a renewal order, and refuses to open its payment once the subscription
@@ -501,7 +501,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                   </code>
                   {result.codeStatus && result.codeStatus in t.statuses && (
                     <p className={shopTextClass}>
-                      {t.codeStatus}：{t.statuses[result.codeStatus]}
+                      {t.codeStatus}: {t.statuses[result.codeStatus]}
                     </p>
                   )}
                   <p className={shopTextClass}>{t.expiryNote}</p>

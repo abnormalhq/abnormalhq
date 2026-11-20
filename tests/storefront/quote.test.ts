@@ -1207,6 +1207,7 @@ test("figure: mail's quote is shown as it is; without one the page's estimate st
   for (const lang of LANGS) {
     const t = shopCopy[lang];
     expect(t.seatQuoted).not.toBe(t.seatEstimate);
+    expect(t.seatLimited).not.toBe(t.seatEstimate);
     expect(t.seatRenewsAt("21.00 LDC", 30)).toContain("21.00 LDC");
     expect(t.seatRenewsAt("21.00 LDC", 30)).toContain("30");
   }
@@ -1218,7 +1219,7 @@ test("figure: mail's quote is shown as it is; without one the page's estimate st
   expect(source).toMatch(/board\.want\(productId, \{\s*productId,\s*providers: providers\.split\("\+"\)/);
   expect(source.match(/board\.want\(/g)).toHaveLength(1);
   expect(source).not.toMatch(/board\.want\([^)]*coupon/);
-  expect(source).toMatch(/figures\.some\(\(figure\) => figure\.kind === "estimate"\)\s*\? t\.seatEstimate/);
+  expect(source).toMatch(/limited\s*\?\s*t\.seatLimited\s*:\s*t\.seatEstimate/);
 });
 
 test("renewal page: a trial's upgrade to a seat plan shows mail's quote per way of paying, and its own arithmetic without one", () => {

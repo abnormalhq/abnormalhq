@@ -52,7 +52,9 @@ export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode
             themeCopy={t.theme}
             langToggle={t.langToggle}
           />
-          <main id="main">{children}</main>
+          <main id="main" tabIndex={-1}>
+            {children}
+          </main>
           <Footer lang={lang} />
         </InquiryProvider>
       </body>

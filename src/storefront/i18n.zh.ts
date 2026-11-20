@@ -47,7 +47,7 @@ export const zh: Copy = {
     accounts: {
       label: "账号",
       hint: "每个邮箱一行。用户名是小写字母、数字和 . _ -，首尾必须是字母或数字，最多 64 位；密码为 8–128 个字符，不能包含空白，也可以随机生成。",
-      placeholder: "yourname",
+      placeholder: "zhangsan",
       ordinal: (n) => `第 ${n} 个邮箱`,
       usernameLabel: (n) => `第 ${n} 个邮箱的用户名`,
       passwordLabel: (n) => `第 ${n} 个邮箱的密码`,
@@ -56,7 +56,7 @@ export const zh: Copy = {
     notify: {
       label: "接收邮箱",
       hint: "可选。填一个你现在能收信的邮箱，开通后把新邮箱的地址、密码与服务器地址发到那里一份。",
-      placeholder: "you@example.com",
+      placeholder: "ni@example.com",
     },
   },
   rules: {
@@ -141,6 +141,7 @@ export const zh: Copy = {
     note: ["密码只在这里显示一次，请保存好。之后可在网页邮箱的「设置」中修改；忘记密码请写信到 ", "。"],
     next: "开通之后怎么登录邮箱、怎么用它登录 Claude 与 ChatGPT，看[教程](guide/)。",
     again: "再兑换",
+    leaveUnsaved: "邮箱密码只在本页显示一次。确定离开且不先保存吗？除非已发到通知邮箱，否则离开后无法再看到。",
   },
   help: {
     eyebrow: "常见问题",

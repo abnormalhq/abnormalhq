@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,12 @@ export function DoppelWaitlist({ lang, copy: w }: { lang: Lang; copy: Copy["wait
   const [mode, setMode] = useState<WaitlistMode | "checking" | "unavailable">("checking");
   const [state, setState] = useState<"idle" | "pending" | "success" | "invalid" | "rateLimited" | "unavailable">(
     "idle",
+  );
+  // The checking line is only for a live request: without JavaScript the noscript copy below is the one that stays.
+  const scripted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
   );
   const submitting = useRef(false);
 
@@ -113,10 +119,17 @@ export function DoppelWaitlist({ lang, copy: w }: { lang: Lang; copy: Copy["wait
             </p>
           </div>
           <div className="min-w-0 self-center">
-            {mode === "checking" && (
+            {mode === "checking" && scripted && (
               <p role="status" className="text-md/prose text-muted-foreground">
                 {w.checking}
               </p>
+            )}
+            {mode === "checking" && (
+              <noscript>
+                <p role="status" className="text-md/prose text-muted-foreground">
+                  {w.needJs}
+                </p>
+              </noscript>
             )}
             {mode === "closed" && (
               <div role="status">

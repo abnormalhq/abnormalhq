@@ -12,7 +12,15 @@ import { PlanCards, PlanNotice, type PlanCopy } from "./PlanCards";
 export type HomePricingCopy = PlanCopy &
   Pick<
     Copy["pricing"],
-    "loading" | "closedTitle" | "closedBody" | "errorTitle" | "errorBody" | "retry" | "shopLink" | "priceNote"
+    | "loading"
+    | "closedTitle"
+    | "closedBody"
+    | "errorTitle"
+    | "errorBody"
+    | "retry"
+    | "shopLink"
+    | "priceNote"
+    | "compareLink"
   >;
 
 /**
@@ -20,7 +28,18 @@ export type HomePricingCopy = PlanCopy &
  * this reads the catalog in the browser, the way the shop page does; the pricing page (/pricing/) renders the same cards on the server.
  * Copy comes in through props, so the bundle carries one language's pricing wording and nothing else of the copy.
  */
-export function HomePricing({ lang, copy, shop }: { lang: Lang; copy: HomePricingCopy; shop: string }) {
+export function HomePricing({
+  lang,
+  copy,
+  shop,
+  pricing,
+}: {
+  lang: Lang;
+  copy: HomePricingCopy;
+  shop: string;
+  /** The full pricing page: shown while plans load, and as the no-JavaScript path. */
+  pricing: string;
+}) {
   const [catalog, setCatalog] = useState<ShopCatalog | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -44,6 +63,14 @@ export function HomePricing({ lang, copy, shop }: { lang: Lang; copy: HomePricin
     </Button>
   );
 
+  const pricingLink = (
+    <Button asChild variant="outline" size="lg">
+      <a href={pricing}>
+        {copy.compareLink} <Icon name="up-right" className="size-4" />
+      </a>
+    </Button>
+  );
+
   if (failed) {
     return (
       <PlanNotice
@@ -61,6 +88,7 @@ export function HomePricing({ lang, copy, shop }: { lang: Lang; copy: HomePricin
               {copy.retry}
             </Button>
             {shopButton}
+            {pricingLink}
           </>
         }
       >
@@ -68,7 +96,21 @@ export function HomePricing({ lang, copy, shop }: { lang: Lang; copy: HomePricin
       </PlanNotice>
     );
   }
-  if (!catalog) return <PlanNotice role="status">{copy.loading}</PlanNotice>;
+  if (!catalog) {
+    return (
+      <PlanNotice
+        role="status"
+        actions={
+          <>
+            {pricingLink}
+            {shopButton}
+          </>
+        }
+      >
+        {copy.loading}
+      </PlanNotice>
+    );
+  }
   const plans = planViews(catalog, lang, copy, shop);
   if (plans.length === 0) return <PlanNotice title={copy.closedTitle}>{copy.closedBody}</PlanNotice>;
   return (

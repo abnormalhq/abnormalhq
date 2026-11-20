@@ -52,6 +52,7 @@ export function AddressCheck({
   lang,
   copy,
   shop,
+  pricing,
   domains: given,
   className,
 }: {
@@ -59,6 +60,8 @@ export function AddressCheck({
   copy: Copy["pricing"]["check"];
   /** The shop page in this language. */
   shop: string;
+  /** The pricing page: used when the home check cannot run without JavaScript. */
+  pricing?: string;
   domains?: readonly string[];
   className?: string;
 }) {
@@ -94,12 +97,33 @@ export function AddressCheck({
     [],
   );
 
-  // In the hero the catalog is read in the browser. Until it answers, the form holds its place unseen and out of reach,
-  // so the hero below it does not jump when the check appears; it fades in then, or goes away if there is none to offer.
+  // On the home page the catalog is read in the browser. Until it answers, show a short loading line (and a pricing-page
+  // fallback without JavaScript) rather than an invisible inert form that never appears when scripts are off.
   const pending = !given && loaded === null;
   const domains = given ?? loaded ?? [];
   const domain = domains.includes(chosenDomain) ? chosenDomain : (domains[0] ?? "");
   if (hidden || (!pending && domains.length === 0)) return null;
+  if (pending) {
+    return (
+      <div className={cn("text-left", className)}>
+        <p className="text-sm/body font-medium" id={`${id}-title`}>
+          {copy.title}
+        </p>
+        <p className="mt-1 text-sm/[1.6] text-muted-foreground" role="status">
+          {copy.loading}
+        </p>
+        {pricing && (
+          <noscript>
+            <p className="mt-2 text-sm/[1.6] text-muted-foreground">
+              <a className="underline decoration-current/40 underline-offset-4 hover:decoration-current" href={pricing}>
+                {copy.noscript}
+              </a>
+            </p>
+          </noscript>
+        )}
+      </div>
+    );
+  }
 
   function cancel(): void {
     window.clearTimeout(timer.current);
@@ -172,8 +196,7 @@ export function AddressCheck({
 
   return (
     <form
-      className={cn("text-left", pending ? "invisible" : !given && "animate-fade-in", className)}
-      inert={pending}
+      className={cn("text-left", !given && "animate-fade-in", className)}
       aria-labelledby={`${id}-title`}
       noValidate
       onSubmit={(event) => {

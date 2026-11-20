@@ -46,6 +46,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
         <HomePricing
           lang={lang}
           shop={links.shop}
+          pricing={links.pricing}
           copy={{
             plan: p.plan,
             compare: p.compare,
@@ -57,16 +58,9 @@ export function PricingSection({ lang }: { lang: Lang }) {
             retry: p.retry,
             shopLink: p.shopLink,
             priceNote: p.priceNote,
+            compareLink: p.compareLink,
           }}
         />
-        {/* Without JavaScript the plans above never load; the pricing page renders them on the server. */}
-        <noscript>
-          <p className="mt-4 text-base/prose text-muted-foreground">
-            <TextLink variant="inline" href={links.pricing}>
-              {p.compareLink}
-            </TextLink>
-          </p>
-        </noscript>
         <div className="mt-14 max-md:mt-11" {...reveal()}>
           <Included lang={lang} id="pricing-included-title" />
         </div>

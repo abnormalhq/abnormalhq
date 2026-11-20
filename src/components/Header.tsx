@@ -76,17 +76,27 @@ export function Header({
     const onClick = (event: MouseEvent) => {
       if (event.target instanceof Node && !header.current?.contains(event.target)) setMenuOpen(false);
     };
-    const desktop = window.matchMedia("(min-width: 768px)");
-    const onDesktopChange = (event: MediaQueryListEvent) => {
+    // Account and Log in leave the bar below the nav breakpoint; the menu stays until then.
+    const wide = window.matchMedia("(min-width: 64rem)");
+    const onWideChange = (event: MediaQueryListEvent) => {
       if (event.matches) setMenuOpen(false);
     };
+    const main = document.getElementById("main");
+    const footer = document.querySelector("footer");
+    main?.setAttribute("inert", "");
+    footer?.setAttribute("inert", "");
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKeyDown);
     document.addEventListener("click", onClick);
-    desktop.addEventListener("change", onDesktopChange);
+    wide.addEventListener("change", onWideChange);
     return () => {
+      main?.removeAttribute("inert");
+      footer?.removeAttribute("inert");
+      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("click", onClick);
-      desktop.removeEventListener("change", onDesktopChange);
+      wide.removeEventListener("change", onWideChange);
     };
   }, [menuOpen]);
 
@@ -132,7 +142,7 @@ export function Header({
           </Button>
           <ThemePicker copy={themeCopy} onOpen={closeMenu} />
           <span className="mx-2 h-4 w-px bg-border max-md:hidden" aria-hidden="true"></span>
-          {/* Narrower tablet widths cannot fit every entry: "My account" and "Log in" give way to the entries in the hero and footer. */}
+          {/* Below the nav breakpoint the bar has no room for "My account" and "Log in"; the menu button opens them. */}
           <Button
             asChild
             variant="ghost"
@@ -153,7 +163,7 @@ export function Header({
           <Button
             variant="ghost"
             size="icon"
-            className="hidden max-md:inline-flex"
+            className="hidden max-nav:inline-flex"
             type="button"
             ref={toggle}
             aria-label={menuOpen ? copy.closeMenu : copy.openMenu}
@@ -166,7 +176,7 @@ export function Header({
         </div>
       </Container>
       <nav
-        className="absolute inset-x-0 top-full max-h-[calc(100dvh-65px)] overflow-y-auto overscroll-contain border-b border-border bg-background md:hidden"
+        className="absolute inset-x-0 top-full max-h-[calc(100dvh-65px)] overflow-y-auto overscroll-contain border-b border-border bg-background nav:hidden"
         id="mobile-nav"
         aria-label={copy.mobileNavLabel}
         hidden={!menuOpen}

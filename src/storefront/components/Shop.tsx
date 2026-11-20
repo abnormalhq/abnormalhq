@@ -167,7 +167,16 @@ export function Shop({ lang }: { lang: Lang }) {
     // USDT, like a card, only for a plan with a USDT price of its own.
     const usdt = Boolean(catalog?.payment.usdt && product.usdtPriceMinor);
     if (!isSeatProduct(product))
-      return { ldc, card, usdt, ldcFigure: null, cardFigure: null, usdtFigure: null, asking: false };
+      return {
+        ldc,
+        card,
+        usdt,
+        ldcFigure: null,
+        cardFigure: null,
+        usdtFigure: null,
+        asking: false,
+        limited: false,
+      };
     const seats = seatsOf(product);
     const estimate = seatTotals(product, seats, { ldc, card, usdt }, quotes.maxTotalCents ?? undefined);
     const ldcView = viewOf(quotes, product.id, product.id, seats, "ldc");
@@ -197,6 +206,10 @@ export function Shop({ lang }: { lang: Lang }) {
         (ldc && ldcView?.state === "loading") ||
         (card && cardView?.state === "loading") ||
         (usdt && usdtView?.state === "loading"),
+      limited:
+        (ldc && ldcView?.state === "limited") ||
+        (card && cardView?.state === "limited") ||
+        (usdt && usdtView?.state === "limited"),
     };
   };
 
@@ -591,7 +604,7 @@ export function Shop({ lang }: { lang: Lang }) {
               const days = product.periodDays ?? 0;
               // The order's total for either way of paying: mail's quote, or the page's estimate by mail's rule while there is
               // none. Each way has its own limit on what one order can charge: a quantity too many for one is still sold by the other.
-              const { ldcFigure, cardFigure, usdtFigure, asking, ...open } = waysOf(product);
+              const { ldcFigure, cardFigure, usdtFigure, asking, limited, ...open } = waysOf(product);
               const range = rangeOf(product);
               const figures = [ldcFigure, cardFigure, usdtFigure].filter((figure) => figure !== null);
               // What each total is labelled with: the quote's own currency, period and discount for a quoted total (the
@@ -846,7 +859,9 @@ export function Shop({ lang }: { lang: Lang }) {
                               `${t.seatDiscountNote(ldcTerms.discountPercent)} `}
                             {/* An estimate says so; mail's own total says that instead. */}
                             {figures.some((figure) => figure.kind === "estimate")
-                              ? t.seatEstimate
+                              ? limited
+                                ? t.seatLimited
+                                : t.seatEstimate
                               : figures.some((figure) => figure.kind === "quoted")
                                 ? t.seatQuoted
                                 : null}

@@ -192,7 +192,7 @@ export function ShopDomains({
                 autoCorrect="off"
                 spellCheck={false}
                 maxLength={255}
-                placeholder="example.com"
+                placeholder={t.domainPlaceholder}
                 value={name}
                 onChange={(event) => {
                   setName(event.target.value);
