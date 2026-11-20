@@ -37,11 +37,14 @@ export function Header({
   themeCopy: Copy["theme"];
   langToggle: Copy["langToggle"];
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const header = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
-  const closeMenu = () => setMenuOpen(false);
+  // Open only for the current path: Header stays mounted across client navigations (brand Link), so a boolean would leave
+  // inert and the scroll lock on the next page after the menu was open.
+  const [menuPath, setMenuPath] = useState<string | null>(null);
+  const menuOpen = menuPath === pathname;
+  const closeMenu = () => setMenuPath(null);
 
   const links = linksFor(lang);
   // An entry is a section of the home page (anchor) or a page of its own (path), such as the pricing page.
@@ -69,17 +72,17 @@ export function Header({
     if (!menuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setMenuOpen(false);
+        setMenuPath(null);
         toggle.current?.focus();
       }
     };
     const onClick = (event: MouseEvent) => {
-      if (event.target instanceof Node && !header.current?.contains(event.target)) setMenuOpen(false);
+      if (event.target instanceof Node && !header.current?.contains(event.target)) setMenuPath(null);
     };
     // Account and Log in leave the bar below the nav breakpoint; the menu stays until then.
     const wide = window.matchMedia("(min-width: 64rem)");
     const onWideChange = (event: MediaQueryListEvent) => {
-      if (event.matches) setMenuOpen(false);
+      if (event.matches) setMenuPath(null);
     };
     const main = document.getElementById("main");
     const footer = document.querySelector("footer");
@@ -169,7 +172,7 @@ export function Header({
             aria-label={menuOpen ? copy.closeMenu : copy.openMenu}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
-            onClick={() => setMenuOpen((open) => !open)}
+            onClick={() => setMenuPath((path) => (path === pathname ? null : pathname))}
           >
             <Icon name={menuOpen ? "close" : "menu"} />
           </Button>

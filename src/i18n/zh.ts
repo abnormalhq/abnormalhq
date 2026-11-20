@@ -574,7 +574,7 @@ export const zh: Copy = {
       invalid: "只能用小写字母、数字和 . _ -，首尾必须是字母或数字，不能有连续的点，最多 64 位。",
       checking: "正在查询…",
       loading: "正在加载可选域名…",
-      noscript: "未启用 JavaScript 时，请到价格页查询地址。",
+      noscript: "查询地址需要启用 JavaScript。可先打开[价格页]({pricing})查看套餐，或前往[商店]({shop})购买。",
       available: "{email} 可以使用。",
       taken: "{email} 已被占用，换一个试试。",
       rateLimited: "查询得太频繁了，请稍后再试。",

@@ -473,8 +473,11 @@ export interface Copy {
       checking: string;
       /** While the home page waits for the catalog of domains. */
       loading: string;
-      /** Without JavaScript the home check cannot run; points the reader at the pricing page. */
-      noscript: string;
+      /**
+       * Without JavaScript the home check cannot run. Markdown links use {pricing} and {shop} filled with the locale
+       * paths (src/components/AddressCheck.tsx).
+       */
+      noscript: Template<"pricing" | "shop">;
       available: Template<"email">;
       taken: Template<"email">;
       rateLimited: string;

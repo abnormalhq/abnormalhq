@@ -77,10 +77,19 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
       }
       if (url.origin !== window.location.origin) return;
       if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      // "Redeem again" sets leaving in its own handler, but that runs after this capture listener: skip it here.
+      const again = new URL(`${homePath}${REDEEM_PATH}`, window.location.href);
+      if (url.pathname === again.pathname && url.search === again.search) {
+        leaving.current = true;
+        return;
+      }
       if (!window.confirm(t.result.leaveUnsaved)) {
         event.preventDefault();
         event.stopPropagation();
+        return;
       }
+      // Accepting the dialog must arm leaving before a full-page <a> navigation can fire beforeunload.
+      leaving.current = true;
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     document.addEventListener("click", onClick, true);
@@ -88,7 +97,7 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("click", onClick, true);
     };
-  }, [unsaved, t.result.leaveUnsaved]);
+  }, [unsaved, t.result.leaveUnsaved, homePath]);
   return (
     <Card
       className={cn(panelClass, "mt-6 [div[hidden]+&]:mt-0")}

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import type { Lang } from "@/data/site";
 import type { Copy } from "@/i18n/types";
+import { RichText } from "@/components/RichText";
 import { fillText } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import {
@@ -97,8 +98,8 @@ export function AddressCheck({
     [],
   );
 
-  // On the home page the catalog is read in the browser. Until it answers, show a short loading line (and a pricing-page
-  // fallback without JavaScript) rather than an invisible inert form that never appears when scripts are off.
+  // On the home page the catalog is read in the browser. Until it answers, show a short loading line (and a noscript
+  // fallback to pricing / shop) rather than an invisible inert form that never appears when scripts are off.
   const pending = !given && loaded === null;
   const domains = given ?? loaded ?? [];
   const domain = domains.includes(chosenDomain) ? chosenDomain : (domains[0] ?? "");
@@ -114,10 +115,9 @@ export function AddressCheck({
         </p>
         {pricing && (
           <noscript>
-            <p className="mt-2 text-sm/[1.6] text-muted-foreground">
-              <a className="underline decoration-current/40 underline-offset-4 hover:decoration-current" href={pricing}>
-                {copy.noscript}
-              </a>
+            <p className="mt-2 text-sm/[1.6] text-muted-foreground [&_a]:underline [&_a]:decoration-current/40 [&_a]:underline-offset-4 [&_a:hover]:decoration-current">
+              {/* pricing and shop are already locale paths; leave base empty so RichText does not prefix them again. */}
+              <RichText text={fillText(copy.noscript, { pricing, shop })} base="" />
             </p>
           </noscript>
         )}

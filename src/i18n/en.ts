@@ -612,7 +612,8 @@ export const en: Copy = {
         "Use lowercase letters, digits and . _ - only, starting and ending with a letter or digit, with no two dots in a row and at most 64 characters.",
       checking: "Checking…",
       loading: "Loading available domains…",
-      noscript: "To check an address without JavaScript, open the pricing page.",
+      noscript:
+        "Address checks need JavaScript. Open the [pricing page]({pricing}) to read the plans, or the [shop]({shop}) to buy.",
       available: "{email} is available.",
       taken: "{email} is taken. Try another one.",
       rateLimited: "Too many checks. Try again in a moment.",
