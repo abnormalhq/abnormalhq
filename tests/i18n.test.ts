@@ -195,6 +195,10 @@ const templateSlots = {
   "pricing.plan.seatMailboxes": { min: true, max: true } satisfies Record<TemplateSlot<Plan["seatMailboxes"]>, true>,
   "pricing.plan.seatDiscountNote": { percent: true } satisfies Record<TemplateSlot<Plan["seatDiscountNote"]>, true>,
   "pricing.plan.ownDomains": { count: true } satisfies Record<TemplateSlot<Plan["ownDomains"]>, true>,
+  "pricing.check.noscript": { pricing: true, shop: true } satisfies Record<
+    TemplateSlot<Copy["pricing"]["check"]["noscript"]>,
+    true
+  >,
   "pricing.check.available": { email: true } satisfies Record<
     TemplateSlot<Copy["pricing"]["check"]["available"]>,
     true

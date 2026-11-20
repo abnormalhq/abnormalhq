@@ -297,6 +297,10 @@ export const en: ShopCopy = {
   mailboxCreated: (email: string) => `${email} is ready to use. Its password:`,
   mailboxCreatedPassword: "Password of the new mailbox",
   mailboxCreatedOnce: "The password is shown only this once, so save it now. You can reset it here if you forget it.",
+  mailboxCreatedLeave:
+    "The new mailbox password is shown only once. Continue and hide it? After that you can only set a new password by resetting it.",
+  mailboxCreatedDismiss: "I've saved the password",
+  domainPlaceholder: "example.com",
   mailboxCopy: "Copy",
   mailboxCopied: "Copied",
   mailboxShow: "Show",
@@ -407,6 +411,8 @@ export const en: ShopCopy = {
     days > 0 ? `${price} every ${days} days by card` : `${price} by card`,
   seatWas: "Before the discount",
   seatEstimate: "The total is an estimate; the shop confirms the price when you place the order.",
+  seatLimited:
+    "Price checks are briefly limited. The total shown is an estimate for now; try again in a moment, and the shop confirms the price when you place the order.",
   seatQuoted: "The total is the shop's price for this quantity.",
   seatRenewsAt: (price: string, days: number) => `Then ${price} every ${days} ${days === 1 ? "day" : "days"}`,
   couponSeatRange: (min: number, max: number) =>

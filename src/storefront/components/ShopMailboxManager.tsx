@@ -107,14 +107,36 @@ export function ShopMailboxManager({
     return () => controller.abort();
   }, [lang, reload, refresh, t]);
 
-  /** Run one change: on success close the form, show the result and re-read the list; on failure keep the form and show the reason. */
-  async function act(work: () => Promise<string | void>): Promise<boolean> {
+  // The password of a mailbox just created is shown only once: ask before a reload or closed tab drops it.
+  useEffect(() => {
+    if (!created) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [created]);
+
+  /** Ask before hiding a one-time password the buyer has not dismissed yet. */
+  function releaseCreated(): boolean {
+    if (!created) return true;
+    if (!window.confirm(t.mailboxCreatedLeave)) return false;
+    setCreated(null);
+    return true;
+  }
+
+  /**
+   * Run one change: on success close the form, show the result and re-read the list; on failure keep the form and show the reason.
+   * Creating a mailbox replaces the one-time password panel on success, so it does not ask to hide an earlier password again
+   * (opening the create form already did).
+   */
+  async function act(work: () => Promise<string | void>, options?: { replaceCreated?: boolean }): Promise<boolean> {
     if (busy) return false;
+    if (!options?.replaceCreated && !releaseCreated()) return false;
     setBusy(true);
     setError("");
     setNotice("");
-    // The new password is shown only once, right after activation: any other action (including deleting that mailbox) hides it.
-    setCreated(null);
     try {
       const message = await work();
       if (!mounted.current) return false;
@@ -192,14 +214,19 @@ export function ShopMailboxManager({
               created={created?.orderId === group.orderId ? created : null}
               onReload={() => setReload((value) => value + 1)}
               onOpen={(next) => {
+                if (next !== null && !releaseCreated()) return;
                 setOpen(next);
                 setError("");
               }}
+              onDismissCreated={() => setCreated(null)}
               onCreate={(input) =>
-                act(async () => {
-                  const result = await createAccountMailbox({ orderId: group.orderId, ...input }, lang);
-                  setCreated({ orderId: group.orderId, email: result.email, password: input.password });
-                })
+                act(
+                  async () => {
+                    const result = await createAccountMailbox({ orderId: group.orderId, ...input }, lang);
+                    setCreated({ orderId: group.orderId, email: result.email, password: input.password });
+                  },
+                  { replaceCreated: true },
+                )
               }
               onPassword={(mailbox, password) =>
                 act(async () => {
@@ -237,6 +264,7 @@ function MailboxGroup({
   created,
   onReload,
   onOpen,
+  onDismissCreated,
   onCreate,
   onPassword,
   onStatus,
@@ -250,6 +278,7 @@ function MailboxGroup({
   busy: boolean;
   created: Created | null;
   onOpen: (next: Open) => void;
+  onDismissCreated: () => void;
   onCreate: (input: { domain: string; username: string; password: string }) => Promise<boolean>;
   onPassword: (mailbox: AccountMailbox, password: string) => Promise<boolean>;
   onStatus: (mailbox: AccountMailbox) => Promise<boolean>;
@@ -320,6 +349,11 @@ function MailboxGroup({
             </CopyButton>
           </InputGroup>
           <p className="mt-2 text-xs/[1.6] text-muted-foreground">{t.mailboxCreatedOnce}</p>
+          <ShopActions>
+            <ShopButton type="button" variant="outline" onClick={onDismissCreated}>
+              {t.mailboxCreatedDismiss}
+            </ShopButton>
+          </ShopActions>
         </div>
       )}
       {canCreate &&

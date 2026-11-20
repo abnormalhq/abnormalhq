@@ -32,8 +32,8 @@ export function Home({ lang }: { lang: Lang }) {
       <ScrollReveal />
       <Hero lang={lang} />
       <Products lang={lang} />
-      <DoppelWaitlist lang={lang} copy={t.waitlist} />
       <MailIntro lang={lang} />
+      <DoppelWaitlist lang={lang} copy={t.waitlist} />
       <PromoVideo lang={lang} />
       <Screens lang={lang} />
       <Demo lang={lang} />

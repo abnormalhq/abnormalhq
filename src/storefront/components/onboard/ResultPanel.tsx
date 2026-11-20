@@ -52,6 +52,7 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
   // The passwords on this panel are shown once and nowhere else unless a copy was emailed. Until then, a reload, a closed
   // tab or a link followed in this tab (the guide) would lose them silently, so the browser asks first. "Redeem again"
   // leaves on purpose and is let through; webmail opens in a new tab and leaves this one as it is.
+  // Same-document Next.js <Link> navigations do not fire beforeunload: catch those clicks too.
   const unsaved = issued.length > 0 && !notification?.sent;
   const leaving = useRef(false);
   useEffect(() => {
@@ -62,9 +63,41 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
       // Older browsers ask only when returnValue is set; its text is never shown.
       event.returnValue = "";
     };
+    const onClick = (event: MouseEvent) => {
+      if (leaving.current || event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(target instanceof HTMLAnchorElement)) return;
+      if (target.target === "_blank" || target.hasAttribute("download")) return;
+      let url: URL;
+      try {
+        url = new URL(target.href, window.location.href);
+      } catch {
+        return;
+      }
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      // "Redeem again" sets leaving in its own handler, but that runs after this capture listener: skip it here.
+      const again = new URL(`${homePath}${REDEEM_PATH}`, window.location.href);
+      if (url.pathname === again.pathname && url.search === again.search) {
+        leaving.current = true;
+        return;
+      }
+      if (!window.confirm(t.result.leaveUnsaved)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      // Accepting the dialog must arm leaving before a full-page <a> navigation can fire beforeunload.
+      leaving.current = true;
+    };
     window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [unsaved]);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [unsaved, t.result.leaveUnsaved, homePath]);
   return (
     <Card
       className={cn(panelClass, "mt-6 [div[hidden]+&]:mt-0")}

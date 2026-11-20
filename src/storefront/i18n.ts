@@ -160,6 +160,8 @@ export interface Copy {
     /** Read the guide next: one sentence with a [text](guide/) link. */
     next: string;
     again: string;
+    /** Asked before an in-tab navigation that would drop passwords shown only once. */
+    leaveUnsaved: string;
   };
   guide: GuideCopy;
   help: {

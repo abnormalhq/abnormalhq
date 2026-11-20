@@ -273,6 +273,9 @@ export const zh = {
   mailboxCreated: (email: string) => `${email} 已开通，可以登录了。密码如下：`,
   mailboxCreatedPassword: "新邮箱的密码",
   mailboxCreatedOnce: "密码只显示这一次，请先保存好；忘了可以在这里重设。",
+  mailboxCreatedLeave: "新邮箱的密码只显示一次。确定继续并收起密码吗？收起后只能通过重置再设新密码。",
+  mailboxCreatedDismiss: "我已保存密码",
+  domainPlaceholder: "example.com",
   mailboxCopy: "复制",
   mailboxCopied: "已复制",
   mailboxShow: "显示",
@@ -372,6 +375,7 @@ export const zh = {
   seatTotalCard: (price: string, days: number) => (days > 0 ? `银行卡 ${price} / ${days} 天` : `银行卡 ${price}`),
   seatWas: "优惠前",
   seatEstimate: "合计为预估金额，以下单时商店确认的价格为准。",
+  seatLimited: "询价暂时过于频繁，合计先按预估显示；稍后再试，以下单时商店确认的价格为准。",
   seatQuoted: "合计是商店按所选数量给出的价格。",
   seatRenewsAt: (price: string, days: number) => `之后每 ${days} 天续费 ${price}`,
   couponSeatRange: (min: number, max: number) =>

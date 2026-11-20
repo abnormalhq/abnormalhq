@@ -181,7 +181,10 @@ export interface Copy {
     eyebrow: string;
     title: string;
     description: string;
+    /** Shown while the browser asks /api/waitlist/. */
     checking: string;
+    /** Shown when JavaScript is off; registration status cannot be confirmed then. */
+    needJs: string;
     closedTitle: string;
     closedDescription: string;
     statusUnavailable: string;
@@ -468,6 +471,13 @@ export interface Copy {
       /** The username rule, shown when what was typed breaks it. */
       invalid: string;
       checking: string;
+      /** While the home page waits for the catalog of domains. */
+      loading: string;
+      /**
+       * Without JavaScript the home check cannot run. Markdown links use {pricing} and {shop} filled with the locale
+       * paths (src/components/AddressCheck.tsx).
+       */
+      noscript: Template<"pricing" | "shop">;
       available: Template<"email">;
       taken: Template<"email">;
       rateLimited: string;

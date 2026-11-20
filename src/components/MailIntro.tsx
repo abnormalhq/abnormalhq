@@ -41,6 +41,7 @@ export function MailIntro({ lang }: { lang: Lang }) {
             lang={lang}
             copy={t.pricing.check}
             shop={links.shop}
+            pricing={links.pricing}
           />
           <div className="min-w-0 flex-1 basis-[400px] text-muted-foreground">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm/body">

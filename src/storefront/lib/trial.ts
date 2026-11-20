@@ -104,6 +104,7 @@ export const trialCopy = {
     couponLabel: "Discount code (optional)",
     couponHint:
       "Applies to the first paid period of your trial upgrade only. Other periods and later renewals keep the regular price. The discount is shown on the order confirmation page before payment.",
+    couponPlaceholder: "WELCOME10",
   },
   zh: {
     choosePlan: "试用后套餐",
@@ -138,5 +139,6 @@ export const trialCopy = {
     signin: "登录并开始免费试用",
     couponLabel: "优惠码（选填）",
     couponHint: "仅抵扣试用升级的首个付费周期，其余周期和后续续费恢复原价。优惠金额会在付款前的订单确认页显示。",
+    couponPlaceholder: "WELCOME10",
   },
 };

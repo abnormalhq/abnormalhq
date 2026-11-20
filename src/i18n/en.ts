@@ -92,7 +92,8 @@ export const en: Copy = {
     title: "Doppel access waitlist",
     description:
       "Doppel is not publicly available. When registration opens, joining the waitlist requests future access updates; it does not grant access or guarantee an invitation.",
-    checking: "Email registration appears only when availability is confirmed. Enable JavaScript to check the status.",
+    checking: "Checking whether registration is open…",
+    needJs: "Enable JavaScript to check whether Doppel registration is open.",
     closedTitle: "Registration is not open yet",
     closedDescription: "We are not accepting email addresses right now. Check back here for waitlist availability.",
     statusUnavailable:
@@ -610,6 +611,9 @@ export const en: Copy = {
       invalid:
         "Use lowercase letters, digits and . _ - only, starting and ending with a letter or digit, with no two dots in a row and at most 64 characters.",
       checking: "Checking…",
+      loading: "Loading available domains…",
+      noscript:
+        "Address checks need JavaScript. Open the [pricing page]({pricing}) to read the plans, or the [shop]({shop}) to buy.",
       available: "{email} is available.",
       taken: "{email} is taken. Try another one.",
       rateLimited: "Too many checks. Try again in a moment.",

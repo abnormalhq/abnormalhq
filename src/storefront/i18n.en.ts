@@ -148,6 +148,8 @@ export const en: Copy = {
     ],
     next: "For what comes next, from logging in to the mailbox to using it for Claude and ChatGPT, see the [guide](guide/).",
     again: "Redeem again",
+    leaveUnsaved:
+      "Mailbox passwords are shown only on this page. Leave without saving them? You will not see them again unless a copy was emailed.",
   },
   help: {
     eyebrow: "Questions",

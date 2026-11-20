@@ -332,7 +332,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                       onChange={(event) => setCoupon(event.target.value)}
                       maxLength={COUPON_MAX_LENGTH}
                       disabled={creating}
-                      placeholder="WELCOME10"
+                      placeholder={trialCopy[lang].couponPlaceholder}
                       autoComplete="off"
                       autoCapitalize="characters"
                       spellCheck={false}
