@@ -24,7 +24,7 @@ export interface StatusSummary {
 
 /** The path the pages request, on this site's own origin. */
 export const STATUS_API_PATH = "/api/status";
-/** Seconds a summary is reused: by the Worker, by the browser's cache, and by one tab across its pages. */
+/** Seconds a successful summary stays fresh in the Worker and browser caches. */
 export const STATUS_MAX_AGE_SECONDS = 60;
 
 /**
@@ -50,103 +50,4 @@ export function formatUptime(uptime: number): string {
   if (uptime >= 100) return "100";
   const text = uptime.toFixed(2);
   return text === "100.00" ? "99.99" : text;
-}
-
-let shared: { request: Promise<StatusSummary | null>; at: number } | null = null;
-
-/**
- * One status request per page view, shared by the footer and the home page's hero, and reused for a minute across client-side
- * navigation; after that minute the next read asks again (watchStatus does, every minute). It never rejects: no answer, a failed one, or one in an unknown shape is null, and the pages then show nothing.
- * A failure is forgotten, so the next page asks again.
- */
-export function sharedStatus(
-  fetcher: typeof fetch = fetch,
-  now: () => number = Date.now,
-): Promise<StatusSummary | null> {
-  if (shared && now() - shared.at < STATUS_MAX_AGE_SECONDS * 1000) return shared.request;
-  const request = fetcher(STATUS_API_PATH, { headers: { Accept: "application/json" }, credentials: "omit" })
-    .then(async (response) => (response.ok ? readStatusSummary(await response.json()) : null))
-    .catch(() => null);
-  const entry = { request, at: now() };
-  shared = entry;
-  void request.then((summary) => {
-    if (!summary && shared === entry) shared = null;
-  });
-  return request;
-}
-
-const watchers = new Set<(summary: StatusSummary | null) => void>();
-let watching: { stop: () => void } | null = null;
-
-/** What watchStatus needs of the page; the defaults are the browser's, tests pass their own. */
-export interface StatusWatchHost {
-  fetcher: typeof fetch;
-  now: () => number;
-  /** Starts a repeating timer and returns how to stop it. */
-  every: (ms: number, run: () => void) => () => void;
-  /** Whether the page is in a background tab, and how to hear that it came back; absent means always visible. */
-  hidden?: () => boolean;
-  onVisible?: (run: () => void) => () => void;
-}
-
-const browserHost = (): StatusWatchHost => ({
-  fetcher: fetch,
-  now: Date.now,
-  every: (ms, run) => {
-    const timer = setInterval(run, ms);
-    return () => clearInterval(timer);
-  },
-  hidden: () => document.visibilityState === "hidden",
-  onVisible: (run) => {
-    const listener = () => document.visibilityState === "visible" && run();
-    document.addEventListener("visibilitychange", listener);
-    return () => document.removeEventListener("visibilitychange", listener);
-  },
-});
-
-/**
- * The status now and for as long as the caller stays on the page: `onStatus` hears the first answer and then a new one every
- * minute, so a page left open (and the footer, which stays mounted across client-side navigation) does not go on saying
- * "All systems operational" through a later outage. When a refresh fails the answer is null and the pages show nothing, rather
- * than the last good state. All watchers share one timer and one request; a background tab does not ask, and asks at once when
- * it is shown again. Returns how to stop.
- */
-export function watchStatus(
-  onStatus: (summary: StatusSummary | null) => void,
-  host: StatusWatchHost = browserHost(),
-): () => void {
-  const read = () => sharedStatus(host.fetcher, host.now);
-  const refresh = () => {
-    if (host.hidden?.()) return;
-    void read().then((summary) => {
-      for (const watcher of watchers) watcher(summary);
-    });
-  };
-  watchers.add(onStatus);
-  void read().then((summary) => watchers.has(onStatus) && onStatus(summary));
-  if (!watching) {
-    const stopTimer = host.every(STATUS_MAX_AGE_SECONDS * 1000, refresh);
-    const stopListening = host.onVisible?.(refresh);
-    watching = {
-      stop: () => {
-        stopTimer();
-        stopListening?.();
-      },
-    };
-  }
-  return () => {
-    watchers.delete(onStatus);
-    if (watchers.size === 0) {
-      watching?.stop();
-      watching = null;
-    }
-  };
-}
-
-/** For tests: forget the shared request and every watcher. */
-export function forgetSharedStatus(): void {
-  shared = null;
-  watchers.clear();
-  watching?.stop();
-  watching = null;
 }

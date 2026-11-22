@@ -12,6 +12,7 @@ import { Brand } from "./Brand";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { InquiryProvider } from "./InquiryDialog";
+import { QueryProvider } from "./QueryProvider";
 import "@/styles/global.css";
 
 const fontOptions = { as: "font", type: "font/woff2", crossOrigin: "anonymous" } as const;
@@ -34,29 +35,31 @@ export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode
         <ThemeScript />
       </head>
       <body>
-        <SkipLink href="#main">{t.skipLink}</SkipLink>
-        <InquiryProvider
-          lang={lang}
-          copy={t.inquiry}
-          dot={t.dot}
-          products={[...t.products.items.filter(({ link }) => link === "mail"), ...t.services.products].map(
-            ({ name }) => name,
-          )}
-          termsPage={legalPage("/terms/")}
-          privacyPage={legalPage("/privacy/")}
-        >
-          <Header
+        <QueryProvider>
+          <SkipLink href="#main">{t.skipLink}</SkipLink>
+          <InquiryProvider
             lang={lang}
-            brand={<Brand lang={lang} />}
-            copy={t.header}
-            themeCopy={t.theme}
-            langToggle={t.langToggle}
-          />
-          <main id="main" tabIndex={-1}>
-            {children}
-          </main>
-          <Footer lang={lang} />
-        </InquiryProvider>
+            copy={t.inquiry}
+            dot={t.dot}
+            products={[...t.products.items.filter(({ link }) => link === "mail"), ...t.services.products].map(
+              ({ name }) => name,
+            )}
+            termsPage={legalPage("/terms/")}
+            privacyPage={legalPage("/privacy/")}
+          >
+            <Header
+              lang={lang}
+              brand={<Brand lang={lang} />}
+              copy={t.header}
+              themeCopy={t.theme}
+              langToggle={t.langToggle}
+            />
+            <main id="main" tabIndex={-1}>
+              {children}
+            </main>
+            <Footer lang={lang} />
+          </InquiryProvider>
+        </QueryProvider>
       </body>
     </html>
   );
