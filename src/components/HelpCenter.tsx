@@ -3,7 +3,7 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import { helpArticles, helpCategoryIds, helpContent, helpPath } from "@/content/help";
 import { site, type Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { helpIndexStructuredData } from "@/lib/structured-data";
 import { HelpSearch } from "./HelpSearch";
 import { Icon } from "./Icon";
@@ -14,7 +14,7 @@ import { JsonLd } from "@/components/ui/json-ld";
  * and HelpSearch, a client component, gets only this language's titles, summaries and keywords through props.
  */
 export function HelpCenter({ lang }: { lang: Lang }) {
-  const { t, path } = useCopy(lang);
+  const { t, path } = getCopy(lang);
   const h = t.help;
   const { categories } = helpContent[lang];
   const articles = helpArticles(lang);

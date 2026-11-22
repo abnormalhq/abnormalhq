@@ -2,14 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
 import { ProductCard } from "./ProductCard";
 
 export function Subscriptions({ lang }: { lang: Lang }) {
-  const { t } = useCopy(lang);
+  const { t } = getCopy(lang);
   const s = t.services;
 
   return (

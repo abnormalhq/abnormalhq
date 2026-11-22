@@ -1,11 +1,10 @@
 /**
- * The storefront's languages, paths and copy types. The copy itself is one module per language (i18n.zh.ts, i18n.en.ts), so a client component
- * that only needs a path or a type never pulls in the text of both; copy.ts holds both for server code and tests, and client components take
- * their page's language from the provider the page renders (src/storefront/components/copy/).
+ * The storefront's languages, paths and copy types. Client components use the messages for their active locale from NextIntlClientProvider.
  * Tone follows the design system's content guidelines: short sentences ending in full stops, no exclamation marks or emoji; full-width punctuation in Chinese; product names are not translated.
  */
 
 import { localDate } from "../lib/dates.ts";
+import type { MessageTree } from "../i18n/message-types.ts";
 
 export type Lang = "zh" | "en";
 export const LANGS: readonly Lang[] = ["en", "zh"];
@@ -175,6 +174,8 @@ export interface Copy {
     links: readonly { label: string; href: string }[];
   };
 }
+
+export type CopyMessages = MessageTree<Copy>;
 
 /** The server's reason ends in a full stop; drop it when embedding mid-sentence, so two punctuation marks do not touch. */
 export function withoutPeriod(reason: string): string {

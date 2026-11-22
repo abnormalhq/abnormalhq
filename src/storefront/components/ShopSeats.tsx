@@ -19,7 +19,7 @@ import {
   type SeatQuote,
 } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import { ShopActions, ShopAlert, ShopButton, ShopField, ShopMeta, ShopMetaRow, shopTextClass } from "./ShopParts";
 import { ShopSeatStepper } from "./ShopSeatStepper";
 

@@ -13,7 +13,7 @@ import { Eyebrow, HeadingMark, sectionSpaceClassName } from "@/components/ui/sec
 import { TextLink } from "@/components/ui/text-link";
 import type { LegalFrontmatter, LegalHeading } from "@/content/legal/types";
 import { site, type Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { contactChannels } from "@/lib/inquiry";
 import { legalSections } from "@/lib/legal";
 import { legalStructuredData } from "@/lib/structured-data";
@@ -38,7 +38,7 @@ export function LegalDocument({
   children: ReactNode;
 }) {
   const { title, eyebrow, summary, effective, updated, highlights } = frontmatter;
-  const { t, path } = useCopy(lang);
+  const { t, path } = getCopy(lang);
   const l = t.legal;
   const relatedPages = t.legalPages.filter(({ path: page }) => page !== currentPage);
   const sections = [...legalSections(headings), { slug: "contact", text: l.contactTitle }];

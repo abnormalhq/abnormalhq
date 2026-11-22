@@ -26,8 +26,8 @@ import {
   ShopApiError,
 } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
-import { useShopCopy } from "./copy/context";
+import type { ShopCopy } from "@/storefront/lib/shop-copy.types";
+import { useShopCopy } from "./copy/hooks";
 import { cn } from "@/lib/utils";
 import { inputActionClass } from "./onboard/AccountRow";
 import {

@@ -1,6 +1,6 @@
-import type { Copy } from "./types.ts";
+import type { CopyMessages } from "./types.ts";
 
-export const en: Copy = {
+export const en: CopyMessages = {
   htmlLang: "en",
   ogLocale: "en_US",
   dot: ".",
@@ -679,7 +679,7 @@ export const en: Copy = {
     ],
     priceFallback: "On request",
     consult: "Ask about this",
-    consultAria: (name) => `Ask about this: ${name}`,
+    consultAria: "Ask about this: {name}",
     noteQuestion: "Need a hand setting things up, or something else?",
     noteAction: "Talk to us",
     noteFine:
@@ -853,7 +853,7 @@ export const en: Copy = {
       { link: "claude", label: "Claude connector" },
     ],
     faq: "FAQ",
-    emailAria: (email) => `Support email: ${email}`,
+    emailAria: "Support email: {email}",
     copyright: "© {year} Abnormal. Thoughtfully made.",
     buyOnline: "Buy a mailbox online",
     legalLabel: "Legal",
@@ -959,13 +959,13 @@ export const en: Copy = {
     highlights: "At a glance",
     highlightsNote: "This summary is for convenience; the full text below governs.",
     contactTitle: "Contact us",
-    contactBody: (title) =>
-      `If you have questions about this ${title}, or want to access, correct or delete your information, contact us below. Tell us what you need and include any order details; never send passwords, verification codes or card details.`,
+    contactBody:
+      "If you have questions about this {title}, or want to access, correct or delete your information, contact us below. Tell us what you need and include any order details; never send passwords, verification codes or card details.",
     contactPending: "Contact channels are coming soon and will be listed here.",
     contactLabels: { email: "Email", wechat: "WeChat", telegram: "Telegram" },
     colon: ": ",
     relatedLabel: "Related pages",
-    seeAlso: (label) => `See also: ${label}`,
+    seeAlso: "See also: {label}",
     backHome: "Back to home",
   },
 };

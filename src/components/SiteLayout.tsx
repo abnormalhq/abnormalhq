@@ -7,7 +7,7 @@ import { ThemeScript } from "@/components/ui/theme-script";
 import type { ReactNode } from "react";
 import { preload } from "react-dom";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { Brand } from "./Brand";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
@@ -17,7 +17,7 @@ import "@/styles/global.css";
 const fontOptions = { as: "font", type: "font/woff2", crossOrigin: "anonymous" } as const;
 
 export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode }) {
-  const { t, path } = useCopy(lang);
+  const { t, path } = getCopy(lang);
   const legalPage = (page: string) => {
     const { label } = t.legalPages.find(({ path: candidate }) => candidate === page)!;
     return { href: path(page), label };

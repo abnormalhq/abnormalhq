@@ -7,7 +7,7 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { desktopDownloads, type Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { fileLabel, formatSize, linuxDownload, releaseDate, type DesktopReleases } from "@/lib/releases";
 import type { DesktopPlatform } from "@/lib/platform";
 import { fillTemplate } from "@/lib/template";
@@ -27,7 +27,7 @@ import { JsonLd } from "@/components/ui/json-ld";
 const RECENT_RELEASES = 3;
 
 export function Download({ lang, releases }: { lang: Lang; releases?: DesktopReleases }) {
-  const { t, links, path } = useCopy(lang);
+  const { t, links, path } = getCopy(lang);
   const d = t.download;
   const linux = linuxDownload(releases);
   const platforms: {

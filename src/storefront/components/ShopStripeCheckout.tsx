@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Lang } from "@/storefront/i18n";
 import { startStripePayment } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import { cn } from "@/lib/utils";
 import { ShopActions, ShopAlert, ShopButton, shopArriveClass, shopTextClass } from "./ShopParts";
 import { Skeleton } from "@/components/ui/skeleton";

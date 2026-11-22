@@ -3,13 +3,13 @@ import { Container } from "@/components/ui/container";
 import { Marker } from "@/components/ui/marker";
 import { Eyebrow, HeadingMark } from "@/components/ui/section-heading";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
 
 /** The family entrance: one marked phrase and a quiet ink frame, not a simulated product interface. */
 export function Hero({ lang }: { lang: Lang }) {
-  const { t } = useCopy(lang);
+  const { t } = getCopy(lang);
   const h = t.hero;
 
   return (

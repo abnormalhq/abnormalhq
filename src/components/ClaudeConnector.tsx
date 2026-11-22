@@ -2,7 +2,7 @@ import Link from "next/link";
 import { TextLink } from "@/components/ui/text-link";
 import { claudeContent } from "@/content/claude";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { claudeStructuredData } from "@/lib/structured-data";
 import { DocArticle } from "./DocArticle";
 import { Icon } from "./Icon";
@@ -14,7 +14,7 @@ import { JsonLd } from "@/components/ui/json-ld";
  * src/content/claude/, written only from what mail's documentation and the privacy policy back up.
  */
 export function ClaudeConnector({ lang }: { lang: Lang }) {
-  const { t, path } = useCopy(lang);
+  const { t, path } = getCopy(lang);
   const c = t.claude;
   const content = claudeContent[lang];
   return (

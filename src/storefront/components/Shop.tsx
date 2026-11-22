@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { trialCopy } from "@/storefront/lib/trial";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -28,7 +27,7 @@ import { COUPON_MAX_LENGTH, couponVerdict, normalizeCoupon, rememberCoupon } fro
 import { QuoteBoard, seatFigure, seatRefusal, seatTerms, viewOf, type SeatFigure } from "@/storefront/lib/quote";
 import { takeEarlyCatalog } from "@/storefront/lib/catalog";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import {
   ADDRESS_PARAM,
   PLAN_PARAM,
@@ -417,11 +416,11 @@ export function Shop({ lang }: { lang: Lang }) {
         // A banner above the plans: the offer on the left, its one action on the right; stacked on a phone.
         <Card className="mb-12 flex-row flex-wrap items-center justify-between gap-x-8 gap-y-5 p-7 max-narrow:mb-10 max-narrow:px-5 max-narrow:py-[22px]">
           <div className="max-w-[640px] min-w-0 flex-[1_1_320px]">
-            <h2 className={shopHeadingClass}>{trialCopy[lang].title}</h2>
-            <p className={shopTextClass}>{trialCopy[lang].description(catalog.trial.days, catalog.trial.quotaMb)}</p>
+            <h2 className={shopHeadingClass}>{t.trial.title}</h2>
+            <p className={shopTextClass}>{t.trial.description(catalog.trial.days, catalog.trial.quotaMb)}</p>
           </div>
           <ShopButton asChild className="shrink-0 max-narrow:w-full">
-            <Link href={`/${LANG_PATHS[lang]}shop/account/`}>{trialCopy[lang].signin}</Link>
+            <Link href={`/${LANG_PATHS[lang]}shop/account/`}>{t.trial.signin}</Link>
           </ShopButton>
         </Card>
       )}

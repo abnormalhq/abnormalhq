@@ -6,7 +6,7 @@ import {
   DescriptionTerm,
 } from "@/components/ui/description-list";
 import type { Lang } from "@/storefront/i18n";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import type { ReactNode } from "react";
 import { formatCredits, formatMoney, formatUsdt, type ShopProduct } from "@/storefront/lib/shop";
 

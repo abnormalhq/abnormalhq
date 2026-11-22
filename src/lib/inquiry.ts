@@ -1,4 +1,6 @@
 import type { Contact, Lang } from "../data/site.ts";
+import { createTranslator } from "use-intl/core";
+import { inquiryMessages } from "./inquiry-messages.ts";
 
 export interface Inquiry {
   product: string;
@@ -7,43 +9,17 @@ export interface Inquiry {
 }
 
 /** Inquiry copy: the email sent to us and the copied text use the language of the visitor's current page. */
-const text = {
-  zh: {
-    greeting: "你好，我想咨询 Abnormal 产品。",
-    product: "服务类型：",
-    duration: "使用时长：",
-    notes: "需求：",
-    closing: "请帮我确认适合的方案、总费用、使用方式与支持范围。",
-    subject: "Abnormal 产品咨询 · ",
-    telegram: "在 Telegram 咨询",
-    email: "通过邮件咨询",
-    wechatLabel: "微信：",
-    emailLabel: "邮箱：",
-    telegramLabel: "Telegram：",
-    separator: " · ",
-    contactHint: "。复制下方咨询内容后联系我们。",
-    noContact: "咨询渠道即将公布。你可以先复制需求，稍后再来联系我们。",
-  },
-  en: {
-    greeting: "Hi, I'd like to ask about an Abnormal product.",
-    product: "Service: ",
-    duration: "Term: ",
-    notes: "Details: ",
-    closing: "Please let me know the plan, total cost, setup time and what support is included.",
-    subject: "Abnormal product inquiry · ",
-    telegram: "Ask on Telegram",
-    email: "Ask by email",
-    wechatLabel: "WeChat: ",
-    emailLabel: "Email: ",
-    telegramLabel: "Telegram: ",
-    separator: " · ",
-    contactHint: ". Copy the message below and send it to us.",
-    noContact: "Contact channels are coming soon. You can copy your request now and get in touch later.",
-  },
-} satisfies Record<Lang, Record<string, string>>;
+function inquiryCopy(lang: Lang) {
+  const t = createTranslator({ locale: lang, messages: inquiryMessages[lang], namespace: "inquiry" });
+  const keys = Object.keys(inquiryMessages.en.inquiry) as (keyof typeof inquiryMessages.en.inquiry)[];
+  return Object.fromEntries(keys.map((key) => [key, t(key)])) as Record<
+    keyof typeof inquiryMessages.en.inquiry,
+    string
+  >;
+}
 
 export function formatInquiry({ product, duration, notes }: Inquiry, lang: Lang): string {
-  const t = text[lang];
+  const t = inquiryCopy(lang);
   return [
     t.greeting,
     `${t.product}${product}`,
@@ -65,7 +41,7 @@ export function getTelegramUrl(value: string): string | undefined {
 }
 
 export function getContactLink(contact: Contact, inquiry: Inquiry, lang: Lang) {
-  const t = text[lang];
+  const t = inquiryCopy(lang);
   const telegram = getTelegramUrl(contact.telegram);
   if (telegram)
     return {
@@ -100,7 +76,7 @@ export function contactChannels(
 }
 
 export function describeContact(contact: Contact, lang: Lang): string {
-  const t = text[lang];
+  const t = inquiryCopy(lang);
   const telegram = getTelegramUrl(contact.telegram);
   const parts = [
     contact.wechat.trim() && `${t.wechatLabel}${contact.wechat.trim()}`,

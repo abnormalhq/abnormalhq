@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import { TextLink } from "@/components/ui/text-link";
 import { Container } from "@/components/ui/container";
 import { site, type Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { fillTemplate } from "@/lib/template";
 import { Brand } from "./Brand";
 import { CurrentYear } from "./CurrentYear";
@@ -14,7 +14,7 @@ const labelClass = "mb-3 text-sm/[1.6] text-muted-foreground";
 const linkClass = "text-base/body text-muted-foreground transition-colors duration-150 hover:text-foreground";
 
 export function Footer({ lang }: { lang: Lang }) {
-  const { t, links, path } = useCopy(lang);
+  const { t, links, path } = getCopy(lang);
   const f = t.footer;
   const productLinks = f.productLinks.map(({ link, label }) => ({ href: links[link], label }));
   const supportLinks = f.supportLinks.map(({ link, label }) => ({ href: links[link], label }));

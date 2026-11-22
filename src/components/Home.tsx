@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark } from "@/components/ui/section-heading";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { homeStructuredData } from "@/lib/structured-data";
 import { Demo } from "./Demo";
@@ -25,7 +25,7 @@ import { Subscriptions } from "./Subscriptions";
 
 /** Home page, shared by src/app/(en)/page.tsx (English) and src/app/(zh)/zh/page.tsx (Chinese). */
 export function Home({ lang }: { lang: Lang }) {
-  const { t, links } = useCopy(lang);
+  const { t, links } = getCopy(lang);
   return (
     <>
       <JsonLd data={homeStructuredData(lang)} />

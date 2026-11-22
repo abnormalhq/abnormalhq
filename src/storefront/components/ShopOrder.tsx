@@ -33,7 +33,7 @@ import {
   takeAwaiting,
 } from "@/storefront/lib/order-progress";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
 import { celebrate } from "./onboard/celebrate";
@@ -63,7 +63,6 @@ import {
 } from "./ShopParts";
 import { ShopPrice } from "./ShopPrice";
 import { ShopSession } from "./ShopSession";
-import { trialCopy } from "@/storefront/lib/trial";
 import { ShopStripeCheckout } from "./ShopStripeCheckout";
 import { ShopUsdtCheckout } from "./ShopUsdtCheckout";
 
@@ -288,14 +287,14 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             </div>
           )
         }
-        eyebrow={order?.trialUpgrade ? trialCopy[lang].upgradeOrder : renewal ? t.renewalLabel : t.orderLabel}
+        eyebrow={order?.trialUpgrade ? t.trial.upgradeOrder : renewal ? t.renewalLabel : t.orderLabel}
         title={
           order?.trialUpgrade
             ? paid
-              ? trialCopy[lang].upgradePaid
-              : trialCopy[lang].upgradeConfirm
+              ? t.trial.upgradePaid
+              : t.trial.upgradeConfirm
             : order?.trial
-              ? trialCopy[lang].title
+              ? t.trial.title
               : renewal
                 ? paid
                   ? t.renewalPaidTitle
@@ -307,10 +306,10 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
       >
         {order?.trialUpgrade
           ? paid
-            ? trialCopy[lang].upgradePaidDescription
-            : trialCopy[lang].upgradeCheck
+            ? t.trial.upgradePaidDescription
+            : t.trial.upgradeCheck
           : order?.trial
-            ? trialCopy[lang].expiry
+            ? t.trial.expiry
             : renewal
               ? paid
                 ? t.renewalPaidDescription
@@ -427,11 +426,11 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                     </span>
                   )
                 )}
-                {order.trial ? trialCopy[lang].title : paid ? t.paid : t.pending}
+                {order.trial ? t.trial.title : paid ? t.paid : t.pending}
               </Badge>
             </div>
             {order.trial ? (
-              <p className={shopTextClass}>{trialCopy[lang].title}</p>
+              <p className={shopTextClass}>{t.trial.title}</p>
             ) : order.provider === "stripe" ? (
               // Without the currency the amount cannot be read: show none rather than a guessed one.
               order.currency && (
@@ -468,7 +467,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             {renewal ? (
               <p className={shopTextClass}>
                 {order.trialUpgrade
-                  ? trialCopy[lang].paidPeriods(order.periods ?? 1, order.periodDays ?? 0)
+                  ? t.trial.paidPeriods(order.periods ?? 1, order.periodDays ?? 0)
                   : t.renewalPeriods(order.periods ?? 1, order.periodDays ?? 0)}
               </p>
             ) : (
@@ -480,9 +479,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               />
             )}
             <ShopMeta>
-              {order.trialUpgrade && (
-                <ShopMetaRow label={trialCopy[lang].seats}>{t.quantity(order.mailboxCount)}</ShopMetaRow>
-              )}
+              {order.trialUpgrade && <ShopMetaRow label={t.trial.seats}>{t.quantity(order.mailboxCount)}</ShopMetaRow>}
               <ShopMetaRow label={t.orderId}>
                 <ShopOrderCode>{order.id}</ShopOrderCode>
               </ShopMetaRow>
@@ -538,7 +535,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
                 </>
               ) : order.trial ? (
                 <>
-                  <p className={shopTextClass}>{trialCopy[lang].claimed}</p>
+                  <p className={shopTextClass}>{t.trial.claimed}</p>
                   <ShopButton asChild>
                     <Link href={`/${LANG_PATHS[lang]}shop/account/`}>{t.setUpInAccount}</Link>
                   </ShopButton>
@@ -604,7 +601,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               <h2 className={shopHeadingClass}>{order.provider === "stripe" ? t.payStripe : t.pay}</h2>
               <p className={shopTextClass}>
                 {order.trialUpgrade
-                  ? trialCopy[lang].paymentNote
+                  ? t.trial.paymentNote
                   : order.provider === "stripe"
                     ? t.stripePaymentNote
                     : t.paymentNote}

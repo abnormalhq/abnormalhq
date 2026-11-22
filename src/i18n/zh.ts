@@ -1,6 +1,6 @@
-import type { Copy } from "./types.ts";
+import type { CopyMessages } from "./types.ts";
 
-export const zh: Copy = {
+export const zh: CopyMessages = {
   htmlLang: "zh-CN",
   ogLocale: "zh_CN",
   dot: "。",
@@ -635,7 +635,7 @@ export const zh: Copy = {
     ],
     priceFallback: "咨询报价",
     consult: "咨询这项服务",
-    consultAria: (name) => `咨询这项服务：${name}`,
+    consultAria: "咨询这项服务：{name}",
     noteQuestion: "需要配置协助，或有其他需求？",
     noteAction: "和我们聊聊",
     noteFine:
@@ -804,7 +804,7 @@ export const zh: Copy = {
       { link: "claude", label: "Claude 连接器" },
     ],
     faq: "常见问题",
-    emailAria: (email) => `客服邮箱：${email}`,
+    emailAria: "客服邮箱：{email}",
     copyright: "© {year} Abnormal. 用心服务日常。",
     buyOnline: "在线购买邮箱",
     legalLabel: "法律信息",
@@ -902,13 +902,13 @@ export const zh: Copy = {
     highlights: "要点速览",
     highlightsNote: "摘要仅供快速了解，具体以正文为准。",
     contactTitle: "联系我们",
-    contactBody: (title) =>
-      `如对本${title}有任何疑问，或需要查询、更正、删除你的信息，请通过以下方式联系我们。为便于处理，请说明你的诉求及相关订单信息；请勿在消息中发送密码、验证码或支付卡信息。`,
+    contactBody:
+      "如对本{title}有任何疑问，或需要查询、更正、删除你的信息，请通过以下方式联系我们。为便于处理，请说明你的诉求及相关订单信息；请勿在消息中发送密码、验证码或支付卡信息。",
     contactPending: "联系渠道即将公布，公布后会更新在本页面。",
     contactLabels: { email: "邮箱", wechat: "微信", telegram: "Telegram" },
     colon: "：",
     relatedLabel: "相关页面",
-    seeAlso: (label) => `另见 ${label}`,
+    seeAlso: "另见 {label}",
     backHome: "返回首页",
   },
 };

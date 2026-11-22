@@ -37,7 +37,7 @@ import {
   type UsdtPaymentStart,
 } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import { ShopActions, ShopAlert, ShopButton, ShopTestnetBadge, shopArriveClass, shopTextClass } from "./ShopParts";
 
 /** How often pay/usdt is asked while the page is visible: mail expects about this and throttles its own look at the chain. */
@@ -94,7 +94,7 @@ export function ShopUsdtCheckout({
   /** Whether the page is asking mail by itself right now: the order's status badge beats while it is. */
   onWatching?: (watching: boolean) => void;
 }) {
-  // The page language's copy from its provider: the bundle carries one language (copy/context.tsx).
+  // The page language's copy from its provider: the bundle carries one language (copy/hooks.tsx).
   const t = useShopCopy();
   const [phase, setPhase] = useState<Phase>("loading");
   const [payment, setPayment] = useState<Open | null>(null);

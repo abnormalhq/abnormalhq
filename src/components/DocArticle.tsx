@@ -13,7 +13,7 @@ import { Prose } from "@/components/ui/prose";
 import { Eyebrow, HeadingMark, sectionSpaceClassName } from "@/components/ui/section-heading";
 import type { DevDocBlock, DevDocSection, DocSection } from "@/content/help/types";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { docBase, sectionId } from "@/lib/docs";
 import { cn } from "@/lib/utils";
 import { RichText } from "@/components/RichText";
@@ -56,7 +56,7 @@ export function DocArticle({
   slots?: Readonly<Partial<Record<NonNullable<DevDocSection["slot"]>, ReactNode>>>;
   children?: ReactNode;
 }) {
-  const { t, path } = useCopy(lang);
+  const { t, path } = getCopy(lang);
   const h = t.help;
   const base = docBase(lang);
 

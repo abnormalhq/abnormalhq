@@ -1,6 +1,6 @@
 import { PricingPrice } from "@/components/ui/pricing-card";
 import { cn } from "@/lib/utils";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import { formatCredits, type ShopProduct } from "@/storefront/lib/shop";
 
 /**

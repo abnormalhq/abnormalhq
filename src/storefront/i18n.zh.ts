@@ -1,13 +1,13 @@
-/** The redeem page's copy in Chinese (the type is Copy in i18n.ts). */
+/** The redeem page's Chinese next-intl messages. */
 import { homepage, supportEmail, webmailUrl } from "./config.ts";
-import { withoutPeriod, type Copy } from "./i18n.ts";
+import type { CopyMessages } from "./i18n.ts";
 
 /** Static help copy uses the shared portal; activation results use the entry returned by the backend instead. */
 const webmailLinkZh = `[Abnormal Mail](${webmailUrl})`;
 
 const usernameRuleZh = "用户名只能是小写字母、数字和 . _ -，首尾必须是字母或数字，不能有连续的点，最多 64 位。";
 
-export const zh: Copy = {
+export const zh: CopyMessages = {
   title: "兑换邮箱 · Abnormal",
   description:
     "使用 Linux DO Credit 购买 @abnormalhq.com 邮箱套餐，或凭已有兑换码在其允许的域名下开通邮箱。自己取用户名、设密码，开通即用。",
@@ -48,9 +48,9 @@ export const zh: Copy = {
       label: "账号",
       hint: "每个邮箱一行。用户名是小写字母、数字和 . _ -，首尾必须是字母或数字，最多 64 位；密码为 8–128 个字符，不能包含空白，也可以随机生成。",
       placeholder: "zhangsan",
-      ordinal: (n) => `第 ${n} 个邮箱`,
-      usernameLabel: (n) => `第 ${n} 个邮箱的用户名`,
-      passwordLabel: (n) => `第 ${n} 个邮箱的密码`,
+      ordinal: "第 {n} 个邮箱",
+      usernameLabel: "第 {n} 个邮箱的用户名",
+      passwordLabel: "第 {n} 个邮箱的密码",
       noQuota: "此域名暂未提供单邮箱配额，容量以服务器设置为准。",
     },
     notify: {
@@ -66,7 +66,7 @@ export const zh: Copy = {
     show: "显示",
     hide: "隐藏",
     generate: "随机生成",
-    submit: (count) => (count > 1 ? `开通 ${count} 个邮箱` : "开通邮箱"),
+    submit: "{form, select, many {开通 {count} 个邮箱} other {开通邮箱}}",
     submitting: "开通中…",
     copy: "复制",
     copied: "已复制",
@@ -80,21 +80,19 @@ export const zh: Copy = {
     codeChecking: "正在核对兑换码…",
     codeIncomplete: "兑换码是 16 位字母和数字，请检查是否输完整。",
     codeRequired: "请先输入兑换码。",
-    codeOk: (domains, expires, left) =>
-      `可以使用，可开通 ${domains.map((d) => `@${d}`).join("、")} 邮箱，还能开通 ${left} 个${expires ? `，${expires} 前有效` : ""}。`,
-    countHint: (left, max) =>
-      left > max ? `这个兑换码还能开通 ${left} 个邮箱，一次最多 ${max} 个。` : `这个兑换码还能开通 ${left} 个邮箱。`,
-    rowsTrimmed: (allowed, dropped) =>
-      `这个兑换码只能再开通 ${allowed} 个邮箱，已去掉多填的 ${dropped} 个；核对后再提交。`,
+    codeOk: "可以使用，可开通 {domains} 邮箱，还能开通 {left} 个{expiry, select, with {，{expires} 前有效} other {}}。",
+    countHint:
+      "{limit, select, exceeded {这个兑换码还能开通 {left} 个邮箱，一次最多 {max} 个。} other {这个兑换码还能开通 {left} 个邮箱。}}",
+    rowsTrimmed: "这个兑换码只能再开通 {allowed} 个邮箱，已去掉多填的 {dropped} 个；核对后再提交。",
     usernameChecking: "正在检查是否可用…",
-    usernameOk: (email) => `${email} 可以用。`,
-    duplicateUsername: (n) => `与第 ${n} 个邮箱的用户名重复。`,
-    passwordMissing: (labels) => `还需要：${labels.join("、")}。`,
+    usernameOk: "{email} 可以用。",
+    duplicateUsername: "与第 {n} 个邮箱的用户名重复。",
+    passwordMissing: "还需要：{labels}。",
     passwordOk: "密码符合要求。",
     passwordGenerated: "已生成一个随机密码，记得保存。",
-    partial: (ok, failed) => `已开通 ${ok} 个；还有 ${failed} 个没成功，改好后再提交。`,
+    partial: "已开通 {ok} 个；还有 {failed} 个没成功，改好后再提交。",
     challengePending: "开通前要先完成人机验证，正在验证；完成后再提交一次。",
-    domainChanged: (domain) => `这个兑换码开通的是 @${domain} 邮箱，地址已更新；核对后再提交一次。`,
+    domainChanged: "这个兑换码开通的是 @{domain} 邮箱，地址已更新；核对后再提交一次。",
     networkError: "连不上服务器，请稍后再试。",
     unknownError: "出了点问题，请稍后再试。",
   },
@@ -128,16 +126,15 @@ export const zh: Copy = {
   },
   result: {
     eyebrow: "已开通",
-    title: (count) => `已开通 ${count} 个邮箱`,
+    title: "已开通 {count} 个邮箱",
     login: "登录名",
     loginNote: "邮件客户端里的用户名就是完整邮箱地址",
     imap: "IMAP 收信",
     smtp: "SMTP 发信",
     port: "端口",
     security: { tls: "SSL/TLS", starttls: "STARTTLS", none: "不加密" },
-    notified: (to) => `账号信息已发送到 ${to}，请查收。`,
-    notifyFailed: (to, reason) =>
-      `没能把账号信息发送到 ${to}${reason ? `：${withoutPeriod(reason)}` : ""}。请在这里保存好。`,
+    notified: "账号信息已发送到 {to}，请查收。",
+    notifyFailed: "没能把账号信息发送到 {to}{reasonForm, select, withReason {：{reason}} other {}}。请在这里保存好。",
     note: ["密码只在这里显示一次，请保存好。之后可在网页邮箱的「设置」中修改；忘记密码请写信到 ", "。"],
     next: "开通之后怎么登录邮箱、怎么用它登录 Claude 与 ChatGPT，看[教程](guide/)。",
     again: "再兑换",

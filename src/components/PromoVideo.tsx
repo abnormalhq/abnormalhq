@@ -2,7 +2,7 @@ import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { configuredVideo, videoMimeType, type Lang, type PromoVideo as Video } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { Icon } from "./Icon";
 import { VideoPlayer } from "./VideoPlayer";
@@ -13,7 +13,7 @@ import { VideoPlayer } from "./VideoPlayer";
  * One per language (the text in the film is the page's language); the addresses are in promoVideos in src/data/site.ts, and without one the whole section is not rendered.
  */
 export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang; video?: Video | null }) {
-  const { t } = useCopy(lang);
+  const { t } = getCopy(lang);
   if (!video) return null;
   const v = t.video;
   const type = videoMimeType(video.src);

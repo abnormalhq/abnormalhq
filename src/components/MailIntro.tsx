@@ -3,14 +3,14 @@ import { Container } from "@/components/ui/container";
 import { Eyebrow, SectionTitle } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { AddressCheck } from "./AddressCheck";
 import { Icon } from "./Icon";
 import { ServiceStatus } from "./ServiceStatus";
 
 /** Mail's existing discovery, sign-in and address check now sit within the product rather than the family hero. */
 export function MailIntro({ lang }: { lang: Lang }) {
-  const { t, links } = useCopy(lang);
+  const { t, links } = getCopy(lang);
   const m = t.mailIntro;
   const h = t.hero;
   return (

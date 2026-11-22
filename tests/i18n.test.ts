@@ -211,14 +211,18 @@ const templateSlots = {
 };
 
 /** Each string in the copy that has {name} slots, by its path, with the names it uses. */
+const icuMessagePaths = new Set(["services.consultAria", "footer.emailAria", "legal.contactBody", "legal.seeAlso"]);
+
 const slotsIn = (value: unknown, path = ""): [string, string[]][] =>
-  typeof value === "string"
-    ? /\{\w+\}/.test(value)
-      ? [[path, [...value.matchAll(/\{(\w+)\}/g)].map(([, name]) => name!).sort()]]
-      : []
-    : value && typeof value === "object"
-      ? Object.entries(value).flatMap(([key, item]) => slotsIn(item, path ? `${path}.${key}` : key))
-      : [];
+  icuMessagePaths.has(path)
+    ? []
+    : typeof value === "string"
+      ? /\{\w+\}/.test(value)
+        ? [[path, [...value.matchAll(/\{(\w+)\}/g)].map(([, name]) => name!).sort()]]
+        : []
+      : value && typeof value === "object"
+        ? Object.entries(value).flatMap(([key, item]) => slotsIn(item, path ? `${path}.${key}` : key))
+        : [];
 
 test("each copy template uses exactly the slots its type declares, in both languages", () => {
   // The inquiry's legal sentence renders only once the client dialog opens: a slot misspelled in one language would

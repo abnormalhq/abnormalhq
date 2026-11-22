@@ -14,7 +14,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { site, type Lang } from "../src/data/site.ts";
 import { en } from "../src/i18n/en.ts";
-import type { Copy } from "../src/i18n/types.ts";
+import type { CopyMessages } from "../src/i18n/types.ts";
 import { zh } from "../src/i18n/zh.ts";
 
 // Loaded with require so a globally installed Playwright (NODE_PATH) is found too.
@@ -30,7 +30,7 @@ interface Browser {
 }
 const { chromium } = createRequire(import.meta.url)("playwright") as { chromium: { launch(): Promise<Browser> } };
 
-const copies: Record<Lang, Copy> = { zh, en };
+const copies: Record<Lang, CopyMessages> = { zh, en };
 const root = new URL("../", import.meta.url);
 // A page loaded with setContent cannot read file:// fonts, so they are inlined as data URLs.
 const font = (file: string) =>

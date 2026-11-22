@@ -1,7 +1,15 @@
 import type { ReactNode } from "react";
-import { ShopCopyEn } from "@/storefront/components/copy/shop-en";
+import { NextIntlClientProvider } from "next-intl";
+import { messagesFor } from "@/i18n/messages";
 
-/** The shop pages' client components read their copy from here, so their bundle carries English only (see copy/context.tsx). */
 export default function EnShopLayout({ children }: { children: ReactNode }) {
-  return <ShopCopyEn>{children}</ShopCopyEn>;
+  return (
+    <NextIntlClientProvider
+      locale="en"
+      messages={{ storefront: { shop: messagesFor("en").storefront.shop } }}
+      timeZone="UTC"
+    >
+      {children}
+    </NextIntlClientProvider>
+  );
 }

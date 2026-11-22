@@ -1,5 +1,6 @@
 import type { LinkKey } from "../data/site.ts";
 import type { Template } from "../lib/template.ts";
+import type { MessageTree } from "./message-types.ts";
 
 /** Icon names the Icon component supports; the entry and process icons in the copy are chosen from these. */
 export type IconName =
@@ -718,3 +719,5 @@ export interface Copy {
     backHome: string;
   };
 }
+
+export type CopyMessages = MessageTree<Copy>;

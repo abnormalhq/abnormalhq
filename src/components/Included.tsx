@@ -1,6 +1,6 @@
 import { IconTile } from "@/components/ui/icon-tile";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { Icon } from "./Icon";
 
 /**
@@ -9,7 +9,7 @@ import { Icon } from "./Icon";
  * (pricing.included) and prerender; the plan cards beside them carry what differs per plan.
  */
 export function Included({ lang, heading = "h3", id }: { lang: Lang; heading?: "h2" | "h3"; id: string }) {
-  const { t } = useCopy(lang);
+  const { t } = getCopy(lang);
   const { included } = t.pricing;
   const Heading = heading;
   const Item = heading === "h2" ? "h3" : "h4";
