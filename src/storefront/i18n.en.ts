@@ -1,6 +1,6 @@
-/** The redeem page's copy in English (the type is Copy in i18n.ts). */
+/** The redeem page's English next-intl messages. */
 import { homepage, supportEmail, webmailUrl } from "./config.ts";
-import { withoutPeriod, type Copy } from "./i18n.ts";
+import type { CopyMessages } from "./i18n.ts";
 
 /** Static help copy uses the shared portal; activation results use the entry returned by the backend instead. */
 const webmailLinkEn = `[Abnormal Mail](${webmailUrl})`;
@@ -8,7 +8,7 @@ const webmailLinkEn = `[Abnormal Mail](${webmailUrl})`;
 const usernameRuleEn =
   "Usernames use lowercase letters, digits and . _ -, start and end with a letter or digit, have no two dots in a row, and are at most 64 characters.";
 
-export const en: Copy = {
+export const en: CopyMessages = {
   title: "Redeem a mailbox · Abnormal",
   description:
     "Buy an @abnormalhq.com mailbox plan with Linux DO Credit, or redeem an existing code for a mailbox on one of its allowed domains. Pick your username and password, then start using your mail.",
@@ -51,9 +51,9 @@ export const en: Copy = {
       label: "Accounts",
       hint: "One line per mailbox. Usernames use lowercase letters, digits and . _ -, start and end with a letter or digit, at most 64 characters. Passwords need 8–128 characters with no whitespace, or let us generate one.",
       placeholder: "yourname",
-      ordinal: (n) => `Mailbox ${n}`,
-      usernameLabel: (n) => `Username for mailbox ${n}`,
-      passwordLabel: (n) => `Password for mailbox ${n}`,
+      ordinal: "Mailbox {n}",
+      usernameLabel: "Username for mailbox {n}",
+      passwordLabel: "Password for mailbox {n}",
       noQuota: "Per-mailbox quota is unavailable for this domain; storage follows the server settings.",
     },
     notify: {
@@ -69,7 +69,7 @@ export const en: Copy = {
     show: "Show",
     hide: "Hide",
     generate: "Generate",
-    submit: (count) => (count > 1 ? `Create ${count} mailboxes` : "Create mailbox"),
+    submit: "{form, select, many {Create {count} mailboxes} other {Create mailbox}}",
     submitting: "Creating…",
     copy: "Copy",
     copied: "Copied",
@@ -83,22 +83,21 @@ export const en: Copy = {
     codeChecking: "Checking the code…",
     codeIncomplete: "A code is 16 letters and digits. Check that it is complete.",
     codeRequired: "Enter your code first.",
-    codeOk: (domains, expires, left) =>
-      `Valid. It creates mailboxes at ${domains.map((d) => `@${d}`).join(" or ")}, ${left} left${expires ? `, until ${expires}` : ""}.`,
-    countHint: (left, max) =>
-      left > max ? `This code can create ${left} more, up to ${max} at a time.` : `This code can create ${left} more.`,
-    rowsTrimmed: (allowed, dropped) =>
-      `This code can create only ${allowed} more, so ${dropped} filled ${dropped === 1 ? "entry was" : "entries were"} removed. Check the form, then submit.`,
+    codeOk: "Valid. It creates mailboxes at {domains}, {left} left{expiry, select, with {, until {expires}} other {}}.",
+    countHint:
+      "{limit, select, exceeded {This code can create {left} more, up to {max} at a time.} other {This code can create {left} more.}}",
+    rowsTrimmed:
+      "This code can create only {allowed} more, so {dropped} filled {entryForm, select, one {entry was} other {entries were}} removed. Check the form, then submit.",
     usernameChecking: "Checking availability…",
-    usernameOk: (email) => `${email} is available.`,
-    duplicateUsername: (n) => `Same username as mailbox ${n}.`,
-    passwordMissing: (labels) => `Still needs ${labels.join(", ")}.`,
+    usernameOk: "{email} is available.",
+    duplicateUsername: "Same username as mailbox {n}.",
+    passwordMissing: "Still needs {labels}.",
     passwordOk: "The password meets the requirements.",
     passwordGenerated: "A random password was generated. Remember to save it.",
-    partial: (ok, failed) => `${ok} created. ${failed} did not go through; fix them and submit again.`,
+    partial: "{ok} created. {failed} did not go through; fix them and submit again.",
     challengePending: "A quick human check has to finish first. It is running now; submit again once it is done.",
-    domainChanged: (domain) =>
-      `This code creates mailboxes at @${domain}, and the addresses now show it. Check them, then submit again.`,
+    domainChanged:
+      "This code creates mailboxes at @{domain}, and the addresses now show it. Check them, then submit again.",
     networkError: "Could not reach the server. Try again in a moment.",
     unknownError: "Something went wrong. Try again in a moment.",
   },
@@ -132,16 +131,16 @@ export const en: Copy = {
   },
   result: {
     eyebrow: "Ready",
-    title: (count) => `${count} mailboxes created`,
+    title: "{count} mailboxes created",
     login: "Login",
     loginNote: "In mail apps the username is the full address",
     imap: "IMAP (incoming)",
     smtp: "SMTP (outgoing)",
     port: "port",
     security: { tls: "SSL/TLS", starttls: "STARTTLS", none: "no encryption" },
-    notified: (to) => `The account details were sent to ${to}.`,
-    notifyFailed: (to, reason) =>
-      `Could not send the account details to ${to}${reason ? ` (${withoutPeriod(reason)})` : ""}. Save them from this page instead.`,
+    notified: "The account details were sent to {to}.",
+    notifyFailed:
+      "Could not send the account details to {to}{reasonForm, select, withReason { ({reason})} other {}}. Save them from this page instead.",
     note: [
       "Passwords are shown only here, only once. Change yours in webmail Settings; if you forget it, write to ",
       ".",

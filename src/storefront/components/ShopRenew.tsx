@@ -20,8 +20,8 @@ import {
 } from "@/storefront/lib/shop";
 import { QuoteBoard, upgradePeriodPrices, viewOf } from "@/storefront/lib/quote";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
-import { useShopCopy } from "./copy/context";
+import type { ShopCopy } from "@/storefront/lib/shop-copy.types";
+import { useShopCopy } from "./copy/hooks";
 import { cn } from "@/lib/utils";
 import {
   ShopActions,
@@ -49,7 +49,7 @@ import {
   shopTextClass,
 } from "./ShopParts";
 import { COUPON_MAX_LENGTH, normalizeCoupon } from "@/storefront/lib/coupon";
-import { paidPeriodLimit, trialCopy } from "@/storefront/lib/trial";
+import { paidPeriodLimit } from "@/storefront/lib/trial";
 import { ShopSeatStepper } from "./ShopSeatStepper";
 import { ShopSession } from "./ShopSession";
 
@@ -74,7 +74,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
   const [coupon, setCoupon] = useState("");
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState(2);
-  const trial = trialCopy[lang];
+  const trial = t.trial;
   const selected = summary?.trial ? summary.upgradePlans?.find((plan) => plan.id === productId) : undefined;
   const periodDays = selected?.periodDays ?? summary?.periodDays ?? 30;
   // A subscription bought with USDT renews with USDT only: its renewal price is in hundredths of a USDT, and its `currency`
@@ -167,7 +167,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
         eyebrow={summary?.trial ? trial.upgradeOrder : t.renewEyebrow}
         title={summary?.trial ? trial.upgradeTitle : t.renewTitle}
       >
-        {summary?.trial ? trialCopy[lang].expiry : t.renewDescription}
+        {summary?.trial ? trial.expiry : t.renewDescription}
       </ShopHero>
       {loadError ? (
         <EmptyState className={shopEmptyStateClass}>
@@ -186,7 +186,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
               <h2 className={shopHeadingClass}>{summary.productName}</h2>
               <ShopStatus active={summary.state === "active"}>{t.subscriptionStates[summary.state]}</ShopStatus>
             </div>
-            {summary.trial && <p className={shopTextClass}>{trialCopy[lang].manual}</p>}
+            {summary.trial && <p className={shopTextClass}>{trial.manual}</p>}
             <ShopMeta>
               <ShopMetaRow label={t.subscriptionEnds}>{date(summary.currentPeriodEnd)}</ShopMetaRow>
               <ShopMetaRow label={summary.trial ? trial.paidPeriod : t.period}>
@@ -321,8 +321,8 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                 {summary.trial && (
                   <ShopField
                     htmlFor="shop-upgrade-coupon"
-                    label={trialCopy[lang].couponLabel}
-                    hint={trialCopy[lang].couponHint}
+                    label={trial.couponLabel}
+                    hint={trial.couponHint}
                     hintId="shop-upgrade-coupon-hint"
                   >
                     <Input
@@ -332,7 +332,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                       onChange={(event) => setCoupon(event.target.value)}
                       maxLength={COUPON_MAX_LENGTH}
                       disabled={creating}
-                      placeholder={trialCopy[lang].couponPlaceholder}
+                      placeholder={trial.couponPlaceholder}
                       autoComplete="off"
                       autoCapitalize="characters"
                       spellCheck={false}
@@ -349,7 +349,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                 </p>
                 {Boolean(cardPeriod && currency) && (
                   <p className={shopTextClass}>
-                    {trialCopy[lang].card}: {formatMoney(cardTotal, currency ?? "usd", lang)}
+                    {trial.card}: {formatMoney(cardTotal, currency ?? "usd", lang)}
                   </p>
                 )}
                 {selected && (
@@ -377,11 +377,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                       value="ldc"
                       disabled={creating || periods > ldcMaxPeriods}
                     >
-                      {creating
-                        ? t.renewing
-                        : summary.trial || summary.fiatRenewMinor
-                          ? trialCopy[lang].credits
-                          : t.renewButton}
+                      {creating ? t.renewing : summary.trial || summary.fiatRenewMinor ? trial.credits : t.renewButton}
                       <span aria-hidden="true">↗</span>
                     </ShopButton>
                   )}
@@ -392,7 +388,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                       value="stripe"
                       disabled={creating || periods > cardMaxPeriods}
                     >
-                      {creating ? t.renewing : trialCopy[lang].card}
+                      {creating ? t.renewing : trial.card}
                     </ShopButton>
                   )}
                 </ShopActions>

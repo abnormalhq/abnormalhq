@@ -15,11 +15,19 @@ test("consultation text keeps the selected product, duration and trimmed notes",
     "你好，我想咨询 Abnormal 产品。\n服务类型：域名邮箱\n使用时长：3 个月\n需求：日常通信 & 工作往来\n需要 3 个邮箱\n请帮我确认适合的方案、总费用、使用方式与支持范围。",
   );
   assert.ok(!formatInquiry({ ...inquiry, notes: "  " }, "zh").includes("需求："));
+  assert.equal(
+    formatInquiry({ product: "mail", duration: "1 month", notes: "  " }, "en"),
+    "Hi, I'd like to ask about an Abnormal product.\nService: mail\nTerm: 1 month\nPlease let me know the plan, total cost, setup time and what support is included.",
+  );
 });
 
 test("missing contact information cannot produce a fake consultation link", () => {
   assert.equal(getContactLink(emptyContact, inquiry, "zh"), undefined);
   assert.match(describeContact(emptyContact, "zh"), /咨询渠道即将公布/);
+  assert.equal(
+    describeContact(emptyContact, "en"),
+    "Contact channels are coming soon. You can copy your request now and get in touch later.",
+  );
 });
 
 test("Telegram permits HTTPS t.me links only, without embedded credentials", () => {
@@ -55,6 +63,23 @@ test("invalid Telegram falls back to the configured email and escapes inquiry te
   assert.equal(url.searchParams.get("body"), formatInquiry(inquiry, "zh"));
 });
 
+test("English email links retain their translated labels, subjects and message bodies", () => {
+  const link = getContactLink(
+    { ...emptyContact, email: "hello@example.com" },
+    { product: "mail", duration: "1 month", notes: "" },
+    "en",
+  );
+  assert.ok(link);
+  assert.equal(link.type, "email");
+  assert.equal(link.label, "Ask by email");
+  const url = new URL(link.href);
+  assert.equal(url.searchParams.get("subject"), "Abnormal product inquiry · mail");
+  assert.equal(
+    url.searchParams.get("body"),
+    "Hi, I'd like to ask about an Abnormal product.\nService: mail\nTerm: 1 month\nPlease let me know the plan, total cost, setup time and what support is included.",
+  );
+});
+
 test("valid Telegram takes precedence and WeChat remains available in contact details", () => {
   const contact = {
     wechat: "example-wechat",
@@ -62,7 +87,12 @@ test("valid Telegram takes precedence and WeChat remains available in contact de
     telegram: "https://t.me/example",
   };
   assert.equal(getContactLink(contact, inquiry, "zh")?.type, "telegram");
-  assert.match(describeContact(contact, "zh"), /微信：example-wechat/);
-  assert.match(describeContact(contact, "zh"), /邮箱：hello@example.com/);
-  assert.match(describeContact(contact, "zh"), /Telegram：https:\/\/t.me\/example/);
+  assert.equal(
+    describeContact(contact, "zh"),
+    "微信：example-wechat · 邮箱：hello@example.com · Telegram：https://t.me/example。复制下方咨询内容后联系我们。",
+  );
+  assert.equal(
+    describeContact(contact, "en"),
+    "WeChat: example-wechat · Email: hello@example.com · Telegram: https://t.me/example. Copy the message below and send it to us.",
+  );
 });

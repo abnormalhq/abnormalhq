@@ -1,9 +1,49 @@
-/** The shop pages' copy in English; the type keeps it to the shape of the Chinese copy (see shop-copy.zh.ts). */
-import type { ShopCopy } from "./shop-copy.zh.ts";
-
-export const en: ShopCopy = {
+/** The shop's canonical English next-intl messages. */
+export const en = {
   nav: "Buy mailboxes",
   title: "Choose a plan. Set up your mailbox.",
+  trial: {
+    choosePlan: "Plan after your trial",
+    keepPlan: "Keep the single-mailbox plan",
+    chooseTeam:
+      "Or choose a Team plan and its mailbox count. Your current mailbox counts as one seat; its address, password and mail stay the same.",
+    seats: "Total mailboxes (including your current mailbox)",
+    planSummary: "{mb} MB per mailbox · {domains} own domain{domainForm, select, one {} other {s}}",
+    paidPeriod: "Paid period",
+    paidPeriods: "{count} paid period{periodForm, select, one {} other {s}}, {totalDays} days in total",
+    paymentNote:
+      "After payment, return here to confirm your upgrade, then open My account to manage all seats. If the result has not updated, choose Refresh payment result.",
+    upgradeTitle: "Upgrade your trial mailbox.",
+    upgradeOrder: "Trial upgrade",
+    upgradeConfirm: "Confirm your upgrade.",
+    upgradeCheck:
+      "Check the plan, mailbox count and first-period discount below. Your current mailbox and mail stay in place. This payment does not enable automatic renewal.",
+    upgradePaid: "Your mailbox has been upgraded.",
+    upgradePaidDescription:
+      "Your address and mail are kept. Open My account to manage your mailboxes, add the remaining Team mailboxes or connect your domain.",
+    regularRenewal: "Later renewals use the regular plan price shown below.",
+    estimate: "Total before discount",
+    teamUpgrade: "Upgrade to single mailbox or Team",
+    unavailable: "This trial is past its retention period and can no longer be upgraded here.",
+    title: "Free trial",
+    start: "Start free trial",
+    starting: "Starting…",
+    claimed: "Your free trial has been claimed. Set up your mailbox below.",
+    description:
+      "Try 1 mailbox with {mb} MB for {days} days, starting when you claim. One trial per verified account. No card required and no automatic charge.",
+    expiry:
+      "The mailbox is suspended when the trial ends, and mail is kept for 30 days. Choose a single-mailbox or Team plan to upgrade and keep the same address and mail.",
+    upgrade: "Upgrade this mailbox",
+    manual:
+      "This is a one-time payment. It does not turn on automatic renewal. Paid service starts when payment is confirmed.",
+    card: "Pay by card",
+    credits: "Pay with Linux DO Credit",
+    signin: "Sign in to start your free trial",
+    couponLabel: "Discount code (optional)",
+    couponHint:
+      "Applies to the first paid period of your trial upgrade only. Other periods and later renewals keep the regular price. The discount is shown on the order confirmation page before payment.",
+    couponPlaceholder: "WELCOME10",
+  },
   eyebrow: "ABNORMAL MAIL SHOP",
   description:
     "Choose a mailbox plan and pay to get your redemption code, then pick your mailbox name and password here.",
@@ -28,14 +68,14 @@ export const en: ShopCopy = {
   domains: "Available domains",
   expiry: "Redeem within",
   unlimited: "No expiry",
-  quantity: (n: number) => `${n}`,
-  days: (n: number) => `${n} days after payment`,
+  quantity: "{n}",
+  days: "{n} days after payment",
   unlimitedQuota: "Server default quota",
   noHardQuota: "Per-mailbox quota unavailable",
   mixedQuota: "Quota follows the selected domain’s server settings",
   once: "LDC / purchase",
   originalPrice: "Original price",
-  discount: (percent: number) => `${percent}% off`,
+  discount: "{percent}% off",
   processTitle: "Three steps to your new mailbox.",
   steps: [
     "Choose your mailbox plan",
@@ -44,10 +84,10 @@ export const en: ShopCopy = {
   ],
   expiryNote: "The redemption deadline applies to the code, not the mailbox service period.",
   planSelected: "Your pick",
-  carriedAddress: (email: string) =>
-    `Your address: ${email}. It will be filled in when you set the mailbox up after paying; it is checked again then.`,
+  carriedAddress:
+    "Your address: {email}. It will be filled in when you set the mailbox up after paying; it is checked again then.",
   carriedRemove: "Don't use this address",
-  planWithoutDomain: (domain: string) => `This plan doesn't include @${domain}`,
+  planWithoutDomain: "This plan doesn't include @{domain}",
   couponToggle: "I have a discount code",
   couponLabel: "Discount code",
   couponHint: "Enter it and choose Apply to see the price with the code. One code per order.",
@@ -56,16 +96,16 @@ export const en: ShopCopy = {
   couponRemove: "Remove the code",
   couponInvalid: "This code can't be used.",
   couponUnchecked: "This code can't be used for the plans checked so far. The other plans check it when you order.",
-  couponApplied: (code: string) => `Code ${code} applies. The plans below show the price with it.`,
-  couponWith: (code: string, price: string) => `With ${code}: ${price}`,
-  couponPriceLdc: (price: string) => `${price} LDC`,
-  couponPriceCard: (price: string) => `${price} by card`,
+  couponApplied: "Code {code} applies. The plans below show the price with it.",
+  couponWith: "With {code}: {price}",
+  couponPriceLdc: "{price} LDC",
+  couponPriceCard: "{price} by card",
   couponNotForPlan: "This code can't be used for this plan.",
   couponNotForLdc: "This code can't be used when paying with LDC.",
   couponNotForCard: "This code can't be used when paying by card.",
   couponAtCheckout: "The code is checked when you order.",
   couponFirstPeriod: "The code applies to the first period only; renewals are at the regular price.",
-  orderCoupon: (code: string) => (code ? `Discount code ${code}` : "Discount code"),
+  orderCoupon: "{codeForm, select, withCode {Discount code {code}} other {Discount code}}",
   orderCouponBase: "Price before the code",
   browserNote:
     "Save your order number and collect your code in the browser used to place the order. If you switch browsers or clear browser data, contact support with your order number.",
@@ -119,10 +159,10 @@ export const en: ShopCopy = {
   emailLabel: "Contact email (optional)",
   emailHint: "Renewal reminders for subscription plans go here. Leave it empty to receive them in your new mailbox.",
   period: "Billing",
-  periodValue: (days: number) => `Subscription · every ${days} ${days === 1 ? "day" : "days"}`,
+  periodValue: "Subscription · every {days} {dayForm, select, one {day} other {days}}",
   oneTime: "One-time purchase; mailboxes never expire",
-  renewAt: (price: string) => `Renews at ${price} LDC per period`,
-  perPeriod: (days: number) => `LDC / ${days} ${days === 1 ? "day" : "days"}`,
+  renewAt: "Renews at {price} LDC per period",
+  perPeriod: "LDC / {days} {dayForm, select, one {day} other {days}}",
   subscriptionTitle: "Mailbox subscription",
   subscriptionEnds: "Expires",
   subscriptionState: "Status",
@@ -140,8 +180,7 @@ export const en: ShopCopy = {
   renewalOrderDescription: "Check the plan, periods and amount, then pay with your selected payment method.",
   renewalPaidTitle: "Renewed. Your mailboxes keep working.",
   renewalPaidDescription: "Your new expiry is below. Suspended mailboxes can sign in again within a few minutes.",
-  renewalPeriods: (periods: number, days: number) =>
-    `${periods} ${periods === 1 ? "period" : "periods"}, ${periods * days} days in total`,
+  renewalPeriods: "{periods} {periodForm, select, one {period} other {periods}}, {totalDays} days in total",
   renewEyebrow: "Mailbox renewal",
   renewTitle: "Renew your mailboxes.",
   renewDescription:
@@ -151,8 +190,7 @@ export const en: ShopCopy = {
   renewMailboxes: "Mailboxes included",
   noMailboxes: "No mailboxes set up with the code yet",
   periodsLabel: "Renew for",
-  periodsOption: (periods: number, days: number) =>
-    `${periods} ${periods === 1 ? "period" : "periods"} (${periods * days} days)`,
+  periodsOption: "{periods} {periodForm, select, one {period} other {periods}} ({totalDays} days)",
   total: "Total",
   renewButton: "Create renewal order",
   renewing: "Creating order…",
@@ -167,21 +205,20 @@ export const en: ShopCopy = {
   loginEmail: "Email",
   loginButton: "Send sign-in link",
   loginSending: "Sending…",
-  loginSent: (email: string) =>
-    `We sent a sign-in link to ${email}. It works for 15 minutes; check your spam folder if it doesn't arrive.`,
+  loginSent: "We sent a sign-in link to {email}. It works for 15 minutes; check your spam folder if it doesn't arrive.",
   verifying: "Signing you in…",
-  signedInAs: (email: string) => `Signed in as ${email}`,
+  signedInAs: "Signed in as {email}",
   sessionNote: "New orders go to this account.",
   confirmLoginTitle: "Confirm sign-in",
-  confirmLoginAs: (email: string) => `Sign in to the shop as ${email}?`,
+  confirmLoginAs: "Sign in to the shop as {email}?",
   confirmLoginUnknown: "Sign in to the shop with this link?",
   confirmLoginHint:
     "Only continue if you asked for this sign-in email yourself. Once you're signed in, new orders from this browser go to this account.",
-  confirmLoginSwitch: (email: string) => `You're signed in as ${email}. Continuing switches to the account above.`,
+  confirmLoginSwitch: "You're signed in as {email}. Continuing switches to the account above.",
   confirmLoginButton: "Sign in",
   confirmLoginCancel: "Don't sign in",
   checkingLink: "Checking the sign-in link…",
-  claimedNotice: (n: number) => `Added ${n} ${n === 1 ? "order" : "orders"} to your account.`,
+  claimedNotice: "Added {n} {orderForm, select, one {order} other {orders}} to your account.",
   logout: "Sign out",
   loginMethods: "Sign-in method",
   passwordLoginHint: "If you've set a password for your account, sign in with your email and password.",
@@ -198,9 +235,9 @@ export const en: ShopCopy = {
     "You can leave this empty within 10 minutes of signing in with an email link or Google. That's how to reset a forgotten password.",
   passwordNew: "New password",
   passwordConfirm: "New password again",
-  passwordRule: (min: number, max: number) => `${min} to ${max} characters. Saving signs you out in other browsers.`,
+  passwordRule: "{min} to {max} characters. Saving signs you out in other browsers.",
   passwordMismatch: "The new passwords don't match.",
-  passwordLength: (min: number, max: number) => `The password must be ${min} to ${max} characters.`,
+  passwordLength: "The password must be {min} to {max} characters.",
   passwordSave: "Save password",
   passwordSaving: "Saving…",
   passwordCancel: "Cancel",
@@ -213,17 +250,17 @@ export const en: ShopCopy = {
   registerPasswordAgain: "Password again",
   registerButton: "Create account",
   registering: "Sending the confirmation email…",
-  registerSent: (email: string) =>
-    `We sent a confirmation email to ${email}. Open its link within 15 minutes to finish and sign in; check your spam folder if it doesn't arrive.`,
+  registerSent:
+    "We sent a confirmation email to {email}. Open its link within 15 minutes to finish and sign in; check your spam folder if it doesn't arrive.",
   passwordForgot: "Forgot your password?",
   forgotLink: "Reset it",
   forgotHint: "Enter the email you registered with and we'll send you an email to reset your password.",
   forgotButton: "Send reset email",
   forgotSending: "Sending…",
-  forgotSent: (email: string) =>
-    `If ${email} has an account, we've sent a password reset email. It works for 15 minutes; check your spam folder if it doesn't arrive.`,
+  forgotSent:
+    "If {email} has an account, we've sent a password reset email. It works for 15 minutes; check your spam folder if it doesn't arrive.",
   resetTitle: "Reset your password",
-  resetFor: (email: string) => `Set a new password for ${email}`,
+  resetFor: "Set a new password for {email}",
   resetForUnknown: "Set a new password for this account",
   resetHint:
     "Only continue if you just asked for this reset email yourself. Saving signs the account out in every browser and signs this one in with the new password.",
@@ -237,8 +274,8 @@ export const en: ShopCopy = {
   googleFailed: "Google sign-in didn't finish. Choose “Continue with Google” again.",
   googleCreated: "You've signed up with your Google account and are signed in.",
   googleTitle: "Google sign-in",
-  googleLinked: (email: string) =>
-    `Linked to the Google account ${email}. You can sign in with “Continue with Google” on the sign-in page.`,
+  googleLinked:
+    "Linked to the Google account {email}. You can sign in with “Continue with Google” on the sign-in page.",
   googleNotLinked:
     "Not linked yet. Once linked, you can sign in with “Continue with Google” on the sign-in page. A Gmail or Google Workspace address that matches this account's email also links automatically the first time it signs in.",
   googleLink: "Link a Google account",
@@ -249,7 +286,7 @@ export const en: ShopCopy = {
   resetNotReset: "This isn't a password reset link. Please ask for a new one.",
   linkBack: "Sign in with a password",
   confirmRegisterTitle: "Finish creating your account",
-  confirmRegisterAs: (email: string) => `Finish creating the account for ${email} and sign in?`,
+  confirmRegisterAs: "Finish creating the account for {email} and sign in?",
   confirmRegisterHint:
     "Only continue if you just created this account yourself. Once confirmed, the account uses the password you chose.",
   confirmRegisterButton: "Finish",
@@ -259,16 +296,16 @@ export const en: ShopCopy = {
   mailboxesEmpty: "No paid orders yet.",
   mailboxesGoShop: "Browse the shop",
   openWebmail: "Open Abnormal Mail",
-  mailboxesUsed: (n: number, max: number) => `${n} of ${max} set up`,
+  mailboxesUsed: "{n} of {max} set up",
   mailboxesLeft: "Can still set up",
-  mailboxesLeftValue: (n: number) => `${n} ${n === 1 ? "mailbox" : "mailboxes"}`,
+  mailboxesLeftValue: "{n} {mailboxForm, select, one {mailbox} other {mailboxes}}",
   mailboxesLocked: "Subscription suspended",
   mailboxesLockedHint:
     "This subscription is suspended, so its mailboxes can't sign in for now. Renew it to restore them and manage them again.",
   mailboxActive: "Active",
   mailboxInactive: "Disabled",
   mailboxUsageUnknown: "Usage not synced yet",
-  mailboxActions: (email: string) => `Manage ${email}`,
+  mailboxActions: "Manage {email}",
   mailboxResetPassword: "Reset password",
   mailboxDisable: "Disable",
   mailboxEnable: "Enable",
@@ -277,15 +314,15 @@ export const en: ShopCopy = {
   mailboxPasswordRule: "8 to 128 characters, no spaces.",
   mailboxPasswordEffect: "After saving, Abnormal Mail and mail apps signed in with the old password need the new one.",
   mailboxSavePassword: "Save new password",
-  mailboxPasswordSaved: (email: string) => `The password of ${email} has been changed.`,
-  mailboxEnabled: (email: string) => `${email} is enabled.`,
-  mailboxDisabled: (email: string) => `${email} is disabled: it can't sign in or send mail.`,
-  mailboxDeleteWarning: (email: string) =>
-    `Deleting ${email} erases it and all its mail for good. Its slot goes back to the order, so you can set up another one.`,
-  mailboxDeleteConfirm: (email: string) => `Type ${email} to confirm`,
+  mailboxPasswordSaved: "The password of {email} has been changed.",
+  mailboxEnabled: "{email} is enabled.",
+  mailboxDisabled: "{email} is disabled: it can't sign in or send mail.",
+  mailboxDeleteWarning:
+    "Deleting {email} erases it and all its mail for good. Its slot goes back to the order, so you can set up another one.",
+  mailboxDeleteConfirm: "Type {email} to confirm",
   mailboxDeleteButton: "Delete for good",
   mailboxDeleting: "Deleting…",
-  mailboxDeleted: (email: string) => `${email} has been deleted.`,
+  mailboxDeleted: "{email} has been deleted.",
   mailboxCreate: "Set up a mailbox",
   mailboxDomain: "Domain",
   mailboxUsername: "Username",
@@ -294,7 +331,7 @@ export const en: ShopCopy = {
   mailboxPassword: "Mailbox password",
   mailboxCreateSubmit: "Set up",
   mailboxCreating: "Setting up…",
-  mailboxCreated: (email: string) => `${email} is ready to use. Its password:`,
+  mailboxCreated: "{email} is ready to use. Its password:",
   mailboxCreatedPassword: "Password of the new mailbox",
   mailboxCreatedOnce: "The password is shown only this once, so save it now. You can reset it here if you forget it.",
   mailboxCreatedLeave:
@@ -307,8 +344,7 @@ export const en: ShopCopy = {
   mailboxHide: "Hide",
   mailboxGenerate: "Generate",
   mailServersTitle: "Mail app settings (IMAP / SMTP)",
-  mailServerLine: (kind: string, host: string, port: number, security: string) =>
-    `${kind}: ${host}, port ${port}, ${security}`,
+  mailServerLine: "{kind}: {host}, port {port}, {security}",
   mailServersHint: "The username is the full mailbox address, and the password is the mailbox's own.",
   subscriptionsTitle: "Mailbox subscriptions",
   noSubscriptions: "No subscriptions yet.",
@@ -318,8 +354,8 @@ export const en: ShopCopy = {
   payOrder: "Complete payment",
   payLdc: "Buy with LDC",
   payCard: "Pay by card",
-  cardPrice: (price: string, days: number) =>
-    days > 0 ? `Card ${price} every ${days} ${days === 1 ? "day" : "days"}, auto-renews` : `Card ${price}`,
+  cardPrice:
+    "{daysForm, select, active {Card {price} every {days} {dayForm, select, one {day} other {days}}, auto-renews} other {Card {price}}}",
   payStripe: "Pay with Stripe",
   orderDescriptionStripe: "Check your plan details, then pay by card below.",
   orderDescriptionStripeHosted: "Check your plan details, then pay by card with Stripe.",
@@ -328,7 +364,7 @@ export const en: ShopCopy = {
   cardTitle: "Pay by card",
   cardNote: "Your card details go straight to Stripe; we never store card numbers. Your code appears here once paid.",
   cardLoading: "Loading the payment form…",
-  cardPay: (amount: string) => `Pay ${amount}`,
+  cardPay: "Pay {amount}",
   cardPaying: "Paying…",
   cardProcessing:
     "Your payment is being processed (bank payments can take a few days). Your code appears here once it arrives; there is nothing more to pay.",
@@ -346,24 +382,23 @@ export const en: ShopCopy = {
     "This subscription renews automatically through Stripe and can't be renewed here. Sign in to your account to resume auto-renewal or update your card.",
   portalOpening: "Opening…",
   payUsdt: "Pay with USDT",
-  usdtPrice: (price: string, days: number) =>
-    days > 0 ? `${price} every ${days} ${days === 1 ? "day" : "days"}` : price,
+  usdtPrice:
+    "{daysForm, select, active {{price} every {days} {dayForm, select, one {day} other {days}}} other {{price}}}",
   usdtTestnet: "Testnet (Nile)",
-  seatUsdtEach: (price: string, days: number) =>
-    days > 0 ? `${price} per mailbox every ${days} days` : `${price} per mailbox`,
-  seatTotalUsdt: (price: string, days: number) => (days > 0 ? `${price} every ${days} days` : price),
+  seatUsdtEach: "{daysForm, select, active {{price} per mailbox every {days} days} other {{price} per mailbox}}",
+  seatTotalUsdt: "{daysForm, select, active {{price} every {days} days} other {{price}}}",
   seatTooManyUsdt: "That many mailboxes cost more than one USDT order can charge. Pay another way, or choose fewer.",
-  couponPriceUsdt: (price: string) => price,
+  couponPriceUsdt: "{price}",
   couponNotForUsdt: "This code can't be used when paying with USDT.",
   orderDescriptionUsdt: "Check your plan details, then pay with USDT below.",
   usdtTitle: "Pay with USDT",
   usdtNote:
     "Send exactly the amount below in USDT to this address, on the network shown. The address belongs to this order alone. Once the transfer is final on chain (seconds on Solana, about a minute on TRON and BNB Smart Chain, about 15 minutes on Ethereum), your code appears here.",
-  usdtNetwork: (name: string, standard: string) => `${name} · ${standard}`,
+  usdtNetwork: "{name} · {standard}",
   usdtChoose: "Choose the network you send from",
   usdtChooseHint:
     "Pick the network your wallet or exchange sends USDT on. The address you get is for that network only, and the choice can't be changed afterwards.",
-  usdtChainOption: (name: string, standard: string) => `${name} (${standard})`,
+  usdtChainOption: "{name} ({standard})",
   usdtEthereumFees: "Network fees on Ethereum are usually several dollars.",
   usdtAmount: "Amount to send",
   usdtAddress: "Address",
@@ -372,87 +407,79 @@ export const en: ShopCopy = {
   usdtAmountCopied: "Amount copied.",
   usdtAddressCopied: "Address copied.",
   usdtCopyFailed: "Couldn't copy. Select it and copy it by hand.",
-  usdtQr: (address: string) => `QR code of the address ${address}`,
+  usdtQr: "QR code of the address {address}",
   usdtQrHint: "The QR code holds the address only. Enter the amount in your wallet.",
-  usdtWarning: (amount: string, network: string) =>
-    `Send USDT on the ${network} network only. Other tokens or networks are lost. Exchanges that deduct a withdrawal fee from the amount: make sure the amount that arrives is at least ${amount}.`,
+  usdtWarning:
+    "Send USDT on the {network} network only. Other tokens or networks are lost. Exchanges that deduct a withdrawal fee from the amount: make sure the amount that arrives is at least {amount}.",
   usdtStatus: "Payment status",
   usdtWaiting: "Waiting for your transfer. This page updates by itself once it is confirmed on chain.",
   usdtConfirming: "Payment detected, waiting for confirmation…",
-  usdtPartial: (received: string, amount: string, remaining: string) =>
-    `Received ${received} of ${amount} USDT. Send the remaining ${remaining} USDT.`,
+  usdtPartial: "Received {received} of {amount} USDT. Send the remaining {remaining} USDT.",
   usdtPaid: "Payment confirmed. Loading your code…",
   usdtStopped: "Automatic checks have stopped. If you have sent the payment, choose “Check again”.",
   usdtCheckAgain: "Check again",
   usdtChecking: "Checking…",
   usdtLoading: "Preparing your payment address…",
   usdtUnavailable: "USDT payment details can't be shown right now. Please try again later.",
-  usdtRenewAt: (price: string) => `Renews at ${price} per period`,
+  usdtRenewAt: "Renews at {price} per period",
   renewUsdtButton: "Renew with USDT",
   renewalUsdtNote:
     "This subscription was bought with USDT and renews with USDT: create the renewal order, then pay it on the order page.",
-  seatsQuoteUsdt: (n: number, price: string, date: string) =>
-    `${n} more ${n === 1 ? "seat" : "seats"} for the rest of this period (until ${date}): ${price}. That is the price if you order now; it falls as the period runs down.`,
-  rateLimitedWait: (seconds: number) =>
-    `Too many requests. Try again in ${seconds < 60 ? `${seconds} ${seconds === 1 ? "second" : "seconds"}` : seconds < 3600 ? `${Math.ceil(seconds / 60)} ${Math.ceil(seconds / 60) === 1 ? "minute" : "minutes"}` : `${Math.ceil(seconds / 3600)} ${Math.ceil(seconds / 3600) === 1 ? "hour" : "hours"}`}.`,
-  seatUnit: (days: number) => (days > 0 ? `LDC / mailbox / ${days} days` : "LDC / mailbox"),
-  seatCardEach: (price: string, days: number) =>
-    days > 0
-      ? `${price} per mailbox every ${days} days by card, renewing automatically`
-      : `${price} per mailbox by card`,
-  seatRenewAt: (price: string) => `Renews at ${price} LDC per mailbox per period`,
+  seatsQuoteUsdt:
+    "{n} more {seatForm, select, one {seat} other {seats}} for the rest of this period (until {date}): {price}. That is the price if you order now; it falls as the period runs down.",
+  rateLimitedWait:
+    "Too many requests. Try again in {wait} {unitForm, select, second {second} seconds {seconds} minute {minute} minutes {minutes} hour {hour} hours {hours} other {seconds}}.",
+  seatUnit: "LDC / mailbox{daysForm, select, active { / {days} days} other {}}",
+  seatCardEach:
+    "{daysForm, select, active {{price} per mailbox every {days} days by card, renewing automatically} other {{price} per mailbox by card}}",
+  seatRenewAt: "Renews at {price} LDC per mailbox per period",
   seatQuantity: "Mailboxes",
-  seatRange: (min: number, max: number) => (min === max ? `${min} exactly` : `${min} to ${max}`),
+  seatRange: "{rangeForm, select, exact {{min} exactly} other {{min} to {max}}}",
   seatFewer: "One mailbox fewer",
   seatMore: "One mailbox more",
   seatTotal: "Total",
-  seatTotalLdc: (price: string, days: number) => (days > 0 ? `${price} LDC every ${days} days` : `${price} LDC`),
-  seatTotalCard: (price: string, days: number) =>
-    days > 0 ? `${price} every ${days} days by card` : `${price} by card`,
+  seatTotalLdc: "{daysForm, select, active {{price} LDC every {days} days} other {{price} LDC}}",
+  seatTotalCard: "{daysForm, select, active {{price} every {days} days by card} other {{price} by card}}",
   seatWas: "Before the discount",
   seatEstimate: "The total is an estimate; the shop confirms the price when you place the order.",
   seatLimited:
     "Price checks are briefly limited. The total shown is an estimate for now; try again in a moment, and the shop confirms the price when you place the order.",
   seatQuoted: "The total is the shop's price for this quantity.",
-  seatRenewsAt: (price: string, days: number) => `Then ${price} every ${days} ${days === 1 ? "day" : "days"}`,
-  couponSeatRange: (min: number, max: number) =>
-    min === max
-      ? `This plan sells exactly ${min} ${min === 1 ? "mailbox" : "mailboxes"}. Adjust the quantity, then apply the code again.`
-      : `This plan sells ${min} to ${max} mailboxes. Adjust the quantity, then apply the code again.`,
-  couponSeatTotal: (amount: string) =>
-    `That many mailboxes cost more than one order can charge (${amount} at most). Choose fewer, then apply the code again.`,
-  seatDiscountNote: (percent: number) => `The ${percent}% discount is taken off the whole order and rounded once.`,
+  seatRenewsAt: "Then {price} every {days} {dayForm, select, one {day} other {days}}",
+  couponSeatRange:
+    "{rangeForm, select, exact {This plan sells exactly {min} {mailboxForm, select, one {mailbox} other {mailboxes}}. Adjust the quantity, then apply the code again.} other {This plan sells {min} to {max} mailboxes. Adjust the quantity, then apply the code again.}}",
+  couponSeatTotal:
+    "That many mailboxes cost more than one order can charge ({amount} at most). Choose fewer, then apply the code again.",
+  seatDiscountNote: "The {percent}% discount is taken off the whole order and rounded once.",
   seatTooMany: "That many mailboxes cost more than one order can charge. Choose fewer.",
   seatTooManyLdc: "That many mailboxes cost more than one LDC order can charge. Pay by card, or choose fewer.",
   seatTooManyCard: "That many mailboxes cost more than one card order can charge. Pay with LDC, or choose fewer.",
-  seatCountValue: (min: number, max: number) => `${min} to ${max}, you choose`,
+  seatCountValue: "{min} to {max}, you choose",
   ownDomains: "Your own domains",
-  ownDomainsValue: (n: number) => `Up to ${n}`,
+  ownDomainsValue: "Up to {n}",
   seatsTitle: "Seats",
-  seatsUsed: (used: number, total: number) => `${used} of ${total} seats used`,
+  seatsUsed: "{used} of {total} seats used",
   seatsPriceLabel: "Each seat",
-  seatsPriceValue: (price: string, days?: number) =>
-    days ? `${price} every ${days} ${days === 1 ? "day" : "days"}` : `${price} per period`,
+  seatsPriceValue:
+    "{daysForm, select, active {{price} every {days} {dayForm, select, one {day} other {days}}} other {{price} per period}}",
   seatsPeriodEnd: "Current period ends",
   seatsAdd: "Add seats",
   seatsAddCount: "Seats to add",
-  seatsAddRoom: (n: number) => `This plan has room for ${n} more.`,
-  seatsAtMax: (max: number) => `This plan's limit of ${max} seats is reached.`,
+  seatsAddRoom: "This plan has room for {n} more.",
+  seatsAtMax: "This plan's limit of {max} seats is reached.",
   seatsEnded: "The current period has ended. Renew the subscription before adding seats.",
   seatsQuote: "See the price",
   seatsQuoting: "Working it out…",
-  seatsQuoteLdc: (n: number, price: string, date: string) =>
-    `${n} more ${n === 1 ? "seat" : "seats"} for the rest of this period (until ${date}): ${price} LDC. That is the price if you order now; it falls as the period runs down.`,
-  seatsQuoteCard: (n: number, price: string, date: string) =>
-    `${n} more ${n === 1 ? "seat" : "seats"} for the rest of this period (until ${date}): about ${price}. This is an estimate; Stripe works out the final amount and charges the card on the subscription.`,
-  seatsQuoteAfter: (total: number, renew: string, days?: number) =>
-    days
-      ? `You will then have ${total} seats, renewing at ${renew} every ${days} ${days === 1 ? "day" : "days"}.`
-      : `You will then have ${total} seats, renewing at ${renew} per period.`,
+  seatsQuoteLdc:
+    "{n} more {seatForm, select, one {seat} other {seats}} for the rest of this period (until {date}): {price} LDC. That is the price if you order now; it falls as the period runs down.",
+  seatsQuoteCard:
+    "{n} more {seatForm, select, one {seat} other {seats}} for the rest of this period (until {date}): about {price}. This is an estimate; Stripe works out the final amount and charges the card on the subscription.",
+  seatsQuoteAfter:
+    "{daysForm, select, active {You will then have {total} seats, renewing at {renew} every {days} {dayForm, select, one {day} other {days}}.} other {You will then have {total} seats, renewing at {renew} per period.}}",
   seatsConfirmLdc: "Create the order and pay",
   seatsConfirmCard: "Confirm and charge my card",
   seatsAdding: "Working…",
-  seatsApplied: (n: number) => `Seats added. You now have ${n}.`,
+  seatsApplied: "Seats added. You now have {n}.",
   seatsPaymentRequired:
     "Your bank needs you to confirm this payment, so no seats have been added yet. Finish it on Stripe's invoice page: the seats are added once Stripe confirms the payment, and show here after a refresh.",
   seatsPaymentRequiredNoLink:
@@ -461,22 +488,21 @@ export const en: ShopCopy = {
   seatsRefresh: "Refresh seats",
   seatsRemove: "Remove seats at renewal",
   seatsRemoveCount: "Seats to remove",
-  seatsRemoveRoom: (n: number) => `You can remove up to ${n}.`,
-  seatsAtMin: (min: number) => `This plan's minimum of ${min} ${min === 1 ? "seat" : "seats"} is reached.`,
-  seatsRemoveHint: (date: string) =>
-    `The removal takes effect at the next renewal (${date}). Nothing is refunded for this period, and until then the seats and mailboxes keep working.`,
-  seatsRemoveChoose: (n: number) => `Choose the mailboxes that go with the seats (at least ${n})`,
+  seatsRemoveRoom: "You can remove up to {n}.",
+  seatsAtMin: "This plan's minimum of {min} {seatForm, select, one {seat} other {seats}} is reached.",
+  seatsRemoveHint:
+    "The removal takes effect at the next renewal ({date}). Nothing is refunded for this period, and until then the seats and mailboxes keep working.",
+  seatsRemoveChoose: "Choose the mailboxes that go with the seats (at least {n})",
   seatsRemoveChooseNone: "Your mailboxes already fit the seats that stay, so none has to go.",
-  seatsRemoveChooseMore: (n: number) => `Choose ${n} more ${n === 1 ? "mailbox" : "mailboxes"}.`,
-  seatsRemoveChooseFewer: (n: number) =>
-    `You can't choose more mailboxes than the ${n} ${n === 1 ? "seat" : "seats"} you remove.`,
+  seatsRemoveChooseMore: "Choose {n} more {mailboxForm, select, one {mailbox} other {mailboxes}}.",
+  seatsRemoveChooseFewer:
+    "You can't choose more mailboxes than the {n} {seatForm, select, one {seat} other {seats}} you remove.",
   seatsRemoveWarning: "The mailboxes you choose are deleted at the renewal, with all the mail in them.",
   seatsRemoveSubmit: "Schedule the removal",
   seatsRemoving: "Scheduling…",
-  seatsRemovalScheduled: (next: number, date: string) =>
-    `Scheduled: ${next} ${next === 1 ? "seat" : "seats"} from the next renewal (${date}).`,
-  seatsPending: (next: number, date: string) =>
-    `Down to ${next} ${next === 1 ? "seat" : "seats"} from the next renewal (${date})`,
+  seatsRemovalScheduled:
+    "Scheduled: {next} {seatForm, select, one {seat} other {seats}} from the next renewal ({date}).",
+  seatsPending: "Down to {next} {seatForm, select, one {seat} other {seats}} from the next renewal ({date})",
   seatsPendingMailboxes: "Mailboxes removed then",
   seatsPendingNoMailboxes: "No mailbox is removed",
   seatsKeep: "Cancel the removal and keep all seats",
@@ -488,14 +514,14 @@ export const en: ShopCopy = {
   domainsTitle: "Use my own domain",
   domainsHint:
     "Your plan lets you connect a domain you own: prove it is yours, then publish the DNS records listed below. Once the domain is live you can set up mailboxes on it under My mailboxes.",
-  domainsCount: (n: number, limit: number) => `${n} of ${limit} ${limit === 1 ? "domain" : "domains"} connected`,
+  domainsCount: "{n} of {limit} {domainForm, select, one {domain} other {domains}} connected",
   domainsNotIncluded:
     "None of your current plans includes your own domain, so new mailboxes can't be set up on the domains below for now.",
   domainAddLabel: "Your domain",
   domainAddHint: "Enter a domain you have registered, for example example.com. Leave out www and https://.",
   domainAddButton: "Connect domain",
   domainAdding: "Connecting…",
-  domainAdded: (name: string) => `${name} is reserved for you. Add the ownership record shown below.`,
+  domainAdded: "{name} is reserved for you. Add the ownership record shown below.",
   domainStatuses: {
     pending: "Waiting for ownership check",
     provisioning: "Being set up",
@@ -534,9 +560,9 @@ export const en: ShopCopy = {
   domainRecordStatus: "Status",
   domainCopy: "Copy",
   domainCopied: "Copied",
-  domainCopyName: (what: string) => `Copy the ${what}`,
-  domainOwnershipExpires: (date: string) =>
-    `This value works until ${date}. DNS changes can take from a few minutes to a few hours to show.`,
+  domainCopyName: "Copy the {what}",
+  domainOwnershipExpires:
+    "This value works until {date}. DNS changes can take from a few minutes to a few hours to show.",
   domainOwnershipExpired: "This value has expired. Get a new one and replace the record in your DNS with it.",
   domainVerify: "Verify",
   domainVerifying: "Verifying…",
@@ -546,7 +572,7 @@ export const en: ShopCopy = {
     "A new value was generated and the old one no longer works. Update the record in your DNS, then verify.",
   domainRemove: "Give up this domain",
   domainRemoving: "Removing…",
-  domainRemoved: (name: string) => `${name} was given up. You can connect another domain in its place.`,
+  domainRemoved: "{name} was given up. You can connect another domain in its place.",
   domainRemoveNote:
     "You can give a domain up until its ownership is verified. After that, contact support to have it removed.",
   domainVerified: "Ownership verified. Now publish the DNS records below.",
@@ -580,7 +606,7 @@ export const en: ShopCopy = {
   domainRecordErrorNote: "This lookup failed, which doesn't mean the record is missing. It is checked again later.",
   domainReady: "Every required record is in place.",
   domainNotReady: "Some required records are not in place yet.",
-  domainCheckedAt: (date: string) => `Last checked: ${date}`,
+  domainCheckedAt: "Last checked: {date}",
   domainCheck: "Check again",
   domainChecking: "Checking…",
   domainPolling:

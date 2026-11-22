@@ -1,7 +1,15 @@
 import type { ReactNode } from "react";
-import { ShopCopyZh } from "@/storefront/components/copy/shop-zh";
+import { NextIntlClientProvider } from "next-intl";
+import { messagesFor } from "@/i18n/messages";
 
-/** The shop pages' client components read their copy from here, so their bundle carries Chinese only (see copy/context.tsx). */
 export default function ZhShopLayout({ children }: { children: ReactNode }) {
-  return <ShopCopyZh>{children}</ShopCopyZh>;
+  return (
+    <NextIntlClientProvider
+      locale="zh"
+      messages={{ storefront: { shop: messagesFor("zh").storefront.shop } }}
+      timeZone="UTC"
+    >
+      {children}
+    </NextIntlClientProvider>
+  );
 }

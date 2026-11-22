@@ -1,7 +1,7 @@
 import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import type { ScreenCopy } from "@/i18n/types";
 import { reveal } from "@/lib/reveal";
 import { screens, screenSrc, screenSrcSet, type Screen, type ScreenKey } from "@/lib/screens";
@@ -16,7 +16,7 @@ const byKey = (key: ScreenKey) => screens.find((screen) => screen.key === key)!;
  * Plain <img> with srcset (the site runs on a Worker without an image service); width and height hold the layout while they load.
  */
 export function Screens({ lang }: { lang: Lang }) {
-  const { t } = useCopy(lang);
+  const { t } = getCopy(lang);
   const s = t.screens;
 
   return (

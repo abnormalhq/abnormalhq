@@ -5,7 +5,7 @@ import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/com
 import { TextLink } from "@/components/ui/text-link";
 import { helpArticles, helpPath } from "@/content/help";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { planViews } from "@/lib/pricing";
 import { pricingStructuredData } from "@/lib/structured-data";
 import { catalogDomains, type ShopCatalog } from "@/storefront";
@@ -23,7 +23,7 @@ import { PlanCards, PlanComparison, PlanNotice } from "./PlanCards";
  * null means the catalog could not be read: the page says so and still shows everything that does not depend on it.
  */
 export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | null }) {
-  const { t, links, path } = useCopy(lang);
+  const { t, links, path } = getCopy(lang);
   const p = t.pricing;
   const plans = catalog ? planViews(catalog, lang, p, links.shop) : [];
   const billingArticles = helpArticles(lang)

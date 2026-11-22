@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Lang } from "@/storefront/i18n";
-import { claimTrial, getTrial, trialCopy, type TrialOffer } from "@/storefront/lib/trial";
+import { claimTrial, getTrial, type TrialOffer } from "@/storefront/lib/trial";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import { ShopAlert, ShopButton, ShopPanel, shopHeadingClass, shopTextClass } from "./ShopParts";
 
 export function ShopTrial({ lang, onClaimed }: { lang: Lang; onClaimed: () => void }) {
-  const t = trialCopy[lang];
   const shopT = useShopCopy();
+  const t = shopT.trial;
   const [offer, setOffer] = useState<TrialOffer | null>(null);
   const [error, setError] = useState("");
   const [claiming, setClaiming] = useState(false);

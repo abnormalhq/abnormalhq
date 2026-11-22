@@ -2,7 +2,7 @@ import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { HomePricing } from "./HomePricing";
 import { Icon } from "./Icon";
@@ -13,7 +13,7 @@ import { Included } from "./Included";
  * mailbox gets whatever the plan. The full comparison is on the pricing page, linked from here.
  */
 export function PricingSection({ lang }: { lang: Lang }) {
-  const { t, links } = useCopy(lang);
+  const { t, links } = getCopy(lang);
   const p = t.pricing;
   return (
     <section className="border-t border-border" id="pricing" aria-labelledby="pricing-title">

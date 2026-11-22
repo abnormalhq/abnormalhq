@@ -1,5 +1,5 @@
 import type { Lang } from "../i18n.ts";
-import type { ShopCopy } from "./shop-copy.zh.ts";
+import type { ShopCopy } from "./shop-copy.types.ts";
 import { ShopApiError } from "./shop.ts";
 
 /**

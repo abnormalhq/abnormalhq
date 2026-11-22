@@ -1,0 +1,38 @@
+export const inquiryMessages = {
+  en: {
+    inquiry: {
+      greeting: "Hi, I'd like to ask about an Abnormal product.",
+      product: "Service: ",
+      duration: "Term: ",
+      notes: "Details: ",
+      closing: "Please let me know the plan, total cost, setup time and what support is included.",
+      subject: "Abnormal product inquiry · ",
+      telegram: "Ask on Telegram",
+      email: "Ask by email",
+      wechatLabel: "WeChat: ",
+      emailLabel: "Email: ",
+      telegramLabel: "Telegram: ",
+      separator: " · ",
+      contactHint: ". Copy the message below and send it to us.",
+      noContact: "Contact channels are coming soon. You can copy your request now and get in touch later.",
+    },
+  },
+  zh: {
+    inquiry: {
+      greeting: "你好，我想咨询 Abnormal 产品。",
+      product: "服务类型：",
+      duration: "使用时长：",
+      notes: "需求：",
+      closing: "请帮我确认适合的方案、总费用、使用方式与支持范围。",
+      subject: "Abnormal 产品咨询 · ",
+      telegram: "在 Telegram 咨询",
+      email: "通过邮件咨询",
+      wechatLabel: "微信：",
+      emailLabel: "邮箱：",
+      telegramLabel: "Telegram：",
+      separator: " · ",
+      contactHint: "。复制下方咨询内容后联系我们。",
+      noContact: "咨询渠道即将公布。你可以先复制需求，稍后再来联系我们。",
+    },
+  },
+} as const;

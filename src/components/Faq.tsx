@@ -3,14 +3,14 @@ import { Disclosure, DisclosureContent, DisclosureList, DisclosureTrigger } from
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 import { InquiryButton } from "./InquiryDialog";
 
 export function Faq({ lang }: { lang: Lang }) {
-  const { t, links } = useCopy(lang);
+  const { t, links } = getCopy(lang);
   return (
     <Container asChild>
       <section

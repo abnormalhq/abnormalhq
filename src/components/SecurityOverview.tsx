@@ -2,7 +2,7 @@ import Link from "next/link";
 import { TextLink } from "@/components/ui/text-link";
 import { securityContent } from "@/content/security";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { securityStructuredData } from "@/lib/structured-data";
 import { DocArticle } from "./DocArticle";
 import { Icon } from "./Icon";
@@ -14,7 +14,7 @@ import { JsonLd } from "@/components/ui/json-ld";
  * what the privacy policy and mail's documentation back up.
  */
 export function SecurityOverview({ lang }: { lang: Lang }) {
-  const { t, path } = useCopy(lang);
+  const { t, path } = getCopy(lang);
   const s = t.security;
   const content = securityContent[lang];
   return (

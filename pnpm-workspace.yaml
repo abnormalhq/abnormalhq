@@ -6,6 +6,8 @@ overrides:
 # wrangler runs workerd locally and bundles with esbuild; both need their install scripts to download platform binaries.
 # sharp (used by next/image, not here) and unrs-resolver do not need theirs.
 allowBuilds:
+  "@parcel/watcher": true
+  "@swc/core": true
   esbuild: true
   workerd: true
   sharp: false

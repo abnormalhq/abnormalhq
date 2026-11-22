@@ -25,7 +25,7 @@ import {
 } from "@/storefront/lib/domains";
 import { formatDateTime, isRefusal } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 import { cn } from "@/lib/utils";
 import {
   ShopActions,

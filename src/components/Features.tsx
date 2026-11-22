@@ -4,7 +4,7 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { Icon } from "./Icon";
 
@@ -13,7 +13,7 @@ import { Icon } from "./Icon";
  * The features sit in a hairline grid (the borders are the gaps), so the section reads as one sheet rather than nine cards.
  */
 export function Features({ lang }: { lang: Lang }) {
-  const { t, links, path } = useCopy(lang);
+  const { t, links, path } = getCopy(lang);
   const f = t.features;
 
   return (

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
 import { getAccount, logoutAccount } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import { useShopCopy } from "./copy/context";
+import { useShopCopy } from "./copy/hooks";
 
 /**
  * The "Logged in: email · Log out" line at the top of every shop page. Orders and renewals placed while logged in belong to this account, so who is logged in must be visible before ordering:

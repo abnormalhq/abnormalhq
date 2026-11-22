@@ -38,8 +38,8 @@ import {
   type CustomerAccount,
 } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
-import type { ShopCopy } from "@/storefront/lib/shop-copy.zh";
-import { useShopCopy } from "./copy/context";
+import type { ShopCopy } from "@/storefront/lib/shop-copy.types";
+import { useShopCopy } from "./copy/hooks";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/storefront/site";
 import {
@@ -64,7 +64,6 @@ import {
   shopTextClass,
 } from "./ShopParts";
 import { ShopTrial } from "./ShopTrial";
-import { trialCopy } from "@/storefront/lib/trial";
 import { ShopDomains } from "./ShopDomains";
 import { ShopMailboxManager } from "./ShopMailboxManager";
 import { useTurnstile } from "./Turnstile";
@@ -571,7 +570,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                   <div className={shopHeadingRowClass}>
                     <h3 className="text-md/[1.2]">{subscription.productName}</h3>
                     <ShopStatus active={subscription.state === "active"}>
-                      {subscription.trial ? `${trialCopy[lang].title} · ` : ""}
+                      {subscription.trial ? `${t.trial.title} · ` : ""}
                       {t.subscriptionStates[subscription.state]}
                       {subscription.provider === "stripe" &&
                         ` · ${subscription.autoRenew ? t.autoRenewOn : t.autoRenewOff}`}
@@ -579,7 +578,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                   </div>
                   <ShopMeta>
                     <ShopMetaRow label={t.subscriptionEnds}>{date(subscription.currentPeriodEnd)}</ShopMetaRow>
-                    <ShopMetaRow label={subscription.trial ? trialCopy[lang].paidPeriod : t.period}>
+                    <ShopMetaRow label={subscription.trial ? t.trial.paidPeriod : t.period}>
                       {t.periodValue(subscription.periodDays)}
                       {subscription.provider === "usdt" ? (
                         // Bought with USDT: renews with USDT, at a price in hundredths of a USDT, through the renewal link below.
@@ -631,7 +630,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     <ShopActions>
                       <ShopButton asChild variant="outline">
                         <Link href={`/${LANG_PATHS[lang]}shop/renew/?t=${encodeURIComponent(subscription.renewToken)}`}>
-                          {subscription.trial ? trialCopy[lang].teamUpgrade : t.renewLink}
+                          {subscription.trial ? t.trial.teamUpgrade : t.renewLink}
                           <span aria-hidden="true">↗</span>
                         </Link>
                       </ShopButton>
@@ -651,11 +650,10 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                   <div className={shopHeadingRowClass}>
                     <h3 className="text-md/[1.2]">
                       {order.productName}
-                      {order.kind === "renewal" &&
-                        ` · ${order.trialUpgrade ? trialCopy[lang].upgradeOrder : t.renewalLabel}`}
+                      {order.kind === "renewal" && ` · ${order.trialUpgrade ? t.trial.upgradeOrder : t.renewalLabel}`}
                     </h3>
                     <ShopStatus active={order.status === "paid"}>
-                      {order.trial ? trialCopy[lang].title : order.status === "paid" ? t.paid : t.pending}
+                      {order.trial ? t.trial.title : order.status === "paid" ? t.paid : t.pending}
                     </ShopStatus>
                   </div>
                   <ShopMeta>
@@ -671,7 +669,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     {order.kind === "renewal" && (
                       <ShopMetaRow label={t.period}>
                         {order.trialUpgrade
-                          ? trialCopy[lang].paidPeriods(order.periods, order.periodDays)
+                          ? t.trial.paidPeriods(order.periods, order.periodDays)
                           : t.renewalPeriods(order.periods, order.periodDays)}
                       </ShopMetaRow>
                     )}

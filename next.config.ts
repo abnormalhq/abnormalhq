@@ -1,4 +1,5 @@
 import createMDX from "@next/mdx";
+import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 import { rehypePlugins, remarkPlugins } from "./src/content/legal/mdx.ts";
@@ -67,17 +68,20 @@ const nextConfig: NextConfig = {
 
 // Turbopack requires plugins to be written as package-name strings; the list is in src/content/legal/mdx.ts, and the tests compile the legal documents with the same one.
 const withMDX = createMDX({ options: { remarkPlugins, rehypePlugins } });
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 export default function config(phase: string): NextConfig {
-  return withMDX(
-    phase === PHASE_DEVELOPMENT_SERVER
-      ? {
-          ...nextConfig,
-          // The storefront's mock API (src/app/api/*/route.dev.ts, data in src/storefront/mock/) exists only on the dev server: route.dev.ts is an
-          // endpoint only while dev.ts is a page extension. The build uses the default extensions, so there it is an ordinary file and no route;
-          // in production /api is answered by the Worker (worker.ts) before Next.js.
-          pageExtensions: ["tsx", "ts", "dev.ts"],
-        }
-      : nextConfig,
+  return withNextIntl(
+    withMDX(
+      phase === PHASE_DEVELOPMENT_SERVER
+        ? {
+            ...nextConfig,
+            // The storefront's mock API (src/app/api/*/route.dev.ts, data in src/storefront/mock/) exists only on the dev server: route.dev.ts is an
+            // endpoint only while dev.ts is a page extension. The build uses the default extensions, so there it is an ordinary file and no route;
+            // in production /api is answered by the Worker (worker.ts) before Next.js.
+            pageExtensions: ["tsx", "ts", "dev.ts"],
+          }
+        : nextConfig,
+    ),
   );
 }

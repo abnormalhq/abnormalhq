@@ -3,12 +3,12 @@ import { IconTile } from "@/components/ui/icon-tile";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { Icon } from "./Icon";
 
 export function Process({ lang }: { lang: Lang }) {
-  const { t, links } = useCopy(lang);
+  const { t, links } = getCopy(lang);
   return (
     <section className="border-t border-border" id="how-it-works" aria-labelledby="process-title">
       <Container className={sectionSpaceClassName}>

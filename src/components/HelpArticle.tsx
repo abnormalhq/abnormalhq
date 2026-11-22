@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { TextLink } from "@/components/ui/text-link";
 import { helpArticles, helpContent, helpPath, type HelpArticle as Article } from "@/content/help";
 import { site, type Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { helpArticleStructuredData } from "@/lib/structured-data";
 import { fillTemplate } from "@/lib/template";
 import { DocArticle } from "./DocArticle";
@@ -16,7 +16,7 @@ const RELATED_MAX = 3;
 
 /** One help article (/help/<slug>/): the article, then the way back to the index and on to support. */
 export function HelpArticle({ lang, article }: { lang: Lang; article: Article }) {
-  const { t, path } = useCopy(lang);
+  const { t, path } = getCopy(lang);
   const h = t.help;
   const email = site.contact.email.trim();
   // The other articles of the same topic, in the index's order: where a reader who finished this one most likely goes next.

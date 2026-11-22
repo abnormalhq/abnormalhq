@@ -1,7 +1,7 @@
 import { Container } from "@/components/ui/container";
 import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import { WebmailDemo } from "./WebmailDemo";
 
@@ -10,7 +10,7 @@ import { WebmailDemo } from "./WebmailDemo";
  * demo gets only its own copy through props, so the browser bundle carries one language's sample content and nothing else of the copy.
  */
 export function Demo({ lang }: { lang: Lang }) {
-  const { t } = useCopy(lang);
+  const { t } = getCopy(lang);
   const d = t.demo;
 
   return (

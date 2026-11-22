@@ -29,7 +29,7 @@ import {
   usernameProblem,
 } from "@/storefront/lib/onboard";
 import { cn } from "@/lib/utils";
-import { useOnboardCopy } from "../copy/context";
+import { useOnboardCopy } from "../copy/hooks";
 import { useTurnstile } from "../Turnstile";
 import { AccountRow, fieldLabelClass, type RowInputs } from "./AccountRow";
 import { celebrate } from "./celebrate";

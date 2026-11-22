@@ -2,12 +2,12 @@ import { Container } from "@/components/ui/container";
 import { Eyebrow } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { Icon } from "./Icon";
 
 /** Product peers first; personal, team and custom-domain offers remain within Mail below. */
 export function Products({ lang }: { lang: Lang }) {
-  const { t, links } = useCopy(lang);
+  const { t, links } = getCopy(lang);
   const p = t.products;
   return (
     <Container asChild>

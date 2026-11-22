@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { IconTile } from "@/components/ui/icon-tile";
 import type { Lang } from "@/data/site";
-import { useCopy } from "@/i18n";
+import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
 import type { Product, ProductIcon } from "@/i18n/types";
 import { Icon } from "./Icon";
@@ -20,7 +20,7 @@ const glyphs: Record<ProductIcon, ReactNode> = {
 };
 
 export function ProductCard({ lang, product, index }: { lang: Lang; product: Product; index: number }) {
-  const { t, links } = useCopy(lang);
+  const { t, links } = getCopy(lang);
   const variant = product.featured ? "default" : "outline";
   const actionClass = "mt-5 w-full justify-between";
 
