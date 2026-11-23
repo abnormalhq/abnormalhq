@@ -26,7 +26,7 @@ export default function GlobalNotFound() {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <ThemeScript />
+        <ThemeScript defaultTheme="dark" />
       </head>
       <body>
         <Container asChild className={sectionSpaceClassName}>

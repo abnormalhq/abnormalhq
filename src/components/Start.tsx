@@ -23,9 +23,7 @@ export function Start({ lang }: { lang: Lang }) {
           {...reveal()}
         >
           <div>
-            <Eyebrow lang="en">
-              <span className="mr-1">02 /</span> {s.eyebrow}
-            </Eyebrow>
+            <Eyebrow lang="en">{s.eyebrow}</Eyebrow>
             <SectionTitle id="start-title">
               {s.title}
               <HeadingMark>{t.dot}</HeadingMark>

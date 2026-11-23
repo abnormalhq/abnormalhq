@@ -104,7 +104,8 @@ export function Header({
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background" ref={header}>
+    // Translucent over the page as it scrolls under the bar; the mobile menu below keeps the solid page color.
+    <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur-md" ref={header}>
       <Container className="flex min-h-16 items-center justify-between gap-6 max-md:gap-3">
         {brand}
         <nav className="mr-auto ml-6 flex items-center gap-1 max-nav:ml-2 max-md:hidden" aria-label={copy.navLabel}>
@@ -158,7 +159,7 @@ export function Header({
           <Button asChild variant="ghost" className="mr-1 border-0 px-2.5 font-normal max-nav:hidden">
             <a href={links.webmail}>{copy.login}</a>
           </Button>
-          <Button asChild className="max-md:hidden">
+          <Button asChild variant="highlight" className="max-md:hidden">
             <a href={links.shop}>
               {copy.buy} <Icon name="up-right" className="size-3.5" />
             </a>
@@ -203,7 +204,7 @@ export function Header({
             </Link>
           ))}
           <div className="mt-4 grid gap-2">
-            <Button asChild size="lg">
+            <Button asChild size="lg" variant="highlight">
               <a href={links.shop} onClick={closeMenu}>
                 {copy.buy} <Icon name="up-right" className="size-4" />
               </a>

@@ -19,10 +19,7 @@ export function Faq({ lang }: { lang: Lang }) {
         aria-labelledby="faq-title"
       >
         <div className="lg:pt-3" {...reveal()}>
-          <Eyebrow lang="en">
-            <span className="mr-1">06 /</span>
-            {t.faq.eyebrow}
-          </Eyebrow>
+          <Eyebrow lang="en">{t.faq.eyebrow}</Eyebrow>
           <SectionTitle id="faq-title">
             {t.faq.title}
             <HeadingMark>{t.dot}</HeadingMark>

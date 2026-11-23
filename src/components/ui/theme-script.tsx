@@ -14,18 +14,26 @@ const STORAGE_KEY = "abnormal-theme";
 const LIGHT = "#f7f7f4";
 const DARK = "#141412";
 
-/** The script itself, for a project that inlines it some other way, or runs it in a test. */
-const themeScript = `(() => {
+type DefaultTheme = "system" | "light" | "dark";
+
+/**
+ * The script for a page whose visitors start on `defaultTheme`: "system" follows the system's appearance until a
+ * choice is made, "light" or "dark" paints that theme until a choice is made. A choice equal to the default is not
+ * stored, so changing the default later reaches everyone who never chose otherwise.
+ */
+function createThemeScript(defaultTheme: DefaultTheme = "system") {
+  return `(() => {
   const storageKey = "${STORAGE_KEY}";
+  const defaultPreference = "${defaultTheme}";
   const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
   const root = document.documentElement;
 
   const readPreference = () => {
     try {
       const saved = window.localStorage.getItem(storageKey);
-      return saved === "light" || saved === "dark" ? saved : "system";
+      return saved === "light" || saved === "dark" || saved === "system" ? saved : defaultPreference;
     } catch {
-      return "system";
+      return defaultPreference;
     }
   };
 
@@ -46,7 +54,7 @@ const themeScript = `(() => {
     setPreference(nextPreference) {
       preference = nextPreference;
       try {
-        if (preference === "system") {
+        if (preference === defaultPreference) {
           window.localStorage.removeItem(storageKey);
         } else {
           window.localStorage.setItem(storageKey, preference);
@@ -68,19 +76,25 @@ const themeScript = `(() => {
   });
   applyTheme();
 })();`;
+}
+
+/** The script itself, following the system by default, for a project that inlines it some other way, or runs it in a test. */
+const themeScript = createThemeScript();
 
 /**
  * Render once in <head>, before anything that paints. The meta tag comes first: the script rewrites its color to
  * match the theme it applies. Give <html> suppressHydrationWarning, since the script sets attributes React did not
- * render. `nonce` is for a Content Security Policy that allows inline scripts by nonce.
+ * render. `nonce` is for a Content Security Policy that allows inline scripts by nonce. `defaultTheme` is where a
+ * visitor who has not chosen starts: the system's appearance (the default), or "dark" or "light" for a site whose
+ * look is one of them. Choosing "system" in the picker is then stored, since it is no longer the default.
  */
-function ThemeScript({ nonce }: { nonce?: string }) {
+function ThemeScript({ nonce, defaultTheme = "system" }: { nonce?: string; defaultTheme?: DefaultTheme }) {
   return (
     <>
-      <meta name="theme-color" content={LIGHT} />
-      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
+      <meta name="theme-color" content={defaultTheme === "dark" ? DARK : LIGHT} />
+      <script nonce={nonce} dangerouslySetInnerHTML={{ __html: createThemeScript(defaultTheme) }} />
     </>
   );
 }
 
-export { ThemeScript, themeScript };
+export { ThemeScript, createThemeScript, themeScript, type DefaultTheme };

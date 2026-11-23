@@ -20,11 +20,10 @@ export const zh: CopyMessages = {
     navLabel: "主导航",
     mobileNavLabel: "移动端导航",
     nav: [
-      { anchor: "products", label: "产品" },
       { anchor: "mail", label: "Mail" },
-      { path: "/pricing/", label: "邮箱价格" },
+      { anchor: "doppel-waitlist", label: "Doppel" },
+      { path: "/pricing/", label: "价格" },
       { anchor: "start", wide: "card", label: "开始使用" },
-      { anchor: "services", wide: "bar", label: "邮箱类型" },
       { path: "/help/", label: "帮助" },
     ],
     openMenu: "展开导航",
@@ -42,19 +41,28 @@ export const zh: CopyMessages = {
   },
   hero: {
     eyebrow: "Thoughtful digital services",
-    titleLines: ["好用的服务，", "让日常", "更简单"],
-    description: [
-      "从每一封邮件，到 AI 代理持久、独立的浏览器工作环境。",
-      "Mail 现已可用；Doppel 尚未公开，可在下方查看候补登记状态。",
-    ],
-    explore: "了解我们的产品",
-    inquire: "联系咨询",
+    productsLabel: "产品",
+    mail: {
+      tab: "Mail",
+      titleLines: ["一个安静的邮箱，", "用你的名字"],
+      description:
+        "@abnormalhq.com 邮箱，自带日历、通讯录和撤回发送。付款后在账户里直接开通，网页、桌面和你惯用的邮件应用都能用。",
+      buy: "购买邮箱",
+      explore: "看看里面有什么",
+    },
+    doppel: {
+      tab: "Doppel",
+      badge: "尚未公开",
+      titleLines: ["给 AI 代理", "一个自己的浏览器"],
+      description:
+        "持久、独立的浏览器工作环境：每个环境保留自己的身份、Cookie 与登录状态。Doppel 尚未公开，可以先看看候补登记的状态。",
+      action: "查看候补登记状态",
+      keeps: ["身份", "Cookie", "登录状态"],
+    },
     loginPrompt: "已有账户？",
     loginLink: "登录管理邮箱",
     webmailLink: "登录 Abnormal Mail",
     promises: ["订单与邮箱一个账户管理", "付款后在账户里直接开通", "用户名自己取"],
-    note: ["少一点噪音。", "多一点专注。"],
-    noteLabel: "abnormal / everyday tools",
   },
   products: {
     title: "产品",
@@ -377,6 +385,15 @@ export const zh: CopyMessages = {
         description: "Abnormal Mail 可以安装到桌面或手机主屏，像应用一样打开；离线时也能翻看已保存的邮件。",
       },
     ],
+    samples: {
+      inboxTabs: ["主要", "订阅", "通知"],
+      sent: "已发送",
+      undo: "撤回",
+      scheduled: "定时：明天 09:00",
+      suspicious: "发件域名与你常联系的地址很像，请留意。",
+      rule: "发件人含 newsletter → 归入「订阅」",
+      install: "添加到主屏幕",
+    },
     platformsTitle: "在哪里都能用",
     platforms: [
       {
@@ -772,7 +789,7 @@ export const zh: CopyMessages = {
   },
   closing: {
     eyebrow: "Make every connection count",
-    titleLines: ["下一封邮件，", "从这里开始"],
+    titleLines: ["少一点噪音，", "多一点专注"],
     body: "注册账户、选个套餐，付款后在账户里开通，马上开始收发；给团队购买、使用自己的域名，在包含这些内容的套餐上也是同样的流程；需要配置协助，可以先聊聊。",
     buy: "购买邮箱",
     custom: "咨询配置协助",

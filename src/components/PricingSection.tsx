@@ -23,9 +23,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
           {...reveal()}
         >
           <div>
-            <Eyebrow lang="en">
-              <span className="mr-1">03 /</span> {p.eyebrow}
-            </Eyebrow>
+            <Eyebrow lang="en">{p.eyebrow}</Eyebrow>
             <SectionTitle id="pricing-title">
               {p.title}
               <HeadingMark>{t.dot}</HeadingMark>

@@ -153,22 +153,32 @@ export interface Copy {
   };
   hero: {
     eyebrow: string;
-    /**
-     * Three parts: first line, the lead of the second line, and the single word that takes the Marker
-     * (highlighter stroke). The brand allows the Marker once on a screen, on a number or one word.
-     */
-    titleLines: readonly [string, string, string];
-    description: readonly [string, string];
-    explore: string;
-    inquire: string;
+    /** The name of the row of product tabs above the headline. */
+    productsLabel: string;
+    /** The Mail tab: the headline (two lines, the second ends with t.dot), a sentence and the two actions. */
+    mail: {
+      tab: string;
+      titleLines: readonly [string, string];
+      description: string;
+      buy: string;
+      explore: string;
+    };
+    /** The Doppel tab: Doppel is not public, so its one action leads to the waitlist status on the same page. */
+    doppel: {
+      tab: string;
+      badge: string;
+      titleLines: readonly [string, string];
+      description: string;
+      action: string;
+      /** The words on the illustration of three workspaces: what each one keeps. */
+      keeps: readonly [string, string, string];
+    };
     loginPrompt: string;
     /** Sign in to the buyer account (manage mailboxes and orders). */
     loginLink: string;
     /** Sign in to webmail (read and send mail). */
     webmailLink: string;
     promises: readonly string[];
-    note: readonly [string, string];
-    noteLabel: string;
   };
   products: {
     title: string;
@@ -318,6 +328,19 @@ export interface Copy {
     title: string;
     intro: readonly [string, string];
     items: readonly { icon: IconName; title: string; description: string }[];
+    /**
+     * The words drawn inside the feature tiles' small pictures of the product. They only illustrate what the
+     * descriptions say, so the pictures are hidden from assistive technology.
+     */
+    samples: {
+      inboxTabs: readonly [string, string, string];
+      sent: string;
+      undo: string;
+      scheduled: string;
+      suspicious: string;
+      rule: string;
+      install: string;
+    };
     platformsTitle: string;
     /** Each platform links either to a linked site (link) or to a page of this site (path, without the language prefix). */
     platforms: readonly {
