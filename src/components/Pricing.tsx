@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { HeadingMark, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { helpArticles, helpPath } from "@/content/help";
 import type { Lang } from "@/data/site";
@@ -14,7 +14,9 @@ import { HelpLinks } from "./HelpLinks";
 import { Icon } from "./Icon";
 import { Included } from "./Included";
 import { JsonLd } from "@/components/ui/json-ld";
+import { PageHeader } from "./PageHeader";
 import { PlanCards, PlanComparison, PlanNotice } from "./PlanCards";
+import { PriceCalculator } from "./PriceCalculator";
 
 /**
  * The pricing page (/pricing/, /zh/pricing/): every plan on sale with its live price, the comparison table, the address check and what
@@ -41,16 +43,7 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
     <>
       <JsonLd data={pricingStructuredData(lang, plans)} />
       <section aria-labelledby="pricing-title">
-        <Container className={sectionSpaceClassName}>
-          <Eyebrow lang="en">{p.eyebrow}</Eyebrow>
-          <SectionTitle asChild>
-            <h1 id="pricing-title">
-              {p.title}
-              <HeadingMark>{t.dot}</HeadingMark>
-            </h1>
-          </SectionTitle>
-          <p className="mt-4 max-w-2xl text-md/prose text-muted-foreground">{p.pageIntro}</p>
-
+        <PageHeader id="pricing-title" eyebrow={p.eyebrow} title={p.title} dot={t.dot} lead={p.pageIntro}>
           {catalog?.available && catalog.addressCheck && (
             <AddressCheck
               className="mt-8 max-w-[30rem]"
@@ -60,8 +53,9 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
               domains={catalogDomains(catalog)}
             />
           )}
-
-          <div className="mt-10">
+        </PageHeader>
+        <Container className={sectionSpaceClassName}>
+          <div>
             {!catalog ? (
               <PlanNotice
                 title={p.errorTitle}
@@ -83,7 +77,20 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
               </PlanNotice>
             ) : (
               <>
-                <PlanCards plans={plans} copy={p} heading="h2" />
+                <h2 className="text-2xl/[1.3] font-semibold tracking-[-0.02em]" id="pricing-calculator-title">
+                  {p.calculator.title}
+                  <HeadingMark>{t.dot}</HeadingMark>
+                </h2>
+                <p className="mt-2 mb-6 text-base/prose text-muted-foreground">{p.calculator.intro}</p>
+                <PriceCalculator catalog={catalog} lang={lang} copy={p} shop={links.shop} />
+                <h2
+                  className="mt-16 text-2xl/[1.3] font-semibold tracking-[-0.02em] max-md:mt-12"
+                  id="pricing-plans-title"
+                >
+                  {p.plansTitle}
+                  <HeadingMark>{t.dot}</HeadingMark>
+                </h2>
+                <PlanCards className="mt-6" plans={plans} copy={p} heading="h3" />
                 <p className="mt-6 max-w-3xl text-xs/[1.9] text-muted-foreground">{p.priceNote}</p>
               </>
             )}

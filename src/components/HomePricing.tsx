@@ -7,7 +7,8 @@ import type { Copy } from "@/i18n/types";
 import { planViews } from "@/lib/pricing";
 import { sharedCatalog, type ShopCatalog } from "@/storefront";
 import { Icon } from "./Icon";
-import { PlanCards, PlanNotice, type PlanCopy } from "./PlanCards";
+import { PlanNotice, type PlanCopy } from "./PlanCards";
+import { PriceCalculator } from "./PriceCalculator";
 
 export type HomePricingCopy = PlanCopy &
   Pick<
@@ -21,11 +22,13 @@ export type HomePricingCopy = PlanCopy &
     | "shopLink"
     | "priceNote"
     | "compareLink"
+    | "calculator"
   >;
 
 /**
- * The plans in the home page's pricing section. The home page is prerendered at build time and prices must never be the build's, so
- * this reads the catalog in the browser, the way the shop page does; the pricing page (/pricing/) renders the same cards on the server.
+ * The price calculator in the home page's pricing section; the plan cards and their comparison are on the pricing page. The
+ * home page is prerendered at build time and prices must never be the build's, so this reads the catalog in the browser, the
+ * way the shop page does; the pricing page (/pricing/) renders the same calculator from the catalog it reads on the Worker.
  * Copy comes in through props, so the bundle carries one language's pricing wording and nothing else of the copy.
  */
 export function HomePricing({
@@ -111,11 +114,11 @@ export function HomePricing({
       </PlanNotice>
     );
   }
-  const plans = planViews(catalog, lang, copy, shop);
-  if (plans.length === 0) return <PlanNotice title={copy.closedTitle}>{copy.closedBody}</PlanNotice>;
+  if (planViews(catalog, lang, copy, shop).length === 0)
+    return <PlanNotice title={copy.closedTitle}>{copy.closedBody}</PlanNotice>;
   return (
     <>
-      <PlanCards plans={plans} copy={copy} />
+      <PriceCalculator catalog={catalog} lang={lang} copy={copy} shop={shop} />
       <p className="mt-6 max-w-3xl text-xs/[1.9] text-muted-foreground">{copy.priceNote}</p>
     </>
   );

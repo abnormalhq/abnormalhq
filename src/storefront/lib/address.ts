@@ -14,8 +14,12 @@ export interface ChosenAddress {
   domain: string;
 }
 
-/** Query parameters of the shop page: the plan to point out, and the address to carry. */
+/**
+ * Query parameters of the shop page: the plan to point out, how many mailboxes of it (a plan sold per mailbox, from the price
+ * calculator) and the address to carry.
+ */
 export const PLAN_PARAM = "plan";
+export const SEATS_PARAM = "seats";
 export const ADDRESS_PARAM = "address";
 /** A plan id as mail issues record ids: 15 lowercase letters and digits. */
 export const PLAN_ID = /^[a-z0-9]{15}$/;
@@ -39,15 +43,29 @@ export function formatAddress(address: ChosenAddress): string {
   return `${address.username}@${address.domain}`;
 }
 
+/** A number of mailboxes in a query value: a whole number from 1 to 1000 (mail's SEAT_MAX), or null. */
+export function parseSeats(raw: string | null | undefined): number | null {
+  if (!raw || !/^[1-9][0-9]{0,3}$/.test(raw)) return null;
+  const value = Number(raw);
+  return value <= 1000 ? value : null;
+}
+
 /** The plan id in a query value, or null when it is not one. */
 export function parsePlan(raw: string | null | undefined): string | null {
   return raw && PLAN_ID.test(raw) ? raw : null;
 }
 
-/** The shop's address with a plan to point out and an address to carry: shopHref("/zh/shop/", { plan, address }). */
-export function shopHref(shop: string, choice: { plan?: string; address?: ChosenAddress | null }): string {
+/** The shop's address with a plan to point out, how many of it and an address to carry: shopHref("/zh/shop/", { plan, seats, address }). */
+export function shopHref(
+  shop: string,
+  choice: { plan?: string; seats?: number; address?: ChosenAddress | null },
+): string {
   const params = new URLSearchParams();
-  if (choice.plan && PLAN_ID.test(choice.plan)) params.set(PLAN_PARAM, choice.plan);
+  if (choice.plan && PLAN_ID.test(choice.plan)) {
+    params.set(PLAN_PARAM, choice.plan);
+    if (choice.seats !== undefined && parseSeats(String(choice.seats)) !== null)
+      params.set(SEATS_PARAM, String(choice.seats));
+  }
   if (choice.address) params.set(ADDRESS_PARAM, formatAddress(choice.address));
   const query = params.toString();
   return query ? `${shop}?${query}` : shop;

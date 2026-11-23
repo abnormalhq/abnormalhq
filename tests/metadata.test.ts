@@ -37,8 +37,11 @@ test("the homepage introduces both family products instead of only mailbox offer
       copy.meta.socialTitle,
       copy.meta.socialDescription,
       copy.hero.eyebrow,
-      ...copy.hero.titleLines,
-      ...copy.hero.description,
+      ...[copy.hero.mail, copy.hero.doppel].flatMap(({ tab, titleLines, description }) => [
+        tab,
+        ...titleLines,
+        description,
+      ]),
       ...copy.products.items.flatMap(({ name, description }) => [name, description]),
     ].join(" ");
     assert.match(introduction, /Mail/);

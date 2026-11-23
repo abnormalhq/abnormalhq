@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { FieldMessage } from "@/components/ui/field-message";
 import { Label } from "@/components/ui/label";
 import { DescriptionItem, DescriptionList } from "@/components/ui/description-list";
-import { Eyebrow } from "@/components/ui/section-heading";
+import { Eyebrow, PageLead, PageTitle } from "@/components/ui/section-heading";
 import { Spinner } from "@/components/ui/spinner";
 import { StatusLabel } from "@/components/ui/status-label";
 import { Stepper, StepperContent, StepperIndicator, StepperItem, StepperTitle } from "@/components/ui/stepper";
@@ -52,10 +52,8 @@ export function ShopHero({
     <header className="max-w-[810px] pt-[38px] pb-[46px] max-narrow:pt-7 max-narrow:pb-8">
       {mark && <div className="mb-6">{mark}</div>}
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h1 className="mt-[22px] text-[clamp(34px,4.4vw,52px)] leading-[1.15] tracking-[-0.035em] max-narrow:text-[32px] [&:lang(zh)]:tracking-[-0.02em]">
-        {title}
-      </h1>
-      <p className="mt-5 max-w-[620px] text-md/[1.75] text-muted-foreground max-narrow:text-sm/[1.75]">{children}</p>
+      <PageTitle>{title}</PageTitle>
+      <PageLead>{children}</PageLead>
     </header>
   );
 }

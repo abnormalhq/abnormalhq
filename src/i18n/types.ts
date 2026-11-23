@@ -153,22 +153,32 @@ export interface Copy {
   };
   hero: {
     eyebrow: string;
-    /**
-     * Three parts: first line, the lead of the second line, and the single word that takes the Marker
-     * (highlighter stroke). The brand allows the Marker once on a screen, on a number or one word.
-     */
-    titleLines: readonly [string, string, string];
-    description: readonly [string, string];
-    explore: string;
-    inquire: string;
+    /** The name of the row of product tabs above the headline. */
+    productsLabel: string;
+    /** The Mail tab: the headline (two lines, the second ends with t.dot), a sentence and the two actions. */
+    mail: {
+      tab: string;
+      titleLines: readonly [string, string];
+      description: string;
+      buy: string;
+      explore: string;
+    };
+    /** The Doppel tab: Doppel is not public, so its one action leads to the waitlist status on the same page. */
+    doppel: {
+      tab: string;
+      badge: string;
+      titleLines: readonly [string, string];
+      description: string;
+      action: string;
+      /** The words on the illustration of three workspaces: what each one keeps. */
+      keeps: readonly [string, string, string];
+    };
     loginPrompt: string;
     /** Sign in to the buyer account (manage mailboxes and orders). */
     loginLink: string;
     /** Sign in to webmail (read and send mail). */
     webmailLink: string;
     promises: readonly string[];
-    note: readonly [string, string];
-    noteLabel: string;
   };
   products: {
     title: string;
@@ -177,7 +187,6 @@ export interface Copy {
     principle: string;
     status: string;
   };
-  mailIntro: { eyebrow: string; title: string; description: string; tryDemo: string };
   waitlist: {
     eyebrow: string;
     title: string;
@@ -236,15 +245,10 @@ export interface Copy {
     volume: string;
   };
   /**
-   * The screenshots section (src/components/Screens.tsx): WebMail as it really looks, one picture per entry, each in the page's
-   * language. The files are in public/screens/ (see the README's "Screenshots" section).
+   * The screenshots of WebMail as it really looks (the hero's inbox, the feature wall's calendar), one picture per entry, each in
+   * the page's language. The files are in public/screens/ (see the README's "Screenshots" section).
    */
   screens: {
-    eyebrow: string;
-    title: string;
-    description: string;
-    /** Says the mail and events in the pictures are samples. */
-    note: string;
     inbox: ScreenCopy;
     calendar: ScreenCopy;
     phone: ScreenCopy;
@@ -318,6 +322,19 @@ export interface Copy {
     title: string;
     intro: readonly [string, string];
     items: readonly { icon: IconName; title: string; description: string }[];
+    /**
+     * The words drawn inside the feature tiles' small pictures of the product. They only illustrate what the
+     * descriptions say, so the pictures are hidden from assistive technology.
+     */
+    samples: {
+      inboxTabs: readonly [string, string, string];
+      sent: string;
+      undo: string;
+      scheduled: string;
+      suspicious: string;
+      rule: string;
+      install: string;
+    };
     platformsTitle: string;
     /** Each platform links either to a linked site (link) or to a page of this site (path, without the language prefix). */
     platforms: readonly {
@@ -462,6 +479,30 @@ export interface Copy {
       intro: string;
       items: readonly { icon: IconName; title: string; description: string }[];
     };
+    /** The heading over the plan cards on the pricing page. */
+    plansTitle: string;
+    /** The price calculator on the home page and the pricing page (src/components/PriceCalculator.tsx). */
+    calculator: {
+      title: string;
+      intro: string;
+      count: string;
+      fewer: string;
+      more: string;
+      plans: string;
+      total: string;
+      /** What each later period costs; {price} is the plan's renewal price ("4.00 LDC every 30 days"). */
+      renewal: Template<"price">;
+      /** The headline's unit when a plan can be bought only with USDT. */
+      usdtUnitOnce: string;
+      usdtUnitPeriod: Template<"period">;
+      /** The USDT total beside an LDC or card total. */
+      usdtOnce: Template<"price">;
+      usdtPeriod: Template<"price" | "period">;
+      estimate: string;
+      checkout: string;
+      none: Template<"count">;
+      includes: string;
+    };
     /** "Check your address" in the hero and on the pricing page (src/components/AddressCheck.tsx). */
     check: {
       title: string;
@@ -488,29 +529,10 @@ export interface Copy {
       note: string;
     };
   };
+  /** The services the inquiry dialog can ask about (src/components/InquiryDialog.tsx). */
   services: {
-    eyebrow: string;
-    titleLines: readonly [string, string];
-    intro: readonly [string, string];
     products: readonly Product[];
-    priceFallback: string;
-    consult: string;
     consultAria: (name: string) => string;
-    noteQuestion: string;
-    noteAction: string;
-    noteFine: string;
-  };
-  process: {
-    eyebrow: string;
-    title: string;
-    intro: readonly [string, string];
-    steps: readonly {
-      icon: IconName;
-      title: string;
-      description: string;
-      link: LinkKey;
-      action: string;
-    }[];
   };
   faq: {
     eyebrow: string;

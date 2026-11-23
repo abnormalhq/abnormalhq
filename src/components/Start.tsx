@@ -17,15 +17,14 @@ export function Start({ lang }: { lang: Lang }) {
 
   return (
     <section className="border-t border-border" id="start" aria-labelledby="start-title">
-      <Container className={sectionSpaceClassName}>
+      {/* "how-it-works" was the activation steps section this one replaced; the id keeps its saved links landing here. */}
+      <Container className={sectionSpaceClassName} id="how-it-works">
         <div
           className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
           {...reveal()}
         >
           <div>
-            <Eyebrow lang="en">
-              <span className="mr-1">02 /</span> {s.eyebrow}
-            </Eyebrow>
+            <Eyebrow lang="en">{s.eyebrow}</Eyebrow>
             <SectionTitle id="start-title">
               {s.title}
               <HeadingMark>{t.dot}</HeadingMark>

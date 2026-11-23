@@ -3,7 +3,7 @@
  */
 import Link from "next/link";
 import { Prose } from "@/components/ui/prose";
-import { Eyebrow } from "@/components/ui/section-heading";
+import { Eyebrow, PageLead, PageTitle } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { copy } from "@/storefront/copy";
 import { LANG_PATHS, storePath, type GuideBlock, type Lang } from "@/storefront/i18n";
@@ -25,12 +25,8 @@ export function Guide({ lang }: { lang: Lang }) {
       <div className="mt-10 grid grid-cols-[220px_minmax(0,1fr)] gap-x-[clamp(40px,6vw,80px)] [grid-template-areas:'contents_heading'_'contents_body'] max-guide-lg:grid-cols-[180px_minmax(0,1fr)] max-guide-lg:gap-x-9 max-guide:mt-7 max-guide:grid-cols-[minmax(0,1fr)] max-guide:[grid-template-areas:'heading'_'contents'_'body']">
         <header className="max-w-[740px] pb-10 [grid-area:heading] max-guide:pb-7">
           <Eyebrow className="mb-[22px] gap-[9px] text-xs/body max-guide:mb-[18px]">{t.eyebrow}</Eyebrow>
-          <h1 className="max-w-[13ch] text-[clamp(38px,4.8vw,56px)] leading-[1.1] tracking-[-0.035em] max-guide:text-[clamp(32px,9vw,44px)] [&:lang(zh)]:tracking-[-0.02em]">
-            {t.heading}
-          </h1>
-          <p className="mt-6 max-w-[66ch] text-lg/[1.75] text-pretty text-muted-foreground max-guide:mt-[18px]">
-            {t.lede}
-          </p>
+          <PageTitle className="mt-0 max-w-[13ch]">{t.heading}</PageTitle>
+          <PageLead className="max-w-[66ch]">{t.lede}</PageLead>
         </header>
         <aside className="sticky top-24 self-start pt-1 [grid-area:contents] max-guide:static max-guide:mb-7 max-guide:rounded-mark max-guide:border max-guide:border-border max-guide:bg-surface max-guide:p-5">
           <Toc label={t.contents} className="text-[length:inherit]">

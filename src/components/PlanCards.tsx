@@ -33,15 +33,17 @@ export function PlanCards({
   plans,
   copy,
   heading = "h3",
+  className,
 }: {
   plans: readonly PlanView[];
   copy: PlanCopy;
-  /** The cards' heading level: h3 under the home section's h2, h2 under the pricing page's h1. */
+  /** The cards' heading level: h3 under an h2 such as the pricing page's "Every plan". */
   heading?: "h2" | "h3";
+  className?: string;
 }) {
   const Heading = heading;
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-4">
+    <div className={cn("grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-4", className)}>
       {plans.map((plan, index) => (
         <Card
           asChild

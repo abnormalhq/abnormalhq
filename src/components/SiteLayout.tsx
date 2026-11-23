@@ -32,7 +32,8 @@ export function SiteLayout({ lang, children }: { lang: Lang; children: ReactNode
       {/* This is the App Router root layout skeleton; it only lives under components/, so the path-based rule mistakes it for Pages Router. */}
       {/* eslint-disable-next-line @next/next/no-head-element */}
       <head>
-        <ThemeScript />
+        {/* The site's look is the ink: visitors start on the dark theme until they choose another in the header. */}
+        <ThemeScript defaultTheme="dark" />
       </head>
       <body>
         <QueryProvider>

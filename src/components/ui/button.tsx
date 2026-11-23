@@ -5,8 +5,10 @@ import { Slot } from "radix-ui";
 import { Spinner } from "@/components/ui/spinner";
 
 /**
- * A uniform 32px height and control radius. The primary action is solid ink (weight 600);
- * secondary actions (outline) are a translucent gray background + a very faint border + gray text that brightens on hover; destructive actions are light red with red text.
+ * A uniform 32px height and control radius. The primary action is solid ink (weight 600).
+ * `highlight` is the highlighter fill with ink text in both themes, for the one action a marketing page leads with,
+ * such as buying on a dark landing page where the ink primary would turn pale; keep it to one per screen.
+ * Secondary actions (outline) are a translucent gray background + a very faint border + gray text that brightens on hover; destructive actions are light red with red text.
  * `loading` is the waiting state: the button is disabled and marked busy, a spinner leads, and a leading icon gives
  * way to it so an icon button keeps its size. The label stays, so the button still says what it is doing.
  * A loading button cannot be activated whatever it renders: a native button is disabled, and under asChild a link
@@ -23,6 +25,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-brand font-semibold text-brand-foreground hover:bg-brand/85 aria-expanded:bg-brand/85",
+        highlight:
+          "bg-highlight font-semibold text-highlight-foreground hover:bg-highlight/85 aria-expanded:bg-highlight/85",
         outline:
           "border-input bg-control text-muted-foreground hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground",
         secondary: "bg-control text-foreground hover:bg-accent aria-expanded:bg-accent",

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { IconTile } from "@/components/ui/icon-tile";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { desktopDownloads, type Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { CommandLine } from "./CommandLine";
 import { ForThisComputer, PhoneNote } from "./DownloadHint";
 import { Icon } from "./Icon";
+import { PageHeader } from "./PageHeader";
 import { JsonLd } from "@/components/ui/json-ld";
 
 /**
@@ -91,15 +92,13 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
   return (
     <section aria-labelledby="download-title">
       <JsonLd data={downloadStructuredData(lang, releases)} />
-      <Container className={sectionSpaceClassName}>
-        <Eyebrow lang="en">{d.eyebrow}</Eyebrow>
-        <SectionTitle asChild>
-          <h1 id="download-title">
-            {d.title}
-            <HeadingMark>{t.dot}</HeadingMark>
-          </h1>
-        </SectionTitle>
-        <p className="mt-4 max-w-2xl text-md/prose text-muted-foreground">{linux ? d.introWithLinux : d.intro}</p>
+      <PageHeader
+        id="download-title"
+        eyebrow={d.eyebrow}
+        title={d.title}
+        dot={t.dot}
+        lead={linux ? d.introWithLinux : d.intro}
+      >
         {releases && (
           <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm/[1.6] text-muted-foreground">
             <span>{d.currentLabel}</span>
@@ -114,11 +113,10 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
         )}
 
         <PhoneNote copy={d.phone} webmail={links.webmail} apps={path("/help/")} />
-
+      </PageHeader>
+      <Container className={sectionSpaceClassName}>
         {/* Two cards side by side; with the Linux card, three on wide screens and two, then one, as the screen narrows. */}
-        <div
-          className={cn("mt-10 grid grid-cols-2 gap-4 max-md:grid-cols-1", platforms.length > 2 && "lg:grid-cols-3")}
-        >
+        <div className={cn("grid grid-cols-2 gap-4 max-md:grid-cols-1", platforms.length > 2 && "lg:grid-cols-3")}>
           {platforms.map((platform) => (
             // Each card spans four rows of the outer grid (title, requirement, button, the rest) and takes them as a subgrid,
             // so a requirement that wraps to two lines in one card keeps the buttons on one line across the row.

@@ -46,9 +46,8 @@ const mark = `<svg viewBox="0 0 48 48" width="56" height="56" style="border-radi
 
 function card(lang: Lang): string {
   const t = copies[lang];
-  // titleLines is [line1, line2 lead, marked word]; join the last two without a separator (EN lead already ends in a space).
-  const [first, lead, highlighted] = t.hero.titleLines;
-  const second = `${lead}${highlighted}`;
+  // The headline of the home page's first tab (Mail), on the ink the site starts in.
+  const [first, second] = t.hero.mail.titleLines;
   return `<!doctype html>
 <html lang="${t.htmlLang}">
 <head>
@@ -59,13 +58,13 @@ function card(lang: Lang): string {
   @font-face { font-family: Bricolage; src: url(${font("BricolageGrotesque-Variable.woff2")}) format("woff2"); font-weight: 200 800; }
   @font-face { font-family: Mono; src: url(${font("JetBrainsMono-Variable.woff2")}) format("woff2"); font-weight: 100 800; }
   * { box-sizing: border-box; margin: 0; }
-  body { width: 1200px; height: 630px; overflow: hidden; background: #f7f7f4; color: #141412;
+  body { width: 1200px; height: 630px; overflow: hidden; background: #141412; color: #f0f0ea;
     font-family: Inter, "Noto Sans SC", sans-serif; position: relative; }
-  .frame { position: absolute; inset: 40px; border: 1px solid #e3e3dc; border-radius: 12px; overflow: hidden; }
-  .rings { position: absolute; right: -150px; top: -40px; width: 600px; height: 600px; border: 1px solid #e3e3dc;
+  .frame { position: absolute; inset: 40px; border: 1px solid #2e2e29; border-radius: 12px; overflow: hidden; }
+  .rings { position: absolute; right: -150px; top: -40px; width: 600px; height: 600px; border: 1px solid #2e2e29;
     border-radius: 50%; display: grid; place-items: center; }
-  .rings::before { content: ""; position: absolute; inset: 64px; border: 1px solid #e3e3dc; border-radius: 50%; }
-  .rings span { font-family: Bricolage; font-weight: 300; font-size: 380px; line-height: 1; color: #ecece6;
+  .rings::before { content: ""; position: absolute; inset: 64px; border: 1px solid #2e2e29; border-radius: 50%; }
+  .rings span { font-family: Bricolage; font-weight: 300; font-size: 380px; line-height: 1; color: #252520;
     transform: rotate(-18deg) translateY(-24px); }
   .tag { position: absolute; right: 88px; top: 150px; background: #ffe14d; color: #141412; font-family: Mono;
     font-size: 26px; font-weight: 500; padding: 10px 18px; border-radius: 4px; transform: rotate(-4deg); }
@@ -73,14 +72,15 @@ function card(lang: Lang): string {
   .brand { display: flex; align-items: center; gap: 16px; font-family: Bricolage; font-weight: 600; font-size: 34px;
     letter-spacing: -0.02em; }
   .eyebrow { margin-top: 64px; font-family: Mono; font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: #5c5c55; }
+    color: #a6a69c; }
   h1 { margin-top: 18px; font-family: Bricolage, "Noto Sans SC"; font-weight: 600; font-size: 76px; line-height: 1.18;
     letter-spacing: -0.02em; }
-  h1 .muted { color: #5c5c55; }
+  h1 .muted { color: #a6a69c; }
+  h1 .dot { color: #ffe14d; }
   .footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 48px;
-    font-size: 24px; line-height: 1.5; color: #5c5c55; }
+    font-size: 24px; line-height: 1.5; color: #a6a69c; }
   .footer p { max-width: 720px; word-break: keep-all; }
-  .url { font-family: Mono; font-size: 22px; color: #141412; white-space: nowrap; }
+  .url { font-family: Mono; font-size: 22px; color: #f0f0ea; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -90,7 +90,7 @@ function card(lang: Lang): string {
     <div class="content">
       <div class="brand">${mark}<span>abnormal<span>.</span></span></div>
       <div class="eyebrow">${escape(t.hero.eyebrow)}</div>
-      <h1>${escape(first)}<br><span class="muted">${escape(second)}</span>${escape(t.dot)}</h1>
+      <h1>${escape(first)}<br><span class="muted">${escape(second)}</span><span class="dot">${escape(t.dot)}</span></h1>
       <div class="footer">
         <p>${escape(t.meta.socialDescription)}</p>
         <span class="url">${escape(new URL(site.url).host)}</span>

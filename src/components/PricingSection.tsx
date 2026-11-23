@@ -17,17 +17,16 @@ export function PricingSection({ lang }: { lang: Lang }) {
   const p = t.pricing;
   return (
     <section className="border-t border-border" id="pricing" aria-labelledby="pricing-title">
-      <Container className={sectionSpaceClassName}>
+      {/* "services" was the mailbox types section this one replaced; the id keeps its saved links landing on the plans. */}
+      <Container className={sectionSpaceClassName} id="services">
         <div
           className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
           {...reveal()}
         >
           <div>
-            <Eyebrow lang="en">
-              <span className="mr-1">03 /</span> {p.eyebrow}
-            </Eyebrow>
+            <Eyebrow lang="en">{p.eyebrow}</Eyebrow>
             <SectionTitle id="pricing-title">
-              {p.title}
+              {p.calculator.title}
               <HeadingMark>{t.dot}</HeadingMark>
             </SectionTitle>
           </div>
@@ -59,6 +58,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
             shopLink: p.shopLink,
             priceNote: p.priceNote,
             compareLink: p.compareLink,
+            calculator: p.calculator,
           }}
         />
         <div className="mt-14 max-md:mt-11" {...reveal()}>

@@ -58,15 +58,25 @@ for (const lang of ["zh", "en"] as const) {
     const t = copies[lang];
     const markdown = homeMarkdown(lang);
     assert.ok(markdown.startsWith(`# ${t.meta.title}\n`));
-    for (const product of t.products.items) {
-      assert.ok(markdown.includes(`### ${product.name}`));
-      assert.ok(markdown.includes(product.description));
-      assert.ok(markdown.includes(`[${product.action}](${absoluteUrl(linksFor(lang)[product.link])})`));
-    }
-    assert.ok(markdown.indexOf("### Doppel") < markdown.indexOf(`## ${t.mailIntro.title}`));
+    // The page's order: Mail's stage, Doppel's, the feature wall, the plans, where to start, the waitlist, the questions.
+    const order = [
+      `## ${t.hero.mail.titleLines.join(t.space)}`,
+      `## ${t.hero.doppel.titleLines.join(t.space)}`,
+      `## ${t.features.title}`,
+      `## ${t.pricing.calculator.title}`,
+      `## ${t.start.title}`,
+      `## ${t.waitlist.title}`,
+      `## ${t.faq.title}`,
+    ].map((heading) => markdown.indexOf(heading));
+    assert.ok(order.every((index) => index > 0));
+    assert.deepEqual(
+      order,
+      [...order].sort((a, b) => a - b),
+    );
+    assert.ok(markdown.includes(`[${t.hero.mail.buy}](${absoluteUrl(linksFor(lang).shop)})`));
+    for (const keep of t.hero.doppel.keeps) assert.ok(markdown.includes(`- ${keep}`));
+    for (const item of t.features.items) assert.ok(markdown.includes(item.description));
     for (const entry of t.start.entries) assert.ok(markdown.includes(entry.description));
-    for (const product of t.services.products) assert.ok(markdown.includes(`### ${product.name}`));
-    for (const step of t.process.steps) assert.ok(markdown.includes(step.description));
     for (const item of t.faq.items) assert.ok(markdown.includes(item.answer));
     // Storefront links are site paths on the page; Markdown carries full addresses.
     for (const url of Object.values(linksFor(lang))) assert.ok(markdown.includes(`(${absoluteUrl(url)})`), url);
@@ -204,7 +214,7 @@ for (const lang of ["zh", "en"] as const) {
   test(`${lang} home Markdown sends readers to the pricing page instead of quoting a price`, () => {
     const p = copies[lang].pricing;
     const markdown = homeMarkdown(lang);
-    assert.ok(markdown.includes(`## ${p.title}`));
+    assert.ok(markdown.includes(`## ${p.calculator.title}`));
     assert.ok(markdown.includes(`[${p.compareLink}](${site.url}${linksFor(lang).pricing})`));
     for (const item of p.included.items) assert.ok(markdown.includes(item.description));
     assert.doesNotMatch(markdown, /\d+\.\d{2} LDC/);

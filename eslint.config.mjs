@@ -35,7 +35,7 @@ const eslintConfig = defineConfig([
           patterns: [
             {
               regex:
-                "^(?:@/|(?:\\.\\./)+)storefront/(?!(?:index|content|server)(?:\\.ts)?$|components/(?:StorePage|Guide|Onboard|Shop|ShopAccount|ShopOrder|ShopRenew|ShopParts|ShopCatalogPrefetch|copy/[a-z-]+)$)",
+                "^(?:@/|(?:\\.\\./)+)storefront/(?!(?:index|content|server)(?:\\.ts)?$|components/(?:StorePage|Guide|Onboard|Shop|ShopAccount|ShopOrder|ShopRenew|ShopParts|ShopSeatStepper|ShopCatalogPrefetch|copy/[a-z-]+)$)",
               message:
                 "Import the storefront through @/storefront, @/storefront/content, @/storefront/server or one of its page components.",
             },
