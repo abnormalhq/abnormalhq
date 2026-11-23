@@ -17,7 +17,8 @@ export function PricingSection({ lang }: { lang: Lang }) {
   const p = t.pricing;
   return (
     <section className="border-t border-border" id="pricing" aria-labelledby="pricing-title">
-      <Container className={sectionSpaceClassName}>
+      {/* "services" was the mailbox types section this one replaced; the id keeps its saved links landing on the plans. */}
+      <Container className={sectionSpaceClassName} id="services">
         <div
           className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
           {...reveal()}

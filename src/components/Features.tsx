@@ -116,7 +116,8 @@ export function Features({ lang }: { lang: Lang }) {
 
   return (
     <section className="border-t border-border" id="mail" aria-labelledby="features-title">
-      <Container className={sectionSpaceClassName}>
+      {/* "features" is the wall's old address, kept so saved and shared links still land here. */}
+      <Container className={sectionSpaceClassName} id="features">
         <div
           className="mb-10 flex items-end justify-between gap-8 max-lg:gap-4 max-md:mb-7 max-md:flex-col max-md:items-start"
           {...reveal()}

@@ -58,7 +58,7 @@ export function Hero({ lang }: { lang: Lang }) {
           {h.webmailLink} <Icon name="up-right" className="size-3.5" />
         </TextLink>
       </p>
-      <div className={stageClassName}>
+      <div className={stageClassName} id="screens">
         {/* The site runs on a Worker without an image service, so the widths are made ahead of time (src/lib/screens.ts). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -122,7 +122,8 @@ export function Hero({ lang }: { lang: Lang }) {
 
   return (
     <Container asChild>
-      <section className="pt-12 pb-8 md:pt-16 lg:pt-20">
+      {/* "products" and "screens" were the product cards and the screenshots this stage replaced: the ids keep saved links landing on it. */}
+      <section className="pt-12 pb-8 md:pt-16 lg:pt-20" id="products">
         <ProductTabs
           label={h.productsLabel}
           tabs={[

@@ -350,7 +350,7 @@ The visuals are unified with [mailhq](https://github.com/abnormalhq/mail), using
 
 ## Appearance themes
 
-The navigation bar offers "System", "Light" and "Dark". A first visit starts on the dark theme, the ink the site is designed on (`<ThemeScript defaultTheme="dark" />` in `SiteLayout`); "System" then follows the system appearance and is saved like any other choice; a manual choice is saved in the current browser's `localStorage` (`abnormal-theme`), and choosing System clears that preference. The choice syncs across tabs automatically, and switching still works temporarily when the browser blocks storage.
+The navigation bar offers "System", "Light" and "Dark". A first visit starts on the dark theme, the ink the site is designed on (`<ThemeScript defaultTheme="dark" />` in `SiteLayout`); "System" then follows the system appearance and is saved like any other choice; a manual choice is saved in the current browser's `localStorage` (`abnormal-theme`), and choosing Dark, the default, clears that preference. A visitor who chose System on the old picker had nothing saved, so they now start on Dark like a first visit. The choice syncs across tabs automatically, and switching still works temporarily when the browser blocks storage.
 
 The theme initialization script runs synchronously in the page head and sets the actual theme early, so a refresh does not flash the wrong colors. Global colors are maintained in `src/styles/global.css`, one set of tokens each for light and dark, hung on `<html data-theme>`; when the script has not run, colors follow the system preference. `<meta name="theme-color">` switches with the effective theme (`#f7f7f4` / `#141412`).
 
