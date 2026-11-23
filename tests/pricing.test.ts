@@ -324,6 +324,10 @@ test("the price calculator offers a plan in whichever way the shop takes for it,
       renewal: undefined,
     },
   );
+  // LDC and USDT together: LDC leads, and the USDT total for the same count sits under it.
+  const mixed = { ...usdtOnly, payment: { ldc: true, stripe: null, usdt: usdtPayment } };
+  const [both] = calculatorOptions(mixed, 5, "en", en.pricing, "/shop/");
+  assert.deepEqual({ amount: both!.amount, usdt: both!.usdt }, { amount: "14.99", usdt: "or 3.00 USDT every 30 days" });
   // With no way of paying for a plan, the calculator leaves it out.
   const nothing = { ...usdtOnly, payment: { ldc: false, stripe: null } };
   assert.deepEqual(calculatorOptions(nothing, 1, "en", en.pricing, "/shop/"), []);
