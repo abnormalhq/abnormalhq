@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/description-list";
 import { Container } from "@/components/ui/container";
 import { Prose } from "@/components/ui/prose";
-import { Eyebrow, HeadingMark, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { LegalFrontmatter, LegalHeading } from "@/content/legal/types";
 import { site, type Lang } from "@/data/site";
@@ -19,6 +19,7 @@ import { legalSections } from "@/lib/legal";
 import { legalStructuredData } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
+import { PageHeader } from "./PageHeader";
 import { JsonLd } from "@/components/ui/json-ld";
 import { SectionToc } from "./SectionToc";
 
@@ -48,34 +49,33 @@ export function LegalDocument({
   return (
     <>
       <JsonLd data={legalStructuredData(lang, currentPage, frontmatter)} />
-      <section className="relative border-b border-border" aria-labelledby="legal-title">
-        <Container className="flex flex-col gap-10 py-14 md:py-[4.5rem] lg:flex-row lg:items-end lg:justify-between lg:gap-14">
-          <div className="max-w-[40rem]">
-            <Eyebrow lang="en">{eyebrow}</Eyebrow>
-            <h1 className="mt-4 text-[clamp(2.25rem,4vw,3.25rem)] leading-[1.25]" id="legal-title">
-              {title}
-              <HeadingMark>{t.dot}</HeadingMark>
-            </h1>
-            <p className="mt-5 text-md/prose text-muted-foreground">{summary}</p>
-          </div>
-          <DescriptionList
-            variant="stacked"
-            className="flex shrink-0 flex-wrap gap-x-10 gap-y-6 border-t border-border pt-5 text-base lg:min-w-44 lg:flex-col lg:gap-[1.4rem] lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8"
-          >
-            <DescriptionItem>
-              <DescriptionTerm className="text-xs/body">{l.effective}</DescriptionTerm>
-              <DescriptionDetails className="mt-1 text-base/body font-medium">
-                <time dateTime={effective}>{effective}</time>
-              </DescriptionDetails>
-            </DescriptionItem>
-            <DescriptionItem>
-              <DescriptionTerm className="text-xs/body">{l.updated}</DescriptionTerm>
-              <DescriptionDetails className="mt-1 text-base/body font-medium">
-                <time dateTime={updated}>{updated}</time>
-              </DescriptionDetails>
-            </DescriptionItem>
-          </DescriptionList>
-        </Container>
+      <section aria-labelledby="legal-title">
+        <PageHeader
+          id="legal-title"
+          eyebrow={eyebrow}
+          title={title}
+          dot={t.dot}
+          lead={summary}
+          aside={
+            <DescriptionList
+              variant="stacked"
+              className="flex shrink-0 flex-wrap gap-x-10 gap-y-6 border-t border-border pt-5 text-base lg:min-w-44 lg:flex-col lg:gap-[1.4rem] lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8"
+            >
+              <DescriptionItem>
+                <DescriptionTerm className="text-xs/body">{l.effective}</DescriptionTerm>
+                <DescriptionDetails className="mt-1 text-base/body font-medium">
+                  <time dateTime={effective}>{effective}</time>
+                </DescriptionDetails>
+              </DescriptionItem>
+              <DescriptionItem>
+                <DescriptionTerm className="text-xs/body">{l.updated}</DescriptionTerm>
+                <DescriptionDetails className="mt-1 text-base/body font-medium">
+                  <time dateTime={updated}>{updated}</time>
+                </DescriptionDetails>
+              </DescriptionItem>
+            </DescriptionList>
+          }
+        />
       </section>
 
       <Container className={cn(sectionSpaceClassName, "grid gap-10 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-20")}>

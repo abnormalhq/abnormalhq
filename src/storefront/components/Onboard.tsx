@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Disclosure, DisclosureContent, DisclosureList, DisclosureTrigger } from "@/components/ui/disclosure";
 import { IconTile } from "@/components/ui/icon-tile";
-import { Eyebrow, HeadingMark } from "@/components/ui/section-heading";
+import { Eyebrow, HeadingMark, PageTitle } from "@/components/ui/section-heading";
 import { defaultDomain, supportEmail } from "@/storefront/config";
 import { copy } from "@/storefront/copy";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
@@ -34,16 +34,13 @@ export function Onboard({ lang }: { lang: Lang }) {
             <span className="h-3 w-px bg-border" />
             ABNORMAL MAIL
           </Eyebrow>
-          <h1
-            className="mt-[22px] text-[clamp(40px,4.4vw,56px)] leading-[1.1] tracking-[-0.035em] max-tablet:text-[40px] max-narrow:mt-[18px] max-narrow:text-[clamp(32px,9vw,42px)] max-narrow:leading-[1.15] [&:lang(zh)]:leading-[1.25] [&:lang(zh)]:tracking-[-0.02em]"
-            id="onboard-title"
-          >
+          <PageTitle className="[&:lang(zh)]:leading-[1.25]" id="onboard-title">
             <span className="block">{t.titleLines[0]}</span>
             <span className="block text-muted-foreground">
               {t.titleLines[1]}
               <HeadingMark>{t.titleDot}</HeadingMark>
             </span>
-          </h1>
+          </PageTitle>
           <p className="mt-[22px] max-w-[500px] text-md/[1.8] text-pretty text-muted-foreground max-narrow:mt-4 max-narrow:max-w-[40ch] max-narrow:text-sm/[1.85]">
             {t.tagline}
           </p>

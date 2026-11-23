@@ -60,23 +60,16 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
   return `${paragraphs([
     `# ${t.meta.title}`,
     t.meta.description,
-    `## ${t.products.eyebrow}`,
-    ...t.products.items.flatMap((product) => [
-      `### ${product.name}`,
-      product.description,
-      product.note,
-      `[${product.action}](${links[product.link]})`,
-    ]),
-    `[${t.products.status}](${links.status})`,
-    `## ${t.waitlist.title}`,
-    t.waitlist.description,
-    `[${t.waitlist.title}](${links.doppel})`,
-    `${t.waitlist.privacy} [${t.waitlist.privacyLink}](${absolute(localePath(lang, "/privacy/"))})`,
-    `## ${t.mailIntro.title}`,
-    t.mailIntro.description,
-    // The promo video appears only when an address is configured (promoVideos in src/data/site.ts).
-    ...(video ? [`## ${t.video.title}`, `${t.video.description} [${t.video.label}](${absoluteUrl(video.src)})`] : []),
+    // The same order as the page: the product stage (Mail, then Doppel), what Mail does, the film, the plans, where to start
+    // and Doppel's waitlist.
+    `## ${t.hero.mail.titleLines.join(t.space)}`,
+    t.hero.mail.description,
+    `[${t.hero.mail.buy}](${links.shop}) · [${t.hero.mail.explore}](${links.mail}) · [${t.hero.loginLink}](${links.account}) · [${t.hero.webmailLink}](${links.webmail})`,
+    `## ${t.hero.doppel.titleLines.join(t.space)}`,
+    t.hero.doppel.description,
+    list(t.hero.doppel.keeps),
     `## ${t.features.title}`,
+    t.features.intro.join(t.space),
     list(t.features.items.map((item) => `${item.title}: ${item.description}`)),
     `### ${t.features.platformsTitle}`,
     list(
@@ -85,37 +78,31 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
           `[${platform.name}](${platform.link ? links[platform.link] : absolute(localePath(lang, platform.path ?? "/"))}): ${platform.description}`,
       ),
     ),
+    `[${t.products.status}](${links.status})`,
+    // The promo video appears only when an address is configured (promoVideos in src/data/site.ts).
+    ...(video ? [`## ${t.video.title}`, `${t.video.description} [${t.video.label}](${absoluteUrl(video.src)})`] : []),
+    // Prices are live and this page is prerendered, so they are on the pricing page's own Markdown, linked here.
+    `## ${t.pricing.calculator.title}`,
+    `${t.pricing.intro.join(t.space)} [${t.pricing.compareLink}](${links.pricing})`,
+    `### ${t.pricing.included.title}`,
+    t.pricing.included.intro,
+    list(t.pricing.included.items.map((item) => `${item.title}: ${item.description}`)),
     `## ${t.start.title}`,
     list([
       ...t.start.entries.map((entry) => `[${entry.title}](${links[entry.link]}): ${entry.description}`),
       ...t.start.secondary.map((item) => `[${item.label}](${links[item.link]})`),
     ]),
-    // Prices are live and this page is prerendered, so they are on the pricing page's own Markdown, linked here.
-    `## ${t.pricing.title}`,
-    `${t.pricing.intro.join(t.space)} [${t.pricing.compareLink}](${links.pricing})`,
-    `### ${t.pricing.included.title}`,
-    t.pricing.included.intro,
-    list(t.pricing.included.items.map((item) => `${item.title}: ${item.description}`)),
-    `## ${t.services.titleLines.join(t.space)}`,
-    ...t.services.products.flatMap((product) => [
-      `### ${product.name}`,
-      product.description,
-      product.link
-        ? `[${product.actionLabel ?? product.name}](${links[product.link]}): ${product.priceNote}`
-        : `${t.services.priceFallback}: ${product.priceNote}`,
-    ]),
-    t.services.noteFine,
-    `## ${t.process.title}`,
-    t.process.steps
-      .map((step, index) => `${index + 1}. ${step.title}: ${step.description} [${step.action}](${links[step.link]})`)
-      .join("\n"),
+    `## ${t.waitlist.title}`,
+    t.waitlist.description,
+    `[${t.waitlist.title}](${links.doppel})`,
+    `${t.waitlist.privacy} [${t.waitlist.privacyLink}](${absolute(localePath(lang, "/privacy/"))})`,
     `## ${t.faq.title}`,
     ...t.faq.items.flatMap((item) => [`### ${item.question}`, item.answer]),
     `[${t.faq.help}](${links.help})`,
     `## ${t.footer.contactLabel}`,
     `${t.start.support}: [${email}](mailto:${email})`,
-    `[${t.security.navLabel}](${links.security})`,
-    `[${t.claude.navLabel}](${links.claude})`,
+    // The footer's support column: the help center, the account and registering, status, security and the Claude connector.
+    list(t.footer.supportLinks.map((entry) => `[${entry.label}](${links[entry.link]})`)),
     `[${t.developers.navLabel}](${links.developers})`,
     `## ${t.footer.legalLabel}`,
     list(t.legalPages.map((page) => `[${page.label}](${absolute(pageFor(lang, toPagePath(page.path)).markdown)})`)),

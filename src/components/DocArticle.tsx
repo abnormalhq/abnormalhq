@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Container } from "@/components/ui/container";
 import { Prose } from "@/components/ui/prose";
-import { Eyebrow, HeadingMark, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { sectionSpaceClassName } from "@/components/ui/section-heading";
 import type { DevDocBlock, DevDocSection, DocSection } from "@/content/help/types";
 import type { Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { RichText } from "@/components/RichText";
 import { CommandLine } from "./CommandLine";
 import { DocFigure } from "./DocFigure";
+import { PageHeader } from "./PageHeader";
 import { SectionToc } from "./SectionToc";
 
 /**
@@ -62,35 +63,35 @@ export function DocArticle({
 
   return (
     <>
-      <section className="border-b border-border" aria-labelledby="doc-title">
-        <Container className="py-10 md:py-14">
-          <Breadcrumb label={h.breadcrumbLabel}>
-            <BreadcrumbList>
-              {[{ label: h.home, path: "/" }, ...trail].map((entry) => (
-                <Fragment key={entry.path}>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link href={path(entry.path)}>{entry.label}</Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                </Fragment>
-              ))}
-              <BreadcrumbItem>
-                <BreadcrumbPage>{crumb ?? title}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="mt-8 max-w-[44rem] md:mt-10">
-            <Eyebrow lang="en">{eyebrow}</Eyebrow>
-            <h1 className="mt-4 text-[clamp(2rem,4vw,3rem)] leading-[1.25]" id="doc-title">
-              {title}
-              <HeadingMark>{t.dot}</HeadingMark>
-            </h1>
-            <p className="mt-5 text-md/prose text-muted-foreground">{summary}</p>
-            {meta && <p className="mt-4 text-sm/body text-muted-foreground">{meta}</p>}
-          </div>
-        </Container>
+      <section aria-labelledby="doc-title">
+        <PageHeader
+          id="doc-title"
+          eyebrow={eyebrow}
+          title={title}
+          dot={t.dot}
+          lead={summary}
+          before={
+            <Breadcrumb label={h.breadcrumbLabel}>
+              <BreadcrumbList>
+                {[{ label: h.home, path: "/" }, ...trail].map((entry) => (
+                  <Fragment key={entry.path}>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link href={path(entry.path)}>{entry.label}</Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                  </Fragment>
+                ))}
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{crumb ?? title}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          }
+        >
+          {meta && <p className="mt-4 text-sm/body text-muted-foreground">{meta}</p>}
+        </PageHeader>
       </section>
 
       <Container className={cn(sectionSpaceClassName, "grid gap-10 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-20")}>

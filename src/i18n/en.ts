@@ -88,13 +88,6 @@ export const en: CopyMessages = {
     principle: "Different tools. The same care for the everyday.",
     status: "Mail service status",
   },
-  mailIntro: {
-    eyebrow: "Meet Abnormal Mail",
-    title: "Your mail, with room to breathe",
-    description:
-      "Read, write and organise without the noise. Explore Mail below, from your first address to a mailbox on your own domain.",
-    tryDemo: "Try the mail demo",
-  },
   waitlist: {
     eyebrow: "Doppel / private access",
     title: "Doppel access waitlist",
@@ -151,10 +144,6 @@ export const en: CopyMessages = {
     volume: "Volume",
   },
   screens: {
-    eyebrow: "Take a look",
-    title: "What you get once it's set up",
-    description: "A look at Abnormal Mail in the browser: mail and your calendar, as easy on a phone as on a computer.",
-    note: "The mail and events in the screenshots are samples.",
     inbox: {
       title: "Inbox",
       description:
@@ -619,6 +608,22 @@ export const en: CopyMessages = {
         },
       ],
     },
+    plansTitle: "Every plan",
+    calculator: {
+      title: "Pay for the mailboxes you need",
+      intro: "Pick how many, and see what each plan that fits costs in total.",
+      count: "Mailboxes",
+      fewer: "One mailbox fewer",
+      more: "One mailbox more",
+      plans: "Plans that fit",
+      total: "Total",
+      renewal: "Then {price}",
+      estimate:
+        "Worked out from the shop's current prices. The shop confirms the total before checkout, and that is what you pay.",
+      checkout: "Check out in the shop",
+      none: "No plan sells exactly {count} mailboxes. Try another number, or ask us for a custom plan.",
+      includes: "This plan includes",
+    },
     check: {
       title: "Check your address",
       hint: "See whether the name you want is free before you buy.",
@@ -640,12 +645,6 @@ export const en: CopyMessages = {
     },
   },
   services: {
-    eyebrow: "Find your email",
-    titleLines: ["A mailbox", "for every day"],
-    intro: [
-      "Mailboxes are bought and set up online, for one person, a team or your own domain.",
-      "For setup help, let's talk first.",
-    ],
     products: [
       {
         icon: "mail",
@@ -694,52 +693,7 @@ export const en: CopyMessages = {
         priceNote: "Quoted by scope",
       },
     ],
-    priceFallback: "On request",
-    consult: "Ask about this",
     consultAria: "Ask about this: {name}",
-    noteQuestion: "Need a hand setting things up, or something else?",
-    noteAction: "Talk to us",
-    noteFine:
-      "Plans, prices and limits, including plans sold per mailbox and plans that include your own domain, are listed under Plans and prices as the shop offers them. Setup help is quoted once we've talked.",
-  },
-  process: {
-    eyebrow: "A simple way to get started",
-    title: "Four steps to your mailbox",
-    intro: ["From sign-up to your first email,", "every step is self-service."],
-    steps: [
-      {
-        icon: "user",
-        title: "Create an account",
-        description:
-          "Sign up with your email and a password, then open the link in the confirmation email. Your orders, codes and mailboxes all live in this account.",
-        link: "register",
-        action: "Create an account",
-      },
-      {
-        icon: "cart",
-        title: "Choose a plan",
-        description:
-          "Pick the number of mailboxes and storage in the shop, and pay with Linux DO Credit or card. Once payment is confirmed, the redeem code joins your account.",
-        link: "shop",
-        action: "Go to the shop",
-      },
-      {
-        icon: "ticket",
-        title: "Set up mailboxes",
-        description:
-          "Under My account, My mailboxes, pick a username and password to set one up right away. You can also give the code to someone to redeem themselves.",
-        link: "account",
-        action: "Go to My account",
-      },
-      {
-        icon: "mail",
-        title: "Sign in and send",
-        description:
-          "Log in to Abnormal Mail with your full address, or follow the guide to add it to a mail app over IMAP / SMTP.",
-        link: "webmail",
-        action: "Log in to Abnormal Mail",
-      },
-    ],
   },
   faq: {
     eyebrow: "Good questions",

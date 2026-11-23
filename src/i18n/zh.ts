@@ -118,12 +118,6 @@ export const zh: CopyMessages = {
       unavailable: "模拟暂时未能完成，未创建真实登记，请重试。",
     },
   },
-  mailIntro: {
-    eyebrow: "Meet Abnormal Mail",
-    title: "让每一封邮件，都有从容的空间",
-    description: "收发、整理与安排，少一点打扰。继续了解 Mail，从第一个邮箱地址，到属于你自己域名的邮箱。",
-    tryDemo: "试用邮箱演示",
-  },
   video: {
     eyebrow: "See it in action",
     title: "先看一段视频",
@@ -143,10 +137,6 @@ export const zh: CopyMessages = {
     volume: "音量",
   },
   screens: {
-    eyebrow: "Take a look",
-    title: "开通后，你看到的就是这样",
-    description: "下面是 Abnormal Mail 网页版的真实界面：收发邮件、管理日程，在电脑和手机上都顺手。",
-    note: "截图中的邮件和日程均为示例。",
     inbox: {
       title: "收件箱",
       description: "主要邮件、订阅和通知自动分开，标签一眼可见，阅读区旁边就是发件人的往来记录。",
@@ -582,6 +572,21 @@ export const zh: CopyMessages = {
         },
       ],
     },
+    plansTitle: "全部套餐",
+    calculator: {
+      title: "要几个邮箱，就付几个",
+      intro: "选好数量，看看每个合适的套餐一共多少钱。",
+      count: "邮箱数量",
+      fewer: "少一个邮箱",
+      more: "多一个邮箱",
+      plans: "合适的套餐",
+      total: "合计",
+      renewal: "之后续费 {price}",
+      estimate: "按商店当前的标价估算；结账前商店会再确认一次总价，以确认的为准。",
+      checkout: "去商店结账",
+      none: "没有正好 {count} 个邮箱的套餐。换个数量试试，或者联系我们定制。",
+      includes: "这个套餐包括",
+    },
     check: {
       title: "查一查想要的地址",
       hint: "购买之前，先看看想要的用户名有没有被占用。",
@@ -601,9 +606,6 @@ export const zh: CopyMessages = {
     },
   },
   services: {
-    eyebrow: "Find your email",
-    titleLines: ["总有一个邮箱，", "适合你的日常"],
-    intro: ["个人、团队和自有域名的邮箱都在线购买、自助开通；", "需要配置协助，可以先聊聊。"],
     products: [
       {
         icon: "mail",
@@ -650,48 +652,7 @@ export const zh: CopyMessages = {
         priceNote: "按具体服务范围确认",
       },
     ],
-    priceFallback: "咨询报价",
-    consult: "咨询这项服务",
     consultAria: "咨询这项服务：{name}",
-    noteQuestion: "需要配置协助，或有其他需求？",
-    noteAction: "和我们聊聊",
-    noteFine:
-      "套餐、价格与限制（包括按邮箱数量计价的套餐和包含自有域名的套餐）以「套餐与价格」里商店在售的为准；配置协助的方案及费用，以咨询确认为准。",
-  },
-  process: {
-    eyebrow: "A simple way to get started",
-    title: "四步，开始使用你的邮箱",
-    intro: ["从注册到收发，", "每一步都可以自己完成。"],
-    steps: [
-      {
-        icon: "user",
-        title: "注册账户",
-        description: "用邮箱和密码注册，点开确认邮件里的链接即可登录。之后的订单、兑换码和邮箱都在这个账户里。",
-        link: "register",
-        action: "注册账户",
-      },
-      {
-        icon: "cart",
-        title: "选购套餐",
-        description: "在商店选择邮箱数量与容量，用 Linux DO Credit 或银行卡付款；付款确认后，兑换码自动归到你的账户。",
-        link: "shop",
-        action: "前往商店",
-      },
-      {
-        icon: "ticket",
-        title: "开通邮箱",
-        description: "在「我的账户 · 我的邮箱」里取用户名、设密码，直接开通；兑换码也可以送给别人，在开通页自己开通。",
-        link: "account",
-        action: "前往我的账户",
-      },
-      {
-        icon: "mail",
-        title: "登录收发",
-        description: "用完整邮箱地址登录 Abnormal Mail 网页版，或按教程在邮件客户端里通过 IMAP / SMTP 收发。",
-        link: "webmail",
-        action: "登录 Abnormal Mail",
-      },
-    ],
   },
   faq: {
     eyebrow: "Good questions",

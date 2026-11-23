@@ -26,7 +26,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
           <div>
             <Eyebrow lang="en">{p.eyebrow}</Eyebrow>
             <SectionTitle id="pricing-title">
-              {p.title}
+              {p.calculator.title}
               <HeadingMark>{t.dot}</HeadingMark>
             </SectionTitle>
           </div>
@@ -58,6 +58,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
             shopLink: p.shopLink,
             priceNote: p.priceNote,
             compareLink: p.compareLink,
+            calculator: p.calculator,
           }}
         />
         <div className="mt-14 max-md:mt-11" {...reveal()}>

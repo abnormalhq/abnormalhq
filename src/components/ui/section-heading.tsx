@@ -34,9 +34,38 @@ function SectionTitle({ className, asChild = false, ...props }: React.ComponentP
   );
 }
 
+/**
+ * The title at the top of an inner page (pricing, help, a document): its h1, a step above the section title, from 36px on
+ * phones to 56px on wide screens. A landing page's hero sets its own, larger headline.
+ */
+function PageTitle({ className, asChild = false, ...props }: React.ComponentProps<"h1"> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : "h1";
+  return (
+    <Comp
+      data-slot="page-title"
+      className={cn(
+        "mt-5 font-heading text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.12] font-semibold tracking-[-0.03em] text-balance",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** The sentence or two under a page title that says what the page is for. */
+function PageLead({ className, ...props }: React.ComponentProps<"p">) {
+  return (
+    <p
+      data-slot="page-lead"
+      className={cn("mt-5 max-w-[40rem] text-md/prose text-pretty text-muted-foreground md:text-lg/prose", className)}
+      {...props}
+    />
+  );
+}
+
 /** The punctuation that ends a headline, in the signal color. */
 function HeadingMark({ className, ...props }: React.ComponentProps<"span">) {
   return <span data-slot="heading-mark" className={cn("text-signal", className)} {...props} />;
 }
 
-export { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName };
+export { Eyebrow, HeadingMark, PageLead, PageTitle, SectionTitle, sectionSpaceClassName };

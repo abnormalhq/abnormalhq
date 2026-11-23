@@ -108,13 +108,10 @@ test('decorative labels are English in both languages, as their lang="en" says',
     const labels = [
       copy.hero.eyebrow,
       copy.video.eyebrow,
-      copy.screens.eyebrow,
       copy.demo.eyebrow,
       copy.features.eyebrow,
       copy.start.eyebrow,
       copy.pricing.eyebrow,
-      copy.services.eyebrow,
-      copy.process.eyebrow,
       copy.faq.eyebrow,
       copy.closing.eyebrow,
       copy.footer.tagline,
@@ -208,6 +205,15 @@ const templateSlots = {
   "help.search.results": { count: true } satisfies Record<TemplateSlot<Copy["help"]["search"]["results"]>, true>,
   "help.related": { topic: true } satisfies Record<TemplateSlot<Copy["help"]["related"]>, true>,
   "download.historyMore": { count: true } satisfies Record<TemplateSlot<Copy["download"]["historyMore"]>, true>,
+  // The price calculator renders in the browser on the home page.
+  "pricing.calculator.renewal": { price: true } satisfies Record<
+    TemplateSlot<Copy["pricing"]["calculator"]["renewal"]>,
+    true
+  >,
+  "pricing.calculator.none": { count: true } satisfies Record<
+    TemplateSlot<Copy["pricing"]["calculator"]["none"]>,
+    true
+  >,
 };
 
 /** Each string in the copy that has {name} slots, by its path, with the names it uses. */

@@ -43,8 +43,9 @@ export const langParam = "lang";
  * never carried, nor are malformed or repeated ones, so unrelated or forged values are not moved into the new address.
  */
 const carriedParams: Readonly<Record<string, Readonly<Record<string, RegExp>>>> = {
-  // The plan a pricing card pointed out and the address picked in the address check (src/storefront/lib/address.ts).
-  "/shop/": { plan: /^[a-z0-9]{15}$/, address: /^[a-z0-9._-]{1,64}@[a-z0-9.-]{1,253}$/ },
+  // The plan a pricing card or the price calculator pointed out, how many mailboxes of it, and the address picked in the
+  // address check (src/storefront/lib/address.ts).
+  "/shop/": { plan: /^[a-z0-9]{15}$/, seats: /^[1-9][0-9]{0,3}$/, address: /^[a-z0-9._-]{1,64}@[a-z0-9.-]{1,253}$/ },
   "/shop/orders/": { id: /^[a-z0-9]{15}$/, error: /^payment$/ },
   "/shop/renew/": { t: /^[A-Za-z0-9._-]{1,256}$/ },
   "/shop/account/": { login: /^[A-Za-z0-9_-]{43}$/, reset: /^[A-Za-z0-9_-]{43}$/, mode: /^register$/ },

@@ -1,5 +1,3 @@
-import { Container } from "@/components/ui/container";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { helpArticles, helpCategoryIds, helpContent, helpPath } from "@/content/help";
 import { site, type Lang } from "@/data/site";
@@ -31,16 +29,11 @@ export function HelpCenter({ lang }: { lang: Lang }) {
     <>
       <JsonLd data={helpIndexStructuredData(lang)} />
       <section aria-labelledby="help-title">
-        <Container className={sectionSpaceClassName}>
-          <Eyebrow lang="en">{h.eyebrow}</Eyebrow>
-          <SectionTitle asChild>
-            <h1 id="help-title">
-              {h.title}
-              <HeadingMark>{t.dot}</HeadingMark>
-            </h1>
-          </SectionTitle>
-          <p className="mt-4 mb-8 max-w-2xl text-md/prose text-muted-foreground">{h.intro}</p>
-          <HelpSearch copy={h.search} groups={groups} />
+        <HelpSearch
+          copy={h.search}
+          groups={groups}
+          header={{ id: "help-title", eyebrow: h.eyebrow, title: h.title, dot: t.dot, lead: h.intro }}
+        >
           <div className="mt-14 border-t border-border pt-8">
             <h2 className="text-lg/[1.5] font-semibold">{h.ask.title}</h2>
             <p className="mt-2 max-w-2xl text-base/prose text-muted-foreground">{h.ask.body}</p>
@@ -50,7 +43,7 @@ export function HelpCenter({ lang }: { lang: Lang }) {
               </TextLink>
             )}
           </div>
-        </Container>
+        </HelpSearch>
       </section>
     </>
   );

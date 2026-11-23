@@ -15,6 +15,7 @@ export {
   formatCredits,
   formatMoney,
   isSeatProduct,
+  seatTotals,
   ShopApiError,
   type SeatProduct,
   type ShopCatalog,

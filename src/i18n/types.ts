@@ -187,7 +187,6 @@ export interface Copy {
     principle: string;
     status: string;
   };
-  mailIntro: { eyebrow: string; title: string; description: string; tryDemo: string };
   waitlist: {
     eyebrow: string;
     title: string;
@@ -246,15 +245,10 @@ export interface Copy {
     volume: string;
   };
   /**
-   * The screenshots section (src/components/Screens.tsx): WebMail as it really looks, one picture per entry, each in the page's
-   * language. The files are in public/screens/ (see the README's "Screenshots" section).
+   * The screenshots of WebMail as it really looks (the hero's inbox, the feature wall's calendar), one picture per entry, each in
+   * the page's language. The files are in public/screens/ (see the README's "Screenshots" section).
    */
   screens: {
-    eyebrow: string;
-    title: string;
-    description: string;
-    /** Says the mail and events in the pictures are samples. */
-    note: string;
     inbox: ScreenCopy;
     calendar: ScreenCopy;
     phone: ScreenCopy;
@@ -485,6 +479,24 @@ export interface Copy {
       intro: string;
       items: readonly { icon: IconName; title: string; description: string }[];
     };
+    /** The heading over the plan cards on the pricing page. */
+    plansTitle: string;
+    /** The price calculator on the home page and the pricing page (src/components/PriceCalculator.tsx). */
+    calculator: {
+      title: string;
+      intro: string;
+      count: string;
+      fewer: string;
+      more: string;
+      plans: string;
+      total: string;
+      /** What each later period costs; {price} is the plan's renewal price ("4.00 LDC every 30 days"). */
+      renewal: Template<"price">;
+      estimate: string;
+      checkout: string;
+      none: Template<"count">;
+      includes: string;
+    };
     /** "Check your address" in the hero and on the pricing page (src/components/AddressCheck.tsx). */
     check: {
       title: string;
@@ -511,29 +523,10 @@ export interface Copy {
       note: string;
     };
   };
+  /** The services the inquiry dialog can ask about (src/components/InquiryDialog.tsx). */
   services: {
-    eyebrow: string;
-    titleLines: readonly [string, string];
-    intro: readonly [string, string];
     products: readonly Product[];
-    priceFallback: string;
-    consult: string;
     consultAria: (name: string) => string;
-    noteQuestion: string;
-    noteAction: string;
-    noteFine: string;
-  };
-  process: {
-    eyebrow: string;
-    title: string;
-    intro: readonly [string, string];
-    steps: readonly {
-      icon: IconName;
-      title: string;
-      description: string;
-      link: LinkKey;
-      action: string;
-    }[];
   };
   faq: {
     eyebrow: string;

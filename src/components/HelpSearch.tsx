@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useSyncExternalStore } from "react";
+import { useId, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
+import { Bento, BentoTile, BentoTitle } from "@/components/ui/bento";
+import { Container } from "@/components/ui/container";
+import { sectionSpaceClassName } from "@/components/ui/section-heading";
 import { SearchInput } from "@/components/ui/search-input";
 import type { Copy } from "@/i18n/types";
 import { matchesQuery, type HelpSearchEntry } from "@/lib/help-search";
 import { fillTemplate } from "@/lib/template";
 import { Icon } from "./Icon";
+import { PageHeader } from "./PageHeader";
 
 /** Fired after the query is written into the address, which replaceState does not announce by itself. */
 const QUERY_EVENT = "abnormal-help-query";
@@ -37,7 +41,19 @@ export interface HelpSearchGroup {
  * and keywords, no request and no dependency). The number of matches is announced through a status region, and a topic
  * with no match is left out together with its heading.
  */
-export function HelpSearch({ copy, groups }: { copy: Copy["help"]["search"]; groups: readonly HelpSearchGroup[] }) {
+export function HelpSearch({
+  copy,
+  groups,
+  header,
+  children,
+}: {
+  copy: Copy["help"]["search"];
+  groups: readonly HelpSearchGroup[];
+  /** The page's header, which the search sits in. */
+  header: Omit<ComponentProps<typeof PageHeader>, "children">;
+  /** What follows the topics, in the same column. */
+  children?: ReactNode;
+}) {
   // The query lives in the address (?q=), replaced rather than pushed: opening an article and coming back finds the same
   // narrowed list, and a search can be shared as a link. The page is prerendered without it, so the server snapshot is empty.
   const query = useSyncExternalStore(subscribeToQuery, readQuery, () => "");
@@ -57,64 +73,77 @@ export function HelpSearch({ copy, groups }: { copy: Copy["help"]["search"]; gro
 
   return (
     <>
-      <search>
-        {/* Nothing to submit: the list below is the result. Enter must not reload the page. */}
-        <form role="search" className="max-w-[36rem]" onSubmit={(event) => event.preventDefault()}>
-          <label className="sr-only" htmlFor={`${id}-query`}>
-            {copy.label}
-          </label>
-          <SearchInput
-            size="lg"
-            id={`${id}-query`}
-            enterKeyHint="search"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder={copy.placeholder}
-            clearLabel={copy.clear}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            aria-controls={`${id}-results`}
-          />
-        </form>
-      </search>
-      <p className="mt-3 min-h-[1.6em] text-sm/[1.6] text-muted-foreground" role="status">
-        {searching &&
-          (count === 0
-            ? copy.empty
-            : count === 1
-              ? copy.resultsOne
-              : fillTemplate(copy.results, { count: String(count) }).join(""))}
-      </p>
-      <div className="mt-8 grid gap-12 md:mt-10" id={`${id}-results`}>
-        {visible.map((group) => (
-          <section aria-labelledby={`${id}-${group.id}`} key={group.id}>
-            <h2 className="text-xl/[1.4] font-semibold" id={`${id}-${group.id}`}>
-              {group.title}
-            </h2>
-            <ul className="mt-4 grid border-t border-border md:grid-cols-2 md:gap-x-10">
-              {group.entries.map((entry) => (
-                <li className="border-b border-border" key={entry.href}>
-                  <Link
-                    className="group/entry flex h-full items-start gap-4 py-5 transition-colors duration-150"
-                    href={entry.href}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-md/[1.5] font-medium underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-150 group-hover/entry:decoration-current">
-                        {entry.title}
-                      </span>
-                      <span className="mt-1.5 block text-base/prose text-muted-foreground">{entry.summary}</span>
-                    </span>
-                    <Icon
-                      name="arrow"
-                      className="mt-1 size-4 text-muted-foreground transition-colors duration-150 group-hover/entry:text-foreground"
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </div>
+      <PageHeader {...header}>
+        <search className="mt-8 block">
+          {/* Nothing to submit: the list below is the result. Enter must not reload the page. */}
+          <form role="search" className="max-w-[36rem]" onSubmit={(event) => event.preventDefault()}>
+            <label className="sr-only" htmlFor={`${id}-query`}>
+              {copy.label}
+            </label>
+            <SearchInput
+              size="lg"
+              id={`${id}-query`}
+              enterKeyHint="search"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={copy.placeholder}
+              clearLabel={copy.clear}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-controls={`${id}-results`}
+            />
+          </form>
+        </search>
+        <p className="mt-3 min-h-[1.6em] text-sm/[1.6] text-muted-foreground" role="status">
+          {searching &&
+            (count === 0
+              ? copy.empty
+              : count === 1
+                ? copy.resultsOne
+                : fillTemplate(copy.results, { count: String(count) }).join(""))}
+        </p>
+      </PageHeader>
+      <Container className={sectionSpaceClassName}>
+        {/* A tile per topic: a topic with many articles spans two columns, so its list runs in two. */}
+        {/* Dense flow: a narrow topic fills the gap a wide one leaves at the end of a row. */}
+        <Bento asChild className="grid-flow-row-dense">
+          <ul role="list" id={`${id}-results`}>
+            {visible.map((group) => {
+              const wide = group.entries.length > 3;
+              return (
+                <BentoTile asChild wide={wide} key={group.id}>
+                  <li>
+                    <section aria-labelledby={`${id}-${group.id}`} className="flex flex-col gap-3">
+                      <BentoTitle asChild>
+                        <h2 id={`${id}-${group.id}`}>{group.title}</h2>
+                      </BentoTitle>
+                      <ul className={wide ? "grid sm:grid-cols-2 sm:gap-x-8" : "grid"}>
+                        {group.entries.map((entry) => (
+                          <li className="border-t border-border" key={entry.href}>
+                            <Link className="group/entry flex h-full items-start gap-4 py-4" href={entry.href}>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-base/[1.5] font-medium underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-150 group-hover/entry:decoration-current">
+                                  {entry.title}
+                                </span>
+                                <span className="mt-1 block text-sm/prose text-muted-foreground">{entry.summary}</span>
+                              </span>
+                              <Icon
+                                name="arrow"
+                                className="mt-1 size-4 text-muted-foreground transition-colors duration-150 group-hover/entry:text-foreground"
+                              />
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  </li>
+                </BentoTile>
+              );
+            })}
+          </ul>
+        </Bento>
+        {children}
+      </Container>
     </>
   );
 }

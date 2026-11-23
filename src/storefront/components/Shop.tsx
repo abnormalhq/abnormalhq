@@ -31,9 +31,11 @@ import { useShopCopy } from "./copy/hooks";
 import {
   ADDRESS_PARAM,
   PLAN_PARAM,
+  SEATS_PARAM,
   forgetAddress,
   parseAddress,
   parsePlan,
+  parseSeats,
   rememberAddress,
   storedAddress,
   subscribeAddress,
@@ -127,6 +129,8 @@ export function Shop({ lang }: { lang: Lang }) {
   // The address is kept for this tab (src/storefront/lib/address.ts) so the forms that create the mailbox start with it.
   const search = useSyncExternalStore(subscribeToHistory, readSearch, () => "");
   const selectedPlan = parsePlan(new URLSearchParams(search).get(PLAN_PARAM));
+  // ?seats=<n> comes with a plan sold per mailbox from the price calculator: that plan's quantity until the buyer changes it.
+  const linkedSeats = parseSeats(new URLSearchParams(search).get(SEATS_PARAM));
   const linkedAddress = new URLSearchParams(search).get(ADDRESS_PARAM);
   const carried = parseAddress(useSyncExternalStore(subscribeAddress, storedAddress, () => ""));
   const selectedCard = useRef<HTMLElement>(null);
@@ -153,7 +157,9 @@ export function Shop({ lang }: { lang: Lang }) {
   };
   const seatsOf = (product: (typeof plans)[number]) => {
     const range = rangeOf(product);
-    return range ? clampSeats(quantities[product.id] ?? range.minQuantity, range) : 0;
+    if (!range) return 0;
+    const linked = product.id === selectedPlan ? linkedSeats : null;
+    return clampSeats(quantities[product.id] ?? linked ?? range.minQuantity, range);
   };
 
   /**

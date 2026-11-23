@@ -5,6 +5,8 @@ import { en } from "../src/i18n/en.ts";
 import { zh } from "../src/i18n/zh.ts";
 import { pagePaths } from "../src/lib/pages.ts";
 import { decimalAmount, planRows, planRowsFor, planView, planViews } from "../src/lib/pricing.ts";
+import { calculatorOptions, calculatorRange } from "../src/lib/calculator.ts";
+import { parseSeats, shopHref } from "../src/storefront/lib/address.ts";
 import { catalogDomains, seatCardPrice, seatOrderPrice } from "../src/storefront/lib/catalog.ts";
 import { catalog, seatCatalog, seatPlan } from "./support/catalog.ts";
 
@@ -235,3 +237,57 @@ test("the limits stated for every mailbox match mail's rules", () => {
     assert.match(text, /SMTP/);
   }
 });
+
+test("the price calculator steps from the smallest plan to the largest and offers each plan that sells that many", () => {
+  assert.deepEqual(calculatorRange(seatCatalog), { min: 1, max: 50 });
+  assert.equal(calculatorRange({ ...catalog, available: false }), null);
+  // One mailbox: only Solo. Five: the fixed five-mailbox plan and the seat plan. Seven: only the seat plan.
+  assert.deepEqual(
+    calculatorOptions(seatCatalog, 1, "en", en.pricing, "/shop/").map((option) => option.id),
+    ["planonetimeabcd"],
+  );
+  assert.deepEqual(
+    calculatorOptions(seatCatalog, 5, "en", en.pricing, "/shop/").map((option) => option.id),
+    ["planmonthlyabcd", "planseatsabcdef"],
+  );
+  assert.deepEqual(
+    calculatorOptions(seatCatalog, 3, "en", en.pricing, "/shop/").map((option) => option.id),
+    ["planseatsabcdef"],
+  );
+});
+
+test("the price calculator totals a seat plan as the shop's fallback does, and sends the count to the shop", () => {
+  const [seats] = calculatorOptions(seatCatalog, 7, "en", en.pricing, "/shop/");
+  // 7 × 3.33 = 23.31, 10% off the whole order, rounded once: 20.98, not 7 × 3.00.
+  assert.equal(seatOrderPrice(seatPlan, 7)!.priceCents, 2098);
+  assert.deepEqual(
+    { amount: seats!.amount, unit: seats!.unit, original: seats!.original, card: seats!.card, renewal: seats!.renewal },
+    {
+      amount: "20.98",
+      unit: "LDC / 30 days",
+      original: "23.31 LDC",
+      card: `or ${seatCardPriceText(7)} every 30 days by card, renewing automatically`,
+      renewal: "Then 21.00 LDC every 30 days",
+    },
+  );
+  assert.equal(seats!.href, "/shop/?plan=planseatsabcdef&seats=7");
+  assert.ok(seats!.facts.includes("Up to 2 of your own domains"), seats!.facts.join(" | "));
+  // A fixed plan keeps its card's numbers and links to the plan alone.
+  const [solo] = calculatorOptions(seatCatalog, 1, "zh", zh.pricing, "/zh/shop/");
+  assert.deepEqual({ amount: solo!.amount, original: solo!.original }, { amount: "7.50", original: "10.00 LDC" });
+  assert.equal(solo!.href, "/zh/shop/?plan=planonetimeabcd");
+});
+
+test("the shop link carries a count only with a plan, and the shop reads back only a sane one", () => {
+  assert.equal(shopHref("/shop/", { plan: "planseatsabcdef", seats: 12 }), "/shop/?plan=planseatsabcdef&seats=12");
+  assert.equal(shopHref("/shop/", { seats: 12 }), "/shop/");
+  assert.equal(shopHref("/shop/", { plan: "planseatsabcdef", seats: 0 }), "/shop/?plan=planseatsabcdef");
+  assert.equal(parseSeats("7"), 7);
+  for (const raw of ["0", "07", "1001", "2.5", "-3", "", null]) assert.equal(parseSeats(raw), null, String(raw));
+});
+
+function seatCardPriceText(count: number): string {
+  return new Intl.NumberFormat("en", { style: "currency", currency: "USD" }).format(
+    (seatCardPrice(seatPlan, count) ?? 0) / 100,
+  );
+}

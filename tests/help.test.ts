@@ -393,14 +393,14 @@ test("help search: runs in the browser on what the page hands it, and the page w
   assert.match(search, /aria-controls=/);
   // A topic's heading names its section through the topic id: a title has spaces ("Getting started"), which aria-labelledby
   // reads as several ids, none of them the heading's.
-  assert.match(search, /<section aria-labelledby=\{`\$\{id\}-\$\{group\.id\}`\} key=\{group\.id\}>/);
+  assert.match(search, /<section aria-labelledby=\{`\$\{id\}-\$\{group\.id\}`\}/);
   assert.match(search, /<h2 [^>]*id=\{`\$\{id\}-\$\{group\.id\}`\}/);
   assert.doesNotMatch(search, /\$\{group\.title\}`/);
   for (const category of helpCategoryIds) assert.match(category, /^[a-z]+$/);
   // The index hands it only this language's entries.
   const index = readFileSync("src/components/HelpCenter.tsx", "utf8");
   assert.ok(!index.startsWith('"use client"'));
-  assert.match(index, /<HelpSearch copy=\{h\.search\} groups=\{groups\} \/>/);
+  assert.match(index, /<HelpSearch\s+copy=\{h\.search\}\s+groups=\{groups\}/);
 });
 
 test("help article page: a breadcrumb back to the index, and the way to the index and to support at its foot", () => {
