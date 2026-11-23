@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
  * A wall of feature tiles on a landing page: one column on phones, two from `sm` and three from `lg`. Tiles are panels
  * with a faint fill over the page, so the wall reads as one surface in either theme, with no shadows. Tiles read in
  * source order; a `wide` tile takes two columns from `sm` up, so place it where the tiles after it can fill its row.
- * Pass `asChild` with a `ul` and give each tile `asChild` with an `li` when the tiles are a list.
+ * Pass `asChild` with a `ul role="list"` and give each tile `asChild` with an `li` when the tiles are a list: the wall
+ * takes the list markers away, and Safari then stops announcing a list unless the role says so.
  */
 function Bento({ className, asChild = false, ...props }: React.ComponentProps<"div"> & { asChild?: boolean }) {
   const Comp = asChild ? Slot.Root : "div";

@@ -137,7 +137,7 @@ export function Features({ lang }: { lang: Lang }) {
         </div>
 
         <Bento asChild {...reveal(1)}>
-          <ul>
+          <ul role="list">
             {order.map((key) => {
               if (key === "address") {
                 return (
