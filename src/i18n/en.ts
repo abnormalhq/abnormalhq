@@ -618,6 +618,10 @@ export const en: CopyMessages = {
       plans: "Plans that fit",
       total: "Total",
       renewal: "Then {price}",
+      usdtUnitOnce: "USDT / purchase",
+      usdtUnitPeriod: "USDT / {period}",
+      usdtOnce: "or {price} USDT",
+      usdtPeriod: "or {price} USDT every {period}",
       estimate:
         "Worked out from the shop's current prices. The shop confirms the total before checkout, and that is what you pay.",
       checkout: "Check out in the shop",

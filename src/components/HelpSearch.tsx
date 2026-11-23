@@ -105,8 +105,8 @@ export function HelpSearch({
       </PageHeader>
       <Container className={sectionSpaceClassName}>
         {/* A tile per topic: a topic with many articles spans two columns, so its list runs in two. */}
-        {/* Dense flow: a narrow topic fills the gap a wide one leaves at the end of a row. */}
-        <Bento asChild className="grid-flow-row-dense">
+        {/* The tiles keep the topics' order, so the reading and tab order match what is seen. */}
+        <Bento asChild>
           <ul role="list" id={`${id}-results`}>
             {visible.map((group) => {
               const wide = group.entries.length > 3;

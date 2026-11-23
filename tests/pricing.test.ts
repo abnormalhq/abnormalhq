@@ -7,7 +7,13 @@ import { pagePaths } from "../src/lib/pages.ts";
 import { decimalAmount, planRows, planRowsFor, planView, planViews } from "../src/lib/pricing.ts";
 import { calculatorOptions, calculatorRange } from "../src/lib/calculator.ts";
 import { parseSeats, shopHref } from "../src/storefront/lib/address.ts";
-import { catalogDomains, seatCardPrice, seatOrderPrice } from "../src/storefront/lib/catalog.ts";
+import {
+  catalogDomains,
+  seatCardPrice,
+  seatOrderPrice,
+  type ShopCatalog,
+  type UsdtPayment,
+} from "../src/storefront/lib/catalog.ts";
 import { catalog, seatCatalog, seatPlan } from "./support/catalog.ts";
 
 const [solo, team] = catalog.products as [(typeof catalog.products)[0], (typeof catalog.products)[0]];
@@ -291,3 +297,39 @@ function seatCardPriceText(count: number): string {
     (seatCardPrice(seatPlan, count) ?? 0) / 100,
   );
 }
+
+test("the price calculator offers a plan in whichever way the shop takes for it, USDT included", () => {
+  const usdtPayment: UsdtPayment = { currency: "usdt", network: "nile", contract: "TXYZ", chains: [] };
+  const usdtOnly: ShopCatalog = {
+    ...seatCatalog,
+    payment: { ldc: false, stripe: null, usdt: usdtPayment },
+    products: [{ ...catalog.products[0]!, usdtPriceMinor: 150 }],
+    seatProducts: [{ ...seatPlan, usdtPriceMinor: 60, unitUsdtPriceMinor: 60 }],
+  };
+  const [solo] = calculatorOptions(usdtOnly, 1, "en", en.pricing, "/shop/");
+  assert.deepEqual(
+    { amount: solo!.amount, unit: solo!.unit, original: solo!.original },
+    {
+      amount: "1.50",
+      unit: "USDT / purchase",
+      original: undefined,
+    },
+  );
+  const [seats] = calculatorOptions(usdtOnly, 5, "en", en.pricing, "/shop/");
+  assert.deepEqual(
+    { amount: seats!.amount, unit: seats!.unit, renewal: seats!.renewal },
+    {
+      amount: "3.00",
+      unit: "USDT / 30 days",
+      renewal: undefined,
+    },
+  );
+  // With no way of paying for a plan, the calculator leaves it out.
+  const nothing = { ...usdtOnly, payment: { ldc: false, stripe: null } };
+  assert.deepEqual(calculatorOptions(nothing, 1, "en", en.pricing, "/shop/"), []);
+  // Card only: the card total leads, and the renewal says it renews by itself.
+  const cardOnly = { ...seatCatalog, payment: { ldc: false, stripe: { currency: "usd" } } };
+  const [byCard] = calculatorOptions(cardOnly, 3, "en", en.pricing, "/shop/");
+  assert.equal(byCard!.amount, "$5.97");
+  assert.equal(byCard!.renewal, "Then $5.97 every 30 days, renewing automatically");
+});

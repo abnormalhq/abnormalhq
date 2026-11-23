@@ -32,6 +32,8 @@ export interface CalculatorOption {
   original?: string;
   /** The card total beside an LDC total. */
   card?: string;
+  /** The USDT total beside an LDC or card total. */
+  usdt?: string;
   /** What each later period costs, for a subscription. */
   renewal?: string;
   /** What the plan comes with, from its card: billing, storage, domains of one's own. */
@@ -69,61 +71,74 @@ export function calculatorOptions(
     const view = planView(product, catalog.payment, lang, copy, shop);
     const facts = [view.rows.billing, view.rows.storage, `${copy.compare.rows.domains} ${view.rows.domains}`];
     if (view.customDomains > 0) facts.push(view.rows.ownDomains);
-    if (!seat) {
-      const renewal =
-        product.periodDays && catalog.payment.ldc ? fillText(c.renewal, { price: view.rows.renewal }) : undefined;
-      options.push({
-        id: product.id,
-        name: product.name,
-        amount: view.amount,
-        unit: view.unit,
-        ...(view.discount ? { original: view.discount.original } : {}),
-        ...(view.card ? { card: view.card } : {}),
-        ...(renewal ? { renewal } : {}),
-        facts,
-        href: view.href,
+    const { payment } = catalog;
+    const currency = payment.stripe?.currency;
+    // Each way of paying the shop offers for this plan, as the shop judges it: LDC when the shop takes it, a card or USDT only
+    // for a plan with a price of its own in them. A seat plan's totals come from the shop's fallback, each way on its own.
+    let ldc: { originalPriceCents: number; priceCents: number } | null;
+    let cardMinor: number | null;
+    let usdtCents: number | null;
+    let renewLdcCents: number;
+    if (seat) {
+      const totals = seatTotals(seat, count, {
+        ldc: payment.ldc,
+        card: Boolean(currency && seat.unitFiatPriceMinor),
+        usdt: Boolean(payment.usdt && seat.unitUsdtPriceMinor),
       });
-      continue;
+      ({ ldc } = totals);
+      cardMinor = totals.card;
+      usdtCents = totals.usdt;
+      renewLdcCents = (seat.unitRenewPriceCents || seat.unitPriceCents) * count;
+    } else {
+      ldc = payment.ldc ? { originalPriceCents: product.originalPriceCents, priceCents: product.priceCents } : null;
+      cardMinor = currency && product.fiatPriceMinor ? product.fiatPriceMinor : null;
+      usdtCents = payment.usdt && product.usdtPriceMinor ? product.usdtPriceMinor : null;
+      renewLdcCents = product.renewPriceCents || product.priceCents;
     }
-    const currency = catalog.payment.stripe?.currency;
-    const offered = { ldc: catalog.payment.ldc, card: Boolean(currency && seat.unitFiatPriceMinor) };
-    const totals = seatTotals(seat, count, offered);
-    const days = seat.periodDays ?? 0;
-    const length = period(seat, t);
-    const card = totals.card !== null && currency ? formatMoney(totals.card, currency, lang) : null;
+    const days = product.periodDays ?? 0;
+    const length = period(product, t);
+    const card = cardMinor !== null && currency ? formatMoney(cardMinor, currency, lang) : null;
+    const usdt = usdtCents !== null ? formatCredits(usdtCents) : null;
+    // The headline is in the first way the plan can be paid: LDC, then a card, then USDT. With none, nothing can buy it.
     let amount: string;
     let unit: string;
-    if (totals.ldc) {
-      amount = formatCredits(totals.ldc.priceCents);
+    if (ldc) {
+      amount = formatCredits(ldc.priceCents);
       unit = days > 0 ? fillText(t.unitPeriod, { period: length }) : t.unitOnce;
     } else if (card) {
       amount = card;
       unit = days > 0 ? fillText(t.cardUnitPeriod, { period: length }) : t.cardUnitOnce;
+    } else if (usdt) {
+      amount = usdt;
+      unit = days > 0 ? fillText(c.usdtUnitPeriod, { period: length }) : c.usdtUnitOnce;
     } else {
-      // Too many for every way of paying: one order cannot take it.
       continue;
     }
-    const renewEach = seat.unitRenewPriceCents || seat.unitPriceCents;
+    // What each later period costs, in the headline's way of paying: LDC renews by hand at the renewal price, a card renews
+    // by itself at its card price. USDT renewals are priced by the shop at the time, so the calculator says nothing of them.
+    const renewal =
+      days === 0
+        ? null
+        : ldc
+          ? fillText(t.renewAt, { price: formatCredits(renewLdcCents), period: length })
+          : card
+            ? fillText(t.cardRowPeriod, { price: card, period: length })
+            : null;
     options.push({
-      id: seat.id,
-      name: seat.name,
+      id: product.id,
+      name: product.name,
       amount,
       unit,
-      ...(totals.ldc && totals.ldc.originalPriceCents > totals.ldc.priceCents
-        ? { original: `${formatCredits(totals.ldc.originalPriceCents)} LDC` }
+      ...(ldc && ldc.originalPriceCents > ldc.priceCents
+        ? { original: `${formatCredits(ldc.originalPriceCents)} LDC` }
         : {}),
-      ...(totals.ldc && card
-        ? { card: fillText(days > 0 ? t.cardPeriod : t.cardOnce, { price: card, period: length }) }
+      ...(ldc && card ? { card: fillText(days > 0 ? t.cardPeriod : t.cardOnce, { price: card, period: length }) } : {}),
+      ...((ldc || card) && usdt
+        ? { usdt: fillText(days > 0 ? c.usdtPeriod : c.usdtOnce, { price: usdt, period: length }) }
         : {}),
-      ...(days > 0 && totals.ldc
-        ? {
-            renewal: fillText(c.renewal, {
-              price: fillText(t.renewAt, { price: formatCredits(renewEach * count), period: length }),
-            }),
-          }
-        : {}),
+      ...(renewal ? { renewal: fillText(c.renewal, { price: renewal }) } : {}),
       facts,
-      href: shopHref(shop, { plan: seat.id, seats: count }),
+      href: seat ? shopHref(shop, { plan: seat.id, seats: count }) : view.href,
     });
   }
   return options;

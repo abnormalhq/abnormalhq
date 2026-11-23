@@ -492,6 +492,12 @@ export interface Copy {
       total: string;
       /** What each later period costs; {price} is the plan's renewal price ("4.00 LDC every 30 days"). */
       renewal: Template<"price">;
+      /** The headline's unit when a plan can be bought only with USDT. */
+      usdtUnitOnce: string;
+      usdtUnitPeriod: Template<"period">;
+      /** The USDT total beside an LDC or card total. */
+      usdtOnce: Template<"price">;
+      usdtPeriod: Template<"price" | "period">;
       estimate: string;
       checkout: string;
       none: Template<"count">;

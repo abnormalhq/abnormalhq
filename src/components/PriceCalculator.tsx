@@ -126,6 +126,7 @@ export function PriceCalculator({
             )}
           </p>
           {chosen?.card && <p className="mt-3 text-sm/prose text-muted-foreground">{chosen.card}</p>}
+          {chosen?.usdt && <p className="mt-1 text-sm/prose text-muted-foreground">{chosen.usdt}</p>}
           {chosen?.renewal && <p className="mt-1 text-sm/prose text-muted-foreground">{chosen.renewal}</p>}
         </div>
 

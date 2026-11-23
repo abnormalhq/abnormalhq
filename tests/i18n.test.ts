@@ -210,6 +210,18 @@ const templateSlots = {
     TemplateSlot<Copy["pricing"]["calculator"]["renewal"]>,
     true
   >,
+  "pricing.calculator.usdtUnitPeriod": { period: true } satisfies Record<
+    TemplateSlot<Copy["pricing"]["calculator"]["usdtUnitPeriod"]>,
+    true
+  >,
+  "pricing.calculator.usdtOnce": { price: true } satisfies Record<
+    TemplateSlot<Copy["pricing"]["calculator"]["usdtOnce"]>,
+    true
+  >,
+  "pricing.calculator.usdtPeriod": { price: true, period: true } satisfies Record<
+    TemplateSlot<Copy["pricing"]["calculator"]["usdtPeriod"]>,
+    true
+  >,
   "pricing.calculator.none": { count: true } satisfies Record<
     TemplateSlot<Copy["pricing"]["calculator"]["none"]>,
     true
