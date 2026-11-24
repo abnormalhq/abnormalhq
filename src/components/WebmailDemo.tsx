@@ -469,7 +469,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
         <form
           onSubmit={send}
           aria-label={t.compose}
-          className="absolute right-4 bottom-4 z-10 flex w-[min(440px,calc(100%-2rem))] flex-col overflow-hidden rounded-panel border border-border bg-card shadow-lg max-md:inset-x-2 max-md:bottom-2 max-md:w-auto"
+          className="absolute right-4 bottom-4 z-sticky flex w-[min(440px,calc(100%-2rem))] flex-col overflow-hidden rounded-panel border border-border bg-card shadow-popover max-md:inset-x-2 max-md:bottom-2 max-md:w-auto"
         >
           <div className="flex items-center justify-between bg-foreground px-4 py-2 text-background">
             <span className="font-medium">{draft.subject || t.compose}</span>
@@ -528,7 +528,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
       {!draft && notice && (
         <p
           role="status"
-          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-control bg-foreground px-4 py-2 text-background shadow-lg max-md:w-[calc(100%-1rem)] max-md:text-center"
+          className="absolute bottom-4 left-1/2 z-sticky -translate-x-1/2 rounded-control bg-foreground px-4 py-2 text-background shadow-popover max-md:w-[calc(100%-1rem)] max-md:text-center"
         >
           {notice}
           <Button

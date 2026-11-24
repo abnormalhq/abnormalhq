@@ -278,6 +278,7 @@ export function VideoPlayer({
     return (
       <div className={cn("relative", className)}>
         <video
+          // abnormal-allow: the film is shot on the light paper (#f7f7f4), so its letterbox is that paper in either theme.
           className="block aspect-video w-full bg-[#f7f7f4]"
           controls
           playsInline
@@ -304,6 +305,7 @@ export function VideoPlayer({
       ref={rootRef}
       className={cn(
         "group/player relative isolate select-none",
+        // abnormal-allow: black around a fullscreen film, and the film's own light paper (#f7f7f4) around it on the page.
         fullscreen ? "flex items-center bg-black" : "bg-[#f7f7f4]",
         autoHidden && "cursor-none",
         className,

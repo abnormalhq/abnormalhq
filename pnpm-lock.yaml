@@ -302,6 +302,9 @@ importers:
       remark-smartypants:
         specifier: ^3.0.3
         version: 3.0.3
+      tailwind-csstree:
+        specifier: ^0.4.2
+        version: 0.4.2(@eslint/css@2.0.1)
       tailwindcss:
         specifier: ^4.3.5
         version: 4.3.5
@@ -5378,6 +5381,15 @@ packages:
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
+
+  tailwind-csstree@0.4.2:
+    resolution: {integrity: sha512-/MJ9nTN/Eq7A4B7ycNoVAqh6LzW+813U11EDOj2ytGvZYt1YpU4L7BGZ6ZpHKyAtamRfRczJouK9wB3Q4Skw1Q==}
+    engines: {node: '>=18.18'}
+    peerDependencies:
+      '@eslint/css': '>=1.0.0'
+    peerDependenciesMeta:
+      '@eslint/css':
+        optional: true
 
   tailwindcss@4.3.5:
     resolution: {integrity: sha512-FcQk9BuffmEHJP2G0XmB2SplU1aLTI7j07Kunk+U74Ny+XiWOtzXz9aujFZ/avntw1e2cOv/3PkgzflQ7gX2vQ==}
@@ -11789,6 +11801,10 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
+
+  tailwind-csstree@0.4.2(@eslint/css@2.0.1):
+    optionalDependencies:
+      '@eslint/css': 2.0.1
 
   tailwindcss@4.3.5: {}
 

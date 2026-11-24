@@ -201,6 +201,7 @@ function HelpToggle() {
 }
 
 const mailCardClass = "absolute h-61 w-63.5 rounded-mark border border-border";
+// abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale.
 const mailCardRowClass = "flex items-center justify-between text-[8px] tracking-[0.12em] text-muted-foreground";
 
 /** Decorative stationery, kept in the page's own theme tokens. */
@@ -211,12 +212,15 @@ function MailArtwork() {
       aria-hidden="true"
     >
       <div className="absolute top-5 left-11.75 size-63 rounded-full border border-border" />
+      {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
       <span className="absolute top-0.5 right-3.25 text-[36px] text-signal">✳</span>
+      {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
       <span className="absolute bottom-0 left-1.75 text-[27px] font-light text-muted-foreground">+</span>
       {/* The hero illustration is a showcase: the card behind it is a big block of highlight yellow, the same in both themes. */}
       <div className={cn(mailCardClass, "top-7 left-12.5 rotate-[10deg] border-highlight bg-highlight")} />
       <div className={cn(mailCardClass, "top-4.75 left-9 -rotate-[7deg] bg-card px-5 pt-4.5 pb-3")}>
         <div className={mailCardRowClass}>
+          {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
           <span className="text-[22px] leading-none font-semibold tracking-[-0.04em] text-foreground">a↗</span>
           <span>YOUR NEXT CHAPTER</span>
         </div>
@@ -233,11 +237,13 @@ function MailArtwork() {
           <rect x="2" y="2" width="100" height="72" rx="8" />
           <path d="m3 8 49 34L101 8M3 68l33-29m65 29L68 39" />
         </svg>
+        {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
         <span className="block text-center text-[19px] tracking-heading">
           you<span className="text-muted-foreground">@{defaultDomain}</span>
         </span>
         <div className={cn(mailCardRowClass, "mt-4.25 border-t border-border pt-2.25")}>
           <span>MADE FOR YOU.</span>
+          {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
           <span className="text-[17px] leading-none">↗</span>
         </div>
       </div>

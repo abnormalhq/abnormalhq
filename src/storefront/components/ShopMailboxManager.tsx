@@ -337,7 +337,7 @@ function MailboxGroup({
         </ul>
       )}
       {created && (
-        <div className="mt-5 rounded-md border border-border p-4" role="status">
+        <div className="mt-5 rounded-control border border-border p-4" role="status">
           <p className="text-sm/[1.7]">{t.mailboxCreated(created.email)}</p>
           <InputGroup size="lg" className="mt-3 max-w-105">
             <InputGroupInput readOnly value={created.password} aria-label={t.mailboxCreatedPassword} />
@@ -424,7 +424,7 @@ function MailboxRow({
   }
 
   return (
-    <li className="rounded-md border border-border px-4 py-3">
+    <li className="rounded-control border border-border px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="font-mono text-sm/normal wrap-anywhere">{mailbox.email}</p>

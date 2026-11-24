@@ -94,7 +94,7 @@ export function ShopDomainAddresses({
     error?.where === where ? <ShopAlert className="mt-3 mb-0">{error.message}</ShopAlert> : null;
 
   return (
-    <div className="mt-5 rounded-md border border-border p-4" aria-labelledby={`${id}-title`} role="group">
+    <div className="mt-5 rounded-control border border-border p-4" aria-labelledby={`${id}-title`} role="group">
       <h4 className="text-sm/normal font-semibold" id={`${id}-title`}>
         {t.addressesTitle}
       </h4>
@@ -343,7 +343,7 @@ function AddressRow({
 }) {
   const t = useShopCopy();
   return (
-    <li className="rounded-md border border-border px-3 py-2.5">
+    <li className="rounded-control border border-border px-3 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <p className="min-w-0 text-sm/normal">
           <span className="font-mono wrap-anywhere">{address}</span>

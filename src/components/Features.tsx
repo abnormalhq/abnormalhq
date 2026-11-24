@@ -39,8 +39,8 @@ function weekSample(demo: Copy["demo"], s: Samples): ReactNode {
                     key={event.title}
                     className={
                       event.location
-                        ? "absolute inset-x-1 overflow-hidden rounded-[4px] bg-highlight px-1.5 py-px text-2xs/[1.35] text-highlight-foreground"
-                        : "absolute inset-x-1 overflow-hidden rounded-[4px] border-l-2 border-foreground/40 bg-muted px-1.5 py-px text-2xs/[1.35] text-foreground"
+                        ? "absolute inset-x-1 overflow-hidden rounded-chip bg-highlight px-1.5 py-px text-2xs/[1.35] text-highlight-foreground"
+                        : "absolute inset-x-1 overflow-hidden rounded-chip border-l-2 border-foreground/40 bg-muted px-1.5 py-px text-2xs/[1.35] text-foreground"
                     }
                     style={{
                       top: `${((event.start - firstHour) / span) * 100}%`,

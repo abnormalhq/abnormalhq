@@ -9,13 +9,13 @@ import { Icon } from "./Icon";
 import { ProductTabs } from "./ProductTabs";
 
 const titleClassName =
-  "mx-auto mt-8 max-w-[15em] animate-rise font-heading text-[clamp(2.5rem,6.2vw,5.25rem)] leading-[1.06] font-semibold tracking-[-0.035em] [animation-delay:70ms] max-phone:text-[2.25rem]";
+  "mx-auto mt-8 max-w-[15em] animate-rise font-heading text-[clamp(2.5rem,6.2vw,5.25rem)] leading-[1.06] font-semibold tracking-[-0.035em] [animation-delay:70ms] max-phone:text-display-sm";
 const descriptionClassName =
   "mx-auto mt-6 max-w-144 animate-rise text-md/prose text-muted-foreground [animation-delay:140ms] md:text-lg/prose";
 const actionsClassName = "mt-8 flex animate-rise flex-wrap justify-center gap-3 [animation-delay:210ms]";
 /** The stage: the product sits on a faintly lifted panel, wide as the page, under the headline. */
 const stageClassName =
-  "mx-auto mt-14 max-w-280 animate-rise rounded-[1.1rem] border border-border bg-control p-1.5 [animation-delay:280ms] md:mt-16 md:p-2";
+  "mx-auto mt-14 max-w-280 animate-rise rounded-dialog border border-border bg-control p-1.5 [animation-delay:280ms] md:mt-16 md:p-2";
 
 /**
  * The stage at the top of the home page: a tab per product, each with its own headline, sentence, actions and a stage
@@ -62,7 +62,7 @@ export function Hero({ lang }: { lang: Lang }) {
         {/* The site runs on a Worker without an image service, so the widths are made ahead of time (src/lib/screens.ts). */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          className="block h-auto w-full rounded-[0.8rem] border border-border"
+          className="block h-auto w-full rounded-control border border-border"
           src={screenSrc(lang, inbox.key, inbox.width)}
           srcSet={screenSrcSet(lang, inbox)}
           sizes="(min-width: 1184px) 1120px, 100vw"
@@ -95,11 +95,11 @@ export function Hero({ lang }: { lang: Lang }) {
       </div>
       {/* A drawing, not the product: three workspaces, each keeping its own identity, cookies and sign-ins. */}
       <div className={stageClassName} aria-hidden="true">
-        <div className="grid gap-1.5 rounded-[0.8rem] md:grid-cols-3 md:gap-2">
+        <div className="grid gap-1.5 rounded-control md:grid-cols-3 md:gap-2">
           {["01", "02", "03"].map((number, index) => (
             <div
               key={number}
-              className="flex flex-col gap-6 rounded-[0.8rem] border border-border bg-background p-5 text-left md:p-6"
+              className="flex flex-col gap-6 rounded-control border border-border bg-background p-5 text-left md:p-6"
             >
               <span className="flex items-center justify-between font-mono text-xs text-muted-foreground" lang="en">
                 <span>workspace / {number}</span>

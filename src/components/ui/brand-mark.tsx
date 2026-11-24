@@ -35,7 +35,7 @@ function BrandName({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="brand-name"
-      // eslint-disable-next-line abnormal/no-hardcoded-classes -- the lockup's own size, which follows neither the type scale nor the density.
+      // abnormal-allow: the lockup's own size, which follows neither the type scale nor the density.
       className={cn("font-heading text-[17px] leading-none font-semibold tracking-heading", className)}
       {...props}
     >

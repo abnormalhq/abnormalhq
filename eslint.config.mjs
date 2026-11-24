@@ -3,6 +3,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import css from "@eslint/css";
+import { tailwind4 } from "tailwind-csstree";
 import abnormal from "./eslint/eslint-plugin-abnormal.mjs";
 
 /** Every script the JavaScript and TypeScript rules read; the CSS files linted below have a language of their own. */
@@ -18,8 +19,8 @@ const scripts = (configs) =>
 
 /**
  * The theme's semantic colors, type scale, spacing steps, radii, shadows and layers instead of hand-picked values
- * (eslint/eslint-plugin-abnormal.mjs, installed from abnormalhq/ui). Values that predate the rules are recorded in
- * eslint-suppressions.json, so only new ones fail; after fixing some, `pnpm lint --prune-suppressions` drops them.
+ * (eslint/eslint-plugin-abnormal.mjs, installed from abnormalhq/ui). A value that has to stay takes a comment containing
+ * `abnormal-allow:` on its line or the line above, saying why.
  * Tests spell out the classes a component renders, and the theme file is where the literal values live.
  */
 const themeRules = [
@@ -36,8 +37,9 @@ const themeRules = [
     files: ["**/*.css"],
     ignores: ["src/styles/abnormal*.css"],
     language: "css/css",
-    // Tolerant, so the parser reads Tailwind's at-rules (@theme, @utility) instead of stopping at them.
-    languageOptions: { tolerant: true },
+    // Tailwind's syntax, so @theme, @utility and @apply with variants parse and every declaration in them is checked;
+    // tolerant for the @keyframes inside @theme, which that syntax does not read yet.
+    languageOptions: { customSyntax: tailwind4, tolerant: true },
     plugins: { css, abnormal },
     rules: { "abnormal/no-hardcoded-css": "error" },
   },

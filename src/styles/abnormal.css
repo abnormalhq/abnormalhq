@@ -432,13 +432,15 @@
 
   /*
    * Stacking. raised lifts an element over its siblings (a focused segment, a pinned column); sticky is a bar or handle
-   * over the content it scrolls with; header is the page's sticky header; overlay is every floating layer (dialogs,
+   * over the content it scrolls with; header is the page's sticky header; chrome stays above that header without covering
+   * an overlay (an app shell's pinned corners, buttons and status bar, the feedback of a drag); overlay is every floating layer (dialogs,
    * sheets, menus, popovers, tooltips: the one opened last is on top, by document order); floating is the brief
    * feedback that must show above an open dialog; skip-link is above everything.
    */
   --z-index-raised: 1;
   --z-index-sticky: 10;
   --z-index-header: 20;
+  --z-index-chrome: 30;
   --z-index-overlay: 50;
   --z-index-floating: 60;
   --z-index-skip-link: 70;

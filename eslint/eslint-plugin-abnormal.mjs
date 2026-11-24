@@ -3,15 +3,23 @@
  * Install it with `shadcn add @abnormal/eslint-plugin`, then in eslint.config.mjs:
  *
  *   import css from "@eslint/css";
+ *   import { tailwind4 } from "tailwind-csstree";
  *   import abnormal from "./eslint/eslint-plugin-abnormal.mjs";
  *
  *   { files: ["**\/*.{ts,tsx}"], plugins: { abnormal }, rules: { "abnormal/no-hardcoded-classes": "error" } },
- *   { files: ["**\/*.css"], language: "css/css", languageOptions: { tolerant: true }, plugins: { css, abnormal },
- *     rules: { "abnormal/no-hardcoded-css": "error" } },
+ *   { files: ["**\/*.css"], language: "css/css", languageOptions: { customSyntax: tailwind4 },
+ *     plugins: { css, abnormal }, rules: { "abnormal/no-hardcoded-css": "error" } },
  *
- * and leave out the theme (abnormal.css), where the literal values live. `tolerant` lets the CSS parser read Tailwind's
- * at-rules (@theme, @utility) instead of stopping at them. The installed components pass both rules; the few values in them
- * that have to stay carry an eslint-disable comment, which is why the plugin has to be loaded wherever they are.
+ * and leave out the theme (abnormal.css), where the literal values live. The Tailwind syntax lets the CSS parser read
+ * @theme, @utility, @apply with variants and nested rules, so every declaration in them is checked. A @keyframes inside
+ * @theme is beyond that syntax for now: add `tolerant: true` to languageOptions if your theme holds one. Blocks of your config
+ * that set rules without `files` (eslint-config-next's, for one) also run on CSS, whose syntax their rules cannot read:
+ * give them `files: ["**\/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"]`.
+ *
+ * A value that has to stay takes a comment on its line or the line above that contains `abnormal-allow` and says why
+ * (`// abnormal-allow: a QR code is black on white in every theme`). It is a plain comment, so code that carries one
+ * lints the same where the plugin is not installed; the registry's components use it for that reason. An
+ * `eslint-disable-next-line abnormal/no-hardcoded-classes -- reason` comment works too, where the plugin is loaded.
  * In a project with existing values, `eslint --suppress-rule abnormal/no-hardcoded-classes` records them in
  * eslint-suppressions.json, so only new ones fail; the file shrinks as they are fixed (`eslint --prune-suppressions`).
  *
@@ -21,25 +29,24 @@
  * - dark: with a color: the theme's colors already change with the theme.
  * - Arbitrary font sizes (text-[13px]): use the type scale, text-2xs to text-display-lg. text-[0px], which hides text
  *   while keeping it in the accessibility tree, stays allowed.
- * - Arbitrary whole-pixel spacing (mt-[18px]): use a spacing step (mt-4.5), so the density reaches it.
+ * - Arbitrary whole-pixel spacing, in px or rem (mt-[18px], mt-[3.25rem]): use a spacing step (mt-4.5, mt-13), so the
+ *   density reaches it. Values that fall between pixels (mt-[0.2rem]) are left alone.
  * - Tailwind's own radii and shadows (rounded-md, shadow-lg) and arbitrary radii above 2px: use rounded-chip /
  *   control / mark / panel / dialog and shadow-panel / popover. rounded-xs (2px) and pill radii of 999px or more stay
  *   allowed, like rounded-full.
- * - Numeric layers (z-50, z-[60]): use z-raised, z-sticky, z-header, z-overlay, z-floating or z-skip-link. Small
- *   arbitrary layers under 10 (z-[2]) stay allowed for stacking inside one component, and so do negative ones (-z-10,
- *   behind the parent).
+ * - Numeric layers of 10 or more (z-50, z-60, z-[60]): use z-raised, z-sticky, z-header, z-chrome, z-overlay,
+ *   z-floating or z-skip-link. Small arbitrary layers under 10 (z-[2]) stay allowed for stacking inside one component,
+ *   and so do negative ones (-z-10, behind the parent).
  * - Letter spacing that has a name (tracking-[-0.02em]): tracking-title, heading, display or caps.
  * - Hex and rgb() colors in a JSX style object.
  *
  * no-hardcoded-css checks declarations in CSS files (custom property definitions are left alone):
- * - Hex, rgb(), hsl() and oklch() colors: use var(--token).
+ * - Hex, rgb(), hsl() and oklch() colors: use var(--token). url() references (url(#mask)) and strings are not colors.
  * - font-size in px or rem: var(--text-*).
  * - padding, margin, gap and inset in px of 3 or more: --spacing(n) or calc(var(--spacing) * n).
  * - border-radius in px above 2 and below 999 (a pill): var(--radius-*).
  * - z-index of 10 or more: var(--z-index-*).
  *
- * A value that has to stay (a QR code's white, a brand lockup's 17px, an email's inline colors) takes an
- * eslint-disable comment that says why.
  */
 
 const PALETTE =
@@ -49,16 +56,18 @@ const COLOR_PROPS =
 const SPACING_PROPS =
   "p|px|py|pt|pb|pl|pr|ps|pe|m|mx|my|mt|mb|ml|mr|ms|me|gap|gap-x|gap-y|space-x|space-y|inset|inset-x|inset-y|top|left|right|bottom|start|end|scroll-m|scroll-mt|scroll-mb|scroll-p|scroll-pt|scroll-pb";
 
-const palette = new RegExp(`^-?(?:${COLOR_PROPS})-(?:${PALETTE})-\\d{2,3}(?:/\\d+)?$`);
-const blackWhite = new RegExp(`^(?:${COLOR_PROPS})-(?:black|white)(?:/\\d+)?$`);
+/** An opacity modifier: /50, /[.5] or /(--alpha). */
+const OPACITY = "(?:/(?:\\d+|\\[[^\\]]+\\]|\\([^)]+\\)))?";
+const palette = new RegExp(`^-?(?:${COLOR_PROPS})-(?:${PALETTE})-\\d{2,3}${OPACITY}$`);
+const blackWhite = new RegExp(`^(?:${COLOR_PROPS})-(?:black|white)${OPACITY}$`);
 const arbitraryColor = new RegExp(`^(?:${COLOR_PROPS})-\\[(?:#|rgba?\\(|hsla?\\(|oklch\\(|color:#)`);
-const fontSize = /^text-\[(?!0(?:px|rem)?\])\d*\.?\d+(?:px|rem)\]$/;
-const spacing = new RegExp(`^-?(?:${SPACING_PROPS})-\\[\\d+(?:px|rem)\\]$`);
+// A line height after the size (text-[13px]/6) is part of the same class.
+const fontSize = /^text-\[(?!0(?:px|rem)?\])\d*\.?\d+(?:px|rem)\](?:\/\S+)?$/;
+const spacing = new RegExp(`^-?(?:${SPACING_PROPS})-\\[(\\d*\\.?\\d+)(px|rem)\\]$`);
 const radius =
   /^rounded(?:-(?:[trblse]|tl|tr|bl|br|ss|se|es|ee))?-(?:(sm|md|lg|xl|2xl|3xl|4xl)|\[(\d*\.?\d+)(px|rem)\])$/;
 const shadow = /^shadow-(?:2xs|xs|sm|md|lg|xl|2xl)$/;
-const zStep = /^z-(?:10|20|30|40|50)$/;
-const zArbitrary = /^z-\[(\d+)\]$/;
+const zNumber = /^z-(?:(\d+)|\[(\d+)\])$/;
 const tracking = /^tracking-\[(-0\.01em|-0\.02em|-0\.03em|0\.06em)\]$/;
 const trackingName = { "-0.01em": "title", "-0.02em": "heading", "-0.03em": "display", "0.06em": "caps" };
 const literalColor = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch)\(\s*\d/;
@@ -88,24 +97,36 @@ export function checkClass(token) {
     return `"${token}": use a semantic color (text-muted-foreground, text-destructive, text-warning, text-success) or a category hue (text-category-blue).`;
   if (arbitraryColor.test(utility)) return `"${token}": use a theme color instead of a literal one.`;
   if (blackWhite.test(utility))
-    return `"${token}": use a theme color (bg-overlay for a backdrop, bg-background, text-foreground); a value that must stay white or black says why in an eslint-disable comment.`;
+    return `"${token}": use a theme color (bg-overlay for a backdrop, bg-background, text-foreground); a value that must stay white or black says why in an abnormal-allow comment.`;
   if (fontSize.test(utility)) return `"${token}": use the type scale (text-2xs, text-xs … text-display-lg).`;
-  if (spacing.test(utility)) {
-    const [, value, unit] = utility.match(/\[(\d+)(px|rem)\]/);
-    const px = Number(value) * (unit === "rem" ? 16 : 1);
-    if (px >= 3)
-      return `"${token}": use a spacing step (${utility.replace(/\[.*\]/, String(px / 4))}), so the density reaches it.`;
+  const space = utility.match(spacing);
+  if (space) {
+    const px = Number(space[1]) * (space[2] === "rem" ? 16 : 1);
+    if (px >= 3 && Number.isInteger(px))
+      return `"${token}": use a spacing step (${token.replace(/\[[^\]]*\](?=!?$)/, String(px / 4))}), so the density reaches it.`;
   }
   const corner = utility.match(radius);
   const cornerPx = corner && Number(corner[2]) * (corner[3] === "rem" ? 16 : 1);
   if (corner && (corner[1] || (cornerPx > 2 && cornerPx < 999)))
     return `"${token}": use rounded-chip, rounded-control, rounded-mark, rounded-panel or rounded-dialog.`;
   if (shadow.test(utility)) return `"${token}": use shadow-panel or shadow-popover.`;
-  if (zStep.test(utility) || (zArbitrary.test(utility) && Number(utility.match(zArbitrary)[1]) >= 10))
-    return `"${token}": use the stacking scale (z-raised, z-sticky, z-header, z-overlay, z-floating, z-skip-link).`;
+  const layer = utility.match(zNumber);
+  if (layer && Number(layer[1] ?? layer[2]) >= 10)
+    return `"${token}": use the stacking scale (z-raised, z-sticky, z-header, z-chrome, z-overlay, z-floating, z-skip-link).`;
   const named = utility.match(tracking);
   if (named) return `"${token}": use tracking-${trackingName[named[1]]}.`;
   return undefined;
+}
+
+/** The lines an `abnormal-allow` comment covers: the lines it spans and the one after it. */
+function allowedLines(sourceCode) {
+  const comments = typeof sourceCode.getAllComments === "function" ? sourceCode.getAllComments() : sourceCode.comments;
+  const lines = new Set();
+  for (const comment of comments ?? []) {
+    if (!(comment.value ?? sourceCode.getText(comment)).includes("abnormal-allow")) continue;
+    for (let line = comment.loc.start.line; line <= comment.loc.end.line + 1; line++) lines.add(line);
+  }
+  return lines;
 }
 
 /** @type {import("eslint").Rule.RuleModule} */
@@ -118,8 +139,9 @@ const noHardcodedClasses = {
     schema: [],
   },
   create(context) {
+    const allowed = allowedLines(context.sourceCode);
     function checkString(node, value) {
-      if (value.length > 4000 || !value.includes("-")) return;
+      if (value.length > 4000 || !value.includes("-") || allowed.has(node.loc.start.line)) return;
       for (const token of value.split(/\s+/)) {
         if (!token) continue;
         const problem = checkClass(token);
@@ -137,7 +159,7 @@ const noHardcodedClasses = {
       Literal(node) {
         if (typeof node.value !== "string") return;
         if (node.parent?.type === "Property" && node.parent.value === node && inStyleAttribute(node)) {
-          if (literalColor.test(node.value))
+          if (literalColor.test(node.value) && !allowed.has(node.loc.start.line))
             context.report({ node, message: `"${node.value}": use var(--token) for a color in a style object.` });
           return;
         }
@@ -162,13 +184,16 @@ const noHardcodedCss = {
     schema: [],
   },
   create(context) {
+    const allowed = allowedLines(context.sourceCode);
     return {
       Declaration(node) {
         const property = node.property.toLowerCase();
-        if (property.startsWith("--")) return;
+        if (property.startsWith("--") || allowed.has(node.loc.start.line)) return;
         const value = context.sourceCode.getText(node.value);
         const report = (message) => context.report({ node, message: `${property}: ${value.trim()}: ${message}` });
-        if (literalColor.test(value)) return report("use var(--token) instead of a literal color.");
+        // A url() reference (url(#mask)) or a string ("#1") holds no color, whatever its text looks like.
+        const outsideUrlsAndStrings = value.replace(/url\([^)]*\)|"[^"]*"|'[^']*'/g, "");
+        if (literalColor.test(outsideUrlsAndStrings)) return report("use var(--token) instead of a literal color.");
         if (property === "font-size" && /(?:^|[\s(,])\d*\.?\d+(?:px|rem)\b/.test(value) && !/var\(|clamp\(/.test(value))
           return report("use var(--text-*) from the type scale.");
         if (SPACING_CSS.test(property)) {

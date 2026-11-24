@@ -68,6 +68,7 @@
     "remark-gfm": "^4.0.1",
     "remark-mdx-frontmatter": "^6.0.0",
     "remark-smartypants": "^3.0.3",
+    "tailwind-csstree": "^0.4.2",
     "tailwindcss": "^4.3.5",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^5.1.1",

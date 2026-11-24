@@ -114,7 +114,7 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
         <div className="min-w-0">
           <Eyebrow className="text-success before:hidden">{t.result.eyebrow}</Eyebrow>
           <h2
-            className="mt-2.5 text-[clamp(24px,2.6vw,32px)] leading-tight tracking-tight wrap-anywhere focus-visible:rounded-[3px] focus-visible:outline-offset-[6px] max-narrow:text-xl"
+            className="mt-2.5 text-[clamp(24px,2.6vw,32px)] leading-tight tracking-tight wrap-anywhere focus-visible:rounded-chip focus-visible:outline-offset-[6px] max-narrow:text-xl"
             id="result-title"
             tabIndex={-1}
             ref={titleRef}

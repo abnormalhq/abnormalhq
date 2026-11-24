@@ -426,7 +426,7 @@ function DomainCard({
       )}
 
       {ownership && (
-        <div className="mt-5 rounded-md border border-border p-4">
+        <div className="mt-5 rounded-control border border-border p-4">
           <h4 className="text-sm/normal font-semibold">{t.domainOwnershipTitle}</h4>
           <div className="mt-3 grid gap-4">
             <p className="text-sm/body">
@@ -553,7 +553,7 @@ function RecordRow({ id, record, domain }: { id: string; record: DomainRecord; d
   const t = useShopCopy();
   const purpose = t.domainPurposes[record.purpose] ?? record.type;
   return (
-    <li className="rounded-md border border-border p-4">
+    <li className="rounded-control border border-border p-4">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <p className="text-sm/normal font-semibold">
           {purpose}
