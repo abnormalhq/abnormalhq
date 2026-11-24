@@ -339,7 +339,9 @@ test("dev shop: replacing a whole roster of long addresses fits in one request",
     return body;
   };
   const atCap = await client.send("account/domains/groups/update", { body: padded(40960) });
-  expect(atCap.status).not.toBe(413);
+  // Read and answered about the group itself, which does not exist here.
+  expect(atCap.status).toBe(404);
+  expect(await atCap.json()).toStrictEqual({ error: "找不到这个群组地址。" });
   const over = await client.send("account/domains/groups/update", { body: padded(40961) });
   expect(over.status).toBe(413);
 });
