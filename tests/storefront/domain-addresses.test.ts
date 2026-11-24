@@ -317,4 +317,22 @@ test("dev shop: replacing a whole roster of long addresses fits in one request",
   const response = await client.send("account/domains/groups/update", { body });
   expect(response.status).toBe(404);
   expect(await response.json()).toStrictEqual({ error: "找不到这个群组地址。" });
+
+  // The longest roster mail takes: 100 addresses of 318 characters, well past 16 KiB, still under the 40 KiB cap.
+  const longest = (n: number) => `${String(n).padStart(64, "a")}@${"b".repeat(253)}`;
+  const full = {
+    id: domain.id,
+    groupId: "list_x",
+    addMembers: Array.from({ length: 50 }, (_, n) => longest(n)),
+    removeMembers: Array.from({ length: 50 }, (_, n) => longest(50 + n)),
+  };
+  const size = new TextEncoder().encode(JSON.stringify(full)).length;
+  expect(size).toBeGreaterThan(16384);
+  expect(size).toBeLessThanOrEqual(40960);
+  expect((await client.send("account/domains/groups/update", { body: full })).status).toBe(404);
+  // Anything past the cap is refused for its size.
+  const over = await client.send("account/domains/groups/update", {
+    body: { ...full, description: "x".repeat(10000) },
+  });
+  expect(over.status).toBe(413);
 });
