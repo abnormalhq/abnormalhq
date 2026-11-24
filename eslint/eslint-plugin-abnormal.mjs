@@ -61,8 +61,8 @@ const OPACITY = "(?:/(?:\\d+|\\[[^\\]]+\\]|\\([^)]+\\)))?";
 const palette = new RegExp(`^-?(?:${COLOR_PROPS})-(?:${PALETTE})-\\d{2,3}${OPACITY}$`);
 const blackWhite = new RegExp(`^(?:${COLOR_PROPS})-(?:black|white)${OPACITY}$`);
 const arbitraryColor = new RegExp(`^(?:${COLOR_PROPS})-\\[(?:#|rgba?\\(|hsla?\\(|oklch\\(|color:#)`);
-// A line height after the size (text-[13px]/6) is part of the same class.
-const fontSize = /^text-\[(?!0(?:px|rem)?\])\d*\.?\d+(?:px|rem)\](?:\/\S+)?$/;
+// A line height after the size (text-[13px]/6) is part of the same class, and a length: hint names the same size.
+const fontSize = /^text-\[(?:length:)?(?!0(?:px|rem)?\])\d*\.?\d+(?:px|rem)\](?:\/\S+)?$/i;
 const spacing = new RegExp(`^-?(?:${SPACING_PROPS})-\\[(\\d*\\.?\\d+)(px|rem)\\]$`);
 const radius =
   /^rounded(?:-(?:[trblse]|tl|tr|bl|br|ss|se|es|ee))?-(?:(sm|md|lg|xl|2xl|3xl|4xl)|\[(\d*\.?\d+)(px|rem)\])$/;
@@ -167,7 +167,21 @@ const noHardcodedClasses = {
         checkString(node, node.value);
       },
       TemplateElement(node) {
-        checkString(node, node.value.cooked ?? node.value.raw);
+        const text = node.value.cooked ?? node.value.raw;
+        const literal = node.parent;
+        // A backtick string with nothing interpolated is the same value in a style object as a quoted one.
+        if (
+          literal.type === "TemplateLiteral" &&
+          literal.expressions.length === 0 &&
+          literal.parent?.type === "Property" &&
+          literal.parent.value === literal &&
+          inStyleAttribute(literal)
+        ) {
+          if (literalColor.test(text) && !allowed.has(node.loc.start.line))
+            context.report({ node, message: `"${text}": use var(--token) for a color in a style object.` });
+          return;
+        }
+        checkString(node, text);
       },
     };
   },
@@ -191,17 +205,20 @@ const noHardcodedCss = {
         if (property.startsWith("--") || allowed.has(node.loc.start.line)) return;
         const value = context.sourceCode.getText(node.value);
         const report = (message) => context.report({ node, message: `${property}: ${value.trim()}: ${message}` });
-        // A url() reference (url(#mask)) or a string ("#1") holds no color, whatever its text looks like.
-        const outsideUrlsAndStrings = value.replace(/url\([^)]*\)|"[^"]*"|'[^']*'/g, "");
-        if (literalColor.test(outsideUrlsAndStrings)) return report("use var(--token) instead of a literal color.");
+        // A string ("#1", a font family named "Mono 12px") or a url() reference (url(#mask)) holds no color or size,
+        // whatever its text looks like. Strings go first, so a ) inside a quoted url("a).png") cannot end the url early.
+        const bare = value.replace(/"[^"]*"|'[^']*'/g, '""').replace(/url\([^)]*\)/gi, "");
+        if (literalColor.test(bare)) return report("use var(--token) instead of a literal color.");
+        const length = /(?:^|[\s(,+*/-])\+?\d*\.?\d+(?:px|rem)\b/i;
         const fixedSize =
           property === "font-size"
-            ? /(?:^|[\s(,])\d*\.?\d+(?:px|rem)\b/.test(value) && !/var\(|clamp\(/.test(value)
-            : // In the shorthand the size is a length on its own, before an optional /line-height.
-              property === "font" && /(?:^|\s)\d*\.?\d+(?:px|rem)(?=\/|\s|$)/.test(value.trim());
+            ? length.test(bare) && !/var\(|clamp\(/i.test(bare)
+            : // In the shorthand the size may come from var() or clamp(); the line height after the slash is not a size.
+              property === "font" &&
+              length.test(bare.replace(/(?:var|clamp)\((?:[^()]|\([^()]*\))*\)/gi, "").replace(/\/\s*[^\s,]+/, " "));
         if (fixedSize) return report("use var(--text-*) from the type scale.");
         if (SPACING_CSS.test(property)) {
-          const large = [...value.matchAll(/(?<![\w.(-])-?(\d*\.?\d+)px\b/g)].some(([, n]) => Number(n) >= 3);
+          const large = [...bare.matchAll(/(?<![\w.-])-?(\d*\.?\d+)px\b/gi)].some(([, n]) => Number(n) >= 3);
           if (large)
             return report("use spacing steps (--spacing(n), or calc(var(--spacing) * n) where Tailwind does not run).");
         }

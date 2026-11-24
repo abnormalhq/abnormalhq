@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CN_THEME, cn } from "../src/lib/utils.ts";
+import { CN_LAYERS, CN_THEME, cn } from "../src/lib/utils.ts";
 
 const componentsDir = "src/components";
 const ownComponents = readdirSync(componentsDir).filter((file) => file.endsWith(".tsx"));
@@ -67,6 +67,10 @@ test("cn knows every custom name in the installed theme", () => {
   assert.deepEqual([...CN_THEME.animate].sort(), tokens("animate").sort());
   const display = tokens("text").filter((name) => name.startsWith("display") && !name.endsWith("-line-height"));
   assert.deepEqual([...CN_THEME.text].sort(), display.sort());
+  assert.deepEqual([...CN_THEME.tracking].sort(), tokens("tracking").sort());
+  assert.deepEqual([...CN_LAYERS].sort(), tokens("z-index").sort());
+  // A named layer is a z-index like a number, so the later one wins when two are merged.
+  assert.equal(cn("z-overlay", "z-60"), "z-60");
   // A display size is a size, not a color: it stays beside a text color, and a later size replaces it.
   assert.equal(cn("text-display", "text-foreground"), "text-display text-foreground");
   assert.equal(cn("text-display-sm", "text-display"), "text-display");
