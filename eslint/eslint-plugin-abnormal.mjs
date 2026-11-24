@@ -42,7 +42,7 @@
  *
  * no-hardcoded-css checks declarations in CSS files (custom property definitions are left alone):
  * - Hex, rgb(), hsl() and oklch() colors: use var(--token). url() references (url(#mask)) and strings are not colors.
- * - font-size in px or rem: var(--text-*).
+ * - font-size, or the size in the font shorthand, in px or rem: var(--text-*).
  * - padding, margin, gap and inset in px of 3 or more: --spacing(n) or calc(var(--spacing) * n).
  * - border-radius in px above 2 and below 999 (a pill): var(--radius-*).
  * - z-index of 10 or more: var(--z-index-*).
@@ -194,8 +194,12 @@ const noHardcodedCss = {
         // A url() reference (url(#mask)) or a string ("#1") holds no color, whatever its text looks like.
         const outsideUrlsAndStrings = value.replace(/url\([^)]*\)|"[^"]*"|'[^']*'/g, "");
         if (literalColor.test(outsideUrlsAndStrings)) return report("use var(--token) instead of a literal color.");
-        if (property === "font-size" && /(?:^|[\s(,])\d*\.?\d+(?:px|rem)\b/.test(value) && !/var\(|clamp\(/.test(value))
-          return report("use var(--text-*) from the type scale.");
+        const fixedSize =
+          property === "font-size"
+            ? /(?:^|[\s(,])\d*\.?\d+(?:px|rem)\b/.test(value) && !/var\(|clamp\(/.test(value)
+            : // In the shorthand the size is a length on its own, before an optional /line-height.
+              property === "font" && /(?:^|\s)\d*\.?\d+(?:px|rem)(?=\/|\s|$)/.test(value.trim());
+        if (fixedSize) return report("use var(--text-*) from the type scale.");
         if (SPACING_CSS.test(property)) {
           const large = [...value.matchAll(/(?<![\w.(-])-?(\d*\.?\d+)px\b/g)].some(([, n]) => Number(n) >= 3);
           if (large)
