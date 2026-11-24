@@ -73,7 +73,7 @@ function InputGroupButton({ className, type = "button", ...props }: React.Compon
       type={type}
       data-slot="input-group-button"
       className={cn(
-        "inline-flex min-h-[30px] shrink-0 in-data-[size=sm]:min-h-6 items-center justify-center gap-[5px] rounded-chip px-2 text-sm/body font-medium whitespace-nowrap text-muted-foreground transition-[color,background-color] duration-150 hover:bg-control hover:text-foreground focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 in-data-[slot=input-group]:last:mr-1 in-data-[slot=input-group]:last:text-foreground",
+        "inline-flex min-h-[30px] shrink-0 in-data-[size=sm]:min-h-6 items-center justify-center gap-1.25 rounded-chip px-2 text-sm/body font-medium whitespace-nowrap text-muted-foreground transition-[color,background-color] duration-150 hover:bg-control hover:text-foreground focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 in-data-[slot=input-group]:last:mr-1 in-data-[slot=input-group]:last:text-foreground",
         className,
       )}
       {...props}

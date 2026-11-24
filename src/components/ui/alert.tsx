@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * turn. Pass `role` to choose otherwise, such as a default notice that must interrupt.
  */
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-1 rounded-control border border-border bg-muted px-4 py-3.5 text-left text-base has-data-[slot=alert-action]:pr-12 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:mt-[3px] *:[svg]:text-current *:[svg:not([class*='size-'])]:size-3.5",
+  "group/alert relative grid w-full gap-1 rounded-control border border-border bg-muted px-4 py-3.5 text-left text-base has-data-[slot=alert-action]:pr-12 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:mt-0.75 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
       variant: {

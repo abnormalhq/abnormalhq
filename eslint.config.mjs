@@ -2,6 +2,46 @@ import { fixupConfigRules } from "@eslint/compat";
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import css from "@eslint/css";
+import abnormal from "./eslint/eslint-plugin-abnormal.mjs";
+
+/** Every script the JavaScript and TypeScript rules read; the CSS files linted below have a language of their own. */
+const SCRIPTS = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"];
+
+/** Blocks with no `files` would also run on CSS, whose syntax their rules cannot read: scope the ones that set rules to scripts. */
+const scripts = (configs) =>
+  configs.map((config) =>
+    config.files || !(config.rules || config.plugins || config.languageOptions)
+      ? config
+      : { ...config, files: SCRIPTS },
+  );
+
+/**
+ * The theme's semantic colors, type scale, spacing steps, radii, shadows and layers instead of hand-picked values
+ * (eslint/eslint-plugin-abnormal.mjs, installed from abnormalhq/ui). Values that predate the rules are recorded in
+ * eslint-suppressions.json, so only new ones fail; after fixing some, `pnpm lint --prune-suppressions` drops them.
+ * Tests spell out the classes a component renders, and the theme file is where the literal values live.
+ */
+const themeRules = [
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: { abnormal },
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}", "**/tests/**", "**/__tests__/**", "**/e2e/**"],
+    rules: { "abnormal/no-hardcoded-classes": "error" },
+  },
+  {
+    files: ["**/*.css"],
+    ignores: ["src/styles/abnormal*.css"],
+    language: "css/css",
+    // Tolerant, so the parser reads Tailwind's at-rules (@theme, @utility) instead of stopping at them.
+    languageOptions: { tolerant: true },
+    plugins: { css, abnormal },
+    rules: { "abnormal/no-hardcoded-css": "error" },
+  },
+];
 
 const eslintConfig = defineConfig([
   // The eslint-plugin-react / import / jsx-a11y bundled with eslint-config-next still call old APIs that ESLint 10 removed,
@@ -71,6 +111,7 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  ...themeRules,
   globalIgnores([
     ".next/**",
     ".open-next/**",
@@ -85,4 +126,4 @@ const eslintConfig = defineConfig([
   ]),
 ]);
 
-export default eslintConfig;
+export default scripts(eslintConfig);

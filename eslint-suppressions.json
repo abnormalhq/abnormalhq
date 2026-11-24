@@ -1,0 +1,67 @@
+{
+  "src/components/DocFigure.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 1
+    }
+  },
+  "src/components/Features.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 2
+    }
+  },
+  "src/components/Header.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 1
+    }
+  },
+  "src/components/Hero.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 5
+    }
+  },
+  "src/components/VideoPlayer.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 3
+    }
+  },
+  "src/components/WebmailDemo.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 4
+    }
+  },
+  "src/storefront/components/Onboard.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 6
+    }
+  },
+  "src/storefront/components/ShopDomainAddresses.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 2
+    }
+  },
+  "src/storefront/components/ShopDomains.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 2
+    }
+  },
+  "src/storefront/components/ShopMailboxManager.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 2
+    }
+  },
+  "src/storefront/components/ShopSeats.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 3
+    }
+  },
+  "src/storefront/components/onboard/OnboardForm.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 1
+    }
+  },
+  "src/storefront/components/onboard/ResultPanel.tsx": {
+    "abnormal/no-hardcoded-classes": {
+      "count": 1
+    }
+  }
+}

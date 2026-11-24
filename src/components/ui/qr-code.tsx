@@ -41,7 +41,10 @@ function QrCode({
       className={cn("block size-44 rounded-control border border-border", className)}
       {...props}
     >
+      {/* A scanner needs dark modules on a light quiet zone in either theme, so these two stay black and white. */}
+      {/* eslint-disable-next-line abnormal/no-hardcoded-classes -- see above */}
       <rect width={qr.size} height={qr.size} className="fill-white" />
+      {/* eslint-disable-next-line abnormal/no-hardcoded-classes -- see above */}
       <path d={path} className="fill-black" />
     </svg>
   );
