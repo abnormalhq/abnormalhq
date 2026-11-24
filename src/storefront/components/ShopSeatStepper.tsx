@@ -42,7 +42,7 @@ export function ShopSeatStepper({
     onChange(clamped);
   }
 
-  const buttonClass = "min-w-9 text-md/[1] text-foreground";
+  const buttonClass = "min-w-9 text-md/none text-foreground";
   return (
     <InputGroup size="lg" className={cn("w-fit", className)}>
       <InputGroupButton
@@ -55,7 +55,7 @@ export function ShopSeatStepper({
       </InputGroupButton>
       <InputGroupInput
         id={id}
-        className="w-[4.5rem] flex-none [appearance:textfield] px-1 text-center tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-18 flex-none [appearance:textfield] px-1 text-center tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         type="number"
         inputMode="numeric"
         min={min}

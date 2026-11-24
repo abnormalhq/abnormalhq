@@ -11,7 +11,7 @@ function Eyebrow({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="eyebrow"
       className={cn(
-        "flex items-center gap-2.5 text-xs/[1.4] font-medium tracking-[0.06em] text-muted-foreground uppercase before:size-1.5 before:shrink-0 before:rounded-full before:bg-signal",
+        "flex items-center gap-2.5 text-xs/[1.4] font-medium tracking-caps text-muted-foreground uppercase before:size-1.5 before:shrink-0 before:rounded-full before:bg-signal",
         className,
       )}
       {...props}
@@ -26,7 +26,7 @@ function SectionTitle({ className, asChild = false, ...props }: React.ComponentP
     <Comp
       data-slot="section-title"
       className={cn(
-        "mt-5 font-heading text-3xl/[1.3] font-semibold tracking-[-0.02em] md:text-display-sm lg:text-display",
+        "mt-5 font-heading text-3xl/[1.3] font-semibold tracking-heading md:text-display-sm lg:text-display",
         className,
       )}
       {...props}
@@ -44,7 +44,7 @@ function PageTitle({ className, asChild = false, ...props }: React.ComponentProp
     <Comp
       data-slot="page-title"
       className={cn(
-        "mt-5 font-heading text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.12] font-semibold tracking-[-0.03em] text-balance",
+        "mt-5 font-heading text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.12] font-semibold tracking-display text-balance",
         className,
       )}
       {...props}

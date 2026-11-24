@@ -392,7 +392,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
               <>
                 <ShopField htmlFor="shop-login-email" label={t.loginEmail}>
                   <Input
-                    className={cn(shopInputClass, "max-w-[420px]")}
+                    className={cn(shopInputClass, "max-w-105")}
                     id="shop-login-email"
                     type="email"
                     autoComplete="email"
@@ -412,7 +412,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                     }
                   >
                     <Input
-                      className={cn(shopInputClass, "max-w-[420px]")}
+                      className={cn(shopInputClass, "max-w-105")}
                       id="shop-login-password"
                       type="password"
                       autoComplete={method === "register" ? "new-password" : "current-password"}
@@ -427,7 +427,7 @@ export function ShopAccount({ lang }: { lang: Lang }) {
                 {method === "register" && (
                   <ShopField htmlFor="shop-login-password-again" label={t.registerPasswordAgain}>
                     <Input
-                      className={cn(shopInputClass, "max-w-[420px]")}
+                      className={cn(shopInputClass, "max-w-105")}
                       id="shop-login-password-again"
                       type="password"
                       autoComplete="new-password"
@@ -889,7 +889,7 @@ function ShopPasswordPanel({ lang, hasPassword, onSaved }: { lang: Lang; hasPass
               hintId="shop-password-current-hint"
             >
               <Input
-                className={cn(shopInputClass, "max-w-[420px]")}
+                className={cn(shopInputClass, "max-w-105")}
                 id="shop-password-current"
                 type="password"
                 autoComplete="current-password"
@@ -908,7 +908,7 @@ function ShopPasswordPanel({ lang, hasPassword, onSaved }: { lang: Lang; hasPass
             hintId="shop-password-new-hint"
           >
             <Input
-              className={cn(shopInputClass, "max-w-[420px]")}
+              className={cn(shopInputClass, "max-w-105")}
               id="shop-password-new"
               type="password"
               autoComplete="new-password"
@@ -922,7 +922,7 @@ function ShopPasswordPanel({ lang, hasPassword, onSaved }: { lang: Lang; hasPass
           </ShopField>
           <ShopField htmlFor="shop-password-again" label={t.passwordConfirm}>
             <Input
-              className={cn(shopInputClass, "max-w-[420px]")}
+              className={cn(shopInputClass, "max-w-105")}
               id="shop-password-again"
               type="password"
               autoComplete="new-password"
@@ -1039,7 +1039,7 @@ function ShopPasswordReset({
             hint={t.passwordLength(ACCOUNT_PASSWORD_MIN, ACCOUNT_PASSWORD_MAX)}
           >
             <Input
-              className={cn(shopInputClass, "max-w-[420px]")}
+              className={cn(shopInputClass, "max-w-105")}
               id="shop-reset-password"
               type="password"
               autoComplete="new-password"
@@ -1052,7 +1052,7 @@ function ShopPasswordReset({
           </ShopField>
           <ShopField htmlFor="shop-reset-password-again" label={t.passwordConfirm}>
             <Input
-              className={cn(shopInputClass, "max-w-[420px]")}
+              className={cn(shopInputClass, "max-w-105")}
               id="shop-reset-password-again"
               type="password"
               autoComplete="new-password"

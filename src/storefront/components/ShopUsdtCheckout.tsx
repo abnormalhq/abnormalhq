@@ -273,8 +273,8 @@ export function ShopUsdtCheckout({
       <div className="mt-6" role="status" aria-busy="true">
         <span className="sr-only">{t.usdtLoading}</span>
         <div className="flex flex-wrap gap-6">
-          <Skeleton className="size-[176px]" />
-          <div className="min-w-[220px] flex-1">
+          <Skeleton className="size-44" />
+          <div className="min-w-55 flex-1">
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="mt-2 h-8 w-1/2" />
             <Skeleton className="mt-6 h-4 w-1/3" />
@@ -310,15 +310,15 @@ export function ShopUsdtCheckout({
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge className="h-auto w-auto py-[3px] text-xs/body">{t.usdtNetwork(chainName, payment.standard)}</Badge>
+        <Badge className="h-auto w-auto py-0.75 text-xs/body">{t.usdtNetwork(chainName, payment.standard)}</Badge>
         {payment.network === "nile" && <ShopTestnetBadge>{t.usdtTestnet}</ShopTestnetBadge>}
       </div>
       <div className="mt-5 flex flex-wrap items-start gap-x-7 gap-y-5">
         <figure className="shrink-0">
-          <QrCode value={payment.address} label={t.usdtQr(payment.address)} className="size-[176px]" />
-          <figcaption className="mt-2 max-w-[176px] text-xs/[1.6] text-muted-foreground">{t.usdtQrHint}</figcaption>
+          <QrCode value={payment.address} label={t.usdtQr(payment.address)} className="size-44" />
+          <figcaption className="mt-2 max-w-44 text-xs/[1.6] text-muted-foreground">{t.usdtQrHint}</figcaption>
         </figure>
-        <DescriptionList variant="stacked" className="min-w-0 flex-1 basis-[260px] gap-y-5">
+        <DescriptionList variant="stacked" className="min-w-0 flex-1 basis-65 gap-y-5">
           <CopyRow
             label={t.usdtAmount}
             copyLabel={t.usdtCopyAmount}
@@ -326,9 +326,7 @@ export function ShopUsdtCheckout({
             failedLabel={t.usdtCopyFailed}
             value={payment.amount}
           >
-            <span className="text-[28px] leading-[1.2] font-semibold tracking-[-0.02em] tabular-nums">
-              {payment.amount}
-            </span>{" "}
+            <span className="text-3xl leading-[1.2] font-semibold tracking-heading tabular-nums">{payment.amount}</span>{" "}
             <span className="text-xs/body text-muted-foreground">USDT</span>
           </CopyRow>
           <CopyRow
@@ -343,7 +341,7 @@ export function ShopUsdtCheckout({
         </DescriptionList>
       </div>
       {/* Read in its place, not announced: it is there from the start and does not change. */}
-      <Alert role="note" className="my-5 px-[18px]">
+      <Alert role="note" className="my-5 px-4.5">
         <TriangleAlertIcon />
         <AlertDescription className="text-sm/[1.7] text-foreground">
           {t.usdtWarning(amountText, `${chainName} (${payment.standard})`)}

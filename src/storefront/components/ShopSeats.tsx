@@ -148,8 +148,8 @@ export function ShopSeats({
   return (
     <div className="mt-5 rounded-md border border-border p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h4 className="text-sm/[1.5] font-semibold">{t.seatsTitle}</h4>
-        <p className="text-sm/[1.5]">{t.seatsUsed(mailboxes.length, seats.seats)}</p>
+        <h4 className="text-sm/normal font-semibold">{t.seatsTitle}</h4>
+        <p className="text-sm/normal">{t.seatsUsed(mailboxes.length, seats.seats)}</p>
       </div>
       <ShopMeta>
         {/* The length of the period comes from mail (`seats.periodDays`); a mail before the field says "per period". */}
@@ -323,7 +323,7 @@ export function ShopSeats({
               <ul className="mt-2 grid gap-1.5">
                 {mailboxes.map((mailbox) => (
                   <li key={mailbox.id}>
-                    <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm/[1.5]">
+                    <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm/normal">
                       <Checkbox
                         checked={chosen.includes(mailbox.id)}
                         disabled={busy !== null}

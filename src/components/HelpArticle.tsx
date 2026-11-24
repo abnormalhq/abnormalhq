@@ -45,7 +45,7 @@ export function HelpArticle({ lang, article }: { lang: Lang; article: Article })
         )}
         <Card asChild className="mt-14 block p-[1.4rem] md:px-8 md:py-7">
           <aside aria-labelledby="help-wrong-title">
-            <h2 className="text-lg/[1.5] font-semibold" id="help-wrong-title">
+            <h2 className="text-lg/normal font-semibold" id="help-wrong-title">
               {h.wrong.title}
             </h2>
             <p className="mt-2 text-base/prose text-muted-foreground">{h.wrong.body}</p>

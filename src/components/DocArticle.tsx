@@ -103,7 +103,7 @@ export function DocArticle({
           />
         </aside>
 
-        <article className="max-w-[46rem] min-w-0">
+        <article className="max-w-184 min-w-0">
           <Prose className="[&_h2]:scroll-mt-24 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&>section:first-child_h2]:mt-0">
             {sections.map((section, index) => (
               <section aria-labelledby={sectionId(index, section)} key={section.title}>

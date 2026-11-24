@@ -128,7 +128,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
                 <IconTile aria-hidden="true">
                   <Icon name="monitor" className="size-5" />
                 </IconTile>
-                <h2 className="text-xl/[1.4] font-semibold tracking-[-0.01em]">{platform.name}</h2>
+                <h2 className="text-xl/[1.4] font-semibold tracking-title">{platform.name}</h2>
                 <ForThisComputer platform={platform.id} label={d.forThisComputer} />
               </span>
               <p className="mt-4 text-base/prose text-muted-foreground">{platform.requirement}</p>
@@ -164,7 +164,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
         </div>
 
         <div className="mt-12 max-w-2xl">
-          <h2 className="text-xl/[1.4] font-semibold tracking-[-0.01em]">{d.signInTitle}</h2>
+          <h2 className="text-xl/[1.4] font-semibold tracking-title">{d.signInTitle}</h2>
           <ol className="mt-4 grid list-decimal gap-2 pl-5 text-base/prose text-muted-foreground">
             {d.signInSteps.map((step) => (
               <li key={step}>{step}</li>
@@ -174,7 +174,7 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
 
         {releases && (
           <div className="mt-12">
-            <h2 className="text-xl/[1.4] font-semibold tracking-[-0.01em]" id="previous-versions">
+            <h2 className="text-xl/[1.4] font-semibold tracking-title" id="previous-versions">
               {d.historyTitle}
             </h2>
             <p className="mt-2 max-w-2xl text-base/prose text-muted-foreground">

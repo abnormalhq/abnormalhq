@@ -95,7 +95,7 @@ export function ShopDomainAddresses({
 
   return (
     <div className="mt-5 rounded-md border border-border p-4" aria-labelledby={`${id}-title`} role="group">
-      <h4 className="text-sm/[1.5] font-semibold" id={`${id}-title`}>
+      <h4 className="text-sm/normal font-semibold" id={`${id}-title`}>
         {t.addressesTitle}
       </h4>
       <p className="mt-1.5 text-xs/[1.7] text-muted-foreground">{t.addressesHint}</p>
@@ -309,7 +309,7 @@ function AddressSection({
   return (
     <section className="mt-5 border-t border-border pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h5 className="text-sm/[1.5] font-semibold">{title}</h5>
+        <h5 className="text-sm/normal font-semibold">{title}</h5>
         {count !== undefined && limit !== undefined && (
           <Badge className={shopChipClass}>
             {count} / {limit}
@@ -345,7 +345,7 @@ function AddressRow({
   return (
     <li className="rounded-md border border-border px-3 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <p className="min-w-0 text-sm/[1.5]">
+        <p className="min-w-0 text-sm/normal">
           <span className="font-mono wrap-anywhere">{address}</span>
           {detail && <span className="ml-2 font-mono text-xs/body wrap-anywhere text-muted-foreground">{detail}</span>}
         </p>
@@ -381,7 +381,7 @@ function LocalPartInput({
   disabled: boolean;
 }) {
   return (
-    <InputGroup size="lg" className="max-w-[420px]">
+    <InputGroup size="lg" className="max-w-105">
       <InputGroupInput
         id={id}
         type="text"
@@ -436,7 +436,7 @@ function AliasForm({
       </ShopField>
       <ShopField htmlFor={`${id}-target`} label={t.aliasTarget}>
         <NativeSelect
-          className={cn(shopInputClass, "max-w-[420px] cursor-pointer")}
+          className={cn(shopInputClass, "max-w-105 cursor-pointer")}
           id={`${id}-target`}
           value={chosen}
           onChange={(event) => setTarget(event.currentTarget.value)}
@@ -485,7 +485,7 @@ function MemberPicker({
           const checked = chosen.includes(mailbox);
           return (
             <li key={mailbox}>
-              <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm/[1.5]">
+              <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm/normal">
                 <Checkbox
                   checked={checked}
                   disabled={disabled || (!checked && chosen.length >= max)}
@@ -634,7 +634,7 @@ function GroupForm({
       </ShopField>
       <ShopField htmlFor={`${id}-description`} label={t.groupDescription}>
         <Input
-          className={cn(shopInputClass, "max-w-[420px]")}
+          className={cn(shopInputClass, "max-w-105")}
           id={`${id}-description`}
           type="text"
           maxLength={200}
@@ -679,7 +679,7 @@ function CatchAllForm({
   const [value, setValue] = useState(current ?? "");
   // The current destination stays selectable even when it is not one of the buyer's mailboxes any more.
   const options = current && !mailboxes.includes(current) ? [current, ...mailboxes] : mailboxes;
-  if (!editable) return <p className="mt-3 font-mono text-sm/[1.5] wrap-anywhere">{current ?? t.catchAllOff}</p>;
+  if (!editable) return <p className="mt-3 font-mono text-sm/normal wrap-anywhere">{current ?? t.catchAllOff}</p>;
   return (
     <form
       className="mt-1"
@@ -690,7 +690,7 @@ function CatchAllForm({
     >
       <ShopField htmlFor={`${id}-target`} label={t.catchAllLabel}>
         <NativeSelect
-          className={cn(shopInputClass, "max-w-[420px] cursor-pointer")}
+          className={cn(shopInputClass, "max-w-105 cursor-pointer")}
           id={`${id}-target`}
           value={value}
           onChange={(event) => setValue(event.currentTarget.value)}

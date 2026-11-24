@@ -339,7 +339,7 @@ function MailboxGroup({
       {created && (
         <div className="mt-5 rounded-md border border-border p-4" role="status">
           <p className="text-sm/[1.7]">{t.mailboxCreated(created.email)}</p>
-          <InputGroup size="lg" className="mt-3 max-w-[420px]">
+          <InputGroup size="lg" className="mt-3 max-w-105">
             <InputGroupInput readOnly value={created.password} aria-label={t.mailboxCreatedPassword} />
             <CopyButton
               size="sm"
@@ -427,7 +427,7 @@ function MailboxRow({
     <li className="rounded-md border border-border px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-sm/[1.5] wrap-anywhere">{mailbox.email}</p>
+          <p className="font-mono text-sm/normal wrap-anywhere">{mailbox.email}</p>
           <p className="mt-0.5 text-xs/[1.6] text-muted-foreground">
             {mailbox.status === "active" ? t.mailboxActive : t.mailboxInactive} · {usage(t, mailbox)}
             {leaving && ` · ${t.mailboxLeaving}`}
@@ -470,7 +470,7 @@ function MailboxRow({
           >
             <PasswordInput
               size="lg"
-              className="max-w-[420px]"
+              className="max-w-105"
               toggle="text"
               showLabel={t.mailboxShow}
               hideLabel={t.mailboxHide}
@@ -520,7 +520,7 @@ function MailboxRow({
           <p className="mt-4 text-sm/[1.7] text-destructive">{t.mailboxDeleteWarning(mailbox.email)}</p>
           <ShopField htmlFor={`${id}-confirm`} label={t.mailboxDeleteConfirm(mailbox.email)}>
             <Input
-              className={cn(shopInputClass, "max-w-[420px] font-mono")}
+              className={cn(shopInputClass, "max-w-105 font-mono")}
               id={`${id}-confirm`}
               autoComplete="off"
               autoCapitalize="none"
@@ -601,7 +601,7 @@ function CreateMailboxForm({
       {domains.length > 1 && (
         <ShopField htmlFor="mailbox-create-domain" label={t.mailboxDomain}>
           <NativeSelect
-            className={cn(shopInputClass, "max-w-[420px] cursor-pointer")}
+            className={cn(shopInputClass, "max-w-105 cursor-pointer")}
             id="mailbox-create-domain"
             value={domain}
             onChange={(event) => setDomain(event.currentTarget.value)}
@@ -622,7 +622,7 @@ function CreateMailboxForm({
         hintId="mailbox-create-username-hint"
         invalid={problem?.field === "username"}
       >
-        <InputGroup size="lg" className="max-w-[420px]">
+        <InputGroup size="lg" className="max-w-105">
           <InputGroupInput
             ref={usernameInput}
             id="mailbox-create-username"
@@ -651,7 +651,7 @@ function CreateMailboxForm({
       >
         <PasswordInput
           size="lg"
-          className="max-w-[420px]"
+          className="max-w-105"
           toggle="text"
           showLabel={t.mailboxShow}
           hideLabel={t.mailboxHide}

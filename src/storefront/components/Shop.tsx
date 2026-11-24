@@ -420,8 +420,8 @@ export function Shop({ lang }: { lang: Lang }) {
       </ShopHero>
       {catalog?.trial && (
         // A banner above the plans: the offer on the left, its one action on the right; stacked on a phone.
-        <Card className="mb-12 flex-row flex-wrap items-center justify-between gap-x-8 gap-y-5 p-7 max-narrow:mb-10 max-narrow:px-5 max-narrow:py-[22px]">
-          <div className="max-w-[640px] min-w-0 flex-[1_1_320px]">
+        <Card className="mb-12 flex-row flex-wrap items-center justify-between gap-x-8 gap-y-5 p-7 max-narrow:mb-10 max-narrow:px-5 max-narrow:py-5.5">
+          <div className="max-w-160 min-w-0 flex-[1_1_320px]">
             <h2 className={shopHeadingClass}>{t.trial.title}</h2>
             <p className={shopTextClass}>{t.trial.description(catalog.trial.days, catalog.trial.quotaMb)}</p>
           </div>
@@ -436,7 +436,7 @@ export function Shop({ lang }: { lang: Lang }) {
           <EmptyStateDescription className={shopEmptyTextClass} role="alert">
             {loadError}
           </EmptyStateDescription>
-          <EmptyStateActions className="mt-[18px]">
+          <EmptyStateActions className="mt-4.5">
             <ShopButton
               variant="outline"
               onClick={() => {
@@ -451,19 +451,19 @@ export function Shop({ lang }: { lang: Lang }) {
       ) : !catalog ? (
         // The shape of the plans to come, so the page does not jump when they arrive.
         <div
-          className="mt-[26px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-5"
+          className="mt-6.5 grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-5"
           role="status"
           aria-busy="true"
         >
           <span className="sr-only">{t.loading}</span>
           {[0, 1, 2].map((index) => (
-            <Card className="block p-7 max-narrow:px-5 max-narrow:py-[22px]" key={index}>
-              <Skeleton className="mb-[22px] size-[38px]" />
+            <Card className="block p-7 max-narrow:px-5 max-narrow:py-5.5" key={index}>
+              <Skeleton className="mb-5.5 size-9.5" />
               <Skeleton className="h-6 w-3/5" />
               <Skeleton className="mt-4 h-4 w-full" />
               <Skeleton className="mt-2 h-4 w-4/5" />
-              <Skeleton className="mt-[30px] h-11 w-2/5" />
-              <Skeleton className="mt-[30px] h-4 w-full" />
+              <Skeleton className="mt-7.5 h-11 w-2/5" />
+              <Skeleton className="mt-7.5 h-4 w-full" />
               <Skeleton className="mt-2 h-4 w-2/3" />
               <Skeleton className="mt-8 h-10 w-36" />
             </Card>
@@ -485,7 +485,7 @@ export function Shop({ lang }: { lang: Lang }) {
             <p className={shopTextClass}>{t.pricing}</p>
           </div>
           {carried && (
-            <Alert className="mt-5 max-w-[640px]">
+            <Alert className="mt-5 max-w-160">
               <AlertDescription className="text-foreground">
                 {t.carriedAddress(`${carried.username}@${carried.domain}`)}
               </AlertDescription>
@@ -499,7 +499,7 @@ export function Shop({ lang }: { lang: Lang }) {
           {/* The order's options, side by side above the tablet width: the contact email, then the discount code. */}
           <div className="flex flex-wrap items-start gap-x-12 max-tablet:block">
             {plans.some((product) => product.periodDays) && (
-              <div className="max-w-[420px] min-w-0 flex-[1_1_320px]">
+              <div className="max-w-105 min-w-0 flex-[1_1_320px]">
                 <ShopField
                   htmlFor="shop-contact-email"
                   label={t.emailLabel}
@@ -507,7 +507,7 @@ export function Shop({ lang }: { lang: Lang }) {
                   hintId="shop-contact-email-hint"
                 >
                   <Input
-                    className={cn(shopInputClass, "max-w-[420px]")}
+                    className={cn(shopInputClass, "max-w-105")}
                     id="shop-contact-email"
                     type="email"
                     autoComplete="email"
@@ -520,7 +520,7 @@ export function Shop({ lang }: { lang: Lang }) {
               </div>
             )}
             {couponsOffered && (
-              <Collapsible className="group/coupon mt-5 mb-6 max-w-[520px] max-tablet:mt-0 min-w-0 flex-[1_1_320px]">
+              <Collapsible className="group/coupon mt-5 mb-6 max-w-130 max-tablet:mt-0 min-w-0 flex-[1_1_320px]">
                 <CollapsibleTrigger className="inline-flex min-h-9 cursor-pointer items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current">
                   {t.couponToggle}
                   <span
@@ -547,10 +547,7 @@ export function Shop({ lang }: { lang: Lang }) {
                     >
                       <div className="flex flex-wrap gap-2">
                         <Input
-                          className={cn(
-                            shopInputClass,
-                            "max-w-[260px] min-w-0 flex-1 uppercase placeholder:normal-case",
-                          )}
+                          className={cn(shopInputClass, "max-w-65 min-w-0 flex-1 uppercase placeholder:normal-case")}
                           id="shop-coupon"
                           autoComplete="off"
                           autoCapitalize="characters"
@@ -592,7 +589,7 @@ export function Shop({ lang }: { lang: Lang }) {
           )}
           {/* Each card spans four rows of the shared grid (heading, price, details, actions) through subgrid, so
               prices, detail lists and buttons line up across the cards in a row whatever the description length. */}
-          <div className="mt-[26px] grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-5">
+          <div className="mt-6.5 grid grid-cols-[repeat(auto-fit,minmax(min(100%,290px),1fr))] gap-5">
             {plans.map((product, planIndex) => {
               const stripeCurrency = catalog.payment.stripe?.currency;
               const cardPrice =
@@ -667,7 +664,7 @@ export function Shop({ lang }: { lang: Lang }) {
                   asChild
                   variant={selected ? "featured" : "default"}
                   className={cn(
-                    "row-span-4 grid scroll-mt-24 grid-rows-subgrid gap-y-0 p-7 max-narrow:px-5 max-narrow:py-[22px]",
+                    "row-span-4 grid scroll-mt-24 grid-rows-subgrid gap-y-0 p-7 max-narrow:px-5 max-narrow:py-5.5",
                     shopArriveClass,
                   )}
                   // One after another, so the eye is led across the plans.
@@ -682,7 +679,7 @@ export function Shop({ lang }: { lang: Lang }) {
                         </Badge>
                       )}
                       {/* The a↗ in the plan card's top-left corner echoes the brand mark: highlight yellow square with ink text. */}
-                      <IconTile variant="highlight" className="mb-[22px] size-[38px] text-[22px]" aria-hidden="true">
+                      <IconTile variant="highlight" className="mb-5.5 size-9.5 text-xl" aria-hidden="true">
                         a↗
                       </IconTile>
                       <h3 className="text-xl wrap-anywhere">{product.name}</h3>
@@ -692,7 +689,7 @@ export function Shop({ lang }: { lang: Lang }) {
                         </p>
                       )}
                     </div>
-                    <div className="flex flex-col py-[26px]">
+                    <div className="flex flex-col py-6.5">
                       {catalog.payment.ldc && (
                         <ShopPrice
                           item={product}
@@ -924,10 +921,10 @@ export function Shop({ lang }: { lang: Lang }) {
 
       <section className="mt-12 border-t border-border pt-8">
         <h2 className={shopHeadingClass}>{t.processTitle}</h2>
-        <ol className="mt-6 grid grid-cols-3 gap-7 max-narrow:grid-cols-[1fr] max-narrow:gap-[18px]">
+        <ol className="mt-6 grid grid-cols-3 gap-7 max-narrow:grid-cols-[1fr] max-narrow:gap-4.5">
           {t.steps.map((step, index) => (
-            <li className="text-base/[1.8] max-narrow:flex max-narrow:gap-4" key={step}>
-              <span className="mb-2.5 block text-xs/[1.8] text-muted-foreground max-narrow:mb-0" aria-hidden="true">
+            <li className="text-base/prose max-narrow:flex max-narrow:gap-4" key={step}>
+              <span className="mb-2.5 block text-xs/prose text-muted-foreground max-narrow:mb-0" aria-hidden="true">
                 0{index + 1}
               </span>
               {step}

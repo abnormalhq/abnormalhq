@@ -54,7 +54,7 @@ function ToggleGroupItem({
       className={cn(
         toggleVariants(resolved),
         // The group draws the outline border; the items keep only their pressed surface, squared where they meet.
-        "min-w-0 flex-1 rounded-none first:rounded-l-control last:rounded-r-control focus-visible:z-10 data-[variant=outline]:border-0 data-[variant=outline]:bg-transparent data-[variant=outline]:data-[state=on]:bg-highlight-muted",
+        "min-w-0 flex-1 rounded-none first:rounded-l-control last:rounded-r-control focus-visible:z-raised data-[variant=outline]:border-0 data-[variant=outline]:bg-transparent data-[variant=outline]:data-[state=on]:bg-highlight-muted",
         className,
       )}
       {...props}

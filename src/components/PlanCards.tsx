@@ -54,7 +54,7 @@ export function PlanCards({
           <article>
             <div>
               <IconTile variant={index === 0 ? "highlight" : "default"} aria-hidden="true">
-                <Icon name="mail" className="size-[22px]" />
+                <Icon name="mail" className="size-5.5" />
               </IconTile>
               <Heading className="mt-6 text-xl/[1.4] wrap-anywhere">{plan.name}</Heading>
               {plan.description && (
@@ -147,17 +147,17 @@ export function PlanComparison({
   // Table pins columns on the right only, so this one is pinned here: a background of its own to cover the cells sliding
   // under it, and a hairline on the right to show the edge.
   const labelCell =
-    "sticky left-0 z-1 bg-background shadow-[inset_-1px_0_0_var(--border)] max-sm:w-[8.5rem] max-sm:px-4 md:shadow-none";
+    "sticky left-0 z-1 bg-background shadow-[inset_-1px_0_0_var(--border)] max-sm:w-34 max-sm:px-4 md:shadow-none";
   const rows = planRowsFor(plans);
   return (
     <div className="overflow-hidden rounded-panel border border-border">
-      <Table className="min-w-[34rem] text-sm/body" aria-labelledby={labelledBy}>
+      <Table className="min-w-136 text-sm/body" aria-labelledby={labelledBy}>
         {/* No header tint and no row hover: the comparison is read, not acted on, and the pinned labels keep one background. */}
         <TableHeader className="bg-transparent">
           <TableRow className="hover:bg-transparent">
             <TableHead
               scope="col"
-              className={cn(cell, labelCell, "w-[11rem] text-sm/body font-normal text-muted-foreground")}
+              className={cn(cell, labelCell, "w-44 text-sm/body font-normal text-muted-foreground")}
             >
               {copy.compare.feature}
             </TableHead>

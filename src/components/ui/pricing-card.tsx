@@ -69,7 +69,7 @@ function PricingPrice({
       <p data-slot="pricing-card-price" className="flex flex-wrap items-baseline gap-x-1.5">
         <span
           className={cn(
-            "font-heading leading-none font-semibold tracking-[-0.03em]",
+            "font-heading leading-none font-semibold tracking-display",
             size === "sm" ? "text-xl" : "text-display-sm",
           )}
         >

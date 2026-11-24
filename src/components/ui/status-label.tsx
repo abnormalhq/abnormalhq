@@ -14,7 +14,7 @@ const statusLabelVariants = cva("inline-flex items-center gap-1.5 whitespace-now
       dot: "text-sm text-muted-foreground",
     },
     tone: {
-      /** "To be created" / in progress: amber badge-ink. */
+      /** "To be created" / in progress: amber warning. */
       pending: "",
       /** "Enabled" / connected. */
       success: "",
@@ -24,7 +24,7 @@ const statusLabelVariants = cva("inline-flex items-center gap-1.5 whitespace-now
     },
   },
   compoundVariants: [
-    { variant: "badge", tone: "pending", className: "bg-badge-ink/12 text-badge-ink" },
+    { variant: "badge", tone: "pending", className: "bg-warning/12 text-warning" },
     { variant: "badge", tone: "success", className: "bg-success/12 text-success" },
     { variant: "badge", tone: "muted", className: "bg-muted text-muted-foreground" },
     { variant: "badge", tone: "destructive", className: "bg-destructive/12 text-destructive" },
@@ -38,7 +38,7 @@ const statusLabelVariants = cva("inline-flex items-center gap-1.5 whitespace-now
 const statusDotVariants = cva("size-[6px] shrink-0 rounded-full", {
   variants: {
     tone: {
-      pending: "bg-badge-ink",
+      pending: "bg-warning",
       success: "bg-success",
       muted: "bg-muted-foreground",
       destructive: "bg-destructive",

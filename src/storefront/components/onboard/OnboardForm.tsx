@@ -51,9 +51,9 @@ import {
 
 /** One step of the form: a numbered square on the left; the step being filled in is "current" and its number turns ink-on-highlight-yellow. */
 const stepClass =
-  "relative grid grid-cols-[28px_minmax(0,1fr)] items-start gap-x-3.5 gap-y-4 border-b border-border py-[25px] [counter-increment:step] before:grid before:size-7 before:place-items-center before:rounded-chip before:border before:border-border before:bg-background before:text-xs/body before:text-muted-foreground before:transition-colors before:duration-150 before:content-[counter(step,decimal-leading-zero)] focus-within:before:border-highlight-foreground focus-within:before:bg-highlight focus-within:before:font-semibold focus-within:before:text-highlight-foreground max-narrow:grid-cols-[24px_minmax(0,1fr)] max-narrow:gap-x-2.5 max-narrow:gap-y-3.5 max-narrow:py-[22px] max-narrow:before:size-6 max-narrow:before:rounded-[7px]";
+  "relative grid grid-cols-[28px_minmax(0,1fr)] items-start gap-x-3.5 gap-y-4 border-b border-border py-6.25 [counter-increment:step] before:grid before:size-7 before:place-items-center before:rounded-chip before:border before:border-border before:bg-background before:text-xs/body before:text-muted-foreground before:transition-colors before:duration-150 before:content-[counter(step,decimal-leading-zero)] focus-within:before:border-highlight-foreground focus-within:before:bg-highlight focus-within:before:font-semibold focus-within:before:text-highlight-foreground max-narrow:grid-cols-[24px_minmax(0,1fr)] max-narrow:gap-x-2.5 max-narrow:gap-y-3.5 max-narrow:py-5.5 max-narrow:before:size-6 max-narrow:before:rounded-[7px]";
 const stepLabelClass =
-  "flex min-h-7 flex-wrap items-center gap-2 text-md/[1.4] font-semibold tracking-[-0.01em] max-narrow:min-h-6";
+  "flex min-h-7 flex-wrap items-center gap-2 text-md/[1.4] font-semibold tracking-title max-narrow:min-h-6";
 const stepHintClass = "mt-1 text-sm/[1.6] text-pretty text-muted-foreground";
 const stepControlClass = "col-start-2 min-w-0 max-narrow:col-span-full max-narrow:col-start-1";
 const inputClass =
@@ -368,13 +368,13 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
       <div hidden={state.formHidden}>
         <Card asChild className={panelClass}>
           <form noValidate aria-busy={state.busy || undefined} onSubmit={onSubmit}>
-            <div className="flex items-start justify-between gap-[18px] border-b border-border pb-[26px] max-desk:flex-wrap max-desk:gap-2.5 max-narrow:pb-5">
+            <div className="flex items-start justify-between gap-4.5 border-b border-border pb-6.5 max-desk:flex-wrap max-desk:gap-2.5 max-narrow:pb-5">
               <div>
-                <h2 className="text-xl max-narrow:text-[18px] max-narrow:leading-[1.4]">{t.ui.formTitle}</h2>
-                <p className="mt-[7px] text-sm/body text-muted-foreground">{t.ui.formDescription}</p>
+                <h2 className="text-xl max-narrow:text-lg max-narrow:leading-[1.4]">{t.ui.formTitle}</h2>
+                <p className="mt-1.75 text-sm/body text-muted-foreground">{t.ui.formDescription}</p>
               </div>
               <Badge className="gap-1.5 border-0 bg-highlight-muted text-xs/body text-foreground">
-                <span className="size-[5px] rounded-full bg-success" aria-hidden="true" />
+                <span className="size-1.25 rounded-full bg-success" aria-hidden="true" />
                 {t.ui.formBadge}
               </Badge>
             </div>
@@ -540,7 +540,7 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
                 </li>
               </ol>
             </fieldset>
-            <div className="mt-[26px] flex flex-col items-stretch gap-3 pl-[42px] max-narrow:mt-[22px] max-narrow:pl-0">
+            <div className="mt-6.5 flex flex-col items-stretch gap-3 pl-10.5 max-narrow:mt-5.5 max-narrow:pl-0">
               {check.widget}
               <Button
                 ref={submitButton}
@@ -561,7 +561,7 @@ export function OnboardForm({ lang, apiBase, defaultDomain, supportEmail, homePa
               <p className="text-center text-xs/[1.7] text-muted-foreground">{t.submitNote}</p>
             </div>
             <Msg
-              className="not-empty:mt-[18px] not-empty:rounded-control not-empty:bg-destructive/8 not-empty:px-3 not-empty:py-2.5"
+              className="not-empty:mt-4.5 not-empty:rounded-control not-empty:bg-destructive/8 not-empty:px-3 not-empty:py-2.5"
               live="assertive"
               note={state.formNote}
             />

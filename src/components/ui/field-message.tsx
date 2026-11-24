@@ -12,7 +12,7 @@ const fieldMessageVariants = cva(
     variants: {
       tone: {
         default: "",
-        busy: "before:bg-badge-ink",
+        busy: "before:bg-warning",
         ok: "text-success before:bg-success",
         error: "text-destructive before:bg-destructive",
       },

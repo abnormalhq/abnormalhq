@@ -22,7 +22,7 @@ function InputGroup({
       data-slot="input-group"
       data-size={size}
       className={cn(
-        "flex items-center rounded-control border border-input bg-control transition-[border-color] duration-150 hover:border-[color-mix(in_oklab,var(--input),var(--text)_15%)] focus-within:border-[color-mix(in_oklab,var(--input),var(--text)_30%)] has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:-outline-offset-1 has-[[data-slot=input]:focus-visible]:outline-ring has-[[data-slot=input]:focus-visible]:outline-solid has-aria-invalid:border-destructive",
+        "flex items-center rounded-control border border-input bg-control transition-[border-color] duration-150 hover:border-input-hover focus-within:border-input-hover has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:-outline-offset-1 has-[[data-slot=input]:focus-visible]:outline-ring has-[[data-slot=input]:focus-visible]:outline-solid has-aria-invalid:border-destructive",
         "[&>[data-slot=input-group-button]+[data-slot=input-group-button]]:relative [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:absolute [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:inset-y-2 [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:-left-px [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:w-px [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:bg-border",
         INPUT_GROUP_SIZES[size],
         className,

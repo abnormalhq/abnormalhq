@@ -43,7 +43,7 @@ export function PageHeader({
             aside && "flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between lg:gap-14",
           )}
         >
-          <div className="max-w-[48rem] min-w-0">
+          <div className="max-w-192 min-w-0">
             <Eyebrow lang="en">{eyebrow}</Eyebrow>
             <PageTitle id={id}>
               {title}

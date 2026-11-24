@@ -31,7 +31,7 @@ function DropdownMenuContent({
         sideOffset={sideOffset}
         align={align}
         className={cn(
-          "z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-40 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-mark border border-border bg-popover p-1.5 text-popover-foreground shadow-popover data-open:animate-arrive data-closed:animate-leave data-[state=closed]:overflow-hidden",
+          "z-overlay max-h-(--radix-dropdown-menu-content-available-height) min-w-40 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-mark border border-border bg-popover p-1.5 text-popover-foreground shadow-popover data-open:animate-arrive data-closed:animate-leave data-[state=closed]:overflow-hidden",
           className,
         )}
         {...props}
@@ -209,7 +209,7 @@ function DropdownMenuSubContent({
       <DropdownMenuPrimitive.SubContent
         data-slot="dropdown-menu-sub-content"
         className={cn(
-          "z-50 min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-mark border border-border bg-popover p-1.5 text-popover-foreground shadow-popover data-open:animate-arrive data-closed:animate-leave",
+          "z-overlay min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-mark border border-border bg-popover p-1.5 text-popover-foreground shadow-popover data-open:animate-arrive data-closed:animate-leave",
           className,
         )}
         {...props}

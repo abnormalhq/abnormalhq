@@ -22,7 +22,7 @@ export function HelpLinks({
 }) {
   return (
     <nav className={className} aria-labelledby={id}>
-      <h2 className="text-lg/[1.5] font-semibold" id={id}>
+      <h2 className="text-lg/normal font-semibold" id={id}>
         {title}
       </h2>
       <ul className="mt-3 border-t border-border">
@@ -30,7 +30,7 @@ export function HelpLinks({
           <li className="border-b border-border" key={entry.href}>
             <Link className="group/entry flex items-start gap-4 py-4" href={entry.href}>
               <span className="min-w-0 flex-1">
-                <span className="block text-base/[1.5] font-medium underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-150 group-hover/entry:decoration-current">
+                <span className="block text-base/normal font-medium underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-150 group-hover/entry:decoration-current">
                   {entry.title}
                 </span>
                 <span className="mt-1 block text-sm/[1.6] text-muted-foreground">{entry.summary}</span>

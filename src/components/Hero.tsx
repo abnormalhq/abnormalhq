@@ -11,11 +11,11 @@ import { ProductTabs } from "./ProductTabs";
 const titleClassName =
   "mx-auto mt-8 max-w-[15em] animate-rise font-heading text-[clamp(2.5rem,6.2vw,5.25rem)] leading-[1.06] font-semibold tracking-[-0.035em] [animation-delay:70ms] max-phone:text-[2.25rem]";
 const descriptionClassName =
-  "mx-auto mt-6 max-w-[36rem] animate-rise text-md/prose text-muted-foreground [animation-delay:140ms] md:text-lg/prose";
+  "mx-auto mt-6 max-w-144 animate-rise text-md/prose text-muted-foreground [animation-delay:140ms] md:text-lg/prose";
 const actionsClassName = "mt-8 flex animate-rise flex-wrap justify-center gap-3 [animation-delay:210ms]";
 /** The stage: the product sits on a faintly lifted panel, wide as the page, under the headline. */
 const stageClassName =
-  "mx-auto mt-14 max-w-[70rem] animate-rise rounded-[1.1rem] border border-border bg-control p-1.5 [animation-delay:280ms] md:mt-16 md:p-2";
+  "mx-auto mt-14 max-w-280 animate-rise rounded-[1.1rem] border border-border bg-control p-1.5 [animation-delay:280ms] md:mt-16 md:p-2";
 
 /**
  * The stage at the top of the home page: a tab per product, each with its own headline, sentence, actions and a stage

@@ -47,7 +47,7 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
         <PageHeader id="pricing-title" eyebrow={p.eyebrow} title={p.title} dot={t.dot} lead={p.pageIntro}>
           {catalog?.available && catalog.addressCheck && (
             <AddressCheck
-              className="mt-8 max-w-[30rem]"
+              className="mt-8 max-w-120"
               lang={lang}
               copy={p.check}
               shop={links.shop}
@@ -78,14 +78,14 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
               </PlanNotice>
             ) : (
               <>
-                <h2 className="text-2xl/[1.3] font-semibold tracking-[-0.02em]" id="pricing-calculator-title">
+                <h2 className="text-2xl/[1.3] font-semibold tracking-heading" id="pricing-calculator-title">
                   {p.calculator.title}
                   <HeadingMark>{t.dot}</HeadingMark>
                 </h2>
                 <p className="mt-2 mb-6 text-base/prose text-muted-foreground">{p.calculator.intro}</p>
                 <PriceCalculator catalog={catalog} lang={lang} copy={p} shop={links.shop} />
                 <h2
-                  className="mt-16 text-2xl/[1.3] font-semibold tracking-[-0.02em] max-md:mt-12"
+                  className="mt-16 text-2xl/[1.3] font-semibold tracking-heading max-md:mt-12"
                   id="pricing-plans-title"
                 >
                   {p.plansTitle}
@@ -101,7 +101,7 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
 
           {plans.length > 1 && (
             <div className="mt-16 max-md:mt-12">
-              <h2 className="text-2xl/[1.3] font-semibold tracking-[-0.02em]" id="pricing-compare-title">
+              <h2 className="text-2xl/[1.3] font-semibold tracking-heading" id="pricing-compare-title">
                 {p.compare.title}
                 <HeadingMark>{t.dot}</HeadingMark>
               </h2>

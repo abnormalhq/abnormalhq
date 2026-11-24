@@ -188,7 +188,7 @@ export function ShopDomains({
             <div className="flex flex-wrap gap-2">
               <Input
                 ref={input}
-                className={cn(shopInputClass, "max-w-[320px] min-w-0 flex-1")}
+                className={cn(shopInputClass, "max-w-80 min-w-0 flex-1")}
                 id="shop-domain-add"
                 type="text"
                 inputMode="url"
@@ -427,7 +427,7 @@ function DomainCard({
 
       {ownership && (
         <div className="mt-5 rounded-md border border-border p-4">
-          <h4 className="text-sm/[1.5] font-semibold">{t.domainOwnershipTitle}</h4>
+          <h4 className="text-sm/normal font-semibold">{t.domainOwnershipTitle}</h4>
           <div className="mt-3 grid gap-4">
             <p className="text-sm/body">
               <span className="text-xs/body text-muted-foreground">{t.domainRecordType}</span>
@@ -494,7 +494,7 @@ function DomainCard({
 
       {domain.status !== "pending" && (
         <div className="mt-5">
-          <h4 className="text-sm/[1.5] font-semibold">{t.domainRecordsTitle}</h4>
+          <h4 className="text-sm/normal font-semibold">{t.domainRecordsTitle}</h4>
           <p className="mt-1.5 text-xs/[1.7] text-muted-foreground">{t.domainRecordsHint}</p>
           {!check || check.records.length === 0 ? (
             <p className={shopTextClass} role="status">
@@ -555,7 +555,7 @@ function RecordRow({ id, record, domain }: { id: string; record: DomainRecord; d
   return (
     <li className="rounded-md border border-border p-4">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <p className="text-sm/[1.5] font-semibold">
+        <p className="text-sm/normal font-semibold">
           {purpose}
           <span className="ml-2 text-xs/body font-normal text-muted-foreground">
             {record.type} · {record.required ? t.domainRecordRequired : t.domainRecordOptional}

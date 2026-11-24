@@ -30,7 +30,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
               <HeadingMark>{t.dot}</HeadingMark>
             </SectionTitle>
           </div>
-          <div className="pb-[0.2rem] md:text-right">
+          <div className="pb-0.75 md:text-right">
             <p className="text-md/prose text-muted-foreground">
               {p.intro[0]}
               {t.space}

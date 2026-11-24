@@ -240,7 +240,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                     >
                       <NativeSelect
                         id="shop-upgrade-plan"
-                        className={cn(shopInputClass, "max-w-[640px]")}
+                        className={cn(shopInputClass, "max-w-160")}
                         value={productId}
                         disabled={creating}
                         onChange={(event) => {
@@ -286,7 +286,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                   <NativeSelect
                     className={cn(
                       shopInputClass,
-                      "max-w-[420px] text-base/[normal] hover:border-input disabled:opacity-70 [&_option]:bg-transparent",
+                      "max-w-105 text-base/[normal] hover:border-input disabled:opacity-70 [&_option]:bg-transparent",
                     )}
                     id="shop-renew-periods"
                     value={periods}
@@ -307,7 +307,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                   hintId="shop-renew-email-hint"
                 >
                   <Input
-                    className={cn(shopInputClass, "max-w-[420px]")}
+                    className={cn(shopInputClass, "max-w-105")}
                     id="shop-renew-email"
                     type="email"
                     autoComplete="email"
@@ -327,7 +327,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
                   >
                     <Input
                       id="shop-upgrade-coupon"
-                      className={cn(shopInputClass, "max-w-[420px]")}
+                      className={cn(shopInputClass, "max-w-105")}
                       value={coupon}
                       onChange={(event) => setCoupon(event.target.value)}
                       maxLength={COUPON_MAX_LENGTH}

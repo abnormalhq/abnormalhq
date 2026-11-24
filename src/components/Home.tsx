@@ -42,7 +42,7 @@ export function Home({ lang }: { lang: Lang }) {
           <div className="flex flex-col items-center" {...reveal()}>
             <Eyebrow lang="en">{t.closing.eyebrow}</Eyebrow>
             <h2
-              className="mx-auto mt-6 max-w-[14em] font-heading text-[clamp(2.25rem,5vw,4rem)] leading-[1.1] font-semibold tracking-[-0.03em]"
+              className="mx-auto mt-6 max-w-[14em] font-heading text-[clamp(2.25rem,5vw,4rem)] leading-[1.1] font-semibold tracking-display"
               id="closing-title"
             >
               {t.closing.titleLines[0]}
@@ -54,7 +54,7 @@ export function Home({ lang }: { lang: Lang }) {
                 {t.dot}
               </span>
             </h2>
-            <p className="mx-auto mt-5 max-w-[40rem] text-md/prose text-muted-foreground">{t.closing.body}</p>
+            <p className="mx-auto mt-5 max-w-160 text-md/prose text-muted-foreground">{t.closing.body}</p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button asChild size="lg" variant="highlight">
                 <a href={links.shop}>
