@@ -42,7 +42,7 @@ afterEach(() => {
 const sample = {
   domain: { id: "domainabcdefghi", name: "example.org" },
   editable: true,
-  mailboxes: ["alice@example.org", "bob@example.org"],
+  mailboxes: ["alice@example.org", "bob@example.org", "carol@example.org"],
   members: ["alice@example.org", "bob@example.org", "carol@example.org"],
   aliases: [{ id: "alias1", address: "sales@example.org", target: "alice@example.org", enabled: true }],
   groups: [
@@ -215,7 +215,12 @@ async function liveDomain(name = "example.org") {
 }
 
 test("dev shop: aliases, groups and the catch-all on a live domain follow mail's rules", async () => {
-  const { client, domain } = await liveDomain();
+  const { client, domain, orderId } = await liveDomain();
+  // A mailbox of the buyer on the shop's shared domain: never a member, an alias target or the catch-all here.
+  const shared = await client.send("account/mailboxes/create", {
+    body: { orderId, domain: "abnormalhq.com", username: "carol-owner", password: "Correct-horse-9" },
+  });
+  expect(shared.status).toBe(201);
   const empty = (await getDomainAddresses(domain.id, undefined, "en"))!;
   expect(empty).toMatchObject({
     editable: true,
@@ -239,11 +244,13 @@ test("dev shop: aliases, groups and the catch-all on a live domain follow mail's
     message: "Mail can only go to one of your mailboxes on this domain.",
   });
 
-  // A group's members are the buyer's own mailboxes only.
-  await expect(addDomainGroup(domain.id, "team", ["outsider@elsewhere.example"], "", "en")).rejects.toMatchObject({
-    status: 409,
-    message: "Group members can only be mailboxes of your account.",
-  });
+  // A group's members are the buyer's own mailboxes on this domain only.
+  for (const outside of ["outsider@elsewhere.example", "carol-owner@abnormalhq.com"])
+    await expect(addDomainGroup(domain.id, "team", [outside], "", "en")).rejects.toMatchObject({
+      status: 409,
+      message: "Group members can only be your mailboxes on this domain.",
+    });
+  await expect(setDomainCatchAll(domain.id, "carol-owner@abnormalhq.com", "en")).rejects.toMatchObject({ status: 409 });
   await expect(addDomainGroup(domain.id, "team", [], "", "en")).rejects.toMatchObject({ status: 400 });
   const group = await addDomainGroup(domain.id, "team", ["alice@example.org"], "Everyone", "en");
   expect(group).toMatchObject({ address: "team@example.org", description: "Everyone", members: ["alice@example.org"] });

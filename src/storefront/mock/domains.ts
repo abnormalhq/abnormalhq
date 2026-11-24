@@ -432,7 +432,10 @@ export class MockDomains {
       return address;
     };
     const notOwnedMember = () =>
-      error(409, say("群组成员只能是你账户下的邮箱。", "Group members can only be mailboxes of your account."));
+      error(
+        409,
+        say("群组成员只能是你账户下、这个域名里的邮箱。", "Group members can only be your mailboxes on this domain."),
+      );
     const members = (value: unknown): string[] | DomainAnswer => {
       if (value === undefined) return [];
       if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) return notOwnedMember();
