@@ -7,13 +7,14 @@
  *   import abnormal from "./eslint/eslint-plugin-abnormal.mjs";
  *
  *   { files: ["**\/*.{ts,tsx}"], plugins: { abnormal }, rules: { "abnormal/no-hardcoded-classes": "error" } },
- *   { files: ["**\/*.css"], language: "css/css", languageOptions: { customSyntax: tailwind4, tolerant: true },
+ *   { files: ["**\/*.css"], language: "css/css", languageOptions: { customSyntax: tailwind4 },
  *     plugins: { css, abnormal }, rules: { "abnormal/no-hardcoded-css": "error" } },
  *
  * and leave out the theme (abnormal.css), where the literal values live. The Tailwind syntax lets the CSS parser read
  * @theme, @utility, @apply with variants and nested rules, so every declaration in them is checked. A @keyframes inside
- * @theme and an @apply of an arbitrary variant (data-[state=open]:underline) are beyond that syntax for now; `tolerant`
- * skips just that piece, where a strict parse would stop at it and check nothing else in the file. Blocks of your config
+ * @theme and an @apply of an arbitrary variant (data-[state=open]:underline) are beyond that syntax for now and fail as
+ * a parse error, so nothing passes unchecked; add `tolerant: true` only if your CSS holds one, knowing it also lets
+ * other syntax errors (a missing brace) through. Blocks of your config
  * that set rules without `files` (eslint-config-next's, for one) also run on CSS, whose syntax their rules cannot read:
  * give them `files: ["**\/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"]`.
  *
@@ -72,6 +73,54 @@ const zNumber = /^z-(?:(\d+)|\[(\d+)\])$/;
 const tracking = /^tracking-\[(-0\.01em|-0\.02em|-0\.03em|0\.06em)\]$/;
 const trackingName = { "-0.01em": "title", "-0.02em": "heading", "-0.03em": "display", "0.06em": "caps" };
 const literalColor = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch)\(\s*\d/;
+
+/**
+ * A CSS value with its strings emptied and its url() references dropped: neither holds a color or a size, whatever its
+ * text looks like ("#1", a family named "Mono 12px", url(#mask)). Strings go first, escaped quotes included, so a ) inside
+ * a quoted url("a).png") cannot end the url early.
+ */
+function bareValue(value) {
+  return value.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '""').replace(/url\([^)]*\)/gi, "");
+}
+
+/** The value without each call of the named functions (var|clamp), however deeply their arguments nest. */
+function withoutCalls(value, names) {
+  const start = new RegExp(`\\b(?:${names})\\(`, "gi");
+  let rest = "";
+  let index = 0;
+  for (let match = start.exec(value); match; match = start.exec(value)) {
+    rest += value.slice(index, match.index);
+    let end = match.index + match[0].length;
+    for (let depth = 1; end < value.length && depth > 0; end++) {
+      if (value[end] === "(") depth++;
+      else if (value[end] === ")") depth--;
+    }
+    index = end;
+    start.lastIndex = end;
+  }
+  return rest + value.slice(index);
+}
+
+/** The font shorthand without its line height: the term after the top-level slash, a calc() in it whole. */
+function withoutLineHeight(value) {
+  let depth = 0;
+  for (let index = 0; index < value.length; index++) {
+    const char = value[index];
+    if (char === "(") depth++;
+    else if (char === ")") depth--;
+    else if (char === "/" && depth === 0) {
+      let end = index + 1;
+      while (/\s/.test(value[end] ?? "")) end++;
+      for (let inner = 0; end < value.length; end++) {
+        if (value[end] === "(") inner++;
+        else if (value[end] === ")") inner--;
+        else if (inner === 0 && /[\s,]/.test(value[end])) break;
+      }
+      return `${value.slice(0, index)} ${value.slice(end)}`;
+    }
+  }
+  return value;
+}
 
 /** The utility a class names, without its variants (hover:, md:, dark:, group-data-[x]/name:) or the ! marker. */
 function split(token) {
@@ -160,7 +209,7 @@ const noHardcodedClasses = {
       Literal(node) {
         if (typeof node.value !== "string") return;
         if (node.parent?.type === "Property" && node.parent.value === node && inStyleAttribute(node)) {
-          if (literalColor.test(node.value) && !allowed.has(node.loc.start.line))
+          if (literalColor.test(bareValue(node.value)) && !allowed.has(node.loc.start.line))
             context.report({ node, message: `"${node.value}": use var(--token) for a color in a style object.` });
           return;
         }
@@ -178,7 +227,7 @@ const noHardcodedClasses = {
           literal.parent.value === literal &&
           inStyleAttribute(literal)
         ) {
-          if (literalColor.test(text) && !allowed.has(node.loc.start.line))
+          if (literalColor.test(bareValue(text)) && !allowed.has(node.loc.start.line))
             context.report({ node, message: `"${text}": use var(--token) for a color in a style object.` });
           return;
         }
@@ -206,17 +255,14 @@ const noHardcodedCss = {
         if (property.startsWith("--") || allowed.has(node.loc.start.line)) return;
         const value = context.sourceCode.getText(node.value);
         const report = (message) => context.report({ node, message: `${property}: ${value.trim()}: ${message}` });
-        // A string ("#1", a font family named "Mono 12px") or a url() reference (url(#mask)) holds no color or size,
-        // whatever its text looks like. Strings go first, so a ) inside a quoted url("a).png") cannot end the url early.
-        const bare = value.replace(/"[^"]*"|'[^']*'/g, '""').replace(/url\([^)]*\)/gi, "");
+        const bare = bareValue(value);
         if (literalColor.test(bare)) return report("use var(--token) instead of a literal color.");
         const length = /(?:^|[\s(,+*/-])\+?\d*\.?\d+(?:px|rem)\b/i;
         const fixedSize =
           property === "font-size"
             ? length.test(bare) && !/var\(|clamp\(/i.test(bare)
             : // In the shorthand the size may come from var() or clamp(); the line height after the slash is not a size.
-              property === "font" &&
-              length.test(bare.replace(/(?:var|clamp)\((?:[^()]|\([^()]*\))*\)/gi, "").replace(/\/\s*[^\s,]+/, " "));
+              property === "font" && length.test(withoutCalls(withoutLineHeight(bare), "var|clamp"));
         if (fixedSize) return report("use var(--text-*) from the type scale.");
         if (SPACING_CSS.test(property)) {
           const large = [...bare.matchAll(/(?<![\w.-])-?(\d*\.?\d+)px\b/gi)].some(([, n]) => Number(n) >= 3);
