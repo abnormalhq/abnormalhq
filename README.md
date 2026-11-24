@@ -441,7 +441,7 @@ The following are business conventions rather than system behavior, and should b
 
 ## Deployment
 
-The site is deployed through OpenNext as a Cloudflare Worker (`wrangler.jsonc`, Worker name `abnormalhq`, entry `worker.ts`, which wraps the generated `.open-next/worker.js`). All pages are prerendered, with the prerendered output in read-only static assets (`open-next.config.ts`), so no R2 or queue is needed; static files such as fonts are served directly by the static asset service. Production releases come from GitHub Actions, as in mail: every push to `main` runs CI (`.github/workflows/ci.yml`: the checks, the OpenNext build and a `wrangler deploy --dry-run`), and once CI passes `.github/workflows/deploy.yml` builds the same commit again and runs `pnpm cf:deploy` (deploys, then submits every page to IndexNow; see "Entry points for agents". A refused submission is reported in the log and never fails the deploy). If any step fails nothing is deployed and the last successful version stays live. Only `main`'s latest commit deploys, one deployment at a time, so re-running an older commit's CI cannot roll the site back. CI itself has no Cloudflare credentials. As in mail, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
+The site is deployed through OpenNext as a Cloudflare Worker (`wrangler.jsonc`, Worker name `abnormalhq`, entry `worker.ts`, which wraps the generated `.open-next/worker.js`). All pages are prerendered, with the prerendered output in read-only static assets (`open-next.config.ts`), so no R2 or queue is needed; static files such as fonts are served directly by the static asset service. Production releases come from GitHub Actions, as in mail: every push to `main` runs CI (`.github/workflows/ci.yml`: the checks, the OpenNext build and a `wrangler deploy --dry-run`), and once CI passes `.github/workflows/deploy.yml` builds `main`'s latest commit again and runs `pnpm cf:deploy` (deploys, then submits every page to IndexNow; see "Entry points for agents". A refused submission is reported in the log and never fails the deploy). If any step fails nothing is deployed and the last successful version stays live. Only `main`'s latest commit deploys, one deployment at a time, so re-running an older commit's CI cannot roll the site back. CI itself has no Cloudflare credentials. As in mail, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
 
 A manual run (**Actions → Deploy → Run workflow** on `main`) redeploys `main`'s latest commit once CI has passed for it. To stop deployments for a while, disable the workflow under **Actions → Deploy → ⋯ → Disable workflow**.
 
@@ -457,7 +457,7 @@ Until the cutover the Worker was deployed by Cloudflare Workers Builds. Do these
 2. Disconnect the repository under **Settings → Builds** of the `abnormalhq` Worker (keep the Worker, its domains and its settings), then merge the workflow to `main`: the merge's CI starts the first deployment.
 3. Check the run (or start one by hand on `main`), `https://abnormalhq.com` and a storefront page.
 
-To go back, disable the workflow and connect Workers Builds again with the settings below.
+To go back, disable the workflow, let a run already in progress finish, and connect Workers Builds again with the settings below.
 
 ### Workers Builds settings (the way back)
 
