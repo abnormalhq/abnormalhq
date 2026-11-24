@@ -302,7 +302,7 @@ const noHardcodedCss = {
         }
         if (
           property.endsWith("radius") &&
-          [...bare.matchAll(/(?<![\w.-])(\d*\.?\d+)px\b/gi)].some(([, n]) => Number(n) > 2 && Number(n) < 999)
+          [...bare.matchAll(/(?<![\w.-])-?(\d*\.?\d+)px\b/gi)].some(([, n]) => Number(n) > 2 && Number(n) < 999)
         )
           return report("use var(--radius-chip), var(--radius-control), var(--radius-mark) or var(--radius-panel).");
         if (property === "z-index" && /^\s*\d+\s*$/.test(bare) && Number(bare) >= 10)
