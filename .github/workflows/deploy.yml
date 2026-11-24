@@ -33,9 +33,9 @@ env:
   CLOUDFLARE_ACCOUNT_ID: 91f8270e2c2a8a362bd73c50b1ba66e2
 
 jobs:
-  # Picks main's latest commit and checks that CI passed for its push to main. Only a push's CI counts: it is the run that compares
-  # the commit with the one before it. When it has not passed yet, the run ends without deploying: that commit's CI starts this
-  # workflow again when it passes.
+  # Picks main's latest commit and checks that CI passed for its push to main. Only a push's CI counts: its storefront contract check
+  # compares the commit with the one before it, which CI started by hand cannot. When it has not passed yet, the run
+  # ends without deploying: that commit's CI starts this workflow again when it passes.
   resolve:
     # The same conditions as the concurrency group above.
     if: >-
