@@ -83,6 +83,13 @@ function bareValue(value) {
   let bare = "";
   for (let index = 0; index < value.length; index++) {
     const char = value[index];
+    // A comment reads as a space: it holds no value, and an apostrophe in it must not open a string.
+    if (value.startsWith("/*", index)) {
+      const close = value.indexOf("*/", index + 2);
+      index = close === -1 ? value.length : close + 1;
+      bare += " ";
+      continue;
+    }
     const url = /^url\(/i.test(value.slice(index, index + 4)) && !/[\w-]/.test(value[index - 1] ?? "");
     if (char !== '"' && char !== "'" && !url) {
       bare += char;
