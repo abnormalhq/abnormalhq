@@ -2,10 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
 import { TextLink } from "@/components/ui/text-link";
 import { ThemeScript } from "@/components/ui/theme-script";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import {
+  NotFound,
+  NotFoundActions,
+  NotFoundAside,
+  NotFoundCode,
+  NotFoundDescription,
+  NotFoundTitle,
+} from "@/components/ui/not-found";
+import { HeadingMark } from "@/components/ui/section-heading";
 import "@/styles/global.css";
 
 export const metadata: Metadata = {
@@ -29,49 +36,49 @@ export default function GlobalNotFound() {
         <ThemeScript defaultTheme="dark" />
       </head>
       <body>
-        <Container asChild className={sectionSpaceClassName}>
-          <main>
-            <Eyebrow lang="en">404 / Page not found</Eyebrow>
-            <SectionTitle asChild>
-              <h1>
-                This page doesn&apos;t exist<HeadingMark>.</HeadingMark>
-              </h1>
-            </SectionTitle>
-            <p lang="zh-CN" className="mt-3 text-muted-foreground">
-              这个页面不存在。
+        <NotFound className="min-h-svh">
+          <NotFoundCode lang="en">404 · Page not found</NotFoundCode>
+          <NotFoundTitle>
+            This page doesn&apos;t exist<HeadingMark>.</HeadingMark>
+          </NotFoundTitle>
+          <NotFoundDescription>The link may be old, or the address mistyped.</NotFoundDescription>
+          <NotFoundActions>
+            <Button asChild size="lg">
+              <Link href="/">
+                Back to home <Icon name="arrow" className="size-4" />
+              </Link>
+            </Button>
+          </NotFoundActions>
+          <NotFoundAside lang="zh-CN">
+            <p className="font-medium text-foreground">这个页面不存在。</p>
+            <p className="mt-1">链接可能已经过期，或者地址输错了。</p>
+            <p className="mt-3">
+              <TextLink asChild>
+                <Link href="/zh/" hrefLang="zh-CN">
+                  返回首页 <Icon name="arrow" className="size-3.5" />
+                </Link>
+              </TextLink>
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link href="/">
-                  Back to home <Icon name="arrow" className="size-4" />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/zh/" hrefLang="zh-CN" lang="zh-CN">
-                  返回首页 <Icon name="arrow" className="size-4" />
-                </Link>
-              </Button>
-            </div>
-            {/* A mistyped or outdated link often meant a help article or the plans: offer both, in both languages. */}
-            <nav className="mt-10 border-t border-border pt-6 text-sm/body" aria-label="Popular pages · 常用页面">
-              <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2 sm:max-w-md">
-                {notFoundLinks.map(({ href, label, lang }) => (
-                  <li key={href}>
-                    <TextLink asChild>
-                      <Link
-                        href={href}
-                        lang={lang === "zh" ? "zh-CN" : undefined}
-                        hrefLang={lang === "zh" ? "zh-CN" : undefined}
-                      >
-                        {label} <Icon name="arrow" className="size-3.5" />
-                      </Link>
-                    </TextLink>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </main>
-        </Container>
+          </NotFoundAside>
+          {/* A mistyped or outdated link often meant a help article or the plans: offer both, in both languages. */}
+          <nav className="mt-6 text-sm/body" aria-label="Popular pages · 常用页面">
+            <ul className="grid gap-x-8 gap-y-3 sm:max-w-md sm:grid-cols-2">
+              {notFoundLinks.map(({ href, label, lang }) => (
+                <li key={href}>
+                  <TextLink asChild>
+                    <Link
+                      href={href}
+                      lang={lang === "zh" ? "zh-CN" : undefined}
+                      hrefLang={lang === "zh" ? "zh-CN" : undefined}
+                    >
+                      {label} <Icon name="arrow" className="size-3.5" />
+                    </Link>
+                  </TextLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </NotFound>
       </body>
     </html>
   );
