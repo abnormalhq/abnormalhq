@@ -331,9 +331,15 @@ test("dev shop: replacing a whole roster of long addresses fits in one request",
   expect(size).toBeGreaterThan(16384);
   expect(size).toBeLessThanOrEqual(40960);
   expect((await client.send("account/domains/groups/update", { body: full })).status).toBe(404);
-  // Anything past the cap is refused for its size.
-  const over = await client.send("account/domains/groups/update", {
-    body: { ...full, description: "x".repeat(10000) },
-  });
+  // Padded to exactly 40 KiB the request is still read; one byte more is refused for its size.
+  const padded = (bytes: number) => {
+    const body = { ...full, description: "" };
+    body.description = "x".repeat(bytes - new TextEncoder().encode(JSON.stringify(body)).length);
+    expect(new TextEncoder().encode(JSON.stringify(body)).length).toBe(bytes);
+    return body;
+  };
+  const atCap = await client.send("account/domains/groups/update", { body: padded(40960) });
+  expect(atCap.status).not.toBe(413);
+  const over = await client.send("account/domains/groups/update", { body: padded(40961) });
   expect(over.status).toBe(413);
 });
