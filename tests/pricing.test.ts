@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { en } from "../src/i18n/en.ts";
 import { zh } from "../src/i18n/zh.ts";
 import { pagePaths } from "../src/lib/pages.ts";
-import { decimalAmount, planRows, planRowsFor, planView, planViews } from "../src/lib/pricing.ts";
+import { decimalAmount, planRows, planRowsFor, planView, planViews, trialText } from "../src/lib/pricing.ts";
 import { calculatorOptions, calculatorRange } from "../src/lib/calculator.ts";
 import { parseSeats, shopHref } from "../src/storefront/lib/address.ts";
 import {
@@ -336,4 +336,15 @@ test("the price calculator offers a plan in whichever way the shop takes for it,
   const [byCard] = calculatorOptions(cardOnly, 3, "en", en.pricing, "/shop/");
   assert.equal(byCard!.amount, "$5.97");
   assert.equal(byCard!.renewal, "Then $5.97 every 30 days, renewing automatically");
+});
+
+test("the free trial is offered only while the catalog has one, with the catalog's terms", () => {
+  assert.equal(trialText(undefined, en.pricing.trial), undefined);
+  assert.deepEqual(trialText({ days: 7, quotaMb: 1024 }, en.pricing.trial), {
+    title: "Try it free for 7 days",
+    body: "Claim one 1 GB mailbox, once per verified account. No card needed and no automatic charge at the end. If you stay, upgrading keeps the address and the mail.",
+  });
+  const zhTrial = trialText({ days: 14, quotaMb: 512 }, zh.pricing.trial)!;
+  assert.equal(zhTrial.title, "先免费试用 14 天");
+  assert.match(zhTrial.body, /^领取 1 个 512 MB 邮箱/);
 });

@@ -38,7 +38,7 @@ import {
   type DesktopReleases,
 } from "./releases.ts";
 import { pageFor, pagePaths, pages } from "./pages.ts";
-import { planRowsFor, planViews } from "./pricing.ts";
+import { planRowsFor, planViews, trialText } from "./pricing.ts";
 import type { ShopCatalog } from "../storefront/index.ts";
 import { storeMarkdownPaths, storeTitle } from "../storefront/content.ts";
 
@@ -71,6 +71,8 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
     `## ${t.features.title}`,
     t.features.intro.join(t.space),
     list(t.features.items.map((item) => `${item.title}: ${item.description}`)),
+    `### ${t.features.more.title}`,
+    list(t.features.more.items),
     `### ${t.features.platformsTitle}`,
     list(
       t.features.platforms.map(
@@ -210,6 +212,10 @@ export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string
               `[${plan.chooseLabel}](${absoluteUrl(plan.href)})`,
             ]),
             p.priceNote,
+            ...(() => {
+              const trial = trialText(catalog.trial, p.trial);
+              return trial ? [`## ${trial.title}`, `${trial.body} [${p.trial.action}](${links.account})`] : [];
+            })(),
             ...(plans.length > 1
               ? [
                   `## ${p.compare.title}`,

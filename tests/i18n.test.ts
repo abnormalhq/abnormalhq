@@ -205,6 +205,9 @@ const templateSlots = {
   "help.search.results": { count: true } satisfies Record<TemplateSlot<Copy["help"]["search"]["results"]>, true>,
   "help.related": { topic: true } satisfies Record<TemplateSlot<Copy["help"]["related"]>, true>,
   "download.historyMore": { count: true } satisfies Record<TemplateSlot<Copy["download"]["historyMore"]>, true>,
+  // The free trial strip renders in the browser on the home page and on the server on the pricing page.
+  "pricing.trial.title": { days: true } satisfies Record<TemplateSlot<Copy["pricing"]["trial"]["title"]>, true>,
+  "pricing.trial.body": { size: true } satisfies Record<TemplateSlot<Copy["pricing"]["trial"]["body"]>, true>,
   // The price calculator renders in the browser on the home page.
   "pricing.calculator.renewal": { price: true } satisfies Record<
     TemplateSlot<Copy["pricing"]["calculator"]["renewal"]>,

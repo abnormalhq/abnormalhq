@@ -48,10 +48,10 @@ test("security page: both languages say the same things, block for block, with t
 });
 
 test("security page: it says plainly what is not offered", () => {
-  assert.match(whole("en"), /No end-to-end encryption\./);
+  assert.match(whole("en"), /No end-to-end encryption by default\./);
   assert.match(whole("en"), /No zero-access encryption\./);
   assert.match(whole("en"), /can technically show mailbox contents/);
-  assert.match(whole("zh"), /不提供端到端加密。/);
+  assert.match(whole("zh"), /默认不做端到端加密。/);
   assert.match(whole("zh"), /不提供零访问加密。/);
   assert.match(whole("zh"), /在技术上可以查看邮箱内容/);
   // The admin-access sentence is the privacy policy's own, so the two cannot drift apart unnoticed.

@@ -1,7 +1,8 @@
 /**
  * The security and privacy overview (/security/), English. It states only what this repository and mail's documentation
  * back up: the privacy policy (src/content/legal/), and in abnormalhq/mail docs/security.md, secrets.md,
- * mail-transport-security.md, dane-dnssec.md, mail-safety.md, antivirus.md, webmail-security.md and webmail-user-settings.md.
+ * mail-transport-security.md, dane-dnssec.md, mail-safety.md, antivirus.md, webmail-security.md, webmail-user-settings.md,
+ * webmail-encryption.md, webmail-masked-addresses.md and webmail-read-receipts.md.
  * It makes no compliance or certification claim, and says plainly what is not offered. When any of those sources changes,
  * check every sentence here against it, in both languages, and update `reviewed`.
  */
@@ -15,7 +16,7 @@ export const securityEn: SecurityContent = {
   title: "Security and privacy, plainly",
   summary:
     "What protects your mailbox, what we can and cannot see, where your data is processed, and how to report a problem. This page is an overview; the Privacy Policy is the authoritative text.",
-  reviewed: "2026-11-14",
+  reviewed: "2026-11-24",
   sections: [
     {
       title: "Encryption in transit",
@@ -28,7 +29,7 @@ export const securityEn: SecurityContent = {
           ],
         },
         {
-          p: "Encryption in transit protects a message on its way between your device, our servers and other mail servers. It is not end-to-end encryption (see “What we don't offer” below), and how a message is protected once it reaches another provider is up to that provider. No transmission over the internet is entirely without risk.",
+          p: "Encryption in transit protects a message on its way between your device, our servers and other mail servers. It is not end-to-end encryption by itself (see “End-to-end encryption (OpenPGP)” below), and how a message is protected once it reaches another provider is up to that provider. No transmission over the internet is entirely without risk.",
         },
       ],
     },
@@ -37,6 +38,7 @@ export const securityEn: SecurityContent = {
       blocks: [
         {
           ul: [
+            "**Passkeys**: you can add a passkey under Settings, Security in webmail and then sign in to webmail with it, with no address, password or code to type. A passkey only proves it is you: it neither stores nor replaces your mailbox password, and mail apps still use the password or an app password.",
             "**Two-step verification**: you can add a code from an authenticator app to your mailbox sign-in, with recovery codes for a lost device. The mail server itself enforces it, so with it on, the mailbox password alone signs in nowhere: not in webmail, and not over IMAP, SMTP, CalDAV or CardDAV.",
             "**App passwords**: each mail app gets a password of its own, limited if you like to mail only or to calendars and contacts, which you can revoke without changing your mailbox password.",
             "**Limits on guessing**: sign-in, redeem and payment endpoints are rate-limited, shop account password attempts are also limited per account, and suspicious guessing of redeem codes is locked out. Sign-in pages may run a Cloudflare Turnstile check to tell people from automated programs.",
@@ -45,6 +47,22 @@ export const securityEn: SecurityContent = {
         },
         {
           p: "How to turn these on is in [Two-step verification and app passwords](help/two-step-verification/). We will never ask for your password, verification codes or card details by email, chat or any other channel.",
+        },
+      ],
+    },
+    {
+      title: "End-to-end encryption (OpenPGP)",
+      blocks: [
+        {
+          ul: [
+            "**Encrypted in your browser**: once you generate or import a key under Settings, Security, Encryption (OpenPGP) in webmail, the composer offers Encrypt and Sign. The body, the attachments and the subject (encrypted too by default) are encrypted in your browser before the message leaves, and the server only stores and passes on ciphertext.",
+            "**The private key stays with you**: it is locked with a passphrase you choose and kept in your browser, never sent to the server. You can download a backup that GnuPG, Thunderbird and other clients import. Forget the passphrase without a backup and encrypted mail can never be read again; we cannot recover it either.",
+            "**Standard OpenPGP**: messages use OpenPGP (PGP/MIME), so you can exchange encrypted mail with people on GnuPG, Thunderbird and the like, and decrypt and verify the encrypted and signed mail you receive. A correspondent's public key can be found through the Web Key Directory, imported from a message or pasted in, and is used only after you check its fingerprint and confirm it.",
+            "**Per message, never quietly downgraded**: only the messages you choose to encrypt are protected. With Encrypt on, a recipient without a confirmed key stops the send and is named; the message is never sent in the clear instead.",
+          ],
+        },
+        {
+          p: "End-to-end encryption does not hide metadata: the sender, the recipients, the time, the size, and the subject when subject encryption is off are still visible to the server. Encrypted mail cannot be searched by its content and has no AI summaries, translation or offline reading. Webmail's encryption code is served by the server each time, so it protects against someone who obtains the server's data (a leaked database or backup), not against someone who can change the code webmail serves; to protect yourself from the mail provider itself, use the exported key in a mail client you install.",
         },
       ],
     },
@@ -60,6 +78,17 @@ export const securityEn: SecurityContent = {
         },
         {
           p: "No filter catches everything. Treat unexpected links and attachments with care, whatever a banner says or does not say.",
+        },
+      ],
+    },
+    {
+      title: "Masked addresses, no tracking",
+      blocks: [
+        {
+          ul: [
+            "**Masked addresses**: you can create random masked addresses to give to websites or strangers. Mail to one lands in your own inbox, a reply goes out from that address by default, and the other side never sees your real one. Turn it off when you no longer want the mail, and mail to it is bounced from then on.",
+            "**No tracking**: webmail adds no tracking pixels to the mail you send and never rewrites links to count clicks. A read receipt is sent only when you choose to send one.",
+          ],
         },
       ],
     },
@@ -82,13 +111,13 @@ export const securityEn: SecurityContent = {
       blocks: [
         {
           ul: [
-            "**No end-to-end encryption.** Mail is stored on our mail servers in a form the service can read. That is what lets webmail show, search and filter it, and it means the content of your mail is not hidden from the service.",
-            "**No zero-access encryption.** Our management system can technically show mailbox contents. We access a mailbox only to troubleshoot problems with it or with the system, to handle a request you made yourself, to deal with abuse reports or security incidents, or to cooperate with competent authorities as the law requires. Viewing, moving and deleting mail and sending from a mailbox are recorded in the management system's activity log.",
+            "**No end-to-end encryption by default.** Only the messages you encrypt with OpenPGP are ciphertext on the server; all other mail is stored on our mail servers in a form the service can read. That is what lets webmail show, search and filter it, and it means the content of that mail is not hidden from the service.",
+            "**No zero-access encryption.** Our management system can technically show mailbox contents (for mail encrypted with OpenPGP, only the ciphertext). We access a mailbox only to troubleshoot problems with it or with the system, to handle a request you made yourself, to deal with abuse reports or security incidents, or to cooperate with competent authorities as the law requires. Viewing, moving and deleting mail and sending from a mailbox are recorded in the management system's activity log.",
             "**AI features send content to a third party.** When they are used, the relevant mail or ticket content goes to a language model provider: see [What the AI features send, and where](help/ai-features/).",
           ],
         },
         {
-          p: "If you need content that only you and the recipient can read, encrypt it yourself before you send it.",
+          p: "If you need content that only you and the recipient can read, use the OpenPGP end-to-end encryption above, or encrypt it in a mail client you install before you send it.",
         },
       ],
     },

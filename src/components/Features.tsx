@@ -78,6 +78,36 @@ function sample(icon: IconName, s: Samples): ReactNode {
       return <span className="font-mono text-3xl tracking-[0.2em]">482 913</span>;
     case "filter":
       return <p className="rounded-mark border border-border px-3 py-2.5 text-sm text-muted-foreground">{s.rule}</p>;
+    case "lock":
+      return (
+        <span className="inline-flex items-center gap-2.5 rounded-mark border border-border px-3 py-2 text-sm">
+          <Icon name="lock" className="size-4" />
+          {s.encrypted}
+        </span>
+      );
+    case "mask":
+      return (
+        <div className="flex items-center justify-between gap-3 rounded-mark border border-border px-3 py-2.5 text-sm">
+          <code className="min-w-0 truncate font-mono text-xs" lang="en">
+            {s.masked[0]}
+          </code>
+          <span className="shrink-0 text-muted-foreground underline underline-offset-4">{s.masked[1]}</span>
+        </div>
+      );
+    case "spark":
+      return (
+        <div className="flex flex-wrap gap-1.5">
+          {s.ai.map((action) => (
+            <span
+              key={action}
+              className="inline-flex items-center gap-1.5 rounded-control border border-border px-3 py-1.5 text-sm text-muted-foreground"
+            >
+              <Icon name="spark" className="size-3.5 text-foreground" />
+              {action}
+            </span>
+          ))}
+        </div>
+      );
     case "install":
       return (
         <span className="inline-flex items-center gap-3 rounded-mark border border-border px-3 py-2 text-sm">
@@ -100,16 +130,20 @@ export function Features({ lang }: { lang: Lang }) {
   const f = t.features;
   const calendar = screens.find(({ key }) => key === "calendar")!;
   const tile = (icon: IconName) => f.items.find((item) => item.icon === icon)!;
-  // Twelve cells on three columns: two wide tiles (the address check and the calendar) and eight narrow ones.
+  // Fifteen cells on three columns: two wide tiles (the address check and the calendar) and eleven narrow ones. Privacy and AI,
+  // which most mail services do not offer, come right after the inbox.
   const order: readonly (IconName | "address")[] = [
     "address",
     "inbox",
-    "undo",
-    "search",
-    "alert",
+    "lock",
+    "mask",
+    "spark",
     "calendar",
-    "import",
+    "search",
+    "undo",
+    "alert",
     "key",
+    "import",
     "filter",
     "install",
   ];
@@ -205,6 +239,27 @@ export function Features({ lang }: { lang: Lang }) {
             })}
           </ul>
         </Bento>
+
+        <div className="mt-14 max-md:mt-11" {...reveal()}>
+          <h3
+            className="flex items-center gap-4 text-sm/body font-medium text-muted-foreground"
+            id="features-more-title"
+          >
+            {f.more.title}
+            <span className="h-px flex-1 bg-border" aria-hidden="true"></span>
+          </h3>
+          <ul className="mt-6 flex flex-wrap gap-2.5" aria-labelledby="features-more-title">
+            {f.more.items.map((item) => (
+              <li
+                className="inline-flex items-center gap-2 rounded-control border border-border px-3.5 py-2 text-sm/body"
+                key={item}
+              >
+                <Icon name="check" className="size-3.5 text-muted-foreground" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <div className="mt-14 max-md:mt-11">
           <h3 className="flex items-center gap-4 text-sm/body font-medium text-muted-foreground" {...reveal()}>

@@ -33,7 +33,9 @@ export type IconName =
   | "install"
   | "globe"
   | "laptop"
-  | "phone";
+  | "phone"
+  | "lock"
+  | "mask";
 
 /** Icon of a service card, drawn by ProductCard from this key; independent of the card's position in the list. */
 export type ProductIcon = "mail" | "domain" | "team" | "setup";
@@ -334,7 +336,15 @@ export interface Copy {
       suspicious: string;
       rule: string;
       install: string;
+      /** The status line WebMail shows above a decrypted, signed message. */
+      encrypted: string;
+      /** A masked address and the switch that turns it off. */
+      masked: readonly [address: string, action: string];
+      /** The AI actions offered on a conversation. */
+      ai: readonly [string, string, string];
     };
+    /** Smaller things a mailbox can do, listed under the tiles as short phrases. */
+    more: { title: string; items: readonly string[] };
     platformsTitle: string;
     /** Each platform links either to a linked site (link) or to a page of this site (path, without the language prefix). */
     platforms: readonly {
@@ -481,6 +491,8 @@ export interface Copy {
     };
     /** The heading over the plan cards on the pricing page. */
     plansTitle: string;
+    /** The free trial strip (src/components/TrialNote.tsx), shown only while the shop's catalog offers a trial. */
+    trial: { title: Template<"days">; body: Template<"size">; action: string };
     /** The price calculator on the home page and the pricing page (src/components/PriceCalculator.tsx). */
     calculator: {
       title: string;
