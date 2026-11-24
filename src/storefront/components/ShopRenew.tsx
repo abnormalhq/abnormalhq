@@ -220,7 +220,7 @@ function ShopRenewContent({ lang, token }: { lang: Lang; token: string }) {
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
-                  const button = (event.nativeEvent as SubmitEvent).submitter;
+                  const button = event.nativeEvent.submitter;
                   void submit(
                     usdtRenewal
                       ? "usdt"

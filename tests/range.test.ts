@@ -87,7 +87,7 @@ test("a range request gets 206 with exactly those bytes, and the asset service n
   assert.equal(first?.headers.get("content-range"), "bytes 0-999/1000");
   const resumed = await serveByteRanges(get({ Range: "bytes=600-", "If-Range": etag }), assets());
   assert.equal(resumed?.status, 206);
-  assert.deepEqual(new Uint8Array(await resumed!.arrayBuffer()), file.subarray(600));
+  assert.deepEqual(new Uint8Array(await resumed.arrayBuffer()), file.subarray(600));
 });
 
 test("without a usable range the whole file is served, announcing range support", async () => {
@@ -101,7 +101,7 @@ test("without a usable range the whole file is served, announcing range support"
     assert.equal(response?.status, 200, JSON.stringify(headers));
     assert.equal(response?.headers.get("accept-ranges"), "bytes");
     assert.equal(response?.headers.has("content-range"), false);
-    assert.equal((await response!.arrayBuffer()).byteLength, 1000);
+    assert.equal((await response.arrayBuffer()).byteLength, 1000);
   }
   const head = await serveByteRanges(get({ Range: "bytes=0-9" }, { method: "HEAD" }), assets());
   assert.equal(head?.status, 200);
@@ -153,7 +153,7 @@ test("a range is streamed out of the asset: the bytes before it are skipped, and
   assert.equal(response?.status, 206);
   assert.equal(response?.headers.get("content-range"), "bytes 100-299/1000");
   assert.equal(response?.headers.get("content-length"), "200");
-  assert.deepEqual(new Uint8Array(await response!.arrayBuffer()), file.subarray(100, 300));
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), file.subarray(100, 300));
   // 64-byte chunks: the range ends in the fifth (bytes 256-319), and nothing after it is read.
   assert.equal(reads[0]!.read, 320);
   assert.equal(reads[0]!.cancelled, true);
@@ -170,7 +170,7 @@ test("an asset without a Content-Length is read whole to find its size, then cut
   const response = await serveByteRanges(get({ Range: "bytes=-10" }), unsized);
   assert.equal(response?.status, 206);
   assert.equal(response?.headers.get("content-range"), "bytes 990-999/1000");
-  assert.deepEqual(new Uint8Array(await response!.arrayBuffer()), file.subarray(990));
+  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), file.subarray(990));
   const beyond = await serveByteRanges(get({ Range: "bytes=1000-" }), unsized);
   assert.equal(beyond?.headers.get("content-range"), "bytes */1000");
 });

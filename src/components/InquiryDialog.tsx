@@ -29,7 +29,7 @@ export function InquiryButton({ product, ...props }: ComponentProps<typeof Slot.
       {...props}
       onPointerEnter={preloadInquiryForm}
       onFocus={preloadInquiryForm}
-      onClick={(event) => openInquiry(product, event.currentTarget as HTMLElement)}
+      onClick={(event) => openInquiry(product, event.currentTarget)}
     />
   );
 }

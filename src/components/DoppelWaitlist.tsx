@@ -144,7 +144,7 @@ export function DoppelWaitlist({ lang, copy: w }: { lang: Lang; copy: Copy["wait
             )}
             {canRegister && (
               <form
-                onSubmit={submit}
+                onSubmit={(event) => void submit(event)}
                 aria-labelledby="waitlist-title"
                 aria-describedby="waitlist-description"
                 className="min-w-0 self-center"

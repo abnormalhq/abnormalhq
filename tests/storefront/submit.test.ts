@@ -3,7 +3,7 @@ import { copy } from "@/storefront/copy";
 import { ADDRESS_STORAGE_KEY } from "@/storefront/lib/address";
 import { ApiError, type CdkInfo, type RedeemInput, type RedeemResult } from "@/storefront/lib/api";
 import { normalizeCdk } from "@/storefront/lib/onboard";
-import { createReducer, initialState, type Action, type State } from "@/storefront/components/onboard/reducer";
+import { createReducer, initialState, type Action } from "@/storefront/components/onboard/reducer";
 import { submitRedeem } from "@/storefront/components/onboard/submit";
 
 const t = copy.zh;
@@ -251,7 +251,7 @@ test("submit: an invalid redeem code puts focus back on the redeem code, a netwo
   await offline.submit();
   expect(offline.state.formNote).toStrictEqual({ text: t.msg.unknownError, state: "error" });
   expect(offline.state.rows).toHaveLength(1);
-  expect((offline.state as State).busy).toBe(false);
+  expect(offline.state.busy).toBe(false);
   // The control disabled during submit lost focus: when the error points at no field, focus returns to the submit button for an easy retry.
   expect(offline.state.focus).toMatchObject({ target: "submit" });
   // The same when a server error points at no field.
