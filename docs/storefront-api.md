@@ -903,7 +903,9 @@ JSON POSTs, never cached). The client is `src/storefront/lib/domain-addresses.ts
 - **`addresses`** `{ id }` → `{ domain: { id, name }, editable, mailboxes, members, aliases, groups, catchAll, limits: { aliases,
 groups, members } }`. `mailboxes` are the buyer's mailboxes on this domain (what an alias or the catch-all can deliver to),
   `members` what a group can include (the same list: mail takes only mailboxes on this domain, since an address on a shared shop domain can later be someone else's). `editable: false` (the domain is suspended or its plan lapsed
-  past grace) shows everything without the controls.
+  past grace) shows everything without the controls. `limits.aliases` and `limits.groups` are what is left for the buyer's own
+  addresses (mail counts the records an admin set up on the domain against them), so the page compares `aliases.length` and
+  `groups.length` with them to tell whether another fits.
 - **`aliases/add`** `{ id, username, target }` → `{ alias: { id, address, target, enabled } }`; **`aliases/remove`**
   `{ id, aliasId }`. `username` is the part before `@` (the page strips a pasted `@<domain>`, `normalizeLocalPart`).
 - **`groups/add`** `{ id, username, members, description? }` and **`groups/update`** `{ id, groupId, addMembers?,
