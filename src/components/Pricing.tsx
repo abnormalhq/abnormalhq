@@ -17,6 +17,7 @@ import { JsonLd } from "@/components/ui/json-ld";
 import { PageHeader } from "./PageHeader";
 import { PlanCards, PlanComparison, PlanNotice } from "./PlanCards";
 import { PriceCalculator } from "./PriceCalculator";
+import { TrialNote } from "./TrialNote";
 
 /**
  * The pricing page (/pricing/, /zh/pricing/): every plan on sale with its live price, the comparison table, the address check and what
@@ -94,6 +95,8 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
                 <p className="mt-6 max-w-3xl text-xs/[1.9] text-muted-foreground">{p.priceNote}</p>
               </>
             )}
+            {/* The trial is its own offer: the shop shows it even when no paid plan is on sale, and so does this page. */}
+            {catalog && <TrialNote className="mt-8" trial={catalog.trial} copy={p.trial} account={links.account} />}
           </div>
 
           {plans.length > 1 && (

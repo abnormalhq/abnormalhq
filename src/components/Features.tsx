@@ -8,12 +8,64 @@ import type { Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
 import type { Copy, IconName } from "@/i18n/types";
 import { reveal } from "@/lib/reveal";
-import { screens, screenSrc, screenSrcSet } from "@/lib/screens";
 import { AddressCheck } from "./AddressCheck";
 import { Icon } from "./Icon";
 import { ServiceStatus } from "./ServiceStatus";
 
 type Samples = Copy["features"]["samples"];
+
+/** The working hours the calendar sample shows; the demo's evening events fall outside and are left out. */
+const firstHour = 9;
+const lastHour = 18;
+
+/**
+ * The calendar tile's picture: the demo's working week drawn as a small week view, with one event standing out as the
+ * invitation answered below it. It is drawn rather than a screenshot, so it stays legible at tile size and follows the theme.
+ */
+function weekSample(demo: Copy["demo"], s: Samples): ReactNode {
+  const span = lastHour - firstHour;
+  const [invite, accept, decline] = s.invite;
+  return (
+    <div className="grid gap-3">
+      <div className="grid grid-cols-5 gap-1.5">
+        {demo.ui.weekdays.slice(0, 5).map((weekday, day) => (
+          <div className="min-w-0" key={weekday}>
+            <p className="mb-1.5 text-center text-xs text-muted-foreground">{weekday}</p>
+            <div className="relative h-52 rounded-mark border border-border bg-background/40 max-sm:h-44">
+              {demo.events
+                .filter((event) => event.day === day && event.end <= lastHour)
+                .map((event) => (
+                  <span
+                    key={event.title}
+                    className={
+                      event.location
+                        ? "absolute inset-x-1 overflow-hidden rounded-[4px] bg-highlight px-1.5 py-px text-[11px]/[1.35] text-highlight-foreground"
+                        : "absolute inset-x-1 overflow-hidden rounded-[4px] border-l-2 border-foreground/40 bg-muted px-1.5 py-px text-[11px]/[1.35] text-foreground"
+                    }
+                    style={{
+                      top: `${((event.start - firstHour) / span) * 100}%`,
+                      height: `calc(${((event.end - event.start) / span) * 100}% - 2px)`,
+                    }}
+                  >
+                    <span className="block truncate">{event.title}</span>
+                  </span>
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-mark border border-border px-3 py-2 text-sm">
+        <span className="min-w-0">{invite}</span>
+        <span className="flex gap-1.5">
+          <span className="rounded-control bg-foreground px-2.5 py-1 text-xs text-background">{accept}</span>
+          <span className="rounded-control border border-border px-2.5 py-1 text-xs text-muted-foreground">
+            {decline}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
 
 /**
  * The small picture of the product at the foot of each feature tile, drawn in markup in the page's language. Each one
@@ -78,6 +130,36 @@ function sample(icon: IconName, s: Samples): ReactNode {
       return <span className="font-mono text-3xl tracking-[0.2em]">482 913</span>;
     case "filter":
       return <p className="rounded-mark border border-border px-3 py-2.5 text-sm text-muted-foreground">{s.rule}</p>;
+    case "lock":
+      return (
+        <span className="inline-flex items-center gap-2.5 rounded-mark border border-border px-3 py-2 text-sm">
+          <Icon name="lock" className="size-4" />
+          {s.encrypted}
+        </span>
+      );
+    case "mask":
+      return (
+        <div className="flex items-center justify-between gap-3 rounded-mark border border-border px-3 py-2.5 text-sm">
+          <code className="min-w-0 truncate font-mono text-xs" lang="en">
+            {s.masked[0]}
+          </code>
+          <span className="shrink-0 text-muted-foreground underline underline-offset-4">{s.masked[1]}</span>
+        </div>
+      );
+    case "spark":
+      return (
+        <div className="flex flex-wrap gap-1.5">
+          {s.ai.map((action) => (
+            <span
+              key={action}
+              className="inline-flex items-center gap-1.5 rounded-control border border-border px-3 py-1.5 text-sm text-muted-foreground"
+            >
+              <Icon name="spark" className="size-3.5 text-foreground" />
+              {action}
+            </span>
+          ))}
+        </div>
+      );
     case "install":
       return (
         <span className="inline-flex items-center gap-3 rounded-mark border border-border px-3 py-2 text-sm">
@@ -92,24 +174,27 @@ function sample(icon: IconName, s: Samples): ReactNode {
 
 /**
  * "What's inside" Mail, as a wall of tiles: the address check leads, each feature carries a small picture of itself,
- * and the calendar tile shows the real calendar. The places Mail runs follow as a row of links.
+ * and the calendar tile draws a small week. The places Mail runs follow as a row of links.
  * On a phone the tiles stack; every description stays visible, since each tile is short.
  */
 export function Features({ lang }: { lang: Lang }) {
   const { t, links, path } = getCopy(lang);
   const f = t.features;
-  const calendar = screens.find(({ key }) => key === "calendar")!;
   const tile = (icon: IconName) => f.items.find((item) => item.icon === icon)!;
-  // Twelve cells on three columns: two wide tiles (the address check and the calendar) and eight narrow ones.
+  // Fifteen cells on three columns: two wide tiles (the address check and the calendar) and eleven narrow ones. Privacy and AI,
+  // which most mail services do not offer, come right after the inbox.
   const order: readonly (IconName | "address")[] = [
     "address",
     "inbox",
-    "undo",
-    "search",
-    "alert",
+    "lock",
+    "mask",
+    "spark",
     "calendar",
-    "import",
+    "search",
+    "undo",
+    "alert",
     "key",
+    "import",
     "filter",
     "install",
   ];
@@ -168,24 +253,13 @@ export function Features({ lang }: { lang: Lang }) {
               if (key === "calendar") {
                 return (
                   <BentoTile asChild wide key={key}>
-                    <li className="sm:flex-row sm:flex-wrap sm:items-end">
+                    <li className="sm:flex-row sm:flex-wrap sm:items-center">
                       <div className="min-w-0 sm:flex-[1_1_14rem]">
                         <BentoTitle>{item.title}</BentoTitle>
                         <BentoDescription>{item.description}</BentoDescription>
                       </div>
-                      <BentoVisual className="sm:mt-0 sm:flex-[2_1_20rem]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          className="block h-auto w-full rounded-mark border border-border"
-                          src={screenSrc(lang, calendar.key, calendar.width)}
-                          srcSet={screenSrcSet(lang, calendar)}
-                          sizes="(min-width: 1184px) 520px, (min-width: 640px) 60vw, 100vw"
-                          width={calendar.width}
-                          height={calendar.height}
-                          alt={t.screens.calendar.alt}
-                          loading="lazy"
-                          decoding="async"
-                        />
+                      <BentoVisual className="sm:mt-0 sm:flex-[2_1_20rem]" aria-hidden="true">
+                        {weekSample(t.demo, f.samples)}
                       </BentoVisual>
                     </li>
                   </BentoTile>
@@ -205,6 +279,27 @@ export function Features({ lang }: { lang: Lang }) {
             })}
           </ul>
         </Bento>
+
+        <div className="mt-14 max-md:mt-11" {...reveal()}>
+          <h3
+            className="flex items-center gap-4 text-sm/body font-medium text-muted-foreground"
+            id="features-more-title"
+          >
+            {f.more.title}
+            <span className="h-px flex-1 bg-border" aria-hidden="true"></span>
+          </h3>
+          <ul role="list" className="mt-6 flex flex-wrap gap-2.5" aria-labelledby="features-more-title">
+            {f.more.items.map((item) => (
+              <li
+                className="inline-flex items-center gap-2 rounded-control border border-border px-3.5 py-2 text-sm/body"
+                key={item}
+              >
+                <Icon name="check" className="size-3.5 text-muted-foreground" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <div className="mt-14 max-md:mt-11">
           <h3 className="flex items-center gap-4 text-sm/body font-medium text-muted-foreground" {...reveal()}>

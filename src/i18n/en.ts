@@ -46,7 +46,7 @@ export const en: CopyMessages = {
       tab: "Mail",
       titleLines: ["A quiet mailbox,", "in your own name"],
       description:
-        "An @abnormalhq.com mailbox with a calendar, contacts and undo send. Set it up in your account once paid, then use it on the web, on the desktop and in the mail apps you already have.",
+        "An @abnormalhq.com mailbox with a calendar and contacts, end-to-end encryption when you want it, and masked addresses to keep your real one private. Set it up in your account once paid, then use it on the web, on the desktop and in the mail apps you already have.",
       buy: "Buy a mailbox",
       explore: "See what's inside",
     },
@@ -344,7 +344,10 @@ export const en: CopyMessages = {
   features: {
     eyebrow: "What's inside",
     title: "Everything a mailbox should do",
-    intro: ["Sorting, calendars, safety and moving in:", "all there in Abnormal Mail the day you activate."],
+    intro: [
+      "Sorting, calendars, encryption, privacy and moving in:",
+      "all there in Abnormal Mail the day you activate.",
+    ],
     items: [
       {
         icon: "inbox",
@@ -378,9 +381,9 @@ export const en: CopyMessages = {
       },
       {
         icon: "key",
-        title: "Two-step verification",
+        title: "Passkeys and two-step verification",
         description:
-          "A code on top of your password; mail apps get app passwords of their own, which you can revoke if a device goes missing without changing your main password.",
+          "Sign in to webmail with a passkey, no address or password to type; or add a code on top of your password. Mail apps get app passwords of their own, which you can revoke if a device goes missing.",
       },
       {
         icon: "import",
@@ -400,6 +403,24 @@ export const en: CopyMessages = {
         description:
           "Add Abnormal Mail to your desktop or home screen and open it like an app; mail it has saved stays readable offline.",
       },
+      {
+        icon: "lock",
+        title: "End-to-end encryption",
+        description:
+          "Encrypt and sign mail with OpenPGP, and decrypt and verify encrypted mail you receive. It happens in your browser: the private key stays with you, and the server only holds ciphertext.",
+      },
+      {
+        icon: "mask",
+        title: "Masked addresses",
+        description:
+          "Give a website or a stranger a random address instead of your own. Mail to it lands in your inbox and you can reply from it; when it starts getting spam, you know who leaked it and switch it off.",
+      },
+      {
+        icon: "spark",
+        title: "AI summaries, translation and writing",
+        description:
+          "Summarize a long conversation, translate a message in another language, or have AI draft or polish a reply. Content goes to the model provider only when these features are used.",
+      },
     ],
     samples: {
       inboxTabs: ["Primary", "Newsletters", "Notifications"],
@@ -409,6 +430,23 @@ export const en: CopyMessages = {
       suspicious: "This sender's domain looks like one you write to often. Take care.",
       rule: "From contains newsletter → Newsletters",
       install: "Add to Home Screen",
+      encrypted: "Encrypted · Signature valid",
+      masked: ["k7mq4xr2tw9hna@abnormalhq.com", "Turn off"],
+      ai: ["Summarize", "Translate", "Suggest replies"],
+      invite: ["Invitation: Launch review · Wed 10:00", "Accept", "Decline"],
+    },
+    more: {
+      title: "And also",
+      items: [
+        "Snooze, and reminders when nobody replies",
+        "Large files shared as links",
+        "Read receipts, never tracking pixels",
+        "Mute a conversation",
+        "One-click unsubscribe",
+        "Snippets and keyboard shortcuts",
+        "New-mail notifications",
+        "All inboxes in one view",
+      ],
     },
     platformsTitle: "Use it anywhere",
     platforms: [
@@ -422,7 +460,8 @@ export const en: CopyMessages = {
       {
         icon: "laptop",
         name: "Desktop app",
-        description: "Native apps for macOS and Windows, with folders, read state and stars in sync with webmail.",
+        description:
+          "Native apps for macOS, Windows and Linux, with folders, read state and stars in sync with webmail.",
         action: "Download the app",
         path: "/download/",
       },
@@ -598,7 +637,7 @@ export const en: CopyMessages = {
           icon: "laptop",
           title: "Apps everywhere",
           description:
-            "Webmail in the browser, installable as an app; desktop apps for macOS and Windows; and the mail, calendar and contacts apps already on your phone.",
+            "Webmail in the browser, installable as an app; desktop apps for macOS, Windows and Linux; and the mail, calendar and contacts apps already on your phone.",
         },
         {
           icon: "mail",
@@ -609,6 +648,12 @@ export const en: CopyMessages = {
       ],
     },
     plansTitle: "Every plan",
+    trial: {
+      title: "Try it free for {days} days",
+      body: "Claim one {size} mailbox, once per verified account. No card needed and no automatic charge at the end. Upgrade within 30 days of the trial ending to keep the address and the mail.",
+      defaultSize: "standard-size",
+      action: "Claim it in your account",
+    },
     calculator: {
       title: "Pay for the mailboxes you need",
       intro: "Pick how many, and see what each plan that fits costs in total.",
@@ -732,6 +777,11 @@ export const en: CopyMessages = {
           "Yes, in the shop, when a plan on sale offers it. A plan sold per mailbox lets you choose how many mailboxes to buy, add seats later and remove them at renewal. A plan that includes your own domain lets you connect it under My account: you prove the domain is yours with a DNS record, publish the mail records we list, and new domains are normally reviewed by us before they go live. The pricing page shows which plans include what, and the help center explains both step by step. If you would like a hand with the setup, ask us; never send passwords, verification codes, recovery codes or payment details in your message.",
       },
       {
+        question: "Can mail be encrypted, and can I avoid handing out my real address?",
+        answer:
+          "Yes. Webmail supports OpenPGP end-to-end encryption: generate or import a key under Settings, Security, then turn on Encrypt when you write to someone who has an OpenPGP key too. The message is encrypted in your browser before it leaves, and the server only holds ciphertext. It covers the messages you choose to encrypt; the Security and privacy page sets out what it protects and what it does not. When you would rather not give a website your real address, create a masked address: it is random, mail to it lands in your inbox as usual, and you can switch it off whenever you like.",
+      },
+      {
         question: "What if something goes wrong?",
         answer:
           "If mail isn't coming or going, check the service status page first for outages or maintenance. For anything else, write to support and include your email address or order number so we can help faster.",
@@ -774,7 +824,7 @@ export const en: CopyMessages = {
   security: {
     metaTitle: "Security and privacy — Abnormal",
     metaDescription:
-      "How Abnormal protects mailboxes: encryption in transit, two-step verification and app passwords, phishing warnings and virus scanning, what is stored encrypted, what is not offered (no end-to-end or zero-access encryption), where data is processed, and how to report a vulnerability.",
+      "How Abnormal protects mailboxes: encryption in transit, optional OpenPGP end-to-end encryption, passkeys, two-step verification and app passwords, masked addresses, phishing warnings and virus scanning, what is stored encrypted, what is not offered (no zero-access encryption), where data is processed, and how to report a vulnerability.",
     navLabel: "Security and privacy",
     eyebrow: "Security overview",
     reviewedLabel: "Last reviewed",
@@ -840,7 +890,7 @@ export const en: CopyMessages = {
   download: {
     metaTitle: "Download the desktop app — Abnormal",
     metaDescription:
-      "The Abnormal Mail desktop app for macOS and Windows: read, search, reply and send, in sync with webmail.",
+      "The Abnormal Mail desktop app for macOS, Windows and Linux: read, search, reply and send, in sync with webmail.",
     navLabel: "Desktop app",
     eyebrow: "Desktop app",
     title: "Your mail on the desktop",

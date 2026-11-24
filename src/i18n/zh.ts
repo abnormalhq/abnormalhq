@@ -46,7 +46,7 @@ export const zh: CopyMessages = {
       tab: "Mail",
       titleLines: ["一个安静的邮箱，", "用你的名字"],
       description:
-        "@abnormalhq.com 邮箱，自带日历、通讯录和撤回发送。付款后在账户里直接开通，网页、桌面和你惯用的邮件应用都能用。",
+        "@abnormalhq.com 邮箱，自带日历和通讯录，可以端到端加密，也能用隐藏地址保护真实邮箱。付款后在账户里直接开通，网页、桌面和你惯用的邮件应用都能用。",
       buy: "购买邮箱",
       explore: "看看里面有什么",
     },
@@ -325,7 +325,7 @@ export const zh: CopyMessages = {
   features: {
     eyebrow: "What's inside",
     title: "一个邮箱，该有的都有",
-    intro: ["不只是能收发：分类、日程、安全与搬家，", "开通后都在 Abnormal Mail 里等你。"],
+    intro: ["不只是能收发：分类、日程、加密、隐私与搬家，", "开通后都在 Abnormal Mail 里等你。"],
     items: [
       {
         icon: "inbox",
@@ -355,8 +355,9 @@ export const zh: CopyMessages = {
       },
       {
         icon: "key",
-        title: "两步验证",
-        description: "登录多一道验证码；邮件客户端改用单独的应用密码，丢了设备也能随时撤销，不必改主密码。",
+        title: "通行密钥与两步验证",
+        description:
+          "用通行密钥登录网页邮箱，不用输地址和密码；也可以在密码之外加一道验证码。邮件客户端用单独的应用密码，丢了设备随时撤销。",
       },
       {
         icon: "import",
@@ -374,6 +375,24 @@ export const zh: CopyMessages = {
         title: "安装成应用",
         description: "Abnormal Mail 可以安装到桌面或手机主屏，像应用一样打开；离线时也能翻看已保存的邮件。",
       },
+      {
+        icon: "lock",
+        title: "端到端加密",
+        description:
+          "用 OpenPGP 加密和签名邮件，也能解密、验证别人发来的加密邮件。加密在你的浏览器里完成，私钥只存在你这里，服务器上只有密文。",
+      },
+      {
+        icon: "mask",
+        title: "隐藏真实地址",
+        description:
+          "给网站或陌生人一个随机地址，来信照样进你的收件箱，也能用它直接回复。哪个地址开始收垃圾邮件，就知道是哪里泄露的，一键停用。",
+      },
+      {
+        icon: "spark",
+        title: "AI 摘要、翻译与写作",
+        description:
+          "长对话一键总结，外文邮件一键翻译，回信可以让 AI 起草或润色。用到这些功能时，相关内容才会发给大模型服务商。",
+      },
     ],
     samples: {
       inboxTabs: ["主要", "订阅", "通知"],
@@ -383,6 +402,23 @@ export const zh: CopyMessages = {
       suspicious: "发件域名与你常联系的地址很像，请留意。",
       rule: "发件人含 newsletter → 归入「订阅」",
       install: "添加到主屏幕",
+      encrypted: "已加密 · 签名有效",
+      masked: ["k7mq4xr2tw9hna@abnormalhq.com", "停用"],
+      ai: ["总结对话", "翻译", "建议回复"],
+      invite: ["邀请：上线评审 · 周三 10:00", "接受", "拒绝"],
+    },
+    more: {
+      title: "还有这些",
+      items: [
+        "稍后处理，没回复就提醒我",
+        "大文件用下载链接分享",
+        "已读回执，不加追踪像素",
+        "静音对话",
+        "一键退订",
+        "常用短语与键盘快捷键",
+        "新邮件推送通知",
+        "多个邮箱合并的「所有收件箱」",
+      ],
     },
     platformsTitle: "在哪里都能用",
     platforms: [
@@ -396,7 +432,7 @@ export const zh: CopyMessages = {
       {
         icon: "laptop",
         name: "桌面客户端",
-        description: "原生的 macOS 与 Windows 客户端，文件夹、已读和星标与网页邮箱同步。",
+        description: "原生的 macOS、Windows 与 Linux 客户端，文件夹、已读和星标与网页邮箱同步。",
         action: "下载客户端",
         path: "/download/",
       },
@@ -563,7 +599,7 @@ export const zh: CopyMessages = {
           icon: "laptop",
           title: "哪里都能用",
           description:
-            "浏览器里的网页邮箱（可安装成应用）、macOS 与 Windows 桌面客户端，以及手机自带的邮件、日历和通讯录。",
+            "浏览器里的网页邮箱（可安装成应用）、macOS、Windows 与 Linux 桌面客户端，以及手机自带的邮件、日历和通讯录。",
         },
         {
           icon: "mail",
@@ -573,6 +609,12 @@ export const zh: CopyMessages = {
       ],
     },
     plansTitle: "全部套餐",
+    trial: {
+      title: "先免费试用 {days} 天",
+      body: "领取 1 个邮箱（{size}），每个已验证的账户限领一次，无需绑卡，到期不会自动扣款。试用到期后 30 天内付费升级，地址和邮件都保留。",
+      defaultSize: "标准容量",
+      action: "在我的账户里领取",
+    },
     calculator: {
       title: "要几个邮箱，就付几个",
       intro: "选好数量，看看每个合适的套餐一共多少钱。",
@@ -691,6 +733,11 @@ export const zh: CopyMessages = {
           "可以，只要商店在售的套餐提供，就在商店里直接购买。按邮箱数量计价的套餐可以自选邮箱数量，之后随时加席位，续费时再减。包含自有域名的套餐可以在「我的账户」里接入域名：先用一条 DNS 记录证明域名归你所有，再按我们列出的记录设置 DNS，新接入的域名通常经我们审核后开通。哪些套餐包含什么见价格页，具体步骤见帮助中心。需要配置协助可以咨询；请勿在咨询中发送密码、验证码、恢复码或支付信息。",
       },
       {
+        question: "邮件能加密吗？不想到处留真实地址怎么办？",
+        answer:
+          "可以。网页邮箱支持 OpenPGP 端到端加密：在「设置 · 安全」里生成或导入密钥，给同样有 OpenPGP 密钥的人写信时打开「加密」，邮件在你的浏览器里加密后才发出，服务器上只有密文。它只对你选择加密的邮件生效，保护范围与限制见「安全与隐私」页。不想给网站留真实地址时，可以创建隐藏地址：随机生成，来信照常进你的收件箱，不想再收时随时停用。",
+      },
+      {
         question: "遇到问题怎么办？",
         answer:
           "收发异常时可以先看服务状态页，确认是否有故障或维护；其他问题写信到客服邮箱，附上邮箱地址或订单号会更快处理。",
@@ -732,7 +779,7 @@ export const zh: CopyMessages = {
   security: {
     metaTitle: "安全与隐私 — Abnormal",
     metaDescription:
-      "Abnormal 如何保护邮箱：传输加密、两步验证与应用专用密码、钓鱼提醒与病毒扫描、哪些内容加密保存、不提供什么（没有端到端加密和零访问加密）、数据在哪里处理，以及如何报告漏洞。",
+      "Abnormal 如何保护邮箱：传输加密、可选的 OpenPGP 端到端加密、通行密钥、两步验证与应用专用密码、隐藏地址、钓鱼提醒与病毒扫描、哪些内容加密保存、不提供什么（没有零访问加密）、数据在哪里处理，以及如何报告漏洞。",
     navLabel: "安全与隐私",
     eyebrow: "Security overview",
     reviewedLabel: "最近核对",
@@ -797,7 +844,7 @@ export const zh: CopyMessages = {
   ],
   download: {
     metaTitle: "下载桌面客户端 — Abnormal",
-    metaDescription: "Abnormal 邮箱的 macOS 与 Windows 桌面客户端：收信、搜索、回复与发信，与网页邮箱同步。",
+    metaDescription: "Abnormal 邮箱的 macOS、Windows 与 Linux 桌面客户端：收信、搜索、回复与发信，与网页邮箱同步。",
     navLabel: "桌面客户端",
     eyebrow: "Desktop app",
     title: "在桌面上收发邮件",

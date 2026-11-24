@@ -7,7 +7,7 @@
  */
 import { site, type Lang } from "../data/site.ts";
 import { localePath } from "../i18n/paths.ts";
-import type { DevDocBlock, DevDocSection } from "../content/help/types.ts";
+import type { DevDocBlock, DevDocSection, DocSection } from "../content/help/types.ts";
 
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
 const external = (href: string) => /^(https?:|mailto:|#)/.test(href);
@@ -69,7 +69,10 @@ export function sectionsMarkdown(sections: readonly DevDocSection[], lang: Lang)
   ]);
 }
 
-/** The anchor of a section on its page: sections are numbered, so the anchor does not depend on the language. */
-export function sectionId(index: number): string {
-  return `section-${index + 1}`;
+/**
+ * The anchor of a section on its page: sections are numbered, so the anchor does not depend on the language. A section with
+ * a fixed anchor (DocSection.anchor) keeps that one wherever it now sits.
+ */
+export function sectionId(index: number, section?: DocSection | DevDocSection): string {
+  return (section && "anchor" in section && section.anchor) || `section-${index + 1}`;
 }

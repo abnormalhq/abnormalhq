@@ -46,6 +46,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
           lang={lang}
           shop={links.shop}
           pricing={links.pricing}
+          account={links.account}
           copy={{
             plan: p.plan,
             compare: p.compare,
@@ -59,6 +60,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
             priceNote: p.priceNote,
             compareLink: p.compareLink,
             calculator: p.calculator,
+            trial: p.trial,
           }}
         />
         <div className="mt-14 max-md:mt-11" {...reveal()}>

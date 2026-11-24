@@ -10,6 +10,7 @@ import {
   InboxIcon,
   KeyRoundIcon,
   LaptopIcon,
+  LockKeyholeIcon,
   ListFilterIcon,
   MailIcon,
   MenuIcon,
@@ -28,6 +29,7 @@ import {
   TicketIcon,
   Undo2Icon,
   UserRoundIcon,
+  VenetianMaskIcon,
   XIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -65,6 +67,8 @@ const icons: Record<IconName, LucideIcon> = {
   globe: GlobeIcon,
   laptop: LaptopIcon,
   phone: SmartphoneIcon,
+  lock: LockKeyholeIcon,
+  mask: VenetianMaskIcon,
 };
 
 /** The copy picks icons by name (entry cards, process steps), so this keeps a map from names to lucide icons. */

@@ -9,6 +9,7 @@ import { sharedCatalog, type ShopCatalog } from "@/storefront";
 import { Icon } from "./Icon";
 import { PlanNotice, type PlanCopy } from "./PlanCards";
 import { PriceCalculator } from "./PriceCalculator";
+import { TrialNote } from "./TrialNote";
 
 export type HomePricingCopy = PlanCopy &
   Pick<
@@ -23,6 +24,7 @@ export type HomePricingCopy = PlanCopy &
     | "priceNote"
     | "compareLink"
     | "calculator"
+    | "trial"
   >;
 
 /**
@@ -36,10 +38,13 @@ export function HomePricing({
   copy,
   shop,
   pricing,
+  account,
 }: {
   lang: Lang;
   copy: HomePricingCopy;
   shop: string;
+  /** The buyer account page, where the free trial is claimed. */
+  account: string;
   /** The full pricing page: shown while plans load, and as the no-JavaScript path. */
   pricing: string;
 }) {
@@ -114,11 +119,19 @@ export function HomePricing({
       </PlanNotice>
     );
   }
+  // The trial is its own offer: the shop shows it even when no paid plan is on sale, and so does this section.
+  const trial = <TrialNote className="mt-8" trial={catalog.trial} copy={copy.trial} account={account} />;
   if (planViews(catalog, lang, copy, shop).length === 0)
-    return <PlanNotice title={copy.closedTitle}>{copy.closedBody}</PlanNotice>;
+    return (
+      <>
+        <PlanNotice title={copy.closedTitle}>{copy.closedBody}</PlanNotice>
+        {trial}
+      </>
+    );
   return (
     <>
       <PriceCalculator catalog={catalog} lang={lang} copy={copy} shop={shop} />
+      {trial}
       <p className="mt-6 max-w-3xl text-xs/[1.9] text-muted-foreground">{copy.priceNote}</p>
     </>
   );

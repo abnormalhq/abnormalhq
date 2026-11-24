@@ -63,6 +63,11 @@ export interface DocSection {
    * a schema.org HowTo. Only for real step-by-step instructions, never for a list of facts.
    */
   howTo?: true;
+  /**
+   * The section's fixed anchor on its page, used instead of its position (section-1, section-2, …). A page whose sections were
+   * shared by anchor gives them their old one when a section is inserted before them, so saved links still land on the same heading.
+   */
+  anchor?: string;
 }
 
 export interface HelpArticle {

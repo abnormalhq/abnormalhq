@@ -29,6 +29,26 @@ export function fillText<Slot extends string>(template: Template<Slot>, slots: R
 
 export type PlanRow = keyof CompareCopy["rows"];
 
+/** A mailbox size as the plans write it: GB from 1024 MB up, MB below. */
+function sizeLabel(quotaMb: number): string {
+  return quotaMb >= 1024 ? `${Number((quotaMb / 1024).toFixed(2))} GB` : `${quotaMb} MB`;
+}
+
+/**
+ * The free trial's heading and terms, filled from the catalog, or undefined while the shop offers no trial. The trial strip and the
+ * pricing page's Markdown both use this, so neither can state terms the shop does not.
+ */
+export function trialText(
+  trial: ShopCatalog["trial"],
+  copy: Copy["pricing"]["trial"],
+): { title: string; body: string } | undefined {
+  if (!trial) return undefined;
+  return {
+    title: fillText(copy.title, { days: trial.days }),
+    body: fillText(copy.body, { size: trial.quotaMb === 0 ? copy.defaultSize : sizeLabel(trial.quotaMb) }),
+  };
+}
+
 export interface PlanView {
   id: string;
   name: string;
@@ -61,8 +81,7 @@ function storage(product: ShopProduct, t: PlanCopy): string {
   const without = product.domains.filter((domain) => product.quotaSupportedByDomain?.[domain] === false);
   if (without.length > 0) return without.length === product.domains.length ? t.storageUnavailable : t.storageMixed;
   if (product.quotaMb === 0) return t.storageDefault;
-  const size = product.quotaMb >= 1024 ? `${Number((product.quotaMb / 1024).toFixed(2))} GB` : `${product.quotaMb} MB`;
-  return fillText(t.storage, { size });
+  return fillText(t.storage, { size: sizeLabel(product.quotaMb) });
 }
 
 /** A card amount as a plain decimal in the currency's own number of decimals (2 for USD, 0 for JPY); null for an unknown currency. */
