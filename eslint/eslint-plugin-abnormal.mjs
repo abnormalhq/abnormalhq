@@ -288,8 +288,9 @@ const noHardcodedCss = {
         const report = (message) => context.report({ node, message: `${property}: ${value.trim()}: ${message}` });
         const bare = bareValue(value);
         if (literalColor.test(bare)) return report("use var(--token) instead of a literal color.");
-        // A pixel length that starts a token: a custom property name such as --gap-8px, in any script, is not one.
-        const pixelLength = /(?<![\p{L}\p{N}_.-])-?(\d*\.?\d+)px\b/giu;
+        // A pixel length that starts a token. CSS reads every non-ASCII character as part of a name, so --gap-8px or
+        // --圆角-4px is a custom property, not a length.
+        const pixelLength = /(?<![\w.\-\u{80}-\u{10FFFF}])-?(\d*\.?\d+)px\b/giu;
         const length = /(?:^|[\s(,+*/-])\+?\d*\.?\d+(?:px|rem)\b/i;
         const fixedSize =
           property === "font-size"
