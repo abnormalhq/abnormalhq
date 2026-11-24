@@ -21,6 +21,7 @@
  * or below them), are refused when adding, like mail refuses them.
  */
 import { randomBytes } from "node:crypto";
+import type { DomainAddresses, DomainAlias, DomainGroup } from "@/storefront/lib/domain-addresses";
 import type { AccountDomain, DomainCheck, DomainRecord } from "@/storefront/lib/domains";
 
 type Say = (zh: string, en: string) => string;
@@ -42,6 +43,17 @@ const PROVIDER_HOSTS = ["abnormalhq.com", "abnormal.bid"];
 const DOMAIN_NAME = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 const SEVEN_DAYS = 7 * 86_400_000;
 const ID = /^[a-z0-9]{15}$/;
+/** mail's LOCAL_PART_PATTERN: lower-case letters, digits and . _ -, starting and ending with a letter or digit. */
+const LOCAL_PART = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
+/** mail's BUYER_ALIASES_MAX, BUYER_GROUPS_MAX and BUYER_GROUP_MEMBERS_MAX (apps/console/src/lib/shop/buyer-addresses.ts). */
+export const MOCK_ADDRESS_LIMITS = { aliases: 50, groups: 20, members: 50 };
+
+/** The aliases, group addresses and catch-all of one live domain. */
+interface StoredAddresses {
+  aliases: DomainAlias[];
+  groups: DomainGroup[];
+  catchAll: string | null;
+}
 
 interface StoredDomain {
   id: string;
@@ -95,8 +107,20 @@ function related(a: string, b: string): boolean {
   return a === b || a.endsWith(`.${b}`) || b.endsWith(`.${a}`);
 }
 
+/** The address routes under account/domains/ (mail's buyer-addresses.ts), as the part after "account/domains/". */
+export const ADDRESS_ACTIONS = [
+  "addresses",
+  "aliases/add",
+  "aliases/remove",
+  "groups/add",
+  "groups/update",
+  "groups/remove",
+  "catch-all",
+];
+
 export class MockDomains {
   private readonly domains = new Map<string, StoredDomain>();
+  private readonly addresses = new Map<string, StoredAddresses>();
   private readonly now: () => number;
   /** Whether a verified domain waits for the provider's approval (mail's default) or goes live at once. */
   private readonly approval: boolean;
@@ -202,7 +226,18 @@ export class MockDomains {
       .map((item) => item.name);
   }
 
-  write(action: string, owner: string, body: Record<string, unknown>, say: Say, limit: number): DomainAnswer {
+  /**
+   * `owned` is the addresses of the owner's mailboxes (the mailboxes of their paid orders): what aliases, groups and the
+   * catch-all can deliver to, as in mail.
+   */
+  write(
+    action: string,
+    owner: string,
+    body: Record<string, unknown>,
+    say: Say,
+    limit: number,
+    owned: readonly string[] = [],
+  ): DomainAnswer {
     const refuse = (status: number, code: string, zh: string, en: string) =>
       refusal(this.coded, say, status, code, zh, en);
     if (action === "add") {
@@ -258,6 +293,7 @@ export class MockDomains {
     // The same answer whether or not the domain exists.
     if (!domain || domain.owner !== owner) return refuse(404, "domain_not_found", "域名不存在。", "Domain not found.");
     const label = this.label(domain);
+    if (ADDRESS_ACTIONS.includes(action)) return this.address(action, domain, body, say, owned);
     if (action === "verify") {
       if (label === "busy")
         return error(429, say("操作过于频繁，请稍后重试。", "Too many requests. Please try again later."), {
@@ -323,5 +359,190 @@ export class MockDomains {
       );
     this.domains.delete(domain.id);
     return { status: 200, body: { ok: true } };
+  }
+
+  /**
+   * The addresses on a live domain (mail's buyer-addresses.ts): aliases and the catch-all deliver to one of the owner's
+   * mailboxes on the domain, group members are only the owner's mailboxes, and a domain suspended by the provider or whose
+   * plan lapsed past grace can be read but not changed. The refusals are mail's wording.
+   */
+  private address(
+    action: string,
+    domain: StoredDomain,
+    body: Record<string, unknown>,
+    say: Say,
+    owned: readonly string[],
+  ): DomainAnswer {
+    if (domain.state !== "live")
+      return error(
+        409,
+        say(
+          "域名上线后才能管理它的别名、群组地址和 catch-all。",
+          "You can manage this domain's aliases, group addresses and catch-all once it is live.",
+        ),
+      );
+    const stored = this.addresses.get(domain.id) ?? { aliases: [], groups: [], catchAll: null };
+    this.addresses.set(domain.id, stored);
+    const mine = owned.map((item) => item.toLowerCase());
+    const onDomain = mine.filter((item) => item.endsWith(`@${domain.name}`)).sort();
+    if (action === "addresses") {
+      const answer: DomainAddresses = {
+        domain: { id: domain.id, name: domain.name },
+        editable: !domain.suspended,
+        mailboxes: onDomain,
+        members: onDomain,
+        aliases: structuredClone(stored.aliases),
+        groups: structuredClone(stored.groups),
+        catchAll: stored.catchAll,
+        limits: { ...MOCK_ADDRESS_LIMITS },
+      };
+      return { status: 200, body: answer };
+    }
+    if (domain.suspended)
+      return error(
+        409,
+        say(
+          "这个域名已暂停或套餐已过期，恢复或续费后才能修改它的地址。",
+          "This domain is suspended or its plan has lapsed. Restore or renew it to change its addresses.",
+        ),
+      );
+    const taken = (address: string) =>
+      mine.includes(address) ||
+      stored.aliases.some((item) => item.address === address) ||
+      stored.groups.some((item) => item.address === address);
+    const name = (): string | DomainAnswer => {
+      const value = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
+      if (!LOCAL_PART.test(value))
+        return error(
+          400,
+          say(
+            "地址的前半部分只能用小写字母、数字和 . _ -，首尾必须是字母或数字，最多 64 位。",
+            "The part before the @ can use lowercase letters, digits and . _ -, must start and end with a letter or digit, and can be up to 64 characters.",
+          ),
+        );
+      const address = `${value}@${domain.name}`;
+      if (taken(address))
+        return error(
+          409,
+          say(
+            "这个地址已经被邮箱、别名或群组地址占用，换一个试试。",
+            "This address is already used by a mailbox, alias or group address. Try another.",
+          ),
+        );
+      return address;
+    };
+    const notOwnedMember = () =>
+      error(
+        409,
+        say("群组成员只能是你账户下、这个域名里的邮箱。", "Group members can only be your mailboxes on this domain."),
+      );
+    const members = (value: unknown): string[] | DomainAnswer => {
+      if (value === undefined) return [];
+      if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) return notOwnedMember();
+      const list = [...new Set(value.map((item: string) => item.trim().toLowerCase()))];
+      return list.every((item) => onDomain.includes(item)) ? list : notOwnedMember();
+    };
+    const tooMany = (count: number) => count > MOCK_ADDRESS_LIMITS.members;
+    const noMembers = () => error(400, say("群组地址至少要有一个成员。", "A group address needs at least one member."));
+    const membersLimit = () =>
+      error(
+        409,
+        say(
+          `一个群组地址最多 ${MOCK_ADDRESS_LIMITS.members} 个成员。`,
+          `A group address can have up to ${MOCK_ADDRESS_LIMITS.members} members.`,
+        ),
+      );
+    const group = () => {
+      const found = stored.groups.find((item) => item.id === body.groupId);
+      return found ?? error(404, say("找不到这个群组地址。", "This group address doesn't exist."));
+    };
+    if (action === "aliases/add") {
+      const address = name();
+      if (typeof address !== "string") return address;
+      const target = typeof body.target === "string" ? body.target.trim().toLowerCase() : "";
+      if (!onDomain.includes(target))
+        return error(
+          409,
+          say("只能投递到你账户下、这个域名里的邮箱。", "Mail can only go to one of your mailboxes on this domain."),
+        );
+      if (stored.aliases.length >= MOCK_ADDRESS_LIMITS.aliases)
+        return error(
+          409,
+          say(
+            `一个域名最多 ${MOCK_ADDRESS_LIMITS.aliases} 个别名。`,
+            `A domain can have up to ${MOCK_ADDRESS_LIMITS.aliases} aliases.`,
+          ),
+        );
+      const alias: DomainAlias = { id: randomBytes(8).toString("hex"), address, target, enabled: true };
+      stored.aliases = [...stored.aliases, alias].sort((a, b) => a.address.localeCompare(b.address));
+      return { status: 200, body: { alias } };
+    }
+    if (action === "aliases/remove") {
+      if (!stored.aliases.some((item) => item.id === body.aliasId))
+        return error(404, say("找不到这个别名。", "This alias doesn't exist."));
+      stored.aliases = stored.aliases.filter((item) => item.id !== body.aliasId);
+      return { status: 200, body: { ok: true } };
+    }
+    if (action === "groups/add") {
+      const address = name();
+      if (typeof address !== "string") return address;
+      const list = members(body.members);
+      if (!Array.isArray(list)) return list;
+      if (list.length === 0) return noMembers();
+      if (tooMany(list.length)) return membersLimit();
+      if (stored.groups.length >= MOCK_ADDRESS_LIMITS.groups)
+        return error(
+          409,
+          say(
+            `一个域名最多 ${MOCK_ADDRESS_LIMITS.groups} 个群组地址。`,
+            `A domain can have up to ${MOCK_ADDRESS_LIMITS.groups} group addresses.`,
+          ),
+        );
+      const description = typeof body.description === "string" ? body.description.trim() : "";
+      if (description.length > 200)
+        return error(400, say("群组说明最多 200 个字符。", "A group description can be up to 200 characters."));
+      const added: DomainGroup = {
+        id: `list_${domain.id}_${randomBytes(4).toString("hex")}`,
+        address,
+        description,
+        members: list,
+      };
+      stored.groups = [...stored.groups, added].sort((a, b) => a.address.localeCompare(b.address));
+      return { status: 200, body: { group: added } };
+    }
+    if (action === "groups/update") {
+      const current = group();
+      if (!("id" in current)) return current;
+      const adding = members(body.addMembers);
+      if (!Array.isArray(adding)) return adding;
+      const removing = new Set(
+        (Array.isArray(body.removeMembers) ? body.removeMembers : []).map((item) => String(item).toLowerCase()),
+      );
+      const next = [...new Set([...current.members.filter((item) => !removing.has(item)), ...adding])];
+      if (next.length === 0) return noMembers();
+      if (tooMany(next.length)) return membersLimit();
+      const description = typeof body.description === "string" ? body.description.trim() : undefined;
+      if (description !== undefined && description.length > 200)
+        return error(400, say("群组说明最多 200 个字符。", "A group description can be up to 200 characters."));
+      current.members = next;
+      if (description !== undefined) current.description = description;
+      return { status: 200, body: { group: structuredClone(current) } };
+    }
+    if (action === "groups/remove") {
+      const current = group();
+      if (!("id" in current)) return current;
+      stored.groups = stored.groups.filter((item) => item.id !== current.id);
+      return { status: 200, body: { ok: true } };
+    }
+    // catch-all
+    const destination =
+      body.destination === null || body.destination === "" ? null : String(body.destination).trim().toLowerCase();
+    if (destination !== null && !onDomain.includes(destination))
+      return error(
+        409,
+        say("只能投递到你账户下、这个域名里的邮箱。", "Mail can only go to one of your mailboxes on this domain."),
+      );
+    stored.catchAll = destination;
+    return { status: 200, body: { catchAll: destination } };
   }
 }

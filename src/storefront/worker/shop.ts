@@ -64,6 +64,14 @@ export const SHOP_ROUTES: Readonly<Record<string, readonly ShopMethod[]>> = {
   "account/domains/check": ["POST"],
   "account/domains/refresh": ["POST"],
   "account/domains/remove": ["POST"],
+  // Aliases, group addresses and the catch-all on a live buyer domain: the routes mail added under `shop.buyerDomains.routes`.
+  "account/domains/addresses": ["POST"],
+  "account/domains/aliases/add": ["POST"],
+  "account/domains/aliases/remove": ["POST"],
+  "account/domains/groups/add": ["POST"],
+  "account/domains/groups/update": ["POST"],
+  "account/domains/groups/remove": ["POST"],
+  "account/domains/catch-all": ["POST"],
   // Reading the trial offer and claiming it are one route with two methods.
   "account/trial": ["GET", "POST"],
 };
@@ -116,6 +124,15 @@ export const DOMAIN_ROUTES = [
   "account/domains/check",
   "account/domains/refresh",
   "account/domains/remove",
+  // The addresses on a live domain (aliases, group addresses, catch-all): a mail before them answers its 404 page, which the
+  // domain card takes as "not offered" and shows no address management.
+  "account/domains/addresses",
+  "account/domains/aliases/add",
+  "account/domains/aliases/remove",
+  "account/domains/groups/add",
+  "account/domains/groups/update",
+  "account/domains/groups/remove",
+  "account/domains/catch-all",
 ];
 /**
  * The account's free trial (GET account/trial reads the offer, POST claims it; `shop.trials.routes` in

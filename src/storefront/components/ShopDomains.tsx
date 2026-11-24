@@ -26,6 +26,7 @@ import {
 import { formatDateTime, isRefusal } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/hooks";
+import { ShopDomainAddresses } from "./ShopDomainAddresses";
 import { cn } from "@/lib/utils";
 import {
   ShopActions,
@@ -51,9 +52,12 @@ import {
  */
 export function ShopDomains({
   lang,
+  addressRefresh = 0,
   onLive,
 }: {
   lang: Lang;
+  /** Changes when the account's mailboxes changed: a live domain's address panel reads its destinations again. */
+  addressRefresh?: number;
   /** A domain went live: "My mailboxes" offers it now, so its list is read again. */
   onLive: () => void;
 }) {
@@ -153,6 +157,7 @@ export function ShopDomains({
               lang={lang}
               domain={domain}
               budget={budget}
+              addressRefresh={addressRefresh}
               onUpdate={update}
               onLive={onLive}
               onRemoved={() => {
@@ -254,6 +259,7 @@ function DomainCard({
   lang,
   domain,
   budget,
+  addressRefresh,
   onUpdate,
   onRemoved,
   onLive,
@@ -262,6 +268,7 @@ function DomainCard({
   domain: AccountDomain;
   /** The page's allowance of checks, shared by all its cards (domainCheckBudget). */
   budget: DomainCheckBudget;
+  addressRefresh: number;
   onUpdate: (domain: AccountDomain) => void;
   onRemoved: () => void;
   onLive: () => void;
@@ -532,6 +539,11 @@ function DomainCard({
             </>
           )}
         </div>
+      )}
+
+      {/* Aliases, group addresses and the catch-all, once the domain is live (a suspended one is the provider's to lift first). */}
+      {domain.status === "live" && (
+        <ShopDomainAddresses lang={lang} domainId={domain.id} domain={domain.name} refresh={addressRefresh} />
       )}
     </section>
   );

@@ -32,7 +32,7 @@ import {
   seatUsdtPrice,
   SHOP_PRICE_MAX_CENTS,
 } from "@/storefront/lib/catalog";
-import { MockDomains } from "./domains";
+import { ADDRESS_ACTIONS, MockDomains } from "./domains";
 
 const COOKIE = "mailhq_shop";
 const TOKEN = /^[a-f0-9]{64}$/;
@@ -602,6 +602,7 @@ export class MockShopStore {
               "account/domains/check",
               "account/domains/refresh",
               "account/domains/remove",
+              ...ADDRESS_ACTIONS.map((action) => `account/domains/${action}`),
             ]
           : []),
       ].includes(route)
@@ -730,7 +731,10 @@ export class MockShopStore {
     let body: Record<string, unknown>;
     try {
       const text = await request.text();
-      if (new TextEncoder().encode(text).length > 4096)
+      // Like mail: 4 KiB, except a group address's members, which may list up to 100 addresses of up to 320 characters when a whole roster is replaced.
+      const bodyLimit =
+        route === "account/domains/groups/add" || route === "account/domains/groups/update" ? 40960 : 4096;
+      if (new TextEncoder().encode(text).length > bodyLimit)
         return failure(413, say("请求内容过长。", "The request is too large."));
       if (form) {
         const params = new URLSearchParams(text);
@@ -1074,6 +1078,7 @@ export class MockShopStore {
         body,
         say,
         this.domainLimit(customer),
+        this.paidPurchases(customer).flatMap((order) => (this.mailboxes.get(order.id) ?? []).map((item) => item.email)),
       );
       return json(answer.body, answer.status, answer.headers);
     }

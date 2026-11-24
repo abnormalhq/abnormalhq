@@ -66,10 +66,13 @@ interface Created {
 export function ShopMailboxManager({
   lang,
   refresh = 0,
+  onChanged,
 }: {
   lang: Lang;
   /** Changes when something outside the manager changed what it lists (one of the buyer's own domains went live): the list is read again. */
   refresh?: number;
+  /** A mailbox was created, changed or deleted: what the domain cards offer as destinations is read again. */
+  onChanged?: () => void;
 }) {
   const t = useShopCopy();
   // undefined: still loading; null: unavailable (logged out or old backend), this block is hidden.
@@ -143,6 +146,7 @@ export function ShopMailboxManager({
       setOpen(null);
       if (message) setNotice(message);
       setReload((value) => value + 1);
+      onChanged?.();
       return true;
     } catch (cause) {
       if (mounted.current) setError(describeShopError(cause, lang, t));

@@ -95,6 +95,9 @@ type ShopCopyMethods = {
   domainOwnershipExpires: (date: string) => string;
   domainRemoved: (name: string) => string;
   domainCheckedAt: (date: string) => string;
+  addressAdded: (address: string) => string;
+  addressRemoved: (address: string) => string;
+  groupSaved: (address: string) => string;
 };
 
 export type ShopCopy = Omit<ShopCopyMessages, keyof ShopCopyMethods | "trial"> &
@@ -192,4 +195,7 @@ export const shopCopyArgumentNames = {
   domainOwnershipExpires: ["date"],
   domainRemoved: ["name"],
   domainCheckedAt: ["date"],
+  addressAdded: ["address"],
+  addressRemoved: ["address"],
+  groupSaved: ["address"],
 } as const;
