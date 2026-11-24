@@ -6,12 +6,12 @@ export const en: CopyMessages = {
   dot: ".",
   space: " ",
   meta: {
-    title: "Abnormal — Thoughtful digital services",
+    title: "Abnormal — Useful tools, simpler days",
     description:
       "Meet Mail for email, calendars and contacts. Doppel, our browser workspace for AI agents, is not public yet. Check its waitlist status.",
-    socialTitle: "Abnormal — Useful services, simpler days.",
-    socialDescription: "Thoughtful digital services designed to make everyday life and work simpler.",
-    socialImageAlt: "Abnormal: thoughtful digital services for everyday life and work.",
+    socialTitle: "Abnormal — Useful tools, simpler days.",
+    socialDescription: "Mail, calendars, contacts and more, designed to make everyday life and work simpler.",
+    socialImageAlt: "Abnormal: useful tools, simpler days.",
   },
   skipLink: "Skip to main content",
   brandLabel: "Abnormal home",
@@ -40,7 +40,7 @@ export const en: CopyMessages = {
     options: { system: "System", light: "Light", dark: "Dark" },
   },
   hero: {
-    eyebrow: "Thoughtful digital services",
+    eyebrow: "Useful tools, simpler days",
     productsLabel: "Products",
     mail: {
       tab: "Mail",
@@ -857,7 +857,7 @@ export const en: CopyMessages = {
     label: "Service status",
   },
   footer: {
-    tagline: "Abnormally good.",
+    tagline: "Useful tools, simpler days.",
     productLabel: "Mail",
     supportLabel: "Support",
     contactLabel: "Contact",
@@ -879,7 +879,7 @@ export const en: CopyMessages = {
     ],
     faq: "FAQ",
     emailAria: "Support email: {email}",
-    copyright: "© {year} Abnormal. Thoughtfully made.",
+    copyright: "© {year} Abnormal.",
     buyOnline: "Buy a mailbox online",
     legalLabel: "Legal",
   },

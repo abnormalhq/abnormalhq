@@ -1373,14 +1373,14 @@ test("metadata, Markdown headings and public paths retain both locale outputs", 
   const expected = {
     en: {
       canonical: "/",
-      socialTitle: "Abnormal — Useful services, simpler days.",
-      markdownTitle: "# Abnormal — Thoughtful digital services",
+      socialTitle: "Abnormal — Useful tools, simpler days.",
+      markdownTitle: "# Abnormal — Useful tools, simpler days",
       paths: ["/", "/pricing/", "/shop/", "/redeem/"],
     },
     zh: {
       canonical: "/zh/",
-      socialTitle: "Abnormal — 用心打造实用的数字服务。",
-      markdownTitle: "# Abnormal — 实用的数字服务",
+      socialTitle: "Abnormal — 好用的工具，让日常更简单。",
+      markdownTitle: "# Abnormal — 好用的工具，让日常更简单",
       paths: ["/zh/", "/zh/pricing/", "/zh/shop/", "/zh/redeem/"],
     },
   } as const;

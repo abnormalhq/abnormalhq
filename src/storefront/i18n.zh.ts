@@ -136,7 +136,7 @@ export const zh: CopyMessages = {
     notified: "账号信息已发送到 {to}，请查收。",
     notifyFailed: "没能把账号信息发送到 {to}{reasonForm, select, withReason {：{reason}} other {}}。请在这里保存好。",
     note: ["密码只在这里显示一次，请保存好。之后可在网页邮箱的「设置」中修改；忘记密码请写信到 ", "。"],
-    next: "开通之后怎么登录邮箱、怎么用它登录 Claude 与 ChatGPT，看[教程](guide/)。",
+    next: "开通之后怎么登录邮箱、怎么用它登录其他服务，看[教程](guide/)。",
     again: "再兑换",
     leaveUnsaved: "邮箱密码只在本页显示一次。确定离开且不先保存吗？除非已发到通知邮箱，否则离开后无法再看到。",
   },
@@ -188,14 +188,13 @@ export const zh: CopyMessages = {
   },
   guide: {
     title: "开通之后 · Abnormal",
-    description:
-      "邮箱开通之后怎么用：登录网页邮箱、在手机或电脑的邮件客户端里收发，以及用它注册并登录 Claude 与 ChatGPT。",
+    description: "邮箱开通之后怎么用：登录网页邮箱、在手机或电脑的邮件客户端里收发，以及用它注册常用的服务。",
     back: "返回兑换页",
     eyebrow: "邮箱使用指南",
     heading: "开通之后。",
     contents: "本页目录",
     backToTop: "回到顶部",
-    lede: "邮箱已经在手里了。这一页说三件事：怎么登录邮箱，怎么在常用的邮件客户端里收发，怎么用它注册并登录 Claude 与 ChatGPT。",
+    lede: "邮箱已经在手里了。这一页说三件事：怎么登录邮箱，怎么在常用的邮件客户端里收发，怎么用它注册并登录其他服务（以 Claude 与 ChatGPT 为例）。",
     sections: [
       {
         title: "登录名与密码",

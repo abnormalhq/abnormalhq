@@ -285,8 +285,8 @@ test("the header's entries are home page sections or pages, and the widest bar i
 });
 
 test("the copyright line takes the year through a template slot", () => {
-  assert.equal(fillTemplate(zh.footer.copyright, { year: 2027 }).join(""), "© 2027 Abnormal. 用心服务日常。");
-  assert.equal(fillTemplate(en.footer.copyright, { year: 2027 }).join(""), "© 2027 Abnormal. Thoughtfully made.");
+  assert.equal(fillTemplate(zh.footer.copyright, { year: 2027 }).join(""), "© 2027 Abnormal.");
+  assert.equal(fillTemplate(en.footer.copyright, { year: 2027 }).join(""), "© 2027 Abnormal.");
 });
 
 test("the old English addresses under /en/ redirect permanently to the root", async () => {
