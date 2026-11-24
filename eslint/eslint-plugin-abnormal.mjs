@@ -7,12 +7,13 @@
  *   import abnormal from "./eslint/eslint-plugin-abnormal.mjs";
  *
  *   { files: ["**\/*.{ts,tsx}"], plugins: { abnormal }, rules: { "abnormal/no-hardcoded-classes": "error" } },
- *   { files: ["**\/*.css"], language: "css/css", languageOptions: { customSyntax: tailwind4 },
+ *   { files: ["**\/*.css"], language: "css/css", languageOptions: { customSyntax: tailwind4, tolerant: true },
  *     plugins: { css, abnormal }, rules: { "abnormal/no-hardcoded-css": "error" } },
  *
  * and leave out the theme (abnormal.css), where the literal values live. The Tailwind syntax lets the CSS parser read
  * @theme, @utility, @apply with variants and nested rules, so every declaration in them is checked. A @keyframes inside
- * @theme is beyond that syntax for now: add `tolerant: true` to languageOptions if your theme holds one. Blocks of your config
+ * @theme and an @apply of an arbitrary variant (data-[state=open]:underline) are beyond that syntax for now; `tolerant`
+ * skips just that piece, where a strict parse would stop at it and check nothing else in the file. Blocks of your config
  * that set rules without `files` (eslint-config-next's, for one) also run on CSS, whose syntax their rules cannot read:
  * give them `files: ["**\/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"]`.
  *

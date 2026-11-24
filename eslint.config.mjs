@@ -38,7 +38,8 @@ const themeRules = [
     ignores: ["src/styles/abnormal*.css"],
     language: "css/css",
     // Tailwind's syntax, so @theme, @utility and @apply with variants parse and every declaration in them is checked;
-    // tolerant for the @keyframes inside @theme, which that syntax does not read yet.
+    // tolerant, so a piece the syntax cannot read yet (a @keyframes inside @theme, an @apply of data-[state=open]:) is
+    // skipped, not the whole file.
     languageOptions: { customSyntax: tailwind4, tolerant: true },
     plugins: { css, abnormal },
     rules: { "abnormal/no-hardcoded-css": "error" },
