@@ -84,9 +84,24 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-    env:
-      DEPLOY_COMMIT: ${{ needs.resolve.outputs.commit }}
+      actions: read
     steps:
+      # Picks main's latest commit again, so that "Re-run failed jobs" on an older run, which keeps that run's resolve output, still
+      # deploys main's latest commit when it replaces a waiting run. When the latest commit's push CI has not passed yet, the commit
+      # resolve picked stays, and the check before the upload stops the run.
+      - name: Pick main's latest commit that CI passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESOLVED_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: |
+          commit="$RESOLVED_COMMIT"
+          tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          passed="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$tip&branch=main&event=push&status=success" \
+            --jq .total_count)"
+          if [ "$passed" != "0" ]; then
+            commit="$tip"
+          fi
+          echo "DEPLOY_COMMIT=$commit" >> "$GITHUB_ENV"
       - name: Check out source
         uses: actions/checkout@v7
         with:
