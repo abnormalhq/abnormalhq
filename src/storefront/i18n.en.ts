@@ -145,7 +145,7 @@ export const en: CopyMessages = {
       "Passwords are shown only here, only once. Change yours in webmail Settings; if you forget it, write to ",
       ".",
     ],
-    next: "For what comes next, from logging in to the mailbox to using it for Claude and ChatGPT, see the [guide](guide/).",
+    next: "For what comes next, from logging in to the mailbox to using it with other services, see the [guide](guide/).",
     again: "Redeem again",
     leaveUnsaved:
       "Mailbox passwords are shown only on this page. Leave without saving them? You will not see them again unless a copy was emailed.",
@@ -199,13 +199,13 @@ export const en: CopyMessages = {
   guide: {
     title: "After you redeem · Abnormal",
     description:
-      "What to do with the new mailbox: log in to webmail, set it up in a mail app on your phone or computer, and use it to sign up for and log in to Claude and ChatGPT.",
+      "What to do with the new mailbox: log in to webmail, set it up in the mail app on your phone or computer, and use it to sign up for the services you use.",
     back: "Back to redeem",
     eyebrow: "The mailbox guide",
     heading: "After you redeem.",
     contents: "On this page",
     backToTop: "Back to top",
-    lede: "The mailbox is yours. This page covers three things: how to log in to it, how to read and send from the usual mail apps, and how to use it to sign up for and log in to Claude and ChatGPT.",
+    lede: "The mailbox is yours. This page covers three things: how to log in to it, how to read and send from the usual mail apps, and how to use it to sign up for and log in to other services, with Claude and ChatGPT as examples.",
     sections: [
       {
         title: "Login and password",

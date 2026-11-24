@@ -6,12 +6,12 @@ export const zh: CopyMessages = {
   dot: "。",
   space: "",
   meta: {
-    title: "Abnormal — 实用的数字服务",
+    title: "Abnormal — 好用的工具，让日常更简单",
     description:
       "认识 Abnormal Mail 邮箱服务。Doppel 为 AI 代理提供持久、独立的浏览器工作环境，目前尚未公开，可查看候补登记状态。",
-    socialTitle: "Abnormal — 用心打造实用的数字服务。",
-    socialDescription: "为真实需求而设计，让日常与工作更简单的数字服务。",
-    socialImageAlt: "Abnormal：用心打造实用的数字服务，让日常与工作更简单。",
+    socialTitle: "Abnormal — 好用的工具，让日常更简单。",
+    socialDescription: "邮箱、日历、通讯录等工具，为让日常与工作更简单而设计。",
+    socialImageAlt: "Abnormal：好用的工具，让日常更简单。",
   },
   skipLink: "跳到主要内容",
   brandLabel: "Abnormal 首页",
@@ -40,7 +40,7 @@ export const zh: CopyMessages = {
     options: { system: "跟随系统", light: "浅色模式", dark: "深色模式" },
   },
   hero: {
-    eyebrow: "Thoughtful digital services",
+    eyebrow: "Useful tools, simpler days",
     productsLabel: "产品",
     mail: {
       tab: "Mail",
@@ -812,7 +812,7 @@ export const zh: CopyMessages = {
     label: "服务状态",
   },
   footer: {
-    tagline: "Abnormally good.",
+    tagline: "Useful tools, simpler days.",
     productLabel: "Mail 邮箱",
     supportLabel: "支持 / SUPPORT",
     contactLabel: "保持联系 / CONTACT",
@@ -834,7 +834,7 @@ export const zh: CopyMessages = {
     ],
     faq: "常见问题",
     emailAria: "客服邮箱：{email}",
-    copyright: "© {year} Abnormal. 用心服务日常。",
+    copyright: "© {year} Abnormal.",
     buyOnline: "在线购买邮箱",
     legalLabel: "法律信息",
   },
