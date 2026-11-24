@@ -265,7 +265,7 @@ test("Worker: redeem endpoints answer errors in the page language; a misconfigur
   expect((await errorBody(zh)).error).toBe("接口不存在。");
 
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
-  const env = { ...bindings(), MAIL_ORIGIN: "not a url" } as unknown as StorefrontEnv;
+  const env = { ...bindings(), MAIL_ORIGIN: "not a url" };
   const redeem = await worker.fetch(post("/api/onboard/redeem", english), env);
   expect(redeem.status).toBe(503);
   expect(await errorBody(redeem)).toStrictEqual({

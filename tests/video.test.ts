@@ -16,8 +16,7 @@ const none: PromoVideo = { src: "", poster: "", uploadDate: "" };
 
 type Node = Record<string, unknown>;
 const nodes = (data: { "@graph": Node[] }) => data["@graph"];
-const ofType = (graph: Node[], type: string) =>
-  graph.find((node) => [node["@type"]].flat().includes(type)) as Node | undefined;
+const ofType = (graph: Node[], type: string) => graph.find((node) => [node["@type"]].flat().includes(type));
 
 test("a language's video is configured only once it has an address", () => {
   assert.equal(configuredVideo("en", { en: none, zh: sample }), null);

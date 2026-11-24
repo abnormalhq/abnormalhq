@@ -20,8 +20,7 @@ import { releaseIndex, releaseIndexWithLinux } from "./support/releases.ts";
 
 type Node = Record<string, unknown>;
 const nodes = (data: { "@graph": Node[] }) => data["@graph"];
-const ofType = (graph: Node[], type: string) =>
-  graph.find((node) => [node["@type"]].flat().includes(type)) as Node | undefined;
+const ofType = (graph: Node[], type: string) => graph.find((node) => [node["@type"]].flat().includes(type));
 
 for (const lang of ["zh", "en"] as const) {
   test(`${lang} home describes the organization, the site and every FAQ answer on the page`, () => {

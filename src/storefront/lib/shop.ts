@@ -735,8 +735,8 @@ function parseAccount(value: unknown): CustomerAccount | null {
     hasPassword: value.hasPassword,
     google:
       value.google === undefined ? undefined : value.google === null ? null : { email: value.google.email as string },
-    subscriptions: subscriptions as AccountSubscription[],
-    orders: orders as AccountOrder[],
+    subscriptions: subscriptions,
+    orders: orders,
   });
 }
 
@@ -1293,7 +1293,7 @@ function parseMailboxGroup(value: unknown): AccountMailboxGroup | null {
     locked: value.locked,
     // Absent on a backend before seat plans, and then absent here too.
     ...(value.seats === undefined ? {} : { seats }),
-    mailboxes: mailboxes as AccountMailbox[],
+    mailboxes: mailboxes,
   };
 }
 
@@ -1310,7 +1310,7 @@ function parseAccountMailboxes(value: unknown): AccountMailboxes | null {
     if (imap === undefined || smtp === undefined) return null;
     servers[domain] = { imap, smtp };
   }
-  return { groups: groups as AccountMailboxGroup[], servers, webmail: value.webmail };
+  return { groups: groups, servers, webmail: value.webmail };
 }
 
 /** Reads mailbox management; returns null when logged out (401). */

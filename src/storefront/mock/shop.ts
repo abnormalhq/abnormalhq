@@ -842,7 +842,7 @@ export class MockShopStore {
         new Set(asked).size !== asked.length
       )
         return failure(400, say("请选择有效的支付方式。", "Choose a valid payment method."));
-      const providers = asked as Provider[];
+      const providers = asked;
       const product = this.plans().find((item) => item.id === body.productId);
       if (!product) return unavailableProduct();
       // The quantity is the same whichever way the order is paid: a wrong one refuses the whole request.

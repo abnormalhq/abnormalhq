@@ -16,7 +16,7 @@ const copy = {
   label: "Service status",
   states: { up: "All systems operational", down: "Partial outage", maintenance: "Under maintenance" },
   uptime: "{percent}% uptime over the last {days} days",
-} as Copy["serviceStatus"];
+} satisfies Copy["serviceStatus"];
 
 test("server renders have isolated clients and do not fetch or prerender a status", () => {
   const fetcher = vi.fn(async () => Response.json(summary));

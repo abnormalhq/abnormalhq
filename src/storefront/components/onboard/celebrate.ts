@@ -79,13 +79,17 @@ export async function celebrate(anchor: HTMLElement | null, signal: AbortSignal)
       ticks: 300,
       disableForReducedMotion: true,
     };
-    let finished: ReturnType<typeof fire> = null;
+    // Each burst's promise settles when its confetti has fallen; the last one is awaited before cleaning up. An array, as
+    // TypeScript would take a variable set only inside burst() to still be null where it is awaited.
+    const bursts: ReturnType<typeof fire>[] = [];
     const burst = (options: Options) => {
-      finished = fire({
-        ...base,
-        ...options,
-        particleCount: Math.round((options.particleCount ?? 0) * density),
-      });
+      bursts.push(
+        fire({
+          ...base,
+          ...options,
+          particleCount: Math.round((options.particleCount ?? 0) * density),
+        }),
+      );
     };
 
     burst({
@@ -132,7 +136,7 @@ export async function celebrate(anchor: HTMLElement | null, signal: AbortSignal)
         scalar: 1.3,
       });
     }
-    await finished;
+    await bursts.at(-1);
   } catch {
     // Offline or script blocked: no celebration is fine.
   } finally {

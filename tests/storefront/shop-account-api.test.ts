@@ -49,7 +49,7 @@ function respond(body: unknown, status = 200) {
 function patched<T>(sample: T, path: string, value: unknown): T {
   const copy = structuredClone(sample) as Record<string, unknown>;
   const keys = path.split(".");
-  let target = copy as Record<string, unknown>;
+  let target = copy;
   for (const key of keys.slice(0, -1)) target = target[key] as Record<string, unknown>;
   if (value === undefined) delete target[keys.at(-1)!];
   else target[keys.at(-1)!] = value;

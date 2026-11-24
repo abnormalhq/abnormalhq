@@ -28,7 +28,7 @@ vi.mock("@/content/legal/frontmatter", async () => {
     const file = `${lang}/${name}.mdx`;
     const source = readFileSync(`src/content/legal/${file}`, "utf8");
     const { frontmatter } = await evaluate(source, options as Parameters<typeof evaluate>[1]);
-    return parseLegalFrontmatter(frontmatter as Record<string, unknown>, file);
+    return parseLegalFrontmatter(frontmatter, file);
   };
   return {
     legalFrontmatters: {

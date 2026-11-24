@@ -200,10 +200,10 @@ function parseQuotePrice(
     unitPriceCents: unitPriceCents as number,
     subtotalCents: subtotal!,
     discountPercent: discountPercent as number,
-    planDiscountCents: planDiscount!,
+    planDiscountCents: planDiscount,
     basePriceCents: base!,
     coupon,
-    totalCents: total!,
+    totalCents: total,
     renewPriceCents: renewPriceCents as number,
   };
 }

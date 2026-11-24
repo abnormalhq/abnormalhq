@@ -136,7 +136,7 @@ const shopFormatters: DynamicMessageFormatters = Object.fromEntries(
       return translator(key, values);
     },
   ]),
-) as DynamicMessageFormatters;
+);
 
 export function createShopCopyFacade(translator: MessageTranslator, source: Record<string, unknown>): ShopCopy {
   return createTranslationFacade<ShopCopy>(translator, source, shopFormatters);
