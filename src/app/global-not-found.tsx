@@ -50,7 +50,7 @@ export default function GlobalNotFound() {
             </Button>
           </NotFoundActions>
           <NotFoundAside lang="zh-CN">
-            <p className="font-medium text-foreground">这个页面不存在。</p>
+            <h2 className="font-medium text-foreground">这个页面不存在。</h2>
             <p className="mt-1">链接可能已经过期，或者地址输错了。</p>
             <p className="mt-3">
               <TextLink asChild>
