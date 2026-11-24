@@ -215,7 +215,7 @@ async function liveDomain(name = "example.org") {
 }
 
 test("dev shop: aliases, groups and the catch-all on a live domain follow mail's rules", async () => {
-  const { domain } = await liveDomain();
+  const { client, domain } = await liveDomain();
   const empty = (await getDomainAddresses(domain.id, undefined, "en"))!;
   expect(empty).toMatchObject({
     editable: true,
@@ -250,6 +250,15 @@ test("dev shop: aliases, groups and the catch-all on a live domain follow mail's
   const saved = await updateDomainGroup(domain.id, group, ["bob@example.org"], "en");
   expect(saved.members).toStrictEqual(["bob@example.org"]);
   await expect(updateDomainGroup(domain.id, saved, [], "en")).rejects.toMatchObject({ status: 400 });
+  // A description-only change through the route, as mail takes it.
+  const described = await client.send("account/domains/groups/update", {
+    body: { id: domain.id, groupId: group.id, description: "Support desk" },
+  });
+  expect(((await described.json()) as { group: { description: string } }).group.description).toBe("Support desk");
+  const tooLong = await client.send("account/domains/groups/update", {
+    body: { id: domain.id, groupId: group.id, description: "x".repeat(201) },
+  });
+  expect(tooLong.status).toBe(400);
 
   expect(await setDomainCatchAll(domain.id, "bob@example.org", "en")).toBe("bob@example.org");
   await expect(setDomainCatchAll(domain.id, "sales@example.org", "en")).rejects.toMatchObject({ status: 409 });

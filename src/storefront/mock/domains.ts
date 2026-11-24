@@ -518,7 +518,11 @@ export class MockDomains {
       const next = [...new Set([...current.members.filter((item) => !removing.has(item)), ...adding])];
       if (next.length === 0) return noMembers();
       if (tooMany(next.length)) return membersLimit();
+      const description = typeof body.description === "string" ? body.description.trim() : undefined;
+      if (description !== undefined && description.length > 200)
+        return error(400, say("群组说明最多 200 个字符。", "A group description can be up to 200 characters."));
       current.members = next;
+      if (description !== undefined) current.description = description;
       return { status: 200, body: { group: structuredClone(current) } };
     }
     if (action === "groups/remove") {
