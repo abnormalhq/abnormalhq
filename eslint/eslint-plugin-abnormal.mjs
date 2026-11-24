@@ -288,6 +288,8 @@ const noHardcodedCss = {
         const report = (message) => context.report({ node, message: `${property}: ${value.trim()}: ${message}` });
         const bare = bareValue(value);
         if (literalColor.test(bare)) return report("use var(--token) instead of a literal color.");
+        // A pixel length that starts a token: a custom property name such as --gap-8px, in any script, is not one.
+        const pixelLength = /(?<![\p{L}\p{N}_.-])-?(\d*\.?\d+)px\b/giu;
         const length = /(?:^|[\s(,+*/-])\+?\d*\.?\d+(?:px|rem)\b/i;
         const fixedSize =
           property === "font-size"
@@ -296,13 +298,13 @@ const noHardcodedCss = {
               property === "font" && length.test(withoutCalls(withoutLineHeight(bare), "var|clamp"));
         if (fixedSize) return report("use var(--text-*) from the type scale.");
         if (SPACING_CSS.test(property)) {
-          const large = [...bare.matchAll(/(?<![\w.-])-?(\d*\.?\d+)px\b/gi)].some(([, n]) => Number(n) >= 3);
+          const large = [...bare.matchAll(pixelLength)].some(([, n]) => Number(n) >= 3);
           if (large)
             return report("use spacing steps (--spacing(n), or calc(var(--spacing) * n) where Tailwind does not run).");
         }
         if (
           property.endsWith("radius") &&
-          [...bare.matchAll(/(?<![\w.-])-?(\d*\.?\d+)px\b/gi)].some(([, n]) => Number(n) > 2 && Number(n) < 999)
+          [...bare.matchAll(pixelLength)].some(([, n]) => Number(n) > 2 && Number(n) < 999)
         )
           return report("use var(--radius-chip), var(--radius-control), var(--radius-mark) or var(--radius-panel).");
         if (property === "z-index" && /^\s*\d+\s*$/.test(bare) && Number(bare) >= 10)
