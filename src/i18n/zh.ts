@@ -405,6 +405,7 @@ export const zh: CopyMessages = {
       encrypted: "已加密 · 签名有效",
       masked: ["k7mq4xr2tw9hna@abnormalhq.com", "停用"],
       ai: ["总结对话", "翻译", "建议回复"],
+      invite: ["邀请：上线评审 · 周三 10:00", "接受", "拒绝"],
     },
     more: {
       title: "还有这些",

@@ -433,6 +433,7 @@ export const en: CopyMessages = {
       encrypted: "Encrypted · Signature valid",
       masked: ["k7mq4xr2tw9hna@abnormalhq.com", "Turn off"],
       ai: ["Summarize", "Translate", "Suggest replies"],
+      invite: ["Invitation: Launch review · Wed 10:00", "Accept", "Decline"],
     },
     more: {
       title: "And also",

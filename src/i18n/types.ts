@@ -342,6 +342,8 @@ export interface Copy {
       masked: readonly [address: string, action: string];
       /** The AI actions offered on a conversation. */
       ai: readonly [string, string, string];
+      /** The invitation under the calendar sample (the demo event with a location), and its two answers. */
+      invite: readonly [event: string, accept: string, decline: string];
     };
     /** Smaller things a mailbox can do, listed under the tiles as short phrases. */
     more: { title: string; items: readonly string[] };
