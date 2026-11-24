@@ -7,7 +7,7 @@ import { satisfies } from "./support/semver.ts";
 const manifest = JSON.parse(readFileSync("package.json", "utf8"));
 
 test("engines.node is a floor every tool this website runs supports", () => {
-  // engines is what contributors and tools (pnpm, Dependabot, Workers Builds) read as the minimum, so it has to be
+  // engines is what contributors and tools (pnpm, Dependabot) read as the minimum, so it has to be
   // the highest minimum among the dependencies, not a version where `pnpm install` warns or a commit hook breaks.
   const floor = manifest.engines.node.match(/^>=(\d+\.\d+\.\d+)$/)?.[1];
   assert.ok(floor, `engines.node is a plain >= floor, not ${manifest.engines.node}`);

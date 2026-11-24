@@ -1,7 +1,7 @@
 name: CI
 
-# PRs and pushes to main only run the checks and the build; production deploys come from Cloudflare Workers Builds watching main directly (see "Deployment" in the README).
-# This workflow needs no Cloudflare credentials and uploads no deploy artifacts.
+# PRs and pushes to main only run the checks and the build. When it passes for a push to main, deploy.yml deploys main's latest commit
+# (see "Deployment" in the README). This workflow needs no Cloudflare credentials and uploads no deploy artifacts.
 on:
   push:
     branches: [main]
@@ -12,8 +12,9 @@ on:
 permissions:
   contents: read
 
+# A CI run started by hand gets its own group, so it never cancels a push's run: only a push's CI lets deploy.yml deploy.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}${{ github.event_name == 'workflow_dispatch' && '-manual' || '' }}
   cancel-in-progress: true
 
 env:

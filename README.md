@@ -2,7 +2,7 @@
 
 [Live site](https://abnormalhq.com/)
 
-The bilingual (Chinese and English) marketing site for the Abnormal email service, built with Next.js (App Router), Tailwind CSS 4 and TypeScript, with UI components from [Abnormal's shadcn registry](https://github.com/abnormalhq/ui). The site is the home of all of Abnormal: it introduces the email service, publishes its plans and prices, sells mailboxes and activates them (the storefront: shop, redeem page, buyer account and guide, which used to be the separate onboard site), and sends visitors on to webmail and service status; mailboxes for a team (plans sold per mailbox) and mailboxes on the buyer's own domain are bought and set up in the storefront too, on plans that offer them; setup help is still handled through the inquiry dialog. Pages are prerendered at build time (except the pricing and download pages, which render per request) and run on a Cloudflare Worker through [@opennextjs/cloudflare](https://opennext.js.org/cloudflare); the navigation menu, theme toggle and inquiry dialog are React client components. Cloudflare Workers Builds watches `main` and deploys automatically; GitHub Actions only runs checks.
+The bilingual (Chinese and English) marketing site for the Abnormal email service, built with Next.js (App Router), Tailwind CSS 4 and TypeScript, with UI components from [Abnormal's shadcn registry](https://github.com/abnormalhq/ui). The site is the home of all of Abnormal: it introduces the email service, publishes its plans and prices, sells mailboxes and activates them (the storefront: shop, redeem page, buyer account and guide, which used to be the separate onboard site), and sends visitors on to webmail and service status; mailboxes for a team (plans sold per mailbox) and mailboxes on the buyer's own domain are bought and set up in the storefront too, on plans that offer them; setup help is still handled through the inquiry dialog. Pages are prerendered at build time (except the pricing and download pages, which render per request) and run on a Cloudflare Worker through [@opennextjs/cloudflare](https://opennext.js.org/cloudflare); the navigation menu, theme toggle and inquiry dialog are React client components. GitHub Actions checks every push to `main` and deploys it once CI passes.
 
 ## Chinese and English
 
@@ -130,11 +130,11 @@ To try the real API against a local mail: in mail set `ONBOARD_ORIGIN=http://loc
 
 ### Retiring onboard
 
-`onboard.abnormalhq.com` (and `onboard.abnormal.bid`) are custom domains of this Worker (`routes` in `wrangler.jsonc`). `src/storefront/worker/legacy.ts` 301s every page there to the same page here (`/` → `/zh/redeem/`, `/en/shop/orders/?id=…` → `/shop/orders/?id=…` and so on, with the query string), and the API under `/api` keeps answering on that host, so Credit notifications and links in mail already sent keep working. Buyers' purchase and login sessions were host cookies of the old domain, so they sign in again once.
+`onboard.abnormalhq.com` is a custom domain of this Worker (`routes` in `wrangler.jsonc`). `src/storefront/worker/legacy.ts` 301s every page there to the same page here (`/` → `/zh/redeem/`, `/en/shop/orders/?id=…` → `/shop/orders/?id=…` and so on, with the query string), and the API under `/api` keeps answering on that host, so Credit notifications and links in mail already sent keep working. Buyers' purchase and login sessions were host cookies of the old domain, so they sign in again once.
 
 The switch is done: the `abnormalhq-onboard` Worker and its repository are deleted, mail's sales settings and the Credit application point here,
-the `onboard.abnormal.bid` Redirect Rule goes straight to `https://abnormalhq.com`, and mail's `ONBOARD_ORIGIN` (with `redeem.storefrontOrigins` in both copies of
-`docs/onboard-contract.json`) lists only `https://abnormalhq.com`. The old domains stay bound here so links already sent keep landing on the right page.
+and mail's `ONBOARD_ORIGIN` (with `redeem.storefrontOrigins` in both copies of
+`docs/onboard-contract.json`) lists only `https://abnormalhq.com`. The old domain stays bound here so links already sent keep landing on the right page. The web addresses on `abnormal.bid` (`abnormal.bid`, `www.abnormal.bid`, `onboard.abnormal.bid`) were retired on 2026-11-24.
 
 ## Pricing and the address check
 
@@ -441,18 +441,32 @@ The following are business conventions rather than system behavior, and should b
 
 ## Deployment
 
-The site is deployed through OpenNext as a Cloudflare Worker (`wrangler.jsonc`, Worker name `abnormalhq`, entry `worker.ts`, which wraps the generated `.open-next/worker.js`). All pages are prerendered, with the prerendered output in read-only static assets (`open-next.config.ts`), so no R2 or queue is needed; static files such as fonts are served directly by the static asset service. Production releases come from [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) watching the `main` branch directly: every push is checked, built and deployed automatically; if any step fails nothing is deployed and the last successful version stays live.
+The site is deployed through OpenNext as a Cloudflare Worker (`wrangler.jsonc`, Worker name `abnormalhq`, entry `worker.ts`, which wraps the generated `.open-next/worker.js`). All pages are prerendered, with the prerendered output in read-only static assets (`open-next.config.ts`), so no R2 or queue is needed; static files such as fonts are served directly by the static asset service. Production releases come from GitHub Actions, as in mail: every push to `main` runs CI (`.github/workflows/ci.yml`: the checks, the OpenNext build and a `wrangler deploy --dry-run`), and once CI passes `.github/workflows/deploy.yml` builds `main`'s latest commit again and runs `pnpm cf:deploy` (deploys, then submits every page to IndexNow; see "Entry points for agents". A refused submission is reported in the log and never fails the deploy). If any step fails nothing is deployed and the last successful version stays live. Only `main`'s latest commit deploys, one deployment at a time, so re-running an older commit's CI cannot roll the site back. CI itself has no Cloudflare credentials. As in mail, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
 
-`.github/workflows/ci.yml` only runs the same checks and build on PRs and pushes to `main`; it does not release and needs no Cloudflare credentials. As in mail, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
+A manual run (**Actions → Deploy → Run workflow** on `main`) redeploys `main`'s latest commit once CI has passed for it. Only CI for a push counts, since only it compares the storefront contract with the commit before: when a push's CI failed or was cancelled, re-run that CI run rather than starting CI by hand. To stop deployments for a while, disable the workflow under **Actions → Deploy → ⋯ → Disable workflow**.
 
-### One-time Cloudflare setup
+### Cloudflare token
 
-This is already configured; follow it when it needs to be rebuilt. In Workers & Pages, connect the GitHub repository `abnormalhq/abnormalhq`:
+The deploy uses the `abnormalhq` organization secret `CLOUDFLARE_API_TOKEN`, the account API token mail deploys with (mail's `docs/deployment.md`, "Moving from Workers Builds"); the account ID is not secret and is in the workflow. The secret's repository access must include this repository. Besides **Account → Workers Scripts → Edit**, the token needs **Zone → Workers Routes → Edit** on `abnormalhq.com`, the zone of every custom domain below, which mail's deployment already uses.
+
+### Moving from Workers Builds
+
+Until the cutover the Worker was deployed by Cloudflare Workers Builds. Do these in one sitting, or every push deploys twice (or not at all):
+
+1. Add this repository to the repository access of the organization secret `CLOUDFLARE_API_TOKEN`.
+2. Disconnect the repository under **Settings → Builds** of the `abnormalhq` Worker (keep the Worker, its domains and its settings), then merge the workflow to `main`: the merge's CI starts the first deployment.
+3. Check the run (or start one by hand on `main`), `https://abnormalhq.com` and a storefront page.
+
+To go back, disable the workflow, let a run already in progress finish, and connect Workers Builds again with the settings below.
+
+### Workers Builds settings (the way back)
+
+In Workers & Pages, connect the GitHub repository `abnormalhq/abnormalhq`:
 
 - Worker name: `abnormalhq` (must match `wrangler.jsonc`)
 - Production branch: `main`, root directory: `/`
 - Build command: `pnpm install --frozen-lockfile && pnpm cf:build`
-- Deploy command: `pnpm cf:deploy` (deploys, then submits every page to IndexNow; see "Entry points for agents". A refused submission is reported in the log and never fails the deploy)
+- Deploy command: `pnpm cf:deploy`
 - Build variables:
 
   | Variable                  | Value | Purpose                                                                         |
@@ -460,19 +474,18 @@ This is already configured; follow it when it needs to be rebuilt. In Workers & 
   | `SKIP_DEPENDENCY_INSTALL` | `1`   | Skips the default install in favor of the frozen-lockfile install command above |
   | `NEXT_TELEMETRY_DISABLED` | `1`   | Disables Next.js build telemetry                                                |
 
-The Node.js version is set by `.node-version`, and the pnpm version by `packageManager` in `package.json` (Workers Builds reads it before any `PNPM_VERSION` build variable, so none is set).
+The Node.js version is set by `.node-version`, and the pnpm version by `packageManager` in `package.json` (Workers Builds reads it before any `PNPM_VERSION` build variable, so none is set; `pnpm/action-setup` reads it too).
 
 ### Domains
 
-The web domains are listed in `routes` in `wrangler.jsonc` and created by the deploy; the redirect rules and DNS placeholders for the old domains are not managed by wrangler and are maintained in Cloudflare. Deploys do not use `--strict`.
+The web domains are listed in `routes` in `wrangler.jsonc` and created by the deploy. Deploys do not use `--strict`.
 
 - `abnormalhq.com`: custom domain of the Worker `abnormalhq`, backed in DNS by a Cloudflare-managed `AAAA 100::` record. Before rebinding, make sure the hostname has no other A, AAAA or CNAME records.
 - `www.abnormalhq.com`: custom domain of the same Worker, with its DNS record likewise created by the deploy. Inside the Worker, the `redirects` in `next.config.ts` 301 it to `https://abnormalhq.com`, keeping path and query string; the static asset service responds before the Worker, so fonts and files under `/_next/` do not redirect on this host. `wrangler dev` rewrites Host to the first route, so locally the redirect can only be tested with `--local-upstream www.abnormalhq.com`.
-- `abnormal.bid`: the old address; the domain is still held. It also stays in `routes`, so its DNS record is not deleted; the zone's Redirect Rule (`http_request_dynamic_redirect` phase) 301s it to `https://abnormalhq.com` before the Worker, keeping path and query string. Do not remove it from `routes`: the deploy would delete its DNS record, and negative caching would make it unresolvable for about 30 minutes afterwards.
-- `www.abnormal.bid`: the same Redirect Rule to `https://abnormalhq.com`; DNS has only a proxied `AAAA 100::` placeholder record.
+- `abnormal.bid`, `www.abnormal.bid` and `onboard.abnormal.bid`: the old web addresses, retired on 2026-11-24 and no longer bound to this Worker or redirected.
 - The MX and TXT records on the `abnormal.bid` apex belong to the mail service (`@abnormal.bid` mailboxes); do not touch them when changing DNS.
 
-GitHub Pages is no longer used: the deploy workflow has been removed and production is served by the Worker above. GitHub does not allow disabling Pages for this repository (the API returns 422). The repository is now called `abnormalhq/abnormalhq`, which does not match `<organization>.github.io`, so it is a project site: `abnormal-bid.github.io` returns 404, and `abnormalhq.github.io/abnormalhq/` still 301s to `abnormal.bid`, which the Redirect Rule above then sends to the new address. Do not clear the custom domain in the Pages settings, or that address would serve the old site from the last deploy directly.
+GitHub Pages is no longer used: the deploy workflow has been removed and production is served by the Worker above. GitHub does not allow disabling Pages for this repository (the API returns 422). The repository is now called `abnormalhq/abnormalhq`, which does not match `<organization>.github.io`, so it is a project site: `abnormal-bid.github.io` returns 404, and `abnormalhq.github.io/abnormalhq/` still 301s to `abnormal.bid`, which serves nothing since its web addresses were retired. Do not clear the custom domain in the Pages settings, or that address would serve the old site from the last deploy directly.
 
 ### Deploying from a local machine
 
