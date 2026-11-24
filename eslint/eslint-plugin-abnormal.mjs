@@ -76,11 +76,35 @@ const literalColor = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch)\(\s*\d/;
 
 /**
  * A CSS value with its strings emptied and its url() references dropped: neither holds a color or a size, whatever its
- * text looks like ("#1", a family named "Mono 12px", url(#mask)). Strings go first, escaped quotes included, so a ) inside
- * a quoted url("a).png") cannot end the url early.
+ * text looks like ("#1", a family named "Mono 12px", url(#mask)). One scan reads both, so a ) inside url("a).png") or an
+ * escaped quote in url(a\\'b.png) cannot end either early and hide what follows.
  */
 function bareValue(value) {
-  return value.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '""').replace(/url\([^)]*\)/gi, "");
+  let bare = "";
+  for (let index = 0; index < value.length; index++) {
+    const char = value[index];
+    const url = /^url\(/i.test(value.slice(index, index + 4)) && !/[\w-]/.test(value[index - 1] ?? "");
+    if (char !== '"' && char !== "'" && !url) {
+      bare += char;
+      continue;
+    }
+    // Scan to the closing quote, or to the url's closing parenthesis outside its own quotes; a backslash escapes the
+    // next character, a line break included.
+    let quote = url ? null : char;
+    let end = url ? index + 4 : index + 1;
+    for (; end < value.length; end++) {
+      const next = value[end];
+      if (next === "\\") end++;
+      else if (quote && next === quote) {
+        if (!url) break;
+        quote = null;
+      } else if (!quote && (next === '"' || next === "'")) quote = next;
+      else if (!quote && next === ")") break;
+    }
+    bare += url ? "" : '""';
+    index = end;
+  }
+  return bare;
 }
 
 /** The value without each call of the named functions (var|clamp), however deeply their arguments nest. */
