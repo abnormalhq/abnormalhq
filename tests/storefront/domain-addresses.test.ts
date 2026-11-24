@@ -239,10 +239,11 @@ test("dev shop: aliases, groups and the catch-all on a live domain follow mail's
     message: "This address is already used by a mailbox, alias or group address. Try another.",
   });
   await expect(addDomainAlias(domain.id, "-bad", "alice@example.org", "en")).rejects.toMatchObject({ status: 400 });
-  await expect(addDomainAlias(domain.id, "info", "someone@elsewhere.example", "en")).rejects.toMatchObject({
-    status: 409,
-    message: "Mail can only go to one of your mailboxes on this domain.",
-  });
+  for (const target of ["someone@elsewhere.example", "carol-owner@abnormalhq.com"])
+    await expect(addDomainAlias(domain.id, "info", target, "en")).rejects.toMatchObject({
+      status: 409,
+      message: "Mail can only go to one of your mailboxes on this domain.",
+    });
 
   // A group's members are the buyer's own mailboxes on this domain only.
   for (const outside of ["outsider@elsewhere.example", "carol-owner@abnormalhq.com"])
