@@ -1,0 +1,108 @@
+name: Deploy
+
+# Deploys the site's Worker (`abnormalhq`, wrangler.jsonc) from GitHub Actions instead of Cloudflare Workers Builds, as mail does. It
+# starts when CI has passed for a push to main and deploys exactly the commit CI checked. A manual run redeploys main's latest commit
+# once CI has passed for it.
+#
+# The Worker must not also be connected to Workers Builds, or every push deploys twice. To stop deployments for a while, disable this
+# workflow under Actions (README, "Deployment").
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deployment at a time, never cancelled halfway. A push that lands while one runs waits, and only the newest waiting run is kept.
+# Only a run that may deploy joins that queue: GitHub keeps one waiting run per group, so a failed CI's run there would replace a
+# passing one that was waiting and then deploy nothing.
+concurrency:
+  group: >-
+    ${{ (github.ref == 'refs/heads/main' &&
+    (github.event_name == 'workflow_dispatch' ||
+    (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' &&
+    github.event.workflow_run.head_branch == 'main'))) && 'deploy-production' || format('deploy-skipped-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+  # The account that holds this Worker and abnormalhq-mailhq, which the MAIL binding needs; it is not a secret.
+  CLOUDFLARE_ACCOUNT_ID: 91f8270e2c2a8a362bd73c50b1ba66e2
+  # The commit to deploy. In a run started by CI, GITHUB_SHA is main's latest commit, which may be newer than the one CI passed.
+  DEPLOY_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  deploy:
+    # The same conditions as the concurrency group above.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check that the Cloudflare token is set
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error title=Deploy::The secret CLOUDFLARE_API_TOKEN is not shared with this repository (README, \"Deployment\")."
+            exit 1
+          fi
+      # Only main's latest commit deploys, so a re-run of an older commit's CI (or of an older deployment) cannot roll the site back.
+      - name: Check that the commit is main's latest
+        run: |
+          tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          if [ "$tip" != "$DEPLOY_COMMIT" ]; then
+            echo "::error title=Deploy::$DEPLOY_COMMIT is not main's latest commit ($tip). Nothing was deployed; the newer commit deploys once its CI passes."
+            exit 1
+          fi
+      # A manual run has no CI result of its own: it needs a successful CI run for a push of the same commit.
+      - name: Check that CI passed for the commit
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          passed="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$DEPLOY_COMMIT&event=push&status=success" --jq .total_count)"
+          if [ "$passed" = "0" ]; then
+            echo "::error title=Deploy::CI has not passed for $DEPLOY_COMMIT. Nothing was deployed; wait for CI, which starts this workflow when it passes."
+            exit 1
+          fi
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.DEPLOY_COMMIT }}
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # CI has already run pnpm cf:build (checks, this build and a dry-run deploy) on this commit, so only the build is repeated here.
+      # The Cloudflare token is not in this step's environment, nor in the install's.
+      - name: Build
+        run: pnpm exec opennextjs-cloudflare build
+      # Checked again right before deploying: main may have moved on while this run waited in the queue or built.
+      - name: Check that the commit is still main's latest
+        run: |
+          tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          if [ "$tip" != "$DEPLOY_COMMIT" ]; then
+            echo "::error title=Deploy::$DEPLOY_COMMIT is no longer main's latest commit ($tip). Nothing was deployed."
+            exit 1
+          fi
+      # Deploys the built .open-next/ output, then submits every page to IndexNow (scripts/indexnow.ts), which never fails the job.
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm cf:deploy

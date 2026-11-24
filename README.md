@@ -2,7 +2,7 @@
 
 [Live site](https://abnormalhq.com/)
 
-The bilingual (Chinese and English) marketing site for the Abnormal email service, built with Next.js (App Router), Tailwind CSS 4 and TypeScript, with UI components from [Abnormal's shadcn registry](https://github.com/abnormalhq/ui). The site is the home of all of Abnormal: it introduces the email service, publishes its plans and prices, sells mailboxes and activates them (the storefront: shop, redeem page, buyer account and guide, which used to be the separate onboard site), and sends visitors on to webmail and service status; mailboxes for a team (plans sold per mailbox) and mailboxes on the buyer's own domain are bought and set up in the storefront too, on plans that offer them; setup help is still handled through the inquiry dialog. Pages are prerendered at build time (except the pricing and download pages, which render per request) and run on a Cloudflare Worker through [@opennextjs/cloudflare](https://opennext.js.org/cloudflare); the navigation menu, theme toggle and inquiry dialog are React client components. Cloudflare Workers Builds watches `main` and deploys automatically; GitHub Actions only runs checks.
+The bilingual (Chinese and English) marketing site for the Abnormal email service, built with Next.js (App Router), Tailwind CSS 4 and TypeScript, with UI components from [Abnormal's shadcn registry](https://github.com/abnormalhq/ui). The site is the home of all of Abnormal: it introduces the email service, publishes its plans and prices, sells mailboxes and activates them (the storefront: shop, redeem page, buyer account and guide, which used to be the separate onboard site), and sends visitors on to webmail and service status; mailboxes for a team (plans sold per mailbox) and mailboxes on the buyer's own domain are bought and set up in the storefront too, on plans that offer them; setup help is still handled through the inquiry dialog. Pages are prerendered at build time (except the pricing and download pages, which render per request) and run on a Cloudflare Worker through [@opennextjs/cloudflare](https://opennext.js.org/cloudflare); the navigation menu, theme toggle and inquiry dialog are React client components. GitHub Actions checks every push to `main` and deploys it once CI passes.
 
 ## Chinese and English
 
@@ -441,18 +441,32 @@ The following are business conventions rather than system behavior, and should b
 
 ## Deployment
 
-The site is deployed through OpenNext as a Cloudflare Worker (`wrangler.jsonc`, Worker name `abnormalhq`, entry `worker.ts`, which wraps the generated `.open-next/worker.js`). All pages are prerendered, with the prerendered output in read-only static assets (`open-next.config.ts`), so no R2 or queue is needed; static files such as fonts are served directly by the static asset service. Production releases come from [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/) watching the `main` branch directly: every push is checked, built and deployed automatically; if any step fails nothing is deployed and the last successful version stays live.
+The site is deployed through OpenNext as a Cloudflare Worker (`wrangler.jsonc`, Worker name `abnormalhq`, entry `worker.ts`, which wraps the generated `.open-next/worker.js`). All pages are prerendered, with the prerendered output in read-only static assets (`open-next.config.ts`), so no R2 or queue is needed; static files such as fonts are served directly by the static asset service. Production releases come from GitHub Actions, as in mail: every push to `main` runs CI (`.github/workflows/ci.yml`: the checks, the OpenNext build and a `wrangler deploy --dry-run`), and once CI passes `.github/workflows/deploy.yml` builds the same commit again and runs `pnpm cf:deploy` (deploys, then submits every page to IndexNow; see "Entry points for agents". A refused submission is reported in the log and never fails the deploy). If any step fails nothing is deployed and the last successful version stays live. Only `main`'s latest commit deploys, one deployment at a time, so re-running an older commit's CI cannot roll the site back. CI itself has no Cloudflare credentials. As in mail, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
 
-`.github/workflows/ci.yml` only runs the same checks and build on PRs and pushes to `main`; it does not release and needs no Cloudflare credentials. As in mail, Actions are pinned to major version tags only (such as `actions/checkout@v7`), and major upgrades arrive as Dependabot PRs.
+A manual run (**Actions → Deploy → Run workflow** on `main`) redeploys `main`'s latest commit once CI has passed for it. To stop deployments for a while, disable the workflow under **Actions → Deploy → ⋯ → Disable workflow**.
 
-### One-time Cloudflare setup
+### Cloudflare token
 
-This is already configured; follow it when it needs to be rebuilt. In Workers & Pages, connect the GitHub repository `abnormalhq/abnormalhq`:
+The deploy uses the `abnormalhq` organization secret `CLOUDFLARE_API_TOKEN`, the account API token mail deploys with (mail's `docs/deployment.md`, "Moving from Workers Builds"); the account ID is not secret and is in the workflow. The secret's repository access must include this repository. Besides **Account → Workers Scripts → Edit**, the token needs **Zone → Workers Routes → Edit** on both zones the custom domains below use, `abnormalhq.com` and `abnormal.bid`.
+
+### Moving from Workers Builds
+
+Until the cutover the Worker was deployed by Cloudflare Workers Builds. Do these in one sitting, or every push deploys twice (or not at all):
+
+1. Add this repository to the repository access of the organization secret `CLOUDFLARE_API_TOKEN`, and give the token the zones above.
+2. Disconnect the repository under **Settings → Builds** of the `abnormalhq` Worker (keep the Worker, its domains and its settings), then merge the workflow to `main`: the merge's CI starts the first deployment.
+3. Check the run (or start one by hand on `main`), `https://abnormalhq.com` and a storefront page.
+
+To go back, disable the workflow and connect Workers Builds again with the settings below.
+
+### Workers Builds settings (the way back)
+
+In Workers & Pages, connect the GitHub repository `abnormalhq/abnormalhq`:
 
 - Worker name: `abnormalhq` (must match `wrangler.jsonc`)
 - Production branch: `main`, root directory: `/`
 - Build command: `pnpm install --frozen-lockfile && pnpm cf:build`
-- Deploy command: `pnpm cf:deploy` (deploys, then submits every page to IndexNow; see "Entry points for agents". A refused submission is reported in the log and never fails the deploy)
+- Deploy command: `pnpm cf:deploy`
 - Build variables:
 
   | Variable                  | Value | Purpose                                                                         |
@@ -460,7 +474,7 @@ This is already configured; follow it when it needs to be rebuilt. In Workers & 
   | `SKIP_DEPENDENCY_INSTALL` | `1`   | Skips the default install in favor of the frozen-lockfile install command above |
   | `NEXT_TELEMETRY_DISABLED` | `1`   | Disables Next.js build telemetry                                                |
 
-The Node.js version is set by `.node-version`, and the pnpm version by `packageManager` in `package.json` (Workers Builds reads it before any `PNPM_VERSION` build variable, so none is set).
+The Node.js version is set by `.node-version`, and the pnpm version by `packageManager` in `package.json` (Workers Builds reads it before any `PNPM_VERSION` build variable, so none is set; `pnpm/action-setup` reads it too).
 
 ### Domains
 

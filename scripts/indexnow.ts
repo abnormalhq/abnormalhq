@@ -1,6 +1,6 @@
 /**
- * Submits every page to IndexNow (src/lib/indexnow.ts). Runs after the deploy in `pnpm cf:deploy`, which is Workers Builds' deploy
- * command, so each production release is announced once it is live; it can also be run by hand:
+ * Submits every page to IndexNow (src/lib/indexnow.ts). Runs after the deploy in `pnpm cf:deploy`, which the Deploy workflow
+ * runs, so each production release is announced once it is live; it can also be run by hand:
  *
  *   node scripts/indexnow.ts
  *
