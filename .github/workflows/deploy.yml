@@ -87,42 +87,51 @@ jobs:
       actions: read
     steps:
       # Picks main's latest commit again, so that "Re-run failed jobs" on an older run, which keeps that run's resolve output, still
-      # deploys main's latest commit when it replaces a waiting run. When the latest commit's push CI has not passed yet, the commit
-      # resolve picked stays, and the check before the upload stops the run.
+      # deploys main's latest commit when it replaces a waiting run. When main has moved on and its latest commit's push CI has not
+      # passed yet, the run builds and deploys nothing: that commit's CI starts this workflow when it passes.
       - name: Pick main's latest commit that CI passed
+        id: pick
         env:
           GH_TOKEN: ${{ github.token }}
           RESOLVED_COMMIT: ${{ needs.resolve.outputs.commit }}
         run: |
-          commit="$RESOLVED_COMMIT"
           tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
           passed="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$tip&branch=main&event=push&status=success" \
             --jq .total_count)"
-          if [ "$passed" != "0" ]; then
-            commit="$tip"
+          if [ "$passed" = "0" ] && [ "$tip" != "$RESOLVED_COMMIT" ]; then
+            echo "::notice title=Deploy::$RESOLVED_COMMIT is no longer main's latest commit ($tip). Nothing was deployed; $tip's CI starts this workflow when it passes."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          echo "DEPLOY_COMMIT=$commit" >> "$GITHUB_ENV"
+          echo "DEPLOY_COMMIT=$tip" >> "$GITHUB_ENV"
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
       - name: Check out source
+        if: steps.pick.outputs.deploy == 'true'
         uses: actions/checkout@v7
         with:
           ref: ${{ env.DEPLOY_COMMIT }}
           persist-credentials: false
       - name: Set up pnpm
+        if: steps.pick.outputs.deploy == 'true'
         uses: pnpm/action-setup@v6
       - name: Set up Node.js
+        if: steps.pick.outputs.deploy == 'true'
         uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
       - name: Install dependencies
+        if: steps.pick.outputs.deploy == 'true'
         run: pnpm install --frozen-lockfile
       # CI has already run pnpm cf:build (checks, this build and a dry-run deploy) on this commit, so only the build is repeated here.
       # The Cloudflare token is not in this step's environment, nor in the install's.
       - name: Build
+        if: steps.pick.outputs.deploy == 'true'
         run: pnpm exec opennextjs-cloudflare build
       # Main may have moved on while this run built. Then the newer commit's own run deploys it, and this one stops without uploading.
       # pnpm cf:deploy uploads the built .open-next/ output, then submits every page to IndexNow (scripts/indexnow.ts), which never fails.
       - name: Deploy
+        if: steps.pick.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           GH_TOKEN: ${{ github.token }}
