@@ -31,7 +31,7 @@ export interface DomainAddresses {
   editable: boolean;
   /** The buyer's mailboxes on this domain: what an alias or the catch-all can deliver to. */
   mailboxes: string[];
-  /** All the buyer's mailboxes, on any domain: what a group address can include. */
+  /** What a group address can include: the buyer's mailboxes on this domain (mail gives the same list as `mailboxes`). */
   members: string[];
   aliases: DomainAlias[];
   groups: DomainGroup[];

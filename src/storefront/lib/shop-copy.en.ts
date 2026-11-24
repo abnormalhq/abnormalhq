@@ -635,7 +635,7 @@ export const en = {
   aliasAdding: "Adding…",
   groupsTitle: "Group addresses",
   groupsHint:
-    "One address that delivers to several of your mailboxes, for example team@ or sales@. Only your own mailboxes can be members.",
+    "One address that delivers to several of your mailboxes, for example team@ or sales@. Only your own mailboxes on this domain can be members.",
   groupsEmpty: "No group addresses yet.",
   groupDescription: "Description (optional)",
   groupMembers: "Members",

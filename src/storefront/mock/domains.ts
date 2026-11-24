@@ -390,7 +390,7 @@ export class MockDomains {
         domain: { id: domain.id, name: domain.name },
         editable: !domain.suspended,
         mailboxes: onDomain,
-        members: [...mine].sort(),
+        members: onDomain,
         aliases: structuredClone(stored.aliases),
         groups: structuredClone(stored.groups),
         catchAll: stored.catchAll,
@@ -437,7 +437,7 @@ export class MockDomains {
       if (value === undefined) return [];
       if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) return notOwnedMember();
       const list = [...new Set(value.map((item: string) => item.trim().toLowerCase()))];
-      return list.every((item) => mine.includes(item)) ? list : notOwnedMember();
+      return list.every((item) => onDomain.includes(item)) ? list : notOwnedMember();
     };
     const tooMany = (count: number) => count > MOCK_ADDRESS_LIMITS.members;
     const noMembers = () => error(400, say("群组地址至少要有一个成员。", "A group address needs at least one member."));

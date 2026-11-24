@@ -43,14 +43,14 @@ const sample = {
   domain: { id: "domainabcdefghi", name: "example.org" },
   editable: true,
   mailboxes: ["alice@example.org", "bob@example.org"],
-  members: ["alice@example.org", "bob@example.org", "carol@abnormalhq.com"],
+  members: ["alice@example.org", "bob@example.org", "carol@example.org"],
   aliases: [{ id: "alias1", address: "sales@example.org", target: "alice@example.org", enabled: true }],
   groups: [
     {
       id: "list_domainabcdefghi_1",
       address: "team@example.org",
       description: "Everyone",
-      members: ["alice@example.org", "carol@abnormalhq.com"],
+      members: ["alice@example.org", "carol@example.org"],
     },
   ],
   catchAll: null,
@@ -101,7 +101,7 @@ test("addresses: the client reads mail's answers and sends what mail takes", asy
     id: "domainabcdefghi",
     groupId: group.id,
     addMembers: ["bob@example.org"],
-    removeMembers: ["carol@abnormalhq.com"],
+    removeMembers: ["carol@example.org"],
   });
 
   calls = respond({ catchAll: null });

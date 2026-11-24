@@ -902,7 +902,7 @@ JSON POSTs, never cached). The client is `src/storefront/lib/domain-addresses.ts
 
 - **`addresses`** `{ id }` → `{ domain: { id, name }, editable, mailboxes, members, aliases, groups, catchAll, limits: { aliases,
 groups, members } }`. `mailboxes` are the buyer's mailboxes on this domain (what an alias or the catch-all can deliver to),
-  `members` all the buyer's mailboxes (what a group can include). `editable: false` (the domain is suspended or its plan lapsed
+  `members` what a group can include (the same list: mail takes only mailboxes on this domain, since an address on a shared shop domain can later be someone else's). `editable: false` (the domain is suspended or its plan lapsed
   past grace) shows everything without the controls.
 - **`aliases/add`** `{ id, username, target }` → `{ alias: { id, address, target, enabled } }`; **`aliases/remove`**
   `{ id, aliasId }`. `username` is the part before `@` (the page strips a pasted `@<domain>`, `normalizeLocalPart`).
@@ -911,7 +911,7 @@ removeMembers?, description? }` → `{ group: { id, address, description, member
   The page edits a group's members as a list and sends only the difference (`memberChanges`).
 - **`catch-all`** `{ id, destination }` → `{ catchAll }`; `destination` is one of `mailboxes` or `null` (reject, the default).
 - mail's rules: aliases and the catch-all deliver only to the buyer's mailboxes on the domain, group members are only the
-  buyer's own mailboxes (never an outside address), a name already used by a mailbox, alias or group is refused, and each
+  buyer's own mailboxes on the domain (never an outside address), a name already used by a mailbox, alias or group is refused, and each
   domain has at most 50 aliases and 20 groups of 1 to 50 members. Masked addresses ("hide my email" in WebMail) are not listed.
 - **Status codes**: `401`, `403` as above; `404` with `domain_not_found` for an `id` that is not this account's, and `404`
   without a code for an alias or group that is not the buyer's; `409` without a code when the domain is not live yet, is locked,

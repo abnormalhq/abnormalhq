@@ -572,7 +572,7 @@ export const zh = {
   aliasAdd: "添加别名",
   aliasAdding: "正在添加…",
   groupsTitle: "群组地址",
-  groupsHint: "一个地址同时送达你的多个邮箱，例如 team@ 或 sales@。成员只能是你自己的邮箱。",
+  groupsHint: "一个地址同时送达你的多个邮箱，例如 team@ 或 sales@。成员只能是你在这个域名上的邮箱。",
   groupsEmpty: "还没有群组地址。",
   groupDescription: "说明（可选）",
   groupMembers: "成员",
