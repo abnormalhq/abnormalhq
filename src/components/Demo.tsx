@@ -27,7 +27,7 @@ export function Demo({ lang }: { lang: Lang }) {
               <HeadingMark>{t.dot}</HeadingMark>
             </SectionTitle>
           </div>
-          <p className="max-w-[34rem] pb-[0.2rem] text-md/prose text-muted-foreground">{d.description}</p>
+          <p className="max-w-136 pb-0.75 text-md/prose text-muted-foreground">{d.description}</p>
         </div>
         <div {...reveal(1)}>
           <WebmailDemo copy={{ label: d.label, ui: d.ui, labels: d.labels, mails: d.mails, events: d.events }} />

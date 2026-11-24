@@ -12,6 +12,7 @@ export function DocFigure({ image, base, lang }: { image: DocImage; base: string
         target="_blank"
         rel="noopener noreferrer"
         aria-label={`${image.alt} — ${view}`}
+        // abnormal-allow: the screenshots are light pages, so their frame stays white in the dark theme too.
         className="block overflow-hidden rounded-panel border border-border bg-white outline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}

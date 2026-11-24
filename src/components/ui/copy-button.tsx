@@ -185,7 +185,7 @@ function CopyButton({
             data-slot="copy-button-bubble"
             style={{ left: anchor.x, top: anchor.y }}
             className={cn(
-              "pointer-events-none fixed z-[60] -translate-x-1/2 rounded-control bg-foreground px-2 py-1 text-xs leading-none font-medium whitespace-nowrap text-background",
+              "pointer-events-none fixed z-floating -translate-x-1/2 rounded-control bg-foreground px-2 py-1 text-xs leading-none font-medium whitespace-nowrap text-background",
               anchor.below ? "mt-1.5" : "-mt-1.5 -translate-y-full",
             )}
           >

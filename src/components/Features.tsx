@@ -39,8 +39,8 @@ function weekSample(demo: Copy["demo"], s: Samples): ReactNode {
                     key={event.title}
                     className={
                       event.location
-                        ? "absolute inset-x-1 overflow-hidden rounded-[4px] bg-highlight px-1.5 py-px text-[11px]/[1.35] text-highlight-foreground"
-                        : "absolute inset-x-1 overflow-hidden rounded-[4px] border-l-2 border-foreground/40 bg-muted px-1.5 py-px text-[11px]/[1.35] text-foreground"
+                        ? "absolute inset-x-1 overflow-hidden rounded-chip bg-highlight px-1.5 py-px text-2xs/[1.35] text-highlight-foreground"
+                        : "absolute inset-x-1 overflow-hidden rounded-chip border-l-2 border-foreground/40 bg-muted px-1.5 py-px text-2xs/[1.35] text-foreground"
                     }
                     style={{
                       top: `${((event.start - firstHour) / span) * 100}%`,
@@ -214,7 +214,7 @@ export function Features({ lang }: { lang: Lang }) {
               <HeadingMark>{t.dot}</HeadingMark>
             </SectionTitle>
           </div>
-          <p className="max-w-[30rem] pb-[0.2rem] text-md/prose text-muted-foreground md:text-right">
+          <p className="max-w-120 pb-0.75 text-md/prose text-muted-foreground md:text-right">
             {f.intro[0]}
             {t.space}
             <br className="hidden md:block" />
@@ -313,7 +313,7 @@ export function Features({ lang }: { lang: Lang }) {
                   <Icon name={platform.icon} />
                 </IconTile>
                 <div className="min-w-0">
-                  <p className="text-[17px] leading-[1.4] font-semibold tracking-[-0.01em]">{platform.name}</p>
+                  <p className="text-lg leading-[1.4] font-semibold tracking-title">{platform.name}</p>
                   <p className="mt-1.5 text-base/prose text-muted-foreground">{platform.description}</p>
                   <TextLink className="mt-3" href={platform.link ? links[platform.link] : path(platform.path ?? "/")}>
                     {platform.action} <Icon name="up-right" className="size-3.5" />

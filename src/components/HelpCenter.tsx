@@ -35,7 +35,7 @@ export function HelpCenter({ lang }: { lang: Lang }) {
           header={{ id: "help-title", eyebrow: h.eyebrow, title: h.title, dot: t.dot, lead: h.intro }}
         >
           <div className="mt-14 border-t border-border pt-8">
-            <h2 className="text-lg/[1.5] font-semibold">{h.ask.title}</h2>
+            <h2 className="text-lg/normal font-semibold">{h.ask.title}</h2>
             <p className="mt-2 max-w-2xl text-base/prose text-muted-foreground">{h.ask.body}</p>
             {email && (
               <TextLink className="mt-4" href={`mailto:${email}`}>

@@ -14,7 +14,7 @@ function Prose({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="prose"
       className={cn(
         "text-md/[1.9] text-muted-foreground [counter-reset:prose-section]",
-        "[&_h2]:mt-[3.25rem] [&_h2]:mb-4 [&_h2]:flex [&_h2]:items-baseline [&_h2]:gap-3 [&_h2]:text-xl/[1.5] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:[counter-increment:prose-section] md:[&_h2]:text-[1.375rem]",
+        "[&_h2]:mt-13 [&_h2]:mb-4 [&_h2]:flex [&_h2]:items-baseline [&_h2]:gap-3 [&_h2]:text-xl/[1.5] [&_h2]:font-semibold [&_h2]:text-foreground [&_h2]:[counter-increment:prose-section] md:[&_h2]:text-2xl",
         "[&_h2]:before:text-sm [&_h2]:before:font-medium [&_h2]:before:tracking-normal [&_h2]:before:text-signal [&_h2]:before:content-[counter(prose-section,decimal-leading-zero)]",
         "[&_h3]:mt-7 [&_h3]:mb-2 [&_h3]:text-lg/[inherit] [&_h3]:font-semibold [&_h3]:text-foreground",
         "[&_ol+p]:mt-4 [&_p+p]:mt-4 [&_ul+p]:mt-4",

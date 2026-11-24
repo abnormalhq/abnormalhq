@@ -146,10 +146,10 @@ export function ShopSeats({
         : "";
 
   return (
-    <div className="mt-5 rounded-md border border-border p-4">
+    <div className="mt-5 rounded-control border border-border p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h4 className="text-sm/[1.5] font-semibold">{t.seatsTitle}</h4>
-        <p className="text-sm/[1.5]">{t.seatsUsed(mailboxes.length, seats.seats)}</p>
+        <h4 className="text-sm/normal font-semibold">{t.seatsTitle}</h4>
+        <p className="text-sm/normal">{t.seatsUsed(mailboxes.length, seats.seats)}</p>
       </div>
       <ShopMeta>
         {/* The length of the period comes from mail (`seats.periodDays`); a mail before the field says "per period". */}
@@ -183,7 +183,7 @@ export function ShopSeats({
         </p>
       )}
       {stillAwaiting && (
-        <div className="mt-4 rounded-md bg-highlight-muted p-4" role="status">
+        <div className="mt-4 rounded-control bg-highlight-muted p-4" role="status">
           <p className="text-sm/[1.7]">{awaiting.invoiceUrl ? t.seatsPaymentRequired : t.seatsPaymentRequiredNoLink}</p>
           <ShopActions>
             {awaiting.invoiceUrl && (
@@ -246,7 +246,7 @@ export function ShopSeats({
             />
           </ShopField>
           {quote && (
-            <div className="rounded-md bg-highlight-muted p-4 text-sm/[1.7]" role="status">
+            <div className="rounded-control bg-highlight-muted p-4 text-sm/[1.7]" role="status">
               <p>
                 {quote.provider === "usdt"
                   ? t.seatsQuoteUsdt(quote.add, formatUsdt(quote.priceCents), formatDateTime(quote.periodEnd))
@@ -323,7 +323,7 @@ export function ShopSeats({
               <ul className="mt-2 grid gap-1.5">
                 {mailboxes.map((mailbox) => (
                   <li key={mailbox.id}>
-                    <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm/[1.5]">
+                    <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm/normal">
                       <Checkbox
                         checked={chosen.includes(mailbox.id)}
                         disabled={busy !== null}

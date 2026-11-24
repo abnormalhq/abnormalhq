@@ -64,14 +64,14 @@ export function InquiryForm({
           else document.querySelector<HTMLElement>('[aria-controls="mobile-nav"]')?.focus();
         }}
       >
-        <div className="shrink-0 border-b border-border px-6 pt-5 pb-[22px] max-dialog:px-5 max-dialog:pt-3.5 max-dialog:pb-[18px]">
+        <div className="shrink-0 border-b border-border px-6 pt-5 pb-5.5 max-dialog:px-5 max-dialog:pt-3.5 max-dialog:pb-4.5">
           <div className="mb-3.5 flex items-center justify-between gap-3 max-dialog:mb-2">
             <span
-              className="inline-flex items-center gap-2.5 text-xs/body font-medium tracking-[0.06em] text-muted-foreground uppercase"
+              className="inline-flex items-center gap-2.5 text-xs/body font-medium tracking-caps text-muted-foreground uppercase"
               lang="en"
             >
               <IconTile variant="highlight" size="sm">
-                <Icon name="chat" className="size-[18px]" />
+                <Icon name="chat" className="size-4.5" />
               </IconTile>
               {copy.kicker}
             </span>
@@ -81,7 +81,7 @@ export function InquiryForm({
               </Button>
             </DialogClose>
           </div>
-          <DialogTitle className="text-2xl/[1.3] max-dialog:text-[22px]">
+          <DialogTitle className="text-2xl/[1.3] max-dialog:text-xl">
             {copy.title}
             <HeadingMark>{dot}</HeadingMark>
           </DialogTitle>
@@ -92,12 +92,12 @@ export function InquiryForm({
           </DialogDescription>
         </div>
         <form
-          className="min-h-0 overflow-y-auto overscroll-contain px-6 pt-[22px] pb-6 [scrollbar-width:thin] max-dialog:p-5 [@media(max-height:600px)]:overflow-visible"
+          className="min-h-0 overflow-y-auto overscroll-contain px-6 pt-5.5 pb-6 [scrollbar-width:thin] max-dialog:p-5 [@media(max-height:600px)]:overflow-visible"
           onChange={() => setStatus("")}
           // Nothing is sent anywhere: the button below copies the inquiry.
           onSubmit={(event) => event.preventDefault()}
         >
-          <div className="mb-5 grid grid-cols-[1.35fr_1fr] gap-3.5 max-dialog:grid-cols-1 max-dialog:gap-[18px]">
+          <div className="mb-5 grid grid-cols-[1.35fr_1fr] gap-3.5 max-dialog:grid-cols-1 max-dialog:gap-4.5">
             <label className={fieldClass}>
               {copy.productLabel}
               <NativeSelect
@@ -132,7 +132,7 @@ export function InquiryForm({
           <label className={fieldClass}>
             {copy.notesLabel} <span className="ml-1 text-xs font-normal text-muted-foreground">{copy.optional}</span>
             <Textarea
-              className="mt-2 max-h-44 min-h-[104px] resize-y py-2.5 leading-[1.7] font-normal placeholder:text-xs placeholder:leading-[1.8]"
+              className="mt-2 max-h-44 min-h-26 resize-y py-2.5 leading-[1.7] font-normal placeholder:text-xs placeholder:leading-prose"
               name="notes"
               rows={3}
               maxLength={600}
@@ -142,7 +142,7 @@ export function InquiryForm({
             />
           </label>
           <div className="mt-5 rounded-mark border border-border bg-surface px-4 py-3.5">
-            <span className="inline-flex items-center gap-[7px] text-xs/body font-medium text-muted-foreground">
+            <span className="inline-flex items-center gap-1.75 text-xs/body font-medium text-muted-foreground">
               <Icon name="copy" className="size-3.5" />
               {copy.previewLabel}
             </span>
@@ -150,7 +150,7 @@ export function InquiryForm({
               {formatInquiry(inquiry, lang)}
             </p>
           </div>
-          <div className="mt-4 flex items-start gap-[9px]">
+          <div className="mt-4 flex items-start gap-2.25">
             <Icon name="chat" className="mt-1 size-4 text-muted-foreground" />
             <p className="text-xs leading-loose wrap-anywhere text-muted-foreground">
               {describeContact(site.contact, lang)}
@@ -182,7 +182,7 @@ export function InquiryForm({
               </a>
             </Button>
           )}
-          <p className="mt-[18px] text-center text-xs/prose text-muted-foreground">
+          <p className="mt-4.5 text-center text-xs/prose text-muted-foreground">
             {copy.note}
             <br />
             {fillTemplate(copy.legal, {

@@ -30,7 +30,7 @@ export function Start({ lang }: { lang: Lang }) {
               <HeadingMark>{t.dot}</HeadingMark>
             </SectionTitle>
           </div>
-          <p className="pb-[0.2rem] text-md/prose text-muted-foreground">
+          <p className="pb-0.75 text-md/prose text-muted-foreground">
             {s.intro[0]}
             {t.space}
             <br className="hidden md:block" />
@@ -47,13 +47,13 @@ export function Start({ lang }: { lang: Lang }) {
               {...reveal(index)}
             >
               <a href={links[entry.link]}>
-                <span className="flex items-center justify-between gap-[0.7rem]">
+                <span className="flex items-center justify-between gap-2.75">
                   <IconTile variant={entry.primary ? "highlight" : "default"} aria-hidden="true">
                     <Icon name={entry.icon} className="size-5" />
                   </IconTile>
-                  <Badge className="h-auto border-0 py-0.5 leading-[1.55]">{entry.eyebrow}</Badge>
+                  <Badge className="h-auto border-0 py-0.5 leading-body">{entry.eyebrow}</Badge>
                 </span>
-                <span className="mt-6 flex items-center justify-between text-xl/[1.4] font-semibold tracking-[-0.01em] max-sm:mt-[1.1rem]">
+                <span className="mt-6 flex items-center justify-between text-xl/[1.4] font-semibold tracking-title max-sm:mt-[1.1rem]">
                   {entry.title}
                   <span className="text-xs/[1.4] font-normal tracking-normal text-muted-foreground" aria-hidden="true">
                     {String(index + 1).padStart(2, "0")}

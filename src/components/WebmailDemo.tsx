@@ -32,13 +32,13 @@ interface Mail extends Omit<DemoMail, "labels" | "body"> {
   outgoing?: boolean;
 }
 
-/** Label colours, written out so Tailwind keeps the classes. */
+/** Label colours from the theme's category hues, written out so Tailwind keeps the classes. */
 const labelTone = {
-  blue: "bg-sky-500/12 text-sky-700 dark:text-sky-300",
-  green: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
-  orange: "bg-orange-500/12 text-orange-700 dark:text-orange-300",
+  blue: "bg-category-blue-soft text-category-blue-ink",
+  green: "bg-category-green-soft text-category-green-ink",
+  orange: "bg-category-orange-soft text-category-orange-ink",
 } as const;
-const labelDot = { blue: "bg-sky-500", green: "bg-emerald-500", orange: "bg-orange-500" } as const;
+const labelDot = { blue: "bg-category-blue", green: "bg-category-green", orange: "bg-category-orange" } as const;
 
 /** A folder or label in the column: a ghost Button laid out as a row; the current one takes the highlight. */
 const folderClass = "justify-start gap-2.5 px-3 text-left text-sm font-normal max-md:shrink-0";
@@ -180,7 +180,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
     <div
       role="region"
       aria-label={copy.label}
-      className="relative flex h-[640px] overflow-hidden rounded-panel border border-border bg-card text-sm max-md:h-[600px] max-md:flex-col"
+      className="relative flex h-160 overflow-hidden rounded-panel border border-border bg-card text-sm max-md:h-150 max-md:flex-col"
     >
       {/* Folders: a column on wide screens, a row of tabs on a phone. */}
       <div
@@ -242,14 +242,14 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
           {/* The list. On a phone it gives way to an open message. */}
           <section
             className={cn(
-              "flex w-[340px] shrink-0 flex-col border-r border-border max-lg:w-[300px] max-md:w-auto max-md:flex-1 max-md:border-r-0",
+              "flex w-85 shrink-0 flex-col border-r border-border max-lg:w-75 max-md:w-auto max-md:flex-1 max-md:border-r-0",
               open && "max-md:hidden",
             )}
             aria-label={title}
           >
             <div className="border-b border-border p-4 pb-3">
               <div className="flex items-baseline justify-between gap-3">
-                <h3 className="font-heading text-xl font-semibold tracking-[-0.02em]">{title}</h3>
+                <h3 className="font-heading text-xl font-semibold tracking-heading">{title}</h3>
                 {folder !== "sent" && (
                   <span className="text-xs text-muted-foreground">
                     {unreadIn(visible)} {t.unread}
@@ -305,7 +305,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                   if (group.length === 0) return null;
                   return (
                     <div key={day}>
-                      <p className="px-4 pt-3 pb-1 text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase">
+                      <p className="px-4 pt-3 pb-1 text-2xs font-medium tracking-caps text-muted-foreground uppercase">
                         {t[day]}
                       </p>
                       <ul>
@@ -425,7 +425,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                   </IconButton>
                 </div>
                 <article className="flex-1 overflow-y-auto p-6 max-md:p-4">
-                  <h3 className="font-heading text-2xl/[1.3] font-semibold tracking-[-0.02em]">{open.subject}</h3>
+                  <h3 className="font-heading text-2xl/[1.3] font-semibold tracking-heading">{open.subject}</h3>
                   {open.labels.length > 0 && (
                     <div className="mt-2 flex gap-1.5">
                       {open.labels.map((id) => {
@@ -443,7 +443,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
                     <span>{open.outgoing ? `${t.to} ${open.address}` : open.address}</span>
                     <span className="ml-auto tabular-nums">{open.time}</span>
                   </p>
-                  <div className="mt-5 space-y-3 rounded-panel border border-border bg-background p-5 text-[15px]/[1.7]">
+                  <div className="mt-5 space-y-3 rounded-panel border border-border bg-background p-5 text-md/[1.7]">
                     {open.body.length ? open.body.map((paragraph, index) => <p key={index}>{paragraph}</p>) : <p>—</p>}
                   </div>
                   {open.attachment && (
@@ -469,7 +469,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
         <form
           onSubmit={send}
           aria-label={t.compose}
-          className="absolute right-4 bottom-4 z-10 flex w-[min(440px,calc(100%-2rem))] flex-col overflow-hidden rounded-panel border border-border bg-card shadow-lg max-md:inset-x-2 max-md:bottom-2 max-md:w-auto"
+          className="absolute right-4 bottom-4 z-sticky flex w-[min(440px,calc(100%-2rem))] flex-col overflow-hidden rounded-panel border border-border bg-card shadow-popover max-md:inset-x-2 max-md:bottom-2 max-md:w-auto"
         >
           <div className="flex items-center justify-between bg-foreground px-4 py-2 text-background">
             <span className="font-medium">{draft.subject || t.compose}</span>
@@ -528,7 +528,7 @@ export function WebmailDemo({ copy }: { copy: WebmailDemoCopy }) {
       {!draft && notice && (
         <p
           role="status"
-          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-control bg-foreground px-4 py-2 text-background shadow-lg max-md:w-[calc(100%-1rem)] max-md:text-center"
+          className="absolute bottom-4 left-1/2 z-sticky -translate-x-1/2 rounded-control bg-foreground px-4 py-2 text-background shadow-popover max-md:w-[calc(100%-1rem)] max-md:text-center"
         >
           {notice}
           <Button
@@ -596,7 +596,7 @@ function StarButton({
 }) {
   return (
     <IconButton label={starred ? copy.unstar : copy.star} onClick={onClick} className={className}>
-      <StarIcon className={cn("size-4", starred && "fill-highlight text-amber-500")} />
+      <StarIcon className={cn("size-4", starred && "fill-highlight text-category-yellow")} />
     </IconButton>
   );
 }
@@ -619,7 +619,7 @@ function Calendar({
   return (
     <section className="flex min-w-0 flex-1 flex-col" aria-label={t.calendar}>
       <div className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-4 py-2">
-        <h3 className="font-heading text-xl font-semibold tracking-[-0.02em]">{t.thisWeek}</h3>
+        <h3 className="font-heading text-xl font-semibold tracking-heading">{t.thisWeek}</h3>
         {chosen && (
           <p className="text-muted-foreground" role="status">
             <span className="font-medium text-foreground">{chosen.title}</span> · {t.weekdays[chosen.day]}{" "}
@@ -629,7 +629,7 @@ function Calendar({
         )}
       </div>
       <div className="flex-1 overflow-auto">
-        <div className="grid min-w-[560px] grid-cols-[3rem_repeat(7,minmax(0,1fr))]">
+        <div className="grid min-w-140 grid-cols-[3rem_repeat(7,minmax(0,1fr))]">
           <div className="sticky top-0 z-1 bg-card" />
           {t.weekdays.map((day, index) => (
             <div
@@ -648,7 +648,7 @@ function Calendar({
           ))}
           <div>
             {hours.map((hour) => (
-              <div key={hour} className="pr-1 text-right text-[11px] text-muted-foreground" style={{ height: HOUR_PX }}>
+              <div key={hour} className="pr-1 text-right text-2xs text-muted-foreground" style={{ height: HOUR_PX }}>
                 {clock(hour)}
               </div>
             ))}
@@ -666,8 +666,8 @@ function Calendar({
                     aria-pressed={selected === index}
                     onClick={() => onSelect(selected === index ? null : index)}
                     className={cn(
-                      "absolute inset-x-1 overflow-hidden rounded-chip border-l-2 border-sky-500 px-1.5 py-1 text-left text-[11px]/[1.3] transition-colors",
-                      selected === index ? "bg-sky-500/30" : "bg-sky-500/12 hover:bg-sky-500/20",
+                      "absolute inset-x-1 overflow-hidden rounded-chip border-l-2 border-category-blue px-1.5 py-1 text-left text-2xs/[1.3] transition-colors",
+                      selected === index ? "bg-category-blue/30" : "bg-category-blue-soft hover:bg-category-blue/20",
                     )}
                     style={{
                       top: (event.start - FIRST_HOUR) * HOUR_PX + 1,

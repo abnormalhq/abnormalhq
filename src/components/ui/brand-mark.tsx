@@ -35,7 +35,8 @@ function BrandName({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="brand-name"
-      className={cn("font-heading text-[17px] leading-none font-semibold tracking-[-0.02em]", className)}
+      // abnormal-allow: the lockup's own size, which follows neither the type scale nor the density.
+      className={cn("font-heading text-[17px] leading-none font-semibold tracking-heading", className)}
       {...props}
     >
       abnormal<span className="text-signal">.</span>

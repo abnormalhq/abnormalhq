@@ -2,6 +2,49 @@ import { fixupConfigRules } from "@eslint/compat";
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import css from "@eslint/css";
+import { tailwind4 } from "tailwind-csstree";
+import abnormal from "./eslint/eslint-plugin-abnormal.mjs";
+
+/** Every script the JavaScript and TypeScript rules read; the CSS files linted below have a language of their own. */
+const SCRIPTS = ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"];
+
+/** Blocks with no `files` would also run on CSS, whose syntax their rules cannot read: scope the ones that set rules to scripts. */
+const scripts = (configs) =>
+  configs.map((config) =>
+    config.files || !(config.rules || config.plugins || config.languageOptions)
+      ? config
+      : { ...config, files: SCRIPTS },
+  );
+
+/**
+ * The theme's semantic colors, type scale, spacing steps, radii, shadows and layers instead of hand-picked values
+ * (eslint/eslint-plugin-abnormal.mjs, installed from abnormalhq/ui). A value that has to stay takes a comment containing
+ * `abnormal-allow:` on its line or the line above, saying why.
+ * Tests spell out the classes a component renders, and the theme file is where the literal values live.
+ */
+const themeRules = [
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: { abnormal },
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}", "**/tests/**", "**/__tests__/**", "**/e2e/**"],
+    rules: { "abnormal/no-hardcoded-classes": "error" },
+  },
+  {
+    files: ["**/*.css"],
+    ignores: ["src/styles/abnormal*.css"],
+    language: "css/css",
+    // Tailwind's syntax, so @theme, @utility and @apply with variants parse and every declaration in them is checked;
+    // tolerant for the @keyframes inside @theme, which that syntax does not read yet. It also hides other syntax errors,
+    // so the build's own CSS parse is what catches a missing brace.
+    languageOptions: { customSyntax: tailwind4, tolerant: true },
+    plugins: { css, abnormal },
+    rules: { "abnormal/no-hardcoded-css": "error" },
+  },
+];
 
 const eslintConfig = defineConfig([
   // The eslint-plugin-react / import / jsx-a11y bundled with eslint-config-next still call old APIs that ESLint 10 removed,
@@ -71,6 +114,7 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  ...themeRules,
   globalIgnores([
     ".next/**",
     ".open-next/**",
@@ -85,4 +129,4 @@ const eslintConfig = defineConfig([
   ]),
 ]);
 
-export default eslintConfig;
+export default scripts(eslintConfig);

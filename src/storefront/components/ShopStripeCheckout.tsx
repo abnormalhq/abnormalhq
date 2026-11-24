@@ -23,29 +23,34 @@ import { Spinner } from "@/components/ui/spinner";
 import { useDocumentTheme } from "./useDocumentTheme";
 
 /**
- * The Elements appearance follows the site theme (the tokens in src/styles/global.css): ink primary, off-white or charcoal
- * background, the same corner radius. The font is the system stack: Inter is self-hosted through next/font and the iframe cannot load it.
+ * The Elements appearance follows the site theme: the colors are read from the theme's custom properties on <html> when the
+ * form mounts and again when the theme changes, so the iframe matches the page without a copy of the palette here. ink
+ * primary, paper or charcoal background, the control corner radius. The font is the system stack: Inter is self-hosted
+ * through next/font and the iframe cannot load it. Stripe takes literal values, not var(), hence the lookup.
  */
 function appearanceFor(dark: boolean): Appearance {
+  const style = getComputedStyle(document.documentElement);
+  const token = (name: string) => style.getPropertyValue(`--${name}`).trim();
   return {
     theme: dark ? "night" : "stripe",
     variables: {
-      colorPrimary: dark ? "#f0f0ea" : "#141412",
-      colorBackground: dark ? "#141412" : "#f7f7f4",
-      colorText: dark ? "#f0f0ea" : "#141412",
-      colorTextSecondary: dark ? "#a6a69c" : "#5c5c55",
-      colorTextPlaceholder: dark ? "#6f6f66" : "#8a8a80",
-      colorDanger: dark ? "#ff8a96" : "#9f1a2c",
-      colorSuccess: dark ? "#a8c48f" : "#335c24",
+      colorPrimary: token("brand"),
+      colorBackground: token("bg"),
+      colorText: token("text"),
+      colorTextSecondary: token("text-secondary"),
+      colorTextPlaceholder: token("focus"),
+      colorDanger: token("destructive"),
+      colorSuccess: token("success"),
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+      // text-md and radius-control: the theme emits only the variables a page uses, so these two are written out.
       fontSizeBase: "15px",
       borderRadius: "6px",
-      focusBoxShadow: `0 0 0 1px ${dark ? "#6f6f66" : "#8a8a80"}`,
+      focusBoxShadow: `0 0 0 1px ${token("focus")}`,
     },
     rules: {
-      ".Input": { borderColor: dark ? "#f0f0ea1f" : "#14141222", boxShadow: "none" },
-      ".Input:focus": { borderColor: dark ? "#6f6f66" : "#8a8a80" },
-      ".Tab, .Block": { borderColor: dark ? "#2e2e29" : "#e3e3dc", boxShadow: "none" },
+      ".Input": { borderColor: token("input"), boxShadow: "none" },
+      ".Input:focus": { borderColor: token("focus") },
+      ".Tab, .Block": { borderColor: token("border"), boxShadow: "none" },
     },
   };
 }

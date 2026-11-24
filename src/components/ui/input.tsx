@@ -25,7 +25,7 @@ function Input({
       data-slot="input"
       data-size={size}
       className={cn(
-        "w-full min-w-0 rounded-control border border-input bg-control text-foreground transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-muted-foreground hover:border-[color-mix(in_oklab,var(--input),var(--text)_30%)] focus-visible:border-[color-mix(in_oklab,var(--input),var(--text)_30%)] disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive file:inline-flex file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
+        "w-full min-w-0 rounded-control border border-input bg-control text-foreground transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-muted-foreground hover:border-input-hover focus-visible:border-input-hover disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive file:inline-flex file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
         INPUT_SIZES[size],
         className,
       )}

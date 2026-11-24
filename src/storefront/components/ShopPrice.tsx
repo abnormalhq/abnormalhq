@@ -23,7 +23,7 @@ export function ShopPrice({
   const discounted = item.discountPercent > 0;
   return (
     <PricingPrice
-      className={cn("my-[26px]", className)}
+      className={cn("my-6.5", className)}
       price={formatCredits(item.priceCents)}
       period={unit ?? (purchase ? (item.periodDays ? t.perPeriod(item.periodDays) : t.once) : "LDC")}
       discount={discounted ? t.discount(item.discountPercent) : undefined}

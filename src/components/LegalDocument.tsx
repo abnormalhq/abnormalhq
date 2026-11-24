@@ -85,7 +85,7 @@ export function LegalDocument({
             title={
               <span className="flex items-center justify-between gap-4">
                 {l.tocHint}{" "}
-                <span className="text-[11px] font-normal tracking-[0.06em] text-muted-foreground uppercase" lang="en">
+                <span className="text-2xs font-normal tracking-caps text-muted-foreground uppercase" lang="en">
                   {l.tocKicker}
                 </span>
               </span>

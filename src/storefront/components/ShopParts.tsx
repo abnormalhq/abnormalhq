@@ -15,15 +15,15 @@ import { Stepper, StepperContent, StepperIndicator, StepperItem, StepperTitle } 
 import { TextLink } from "@/components/ui/text-link";
 import { cn } from "@/lib/utils";
 
-export const shopPageClass = "pt-9 max-narrow:pt-[22px]";
-export const shopOrderPageClass = cn(shopPageClass, "mx-auto max-w-[780px]");
-export const shopHeadingClass = "text-xl max-narrow:text-[18px] max-narrow:leading-[1.4]";
+export const shopPageClass = "pt-9 max-narrow:pt-5.5";
+export const shopOrderPageClass = cn(shopPageClass, "mx-auto max-w-195");
+export const shopHeadingClass = "text-xl max-narrow:text-lg max-narrow:leading-[1.4]";
 export const shopTextClass = "mt-2.5 text-sm/[1.7] text-muted-foreground";
 export const shopInputClass = "h-auto min-h-10 py-2 text-base/body disabled:cursor-default disabled:opacity-100";
-export const shopNoteClass = "mt-6 max-w-[800px] text-xs/[1.9] text-muted-foreground";
+export const shopNoteClass = "mt-6 max-w-200 text-xs/[1.9] text-muted-foreground";
 export const shopHeadingRowClass = "flex flex-wrap items-center justify-between gap-4";
 export const shopPriceLineClass = "flex flex-wrap items-baseline gap-2.5";
-export const shopPriceAmountClass = "text-[40px] leading-[1.1] font-semibold tracking-[-0.03em]";
+export const shopPriceAmountClass = "text-display leading-[1.1] font-semibold tracking-display";
 export const shopPriceUnitClass = "text-xs/body text-muted-foreground";
 /** A panel standing in for content that is loading. */
 export const shopEmptyClass = "block px-7 py-12 text-center";
@@ -49,7 +49,7 @@ export function ShopHero({
   children: ReactNode;
 }) {
   return (
-    <header className="max-w-[810px] pt-[38px] pb-[46px] max-narrow:pt-7 max-narrow:pb-8">
+    <header className="max-w-202.5 pt-9.5 pb-11.5 max-narrow:pt-7 max-narrow:pb-8">
       {mark && <div className="mb-6">{mark}</div>}
       <Eyebrow>{eyebrow}</Eyebrow>
       <PageTitle>{title}</PageTitle>
@@ -72,14 +72,14 @@ export function ShopButton({ className, ...props }: ComponentProps<typeof Button
 }
 
 export function ShopPanel({ className, ...props }: ComponentProps<typeof Card>) {
-  return <Card className={cn("mb-[22px] block p-7 max-narrow:px-5 max-narrow:py-[22px]", className)} {...props} />;
+  return <Card className={cn("mb-5.5 block p-7 max-narrow:px-5 max-narrow:py-5.5", className)} {...props} />;
 }
 
 export function ShopAlert({ className, ...props }: ComponentProps<typeof Alert>) {
   return (
     <Alert
       variant="destructive"
-      className={cn("my-5 block border-destructive/35 bg-destructive/8 px-[18px] text-sm/[1.7]", className)}
+      className={cn("my-5 block border-destructive/35 bg-destructive/8 px-4.5 text-sm/[1.7]", className)}
       {...props}
     />
   );
@@ -95,7 +95,7 @@ export function ShopStatus({ active, children }: { active?: boolean; children: R
     <StatusLabel
       tone={active ? "success" : "muted"}
       // Long statuses wrap on a phone rather than push the heading beside them.
-      className="h-auto min-h-6 shrink py-[3px] text-xs/body whitespace-normal"
+      className="h-auto min-h-6 shrink py-0.75 text-xs/body whitespace-normal"
     >
       {children}
     </StatusLabel>
@@ -103,7 +103,7 @@ export function ShopStatus({ active, children }: { active?: boolean; children: R
 }
 
 /** A small grey chip beside a heading that is not a status, or that draws its own indicator. */
-export const shopChipClass = "h-auto w-auto shrink border-0 py-[3px] text-xs/body whitespace-normal";
+export const shopChipClass = "h-auto w-auto shrink border-0 py-0.75 text-xs/body whitespace-normal";
 
 /**
  * "Testnet (Nile)" beside a USDT price or payment panel while the shop takes USDT on TRON's test network: what is sent there is
@@ -113,7 +113,7 @@ export function ShopTestnetBadge({ children }: { children: ReactNode }) {
   return (
     <Badge
       variant="outline"
-      className="h-auto w-auto shrink border-destructive/40 py-[3px] text-xs/body whitespace-normal text-destructive"
+      className="h-auto w-auto shrink border-destructive/40 py-0.75 text-xs/body whitespace-normal text-destructive"
     >
       {children}
     </Badge>
@@ -179,7 +179,7 @@ export function ShopField({
       {hint !== undefined && (
         <FieldMessage
           key={invalid ? "error" : "hint"}
-          className="mt-0 max-w-[560px]"
+          className="mt-0 max-w-140"
           tone={invalid ? "error" : "default"}
           id={hintId}
           role={invalid ? "alert" : undefined}
@@ -249,7 +249,7 @@ export function ShopProgress({
   steps: { key: string; title: ReactNode; status: "complete" | "current" | "upcoming" }[];
 }) {
   return (
-    <Stepper aria-label={label} className="mb-8 max-w-[560px]">
+    <Stepper aria-label={label} className="mb-8 max-w-140">
       {steps.map((step, index) => (
         <StepperItem
           key={`${step.key}:${step.status}`}

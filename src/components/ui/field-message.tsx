@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
  * It stays in the DOM while empty and takes no space, so an aria-live region is already there when a message arrives.
  */
 const fieldMessageVariants = cva(
-  "mt-[9px] flex items-start gap-[7px] text-xs/[1.65] wrap-anywhere text-muted-foreground before:mt-[7px] before:size-[5px] before:shrink-0 before:rounded-full before:bg-muted-foreground empty:m-0 empty:before:hidden",
+  "mt-2.25 flex items-start gap-1.75 text-xs/[1.65] wrap-anywhere text-muted-foreground before:mt-1.75 before:size-[5px] before:shrink-0 before:rounded-full before:bg-muted-foreground empty:m-0 empty:before:hidden",
   {
     variants: {
       tone: {
         default: "",
-        busy: "before:bg-badge-ink",
+        busy: "before:bg-warning",
         ok: "text-success before:bg-success",
         error: "text-destructive before:bg-destructive",
       },

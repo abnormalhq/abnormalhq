@@ -53,8 +53,8 @@ function StepperItem({
       className={cn(
         // The line: from this step's indicator to the next one's, along the row or down the column.
         "group/step relative flex min-w-0 gap-3 after:absolute after:bg-border data-[status=complete]:after:bg-signal last:after:hidden",
-        "group-data-[orientation=horizontal]/stepper:flex-1 group-data-[orientation=horizontal]/stepper:flex-col group-data-[orientation=horizontal]/stepper:pr-3 group-data-[orientation=horizontal]/stepper:after:top-[13px] group-data-[orientation=horizontal]/stepper:after:right-2 group-data-[orientation=horizontal]/stepper:after:left-9 group-data-[orientation=horizontal]/stepper:after:h-0.5 group-data-[orientation=horizontal]/stepper:last:flex-none group-data-[orientation=horizontal]/stepper:last:pr-0",
-        "group-data-[orientation=vertical]/stepper:pb-6 group-data-[orientation=vertical]/stepper:after:top-9 group-data-[orientation=vertical]/stepper:after:bottom-2 group-data-[orientation=vertical]/stepper:after:left-[13px] group-data-[orientation=vertical]/stepper:after:w-0.5 group-data-[orientation=vertical]/stepper:last:pb-0",
+        "group-data-[orientation=horizontal]/stepper:flex-1 group-data-[orientation=horizontal]/stepper:flex-col group-data-[orientation=horizontal]/stepper:pr-3 group-data-[orientation=horizontal]/stepper:after:top-3.25 group-data-[orientation=horizontal]/stepper:after:right-2 group-data-[orientation=horizontal]/stepper:after:left-9 group-data-[orientation=horizontal]/stepper:after:h-0.5 group-data-[orientation=horizontal]/stepper:last:flex-none group-data-[orientation=horizontal]/stepper:last:pr-0",
+        "group-data-[orientation=vertical]/stepper:pb-6 group-data-[orientation=vertical]/stepper:after:top-9 group-data-[orientation=vertical]/stepper:after:bottom-2 group-data-[orientation=vertical]/stepper:after:left-3.25 group-data-[orientation=vertical]/stepper:after:w-0.5 group-data-[orientation=vertical]/stepper:last:pb-0",
         className,
       )}
       {...props}

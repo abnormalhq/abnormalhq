@@ -27,7 +27,7 @@ export function Included({ lang, heading = "h3", id }: { lang: Lang; heading?: "
               <Icon name={item.icon} />
             </IconTile>
             <div className="min-w-0">
-              <Item className="text-[17px] leading-[1.4] font-semibold tracking-[-0.01em]">{item.title}</Item>
+              <Item className="text-lg leading-[1.4] font-semibold tracking-title">{item.title}</Item>
               <p className="mt-1.5 text-base/prose text-muted-foreground">{item.description}</p>
             </div>
           </li>

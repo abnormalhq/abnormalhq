@@ -27,8 +27,8 @@ export function TrialNote({
   if (!text) return null;
   return (
     <Card className={cn("flex-row flex-wrap items-center justify-between gap-x-8 gap-y-4 p-6 max-md:px-5", className)}>
-      <div className="max-w-[640px] min-w-0 flex-[1_1_320px]">
-        <p className="text-[17px] leading-[1.4] font-semibold tracking-[-0.01em]">{text.title}</p>
+      <div className="max-w-160 min-w-0 flex-[1_1_320px]">
+        <p className="text-lg leading-[1.4] font-semibold tracking-title">{text.title}</p>
         <p className="mt-1.5 text-base/prose text-muted-foreground">{text.body}</p>
       </div>
       <Button asChild variant="outline" size="lg" className="shrink-0 max-md:w-full">

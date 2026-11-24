@@ -32,7 +32,7 @@ const issuedRowClass = "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 wrap
 const issuedActionClass = "min-h-10";
 
 export const panelClass =
-  "block px-8 py-[30px] max-desk:px-6 max-desk:py-[26px] max-narrow:rounded-mark max-narrow:px-[18px] max-narrow:py-[22px]";
+  "block px-8 py-7.5 max-desk:px-6 max-desk:py-6.5 max-narrow:rounded-mark max-narrow:px-4.5 max-narrow:py-5.5";
 
 interface Props {
   t: Copy;
@@ -106,15 +106,15 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
     >
       <div className="flex items-start gap-4 max-narrow:gap-3">
         <span
-          className="grid size-[46px] shrink-0 place-items-center rounded-full bg-[color-mix(in_oklab,var(--success)_10%,var(--card))] text-success max-narrow:size-9"
+          className="grid size-11.5 shrink-0 place-items-center rounded-full bg-[color-mix(in_oklab,var(--success)_10%,var(--card))] text-success max-narrow:size-9"
           aria-hidden="true"
         >
-          <CheckIcon className="size-7 max-narrow:size-[22px]" />
+          <CheckIcon className="size-7 max-narrow:size-5.5" />
         </span>
         <div className="min-w-0">
           <Eyebrow className="text-success before:hidden">{t.result.eyebrow}</Eyebrow>
           <h2
-            className="mt-2.5 text-[clamp(24px,2.6vw,32px)] leading-[1.25] tracking-[-0.025em] wrap-anywhere focus-visible:rounded-[3px] focus-visible:outline-offset-[6px] max-narrow:text-[22px]"
+            className="mt-2.5 text-[clamp(24px,2.6vw,32px)] leading-tight tracking-tight wrap-anywhere focus-visible:rounded-chip focus-visible:outline-offset-[6px] max-narrow:text-xl"
             id="result-title"
             tabIndex={-1}
             ref={titleRef}
@@ -124,7 +124,7 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
           <p className="mt-2.5 text-sm/[1.7] text-muted-foreground">{t.submitNote}</p>
         </div>
       </div>
-      <ul className="mt-[26px] border-t border-border">
+      <ul className="mt-6.5 border-t border-border">
         {issued.map((item) => (
           <IssuedItem key={item.email} t={t} item={item} />
         ))}
@@ -182,7 +182,7 @@ export function ResultPanel({ t, issued, outcome, supportEmail, homePath, titleR
       </p>
       <p>
         <TextLink
-          className="mt-[18px] min-h-10 text-sm/body font-normal"
+          className="mt-4.5 min-h-10 text-sm/body font-normal"
           href={`${homePath}${REDEEM_PATH}`}
           onClick={() => {
             leaving.current = true;

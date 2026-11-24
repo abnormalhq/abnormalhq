@@ -352,7 +352,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
           <EmptyStateDescription className={shopEmptyTextClass} role="alert">
             {error}
           </EmptyStateDescription>
-          <EmptyStateActions className="mt-[18px]">
+          <EmptyStateActions className="mt-4.5">
             <ShopButton
               variant="outline"
               onClick={() => {
@@ -373,8 +373,8 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               <Skeleton className="h-6 w-2/5" />
               <Skeleton className="h-5 w-16" />
             </div>
-            <Skeleton className="mt-[30px] h-11 w-1/3" />
-            <Skeleton className="mt-[30px] h-4 w-4/5" />
+            <Skeleton className="mt-7.5 h-11 w-1/3" />
+            <Skeleton className="mt-7.5 h-4 w-4/5" />
             <Skeleton className="mt-2 h-4 w-3/5" />
             <Skeleton className="mt-8 h-4 w-full" />
             <Skeleton className="mt-2 h-4 w-full" />
@@ -435,14 +435,14 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               // Without the currency the amount cannot be read: show none rather than a guessed one.
               order.currency && (
                 <PricingPrice
-                  className={cn("mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}
+                  className={cn("mt-6.5", couponUsed ? "mb-0" : "mb-6.5")}
                   price={formatMoney(order.priceCents, order.currency, lang)}
                 />
               )
             ) : order.provider === "usdt" ? (
               // Hundredths of a USDT, written with two decimals and the token's name (USDT is not an ISO 4217 currency).
               <PricingPrice
-                className={cn("mt-[26px]", couponUsed ? "mb-0" : "mb-[26px]")}
+                className={cn("mt-6.5", couponUsed ? "mb-0" : "mb-6.5")}
                 price={formatCredits(order.priceCents)}
                 period="USDT"
               />
@@ -452,8 +452,8 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
             {couponUsed && (order.provider !== "stripe" || order.currency) && (
               // What the code took off, and the price before it: without this an order with a code looks like a plain
               // lower price (mail publishes such an order's original price as the price paid).
-              <p className="mt-3 mb-[26px] flex flex-wrap items-center gap-x-2.5 gap-y-2 text-xs/body text-muted-foreground">
-                <Badge variant="brand" className="h-auto border-0 py-[3px] text-xs/body font-semibold">
+              <p className="mt-3 mb-6.5 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-xs/body text-muted-foreground">
+                <Badge variant="brand" className="h-auto border-0 py-0.75 text-xs/body font-semibold">
                   {t.orderCoupon(couponUsed.code)}
                 </Badge>
                 <span className="text-foreground">−{amount(couponUsed.discountCents)}</span>
@@ -493,7 +493,7 @@ function ShopOrderContent({ lang, orderId, paymentError }: { lang: Lang; orderId
               <h2 className={shopHeadingClass}>{t.codeTitle}</h2>
               {result.code ? (
                 <>
-                  <code className="mt-6 block animate-flash rounded-mark border border-dashed border-border bg-surface px-[18px] py-[26px] text-center font-mono text-[clamp(16px,3vw,24px)] tracking-[0.06em] wrap-anywhere select-all">
+                  <code className="mt-6 block animate-flash rounded-mark border border-dashed border-border bg-surface px-4.5 py-6.5 text-center font-mono text-[clamp(16px,3vw,24px)] tracking-caps wrap-anywhere select-all">
                     {result.code}
                   </code>
                   {result.codeStatus && result.codeStatus in t.statuses && (

@@ -278,6 +278,7 @@ export function VideoPlayer({
     return (
       <div className={cn("relative", className)}>
         <video
+          // abnormal-allow: the film is shot on the light paper (#f7f7f4), so its letterbox is that paper in either theme.
           className="block aspect-video w-full bg-[#f7f7f4]"
           controls
           playsInline
@@ -304,6 +305,7 @@ export function VideoPlayer({
       ref={rootRef}
       className={cn(
         "group/player relative isolate select-none",
+        // abnormal-allow: black around a fullscreen film, and the film's own light paper (#f7f7f4) around it on the page.
         fullscreen ? "flex items-center bg-black" : "bg-[#f7f7f4]",
         autoHidden && "cursor-none",
         className,
@@ -336,7 +338,7 @@ export function VideoPlayer({
 
       {failed ? (
         <div className="absolute inset-0 grid place-items-center bg-card/90 p-6 text-center">
-          <p className="max-w-[28rem] text-base/body text-muted-foreground" role="alert">
+          <p className="max-w-112 text-base/body text-muted-foreground" role="alert">
             {copy.fallback}
           </p>
         </div>
@@ -352,12 +354,12 @@ export function VideoPlayer({
             }}
             aria-label={ended ? copy.replay : copy.play}
           >
-            <span className="grid size-[4.5rem] place-items-center rounded-full bg-brand text-brand-foreground shadow-popover transition-transform duration-150 group-hover/player:scale-105 active:scale-95 max-md:size-14">
+            <span className="grid size-18 place-items-center rounded-full bg-brand text-brand-foreground shadow-popover transition-transform duration-150 group-hover/player:scale-105 active:scale-95 max-md:size-14">
               {ended ? (
                 <RotateCcwIcon className="size-7 max-md:size-6" strokeWidth={1.8} aria-hidden="true" />
               ) : (
                 <PlayIcon
-                  className="size-7 translate-x-[2px] fill-current max-md:size-6"
+                  className="size-7 translate-x-0.5 fill-current max-md:size-6"
                   strokeWidth={1.8}
                   aria-hidden="true"
                 />

@@ -105,7 +105,7 @@ export function Header({
 
   return (
     // Translucent over the page as it scrolls under the bar; the mobile menu below keeps the solid page color.
-    <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur-md" ref={header}>
+    <header className="sticky top-0 z-header border-b border-border bg-background/85 backdrop-blur-md" ref={header}>
       <Container className="flex min-h-16 items-center justify-between gap-6 max-md:gap-3">
         {brand}
         <nav className="mr-auto ml-6 flex items-center gap-1 max-nav:ml-2 max-md:hidden" aria-label={copy.navLabel}>
@@ -188,7 +188,7 @@ export function Header({
         <Container className="flex flex-col pt-2 pb-5">
           {nav.map(({ href, label, current }, index) => (
             <Link
-              className="flex min-h-[52px] items-center gap-3.5 border-b border-border text-md/body aria-[current=page]:font-semibold"
+              className="flex min-h-13 items-center gap-3.5 border-b border-border text-md/body aria-[current=page]:font-semibold"
               href={href}
               key={href}
               onClick={closeMenu}

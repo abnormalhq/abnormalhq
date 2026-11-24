@@ -27,7 +27,7 @@ export function SectionToc({
             href={`#${id}`}
             key={id}
           >
-            <span className="shrink-0 text-[11px] text-muted-foreground" aria-hidden="true">
+            <span className="shrink-0 text-2xs text-muted-foreground" aria-hidden="true">
               {String(index + 1).padStart(2, "0")}
             </span>
             {text}

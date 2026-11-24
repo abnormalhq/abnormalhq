@@ -55,7 +55,7 @@ function BentoTitle({ className, asChild = false, ...props }: React.ComponentPro
   return (
     <Comp
       data-slot="bento-title"
-      className={cn("text-lg/[1.4] font-semibold tracking-[-0.01em] text-foreground", className)}
+      className={cn("text-lg/[1.4] font-semibold tracking-title text-foreground", className)}
       {...props}
     />
   );

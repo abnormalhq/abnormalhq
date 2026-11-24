@@ -25,7 +25,7 @@ export function Onboard({ lang }: { lang: Lang }) {
   return (
     <div>
       <section
-        className="grid grid-cols-[minmax(0,1fr)_350px] items-center gap-12 pt-[54px] pb-12 max-desk:grid-cols-[minmax(0,1fr)_290px] max-desk:gap-6 max-tablet:grid-cols-[minmax(0,1fr)_225px] max-tablet:gap-4 max-tablet:py-10 max-narrow:block max-narrow:pt-[34px] max-narrow:pb-[30px]"
+        className="grid grid-cols-[minmax(0,1fr)_350px] items-center gap-12 pt-13.5 pb-12 max-desk:grid-cols-[minmax(0,1fr)_290px] max-desk:gap-6 max-tablet:grid-cols-[minmax(0,1fr)_225px] max-tablet:gap-4 max-tablet:py-10 max-narrow:block max-narrow:pt-8.5 max-narrow:pb-7.5"
         aria-labelledby="onboard-title"
       >
         <div>
@@ -34,24 +34,24 @@ export function Onboard({ lang }: { lang: Lang }) {
             <span className="h-3 w-px bg-border" />
             ABNORMAL MAIL
           </Eyebrow>
-          <PageTitle className="[&:lang(zh)]:leading-[1.25]" id="onboard-title">
+          <PageTitle className="[&:lang(zh)]:leading-tight" id="onboard-title">
             <span className="block">{t.titleLines[0]}</span>
             <span className="block text-muted-foreground">
               {t.titleLines[1]}
               <HeadingMark>{t.titleDot}</HeadingMark>
             </span>
           </PageTitle>
-          <p className="mt-[22px] max-w-[500px] text-md/[1.8] text-pretty text-muted-foreground max-narrow:mt-4 max-narrow:max-w-[40ch] max-narrow:text-sm/[1.85]">
+          <p className="mt-5.5 max-w-125 text-md/prose text-pretty text-muted-foreground max-narrow:mt-4 max-narrow:max-w-[40ch] max-narrow:text-sm/[1.85]">
             {t.tagline}
           </p>
-          <ul className="mt-[22px] flex flex-wrap gap-x-[22px] gap-y-2.5 max-narrow:mt-[18px] max-narrow:gap-x-[13px] max-narrow:gap-y-2">
+          <ul className="mt-5.5 flex flex-wrap gap-x-5.5 gap-y-2.5 max-narrow:mt-4.5 max-narrow:gap-x-3.25 max-narrow:gap-y-2">
             {t.ui.features.map((feature) => (
               <li
                 className="inline-flex items-center gap-1.5 text-xs/body text-muted-foreground max-narrow:gap-1"
                 key={feature}
               >
                 <CheckIcon
-                  className="size-[15px] shrink-0 text-foreground max-narrow:size-3"
+                  className="size-3.75 shrink-0 text-foreground max-narrow:size-3"
                   strokeWidth={1.75}
                   aria-hidden="true"
                 />
@@ -81,7 +81,7 @@ export function Onboard({ lang }: { lang: Lang }) {
         </Button>
       </section>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-7 max-desk:grid-cols-[minmax(0,1fr)_240px] max-desk:gap-[22px] max-tablet:grid-cols-[minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-7 max-desk:grid-cols-[minmax(0,1fr)_240px] max-desk:gap-5.5 max-tablet:grid-cols-[minmax(0,1fr)]">
         <div className="min-w-0">
           <OnboardForm
             lang={lang}
@@ -92,31 +92,31 @@ export function Onboard({ lang }: { lang: Lang }) {
           />
         </div>
         <aside
-          className="grid gap-[18px] max-tablet:grid-cols-[1fr_1fr] max-narrow:mt-1 max-narrow:grid-cols-[1fr] max-narrow:gap-4"
+          className="grid gap-4.5 max-tablet:grid-cols-[1fr_1fr] max-narrow:mt-1 max-narrow:grid-cols-[1fr] max-narrow:gap-4"
           aria-label={t.ui.supportTitle}
         >
           <Card
             asChild
-            className="block bg-surface px-[22px] pt-6 pb-5 max-desk:px-5 max-desk:py-[23px] max-tablet:row-span-2 max-narrow:relative max-narrow:row-auto max-narrow:p-[22px]"
+            className="block bg-surface px-5.5 pt-6 pb-5 max-desk:px-5 max-desk:py-5.75 max-tablet:row-span-2 max-narrow:relative max-narrow:row-auto max-narrow:p-5.5"
           >
             <div>
               <IconTile
                 variant="outline"
-                className="mb-5 size-10 max-narrow:mb-[18px] max-narrow:size-[38px]"
+                className="mb-5 size-10 max-narrow:mb-4.5 max-narrow:size-9.5"
                 aria-hidden="true"
               >
-                <BookOpenIcon className="size-[25px]" strokeWidth={1.5} />
+                <BookOpenIcon className="size-6.25" strokeWidth={1.5} />
               </IconTile>
               <h2 className="text-xl/[1.35]">{t.ui.guideTitle}</h2>
               <p className={cn("mt-2.5 max-narrow:max-w-[44ch]", asideTextClass)}>{t.ui.guideDescription}</p>
               <Link
                 href={`/${LANG_PATHS[lang]}guide/`}
-                className="group mt-[23px] flex min-h-11 items-center justify-between gap-3 border-t border-border pt-[15px] text-sm/body font-medium max-narrow:mt-[18px]"
+                className="group mt-5.75 flex min-h-11 items-center justify-between gap-3 border-t border-border pt-3.75 text-sm/body font-medium max-narrow:mt-4.5"
               >
                 {t.ui.guideLink}
                 <IconTile
                   variant="highlight"
-                  className="size-[26px] rounded-chip text-[15px] transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                  className="size-6.5 rounded-chip text-md transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                   aria-hidden="true"
                 >
                   ↗
@@ -133,7 +133,7 @@ export function Onboard({ lang }: { lang: Lang }) {
           </div>
           <div className="px-2 pt-2 max-tablet:px-2.5 max-tablet:pt-0 max-narrow:p-1.5">
             <h3 className={asideTitleClass}>{t.ui.supportTitle}</h3>
-            <p className={cn("mt-[5px]", asideTextClass)}>{t.ui.supportDescription}</p>
+            <p className={cn("mt-1.25", asideTextClass)}>{t.ui.supportDescription}</p>
             <a
               className="flex min-h-11 items-center justify-between text-sm/body hover:underline hover:underline-offset-4"
               href={`mailto:${supportEmail}`}
@@ -146,13 +146,13 @@ export function Onboard({ lang }: { lang: Lang }) {
       </div>
 
       <section
-        className="mt-18 grid scroll-mt-6 grid-cols-[280px_minmax(0,1fr)] gap-14 border-t border-border pt-10 max-desk:grid-cols-[240px_minmax(0,1fr)] max-desk:gap-9 max-tablet:mt-[52px] max-tablet:grid-cols-[200px_minmax(0,1fr)] max-tablet:gap-[26px] max-narrow:mt-10 max-narrow:grid-cols-[1fr] max-narrow:pt-7"
+        className="mt-18 grid scroll-mt-6 grid-cols-[280px_minmax(0,1fr)] gap-14 border-t border-border pt-10 max-desk:grid-cols-[240px_minmax(0,1fr)] max-desk:gap-9 max-tablet:mt-13 max-tablet:grid-cols-[200px_minmax(0,1fr)] max-tablet:gap-6.5 max-narrow:mt-10 max-narrow:grid-cols-[1fr] max-narrow:pt-7"
         id="help"
         aria-labelledby="help-title"
       >
         <div>
           <Eyebrow className="before:hidden">{t.help.eyebrow}</Eyebrow>
-          <h2 className="mt-3.5 text-[28px] max-narrow:mt-2.5 max-narrow:text-2xl/[1.2]" id="help-title">
+          <h2 className="mt-3.5 text-3xl max-narrow:mt-2.5 max-narrow:text-2xl/[1.2]" id="help-title">
             {t.help.title}
           </h2>
           <p className={cn("mt-4 max-w-[27ch] wrap-anywhere max-narrow:mt-3 max-narrow:max-w-none", asideTextClass)}>
@@ -167,7 +167,7 @@ export function Onboard({ lang }: { lang: Lang }) {
           {t.help.items.map((item, index) => (
             <Disclosure className="first:border-t" key={item.q}>
               <DisclosureTrigger
-                className="min-h-16 gap-4 py-[17px] leading-[1.55] focus-visible:rounded-chip focus-visible:outline-offset-4 max-narrow:min-h-[62px] max-narrow:gap-3 max-[23.4375rem]:gap-3"
+                className="min-h-16 gap-4 py-4.25 leading-body focus-visible:rounded-chip focus-visible:outline-offset-4 max-narrow:min-h-15.5 max-narrow:gap-3 max-[23.4375rem]:gap-3"
                 indicator={<HelpToggle />}
               >
                 <span className="text-xs/body text-muted-foreground" aria-hidden="true">
@@ -178,7 +178,7 @@ export function Onboard({ lang }: { lang: Lang }) {
                 </h3>
               </DisclosureTrigger>
               <DisclosureContent className="m-0 text-base/[1.75] wrap-anywhere max-narrow:text-sm/[1.75]">
-                <p className="pr-10 pb-[22px] pl-[30px] max-narrow:pr-3 max-narrow:pl-6">
+                <p className="pr-10 pb-5.5 pl-7.5 max-narrow:pr-3 max-narrow:pl-6">
                   <RichText text={item.a} base={homePath} inlineLinks />
                 </p>
               </DisclosureContent>
@@ -194,34 +194,38 @@ export function Onboard({ lang }: { lang: Lang }) {
 function HelpToggle() {
   return (
     <span
-      className="relative size-[25px] shrink-0 rounded-chip border border-border transition-colors duration-150 group-open/disclosure:border-highlight-foreground group-open/disclosure:bg-highlight before:absolute before:top-[11px] before:left-[7px] before:h-px before:w-[9px] before:bg-muted-foreground group-open/disclosure:before:bg-highlight-foreground after:absolute after:top-[11px] after:left-[7px] after:h-px after:w-[9px] after:rotate-90 after:bg-muted-foreground after:transition-transform after:duration-150 group-open/disclosure:after:rotate-0 group-open/disclosure:after:bg-highlight-foreground"
+      className="relative size-6.25 shrink-0 rounded-chip border border-border transition-colors duration-150 group-open/disclosure:border-highlight-foreground group-open/disclosure:bg-highlight before:absolute before:top-2.75 before:left-1.75 before:h-px before:w-2.25 before:bg-muted-foreground group-open/disclosure:before:bg-highlight-foreground after:absolute after:top-2.75 after:left-1.75 after:h-px after:w-2.25 after:rotate-90 after:bg-muted-foreground after:transition-transform after:duration-150 group-open/disclosure:after:rotate-0 group-open/disclosure:after:bg-highlight-foreground"
       aria-hidden="true"
     />
   );
 }
 
-const mailCardClass = "absolute h-[244px] w-[254px] rounded-mark border border-border";
+const mailCardClass = "absolute h-61 w-63.5 rounded-mark border border-border";
+// abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale.
 const mailCardRowClass = "flex items-center justify-between text-[8px] tracking-[0.12em] text-muted-foreground";
 
 /** Decorative stationery, kept in the page's own theme tokens. */
 function MailArtwork() {
   return (
     <div
-      className="relative h-[290px] w-[350px] justify-self-end max-desk:origin-right max-desk:scale-[0.84] max-tablet:scale-[0.64] max-narrow:hidden"
+      className="relative h-72.5 w-87.5 justify-self-end max-desk:origin-right max-desk:scale-[0.84] max-tablet:scale-[0.64] max-narrow:hidden"
       aria-hidden="true"
     >
-      <div className="absolute top-5 left-[47px] size-[252px] rounded-full border border-border" />
-      <span className="absolute top-0.5 right-[13px] text-[36px] text-signal">✳</span>
-      <span className="absolute bottom-0 left-[7px] text-[27px] font-light text-muted-foreground">+</span>
+      <div className="absolute top-5 left-11.75 size-63 rounded-full border border-border" />
+      {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
+      <span className="absolute top-0.5 right-3.25 text-[36px] text-signal">✳</span>
+      {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
+      <span className="absolute bottom-0 left-1.75 text-[27px] font-light text-muted-foreground">+</span>
       {/* The hero illustration is a showcase: the card behind it is a big block of highlight yellow, the same in both themes. */}
-      <div className={cn(mailCardClass, "top-7 left-[50px] rotate-[10deg] border-highlight bg-highlight")} />
-      <div className={cn(mailCardClass, "top-[19px] left-9 -rotate-[7deg] bg-card px-5 pt-[18px] pb-3")}>
+      <div className={cn(mailCardClass, "top-7 left-12.5 rotate-[10deg] border-highlight bg-highlight")} />
+      <div className={cn(mailCardClass, "top-4.75 left-9 -rotate-[7deg] bg-card px-5 pt-4.5 pb-3")}>
         <div className={mailCardRowClass}>
+          {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
           <span className="text-[22px] leading-none font-semibold tracking-[-0.04em] text-foreground">a↗</span>
           <span>YOUR NEXT CHAPTER</span>
         </div>
         <svg
-          className="mx-auto mt-[22px] mb-[17px] text-foreground"
+          className="mx-auto mt-5.5 mb-4.25 text-foreground"
           width="104"
           height="76"
           viewBox="0 0 104 76"
@@ -233,16 +237,18 @@ function MailArtwork() {
           <rect x="2" y="2" width="100" height="72" rx="8" />
           <path d="m3 8 49 34L101 8M3 68l33-29m65 29L68 39" />
         </svg>
-        <span className="block text-center text-[19px] tracking-[-0.02em]">
+        {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
+        <span className="block text-center text-[19px] tracking-heading">
           you<span className="text-muted-foreground">@{defaultDomain}</span>
         </span>
-        <div className={cn(mailCardRowClass, "mt-[17px] border-t border-border pt-[9px]")}>
+        <div className={cn(mailCardRowClass, "mt-4.25 border-t border-border pt-2.25")}>
           <span>MADE FOR YOU.</span>
+          {/* abnormal-allow: a glyph of the drawing, sized to the drawing rather than the type scale. */}
           <span className="text-[17px] leading-none">↗</span>
         </div>
       </div>
-      <span className="absolute right-8 bottom-[39px] grid size-11 -rotate-[7deg] place-items-center rounded-full border-[5px] border-background bg-foreground text-background">
-        <CheckIcon className="size-[23px]" strokeWidth={1.75} />
+      <span className="absolute right-8 bottom-9.75 grid size-11 -rotate-[7deg] place-items-center rounded-full border-[5px] border-background bg-foreground text-background">
+        <CheckIcon className="size-5.75" strokeWidth={1.75} />
       </span>
     </div>
   );

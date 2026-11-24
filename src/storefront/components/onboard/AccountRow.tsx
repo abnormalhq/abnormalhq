@@ -110,7 +110,7 @@ export function AccountRow({
                 {t.buttons.generate}
               </InputGroupButton>
             }
-            inputClassName={row.showPassword ? undefined : "max-narrow:placeholder:text-[12px]"}
+            inputClassName={row.showPassword ? undefined : "max-narrow:placeholder:text-xs"}
             id={passwordId}
             autoComplete="new-password"
             placeholder={t.ui.passwordPlaceholder}

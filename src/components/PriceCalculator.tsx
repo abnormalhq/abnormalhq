@@ -108,7 +108,7 @@ export function PriceCalculator({
           <p className="mt-2" role="status">
             {chosen ? (
               <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-heading text-[clamp(3rem,6vw,4.5rem)] leading-none font-semibold tracking-[-0.03em] tabular-nums">
+                <span className="font-heading text-[clamp(3rem,6vw,4.5rem)] leading-none font-semibold tracking-display tabular-nums">
                   {chosen.amount}
                 </span>
                 <span className="text-md/body text-muted-foreground">{chosen.unit}</span>
@@ -120,7 +120,7 @@ export function PriceCalculator({
                 )}
               </span>
             ) : (
-              <span className="block max-w-[32rem] text-md/prose">
+              <span className="block max-w-128 text-md/prose">
                 {fillTemplate(c.none, { count: String(count) }).join("")}
               </span>
             )}
@@ -137,7 +137,7 @@ export function PriceCalculator({
                 {c.checkout} <Icon name="up-right" className="size-4" />
               </a>
             </Button>
-            <p className="max-w-[34rem] text-xs/[1.8] text-muted-foreground">{c.estimate}</p>
+            <p className="max-w-136 text-xs/prose text-muted-foreground">{c.estimate}</p>
           </div>
         )}
       </div>

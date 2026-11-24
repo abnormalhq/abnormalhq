@@ -76,7 +76,7 @@ export function HelpSearch({
       <PageHeader {...header}>
         <search className="mt-8 block">
           {/* Nothing to submit: the list below is the result. Enter must not reload the page. */}
-          <form role="search" className="max-w-[36rem]" onSubmit={(event) => event.preventDefault()}>
+          <form role="search" className="max-w-144" onSubmit={(event) => event.preventDefault()}>
             <label className="sr-only" htmlFor={`${id}-query`}>
               {copy.label}
             </label>
@@ -122,7 +122,7 @@ export function HelpSearch({
                           <li className="border-t border-border" key={entry.href}>
                             <Link className="group/entry flex h-full items-start gap-4 py-4" href={entry.href}>
                               <span className="min-w-0 flex-1">
-                                <span className="block text-base/[1.5] font-medium underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-150 group-hover/entry:decoration-current">
+                                <span className="block text-base/normal font-medium underline decoration-transparent underline-offset-4 transition-[text-decoration-color] duration-150 group-hover/entry:decoration-current">
                                   {entry.title}
                                 </span>
                                 <span className="mt-1 block text-sm/prose text-muted-foreground">{entry.summary}</span>
