@@ -38,7 +38,7 @@ function NotFoundCode({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="not-found-code"
       className={cn(
-        "flex items-center gap-2.5 font-mono text-xs/[1.4] tracking-[0.06em] text-muted-foreground uppercase before:size-1.5 before:shrink-0 before:rounded-full before:bg-signal",
+        "flex items-center gap-2.5 font-mono text-xs/[1.4] tracking-caps text-muted-foreground uppercase before:size-1.5 before:shrink-0 before:rounded-full before:bg-signal",
         className,
       )}
       {...props}
@@ -53,7 +53,7 @@ function NotFoundTitle({ className, asChild = false, ...props }: React.Component
     <Comp
       data-slot="not-found-title"
       className={cn(
-        "mt-4 font-heading text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.15] font-semibold tracking-[-0.02em] text-balance",
+        "mt-4 font-heading text-[clamp(1.75rem,4vw,2.5rem)] leading-[1.15] font-semibold tracking-heading text-balance",
         className,
       )}
       {...props}
