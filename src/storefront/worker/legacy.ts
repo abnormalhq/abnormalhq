@@ -12,7 +12,7 @@
 import { site, type Lang } from "../../data/site.ts";
 import { localePath } from "../../i18n/paths.ts";
 
-export const legacyHosts: readonly string[] = ["onboard.abnormalhq.com", "onboard.abnormal.bid"];
+export const legacyHosts: readonly string[] = ["onboard.abnormalhq.com"];
 
 /** Files that keep their path on the main site. */
 const SAME_PATH = new Set(["/llms.txt", "/robots.txt", "/sitemap.xml"]);

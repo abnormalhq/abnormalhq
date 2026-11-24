@@ -23,24 +23,10 @@
       "enabled": true,
       "previews_enabled": false,
     },
-    // Old address: the zone's Redirect Rule 301s it to the new address before the Worker. It stays here to keep its DNS record; removing it would make this host unresolvable for about 30 minutes because of DNS negative caching.
-    {
-      "pattern": "abnormal.bid",
-      "custom_domain": true,
-      "enabled": true,
-      "previews_enabled": false,
-    },
     // The retired standalone storefront (onboard): src/storefront/worker/legacy.ts 301s its pages to the same pages here and
     // keeps proxying its /api, so payment notifications still sent there arrive.
     {
       "pattern": "onboard.abnormalhq.com",
-      "custom_domain": true,
-      "enabled": true,
-      "previews_enabled": false,
-    },
-    // The storefront's older address: the zone's Redirect Rule sends it on before the Worker. It stays here to keep its DNS record, like abnormal.bid.
-    {
-      "pattern": "onboard.abnormal.bid",
       "custom_domain": true,
       "enabled": true,
       "previews_enabled": false,

@@ -130,11 +130,11 @@ To try the real API against a local mail: in mail set `ONBOARD_ORIGIN=http://loc
 
 ### Retiring onboard
 
-`onboard.abnormalhq.com` (and `onboard.abnormal.bid`) are custom domains of this Worker (`routes` in `wrangler.jsonc`). `src/storefront/worker/legacy.ts` 301s every page there to the same page here (`/` → `/zh/redeem/`, `/en/shop/orders/?id=…` → `/shop/orders/?id=…` and so on, with the query string), and the API under `/api` keeps answering on that host, so Credit notifications and links in mail already sent keep working. Buyers' purchase and login sessions were host cookies of the old domain, so they sign in again once.
+`onboard.abnormalhq.com` is a custom domain of this Worker (`routes` in `wrangler.jsonc`). `src/storefront/worker/legacy.ts` 301s every page there to the same page here (`/` → `/zh/redeem/`, `/en/shop/orders/?id=…` → `/shop/orders/?id=…` and so on, with the query string), and the API under `/api` keeps answering on that host, so Credit notifications and links in mail already sent keep working. Buyers' purchase and login sessions were host cookies of the old domain, so they sign in again once.
 
 The switch is done: the `abnormalhq-onboard` Worker and its repository are deleted, mail's sales settings and the Credit application point here,
-the `onboard.abnormal.bid` Redirect Rule goes straight to `https://abnormalhq.com`, and mail's `ONBOARD_ORIGIN` (with `redeem.storefrontOrigins` in both copies of
-`docs/onboard-contract.json`) lists only `https://abnormalhq.com`. The old domains stay bound here so links already sent keep landing on the right page.
+and mail's `ONBOARD_ORIGIN` (with `redeem.storefrontOrigins` in both copies of
+`docs/onboard-contract.json`) lists only `https://abnormalhq.com`. The old domain stays bound here so links already sent keep landing on the right page. The web addresses on `abnormal.bid` (`abnormal.bid`, `www.abnormal.bid`, `onboard.abnormal.bid`) were retired on 2026-11-24.
 
 ## Pricing and the address check
 
@@ -447,13 +447,13 @@ A manual run (**Actions → Deploy → Run workflow** on `main`) redeploys `main
 
 ### Cloudflare token
 
-The deploy uses the `abnormalhq` organization secret `CLOUDFLARE_API_TOKEN`, the account API token mail deploys with (mail's `docs/deployment.md`, "Moving from Workers Builds"); the account ID is not secret and is in the workflow. The secret's repository access must include this repository. Besides **Account → Workers Scripts → Edit**, the token needs **Zone → Workers Routes → Edit** on both zones the custom domains below use, `abnormalhq.com` and `abnormal.bid`.
+The deploy uses the `abnormalhq` organization secret `CLOUDFLARE_API_TOKEN`, the account API token mail deploys with (mail's `docs/deployment.md`, "Moving from Workers Builds"); the account ID is not secret and is in the workflow. The secret's repository access must include this repository. Besides **Account → Workers Scripts → Edit**, the token needs **Zone → Workers Routes → Edit** on `abnormalhq.com`, the zone of every custom domain below, which mail's deployment already uses.
 
 ### Moving from Workers Builds
 
 Until the cutover the Worker was deployed by Cloudflare Workers Builds. Do these in one sitting, or every push deploys twice (or not at all):
 
-1. Add this repository to the repository access of the organization secret `CLOUDFLARE_API_TOKEN`, and give the token the zones above.
+1. Add this repository to the repository access of the organization secret `CLOUDFLARE_API_TOKEN`.
 2. Disconnect the repository under **Settings → Builds** of the `abnormalhq` Worker (keep the Worker, its domains and its settings), then merge the workflow to `main`: the merge's CI starts the first deployment.
 3. Check the run (or start one by hand on `main`), `https://abnormalhq.com` and a storefront page.
 
@@ -478,15 +478,14 @@ The Node.js version is set by `.node-version`, and the pnpm version by `packageM
 
 ### Domains
 
-The web domains are listed in `routes` in `wrangler.jsonc` and created by the deploy; the redirect rules and DNS placeholders for the old domains are not managed by wrangler and are maintained in Cloudflare. Deploys do not use `--strict`.
+The web domains are listed in `routes` in `wrangler.jsonc` and created by the deploy. Deploys do not use `--strict`.
 
 - `abnormalhq.com`: custom domain of the Worker `abnormalhq`, backed in DNS by a Cloudflare-managed `AAAA 100::` record. Before rebinding, make sure the hostname has no other A, AAAA or CNAME records.
 - `www.abnormalhq.com`: custom domain of the same Worker, with its DNS record likewise created by the deploy. Inside the Worker, the `redirects` in `next.config.ts` 301 it to `https://abnormalhq.com`, keeping path and query string; the static asset service responds before the Worker, so fonts and files under `/_next/` do not redirect on this host. `wrangler dev` rewrites Host to the first route, so locally the redirect can only be tested with `--local-upstream www.abnormalhq.com`.
-- `abnormal.bid`: the old address; the domain is still held. It also stays in `routes`, so its DNS record is not deleted; the zone's Redirect Rule (`http_request_dynamic_redirect` phase) 301s it to `https://abnormalhq.com` before the Worker, keeping path and query string. Do not remove it from `routes`: the deploy would delete its DNS record, and negative caching would make it unresolvable for about 30 minutes afterwards.
-- `www.abnormal.bid`: the same Redirect Rule to `https://abnormalhq.com`; DNS has only a proxied `AAAA 100::` placeholder record.
+- `abnormal.bid`, `www.abnormal.bid` and `onboard.abnormal.bid`: the old web addresses, retired on 2026-11-24 and no longer bound to this Worker or redirected.
 - The MX and TXT records on the `abnormal.bid` apex belong to the mail service (`@abnormal.bid` mailboxes); do not touch them when changing DNS.
 
-GitHub Pages is no longer used: the deploy workflow has been removed and production is served by the Worker above. GitHub does not allow disabling Pages for this repository (the API returns 422). The repository is now called `abnormalhq/abnormalhq`, which does not match `<organization>.github.io`, so it is a project site: `abnormal-bid.github.io` returns 404, and `abnormalhq.github.io/abnormalhq/` still 301s to `abnormal.bid`, which the Redirect Rule above then sends to the new address. Do not clear the custom domain in the Pages settings, or that address would serve the old site from the last deploy directly.
+GitHub Pages is no longer used: the deploy workflow has been removed and production is served by the Worker above. GitHub does not allow disabling Pages for this repository (the API returns 422). The repository is now called `abnormalhq/abnormalhq`, which does not match `<organization>.github.io`, so it is a project site: `abnormal-bid.github.io` returns 404, and `abnormalhq.github.io/abnormalhq/` still 301s to `abnormal.bid`, which serves nothing since its web addresses were retired. Do not clear the custom domain in the Pages settings, or that address would serve the old site from the last deploy directly.
 
 ### Deploying from a local machine
 
