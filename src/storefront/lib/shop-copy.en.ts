@@ -631,6 +631,7 @@ export const en = {
   aliasesHint: "Another address for one of your mailboxes on this domain. Mail to it arrives in that mailbox.",
   aliasesEmpty: "No aliases yet.",
   aliasTarget: "Delivers to",
+  aliasTargetPlaceholder: "Choose a mailbox",
   aliasAdd: "Add alias",
   aliasAdding: "Adding…",
   groupsTitle: "Group addresses",

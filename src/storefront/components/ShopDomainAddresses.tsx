@@ -418,7 +418,8 @@ function AliasForm({
   const t = useShopCopy();
   const [name, setName] = useState("");
   const [target, setTarget] = useState(mailboxes[0] ?? "");
-  const chosen = mailboxes.includes(target) ? target : (mailboxes[0] ?? "");
+  // A destination that is no longer offered (the mailbox was deleted meanwhile) is never swapped for another one: the buyer picks again.
+  const chosen = mailboxes.includes(target) ? target : "";
   if (full) return <p className="mt-3 text-xs/[1.6] text-muted-foreground">{t.addressLimitReached}</p>;
   return (
     <form
@@ -441,6 +442,11 @@ function AliasForm({
           onChange={(event) => setTarget(event.currentTarget.value)}
           disabled={busy !== null}
         >
+          {chosen === "" && (
+            <option value="" disabled>
+              {t.aliasTargetPlaceholder}
+            </option>
+          )}
           {mailboxes.map((mailbox) => (
             <option key={mailbox} value={mailbox}>
               {mailbox}
@@ -448,7 +454,7 @@ function AliasForm({
           ))}
         </NativeSelect>
       </ShopField>
-      <ShopButton type="submit" disabled={busy !== null || !name.trim()}>
+      <ShopButton type="submit" disabled={busy !== null || !name.trim() || !chosen}>
         {busy === "alias" ? t.aliasAdding : t.aliasAdd}
       </ShopButton>
     </form>
@@ -604,7 +610,9 @@ function GroupForm({
   const t = useShopCopy();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [members, setMembers] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>([]);
+  // A picked mailbox that was deleted meanwhile has no checkbox any more, so it is not part of the group either.
+  const members = picked.filter((member) => candidates.includes(member));
   if (full) return <p className="mt-3 text-xs/[1.6] text-muted-foreground">{t.addressLimitReached}</p>;
   return (
     <form
@@ -617,7 +625,7 @@ function GroupForm({
           if (!ok) return;
           setName("");
           setDescription("");
-          setMembers([]);
+          setPicked([]);
         });
       }}
     >
@@ -641,7 +649,7 @@ function GroupForm({
         chosen={members}
         max={maxMembers}
         disabled={busy !== null}
-        onChange={setMembers}
+        onChange={setPicked}
       />
       <ShopActions>
         <ShopButton type="submit" disabled={busy !== null || !name.trim() || members.length === 0}>

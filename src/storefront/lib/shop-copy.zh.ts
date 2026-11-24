@@ -569,6 +569,7 @@ export const zh = {
   aliasesHint: "给这个域名上的某个邮箱再加一个地址，发到别名的邮件会进入那个邮箱。",
   aliasesEmpty: "还没有别名。",
   aliasTarget: "送达到",
+  aliasTargetPlaceholder: "选择邮箱",
   aliasAdd: "添加别名",
   aliasAdding: "正在添加…",
   groupsTitle: "群组地址",
