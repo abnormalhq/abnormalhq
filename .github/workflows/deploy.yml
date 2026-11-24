@@ -23,9 +23,8 @@ concurrency:
   group: >-
     ${{ (github.ref == 'refs/heads/main' &&
     (github.event_name == 'workflow_dispatch' ||
-    (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' &&
-    (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')))) &&
-    'deploy-production' || format('deploy-skipped-{0}', github.run_id) }}
+    (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' &&
+    github.event.workflow_run.head_branch == 'main'))) && 'deploy-production' || format('deploy-skipped-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -34,15 +33,16 @@ env:
   CLOUDFLARE_ACCOUNT_ID: 91f8270e2c2a8a362bd73c50b1ba66e2
 
 jobs:
-  # Picks main's latest commit and checks that CI passed for it on main (a push, or CI started by hand on main). When it has not
-  # passed yet, the run ends without deploying: that commit's own CI starts this workflow again when it passes.
+  # Picks main's latest commit and checks that CI passed for its push to main. Only a push's CI counts: it is the run that compares
+  # the commit with the one before it. When it has not passed yet, the run ends without deploying: that commit's CI starts this
+  # workflow again when it passes.
   resolve:
     # The same conditions as the concurrency group above.
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' &&
-      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')))
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'))
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
@@ -65,8 +65,8 @@ jobs:
         id: tip
         run: |
           tip="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
-          passed="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$tip&branch=main&status=success" \
-            --jq '[.workflow_runs[] | select(.event == "push" or .event == "workflow_dispatch")] | length')"
+          passed="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$tip&branch=main&event=push&status=success" \
+            --jq .total_count)"
           if [ "$passed" = "0" ]; then
             if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
               echo "::error title=Deploy::CI has not passed for main's latest commit $tip. Nothing was deployed; its CI starts this workflow when it passes."
