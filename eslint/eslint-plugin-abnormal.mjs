@@ -77,7 +77,7 @@ const literalColor = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch)\(\s*\d/;
 /**
  * A CSS value with its strings emptied and its url() references dropped: neither holds a color or a size, whatever its
  * text looks like ("#1", a family named "Mono 12px", url(#mask)). One scan reads both, so a ) inside url("a).png") or an
- * escaped quote in url(a\\'b.png) cannot end either early and hide what follows.
+ * escaped quote in url(a\'b.png) cannot end either early and hide what follows.
  */
 function bareValue(value) {
   let bare = "";
