@@ -107,6 +107,8 @@ export function ShopAccount({ lang }: { lang: Lang }) {
   const [account, setAccount] = useState<CustomerAccount | null | undefined>(undefined);
   // Bumped when one of the buyer's own domains goes live: "My mailboxes" then reads its list again and offers the domain.
   const [mailboxRefresh, setMailboxRefresh] = useState(0);
+  // Bumped when a mailbox is created, changed or deleted: the domain cards' address panels read their destinations again.
+  const [addressRefresh, setAddressRefresh] = useState(0);
   const [reload, setReload] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -531,9 +533,17 @@ export function ShopAccount({ lang }: { lang: Lang }) {
               setReload((value) => value + 1);
             }}
           />
-          <ShopMailboxManager lang={lang} refresh={mailboxRefresh} />
+          <ShopMailboxManager
+            lang={lang}
+            refresh={mailboxRefresh}
+            onChanged={() => setAddressRefresh((value) => value + 1)}
+          />
           {/* "Use my own domain": hidden by itself while the backend or the account's plans do not offer it. */}
-          <ShopDomains lang={lang} onLive={() => setMailboxRefresh((value) => value + 1)} />
+          <ShopDomains
+            lang={lang}
+            addressRefresh={addressRefresh}
+            onLive={() => setMailboxRefresh((value) => value + 1)}
+          />
           {/* Old backends without password login do not return hasPassword; this block is hidden then. */}
           {account.hasPassword !== undefined && (
             <ShopPasswordPanel

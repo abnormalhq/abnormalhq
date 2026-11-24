@@ -32,7 +32,18 @@ type Busy = "alias" | "group" | "catch-all" | `remove:${string}` | `save:${strin
  * refuses in its own words; the page only offers the buyer's own mailboxes to choose from. Nothing is rendered while mail has no
  * address management (the read answers a 404 without a code).
  */
-export function ShopDomainAddresses({ lang, domainId, domain }: { lang: Lang; domainId: string; domain: string }) {
+export function ShopDomainAddresses({
+  lang,
+  domainId,
+  domain,
+  refresh = 0,
+}: {
+  lang: Lang;
+  domainId: string;
+  domain: string;
+  /** Changes when the account's mailboxes changed (one created or deleted): the destinations are read again. */
+  refresh?: number;
+}) {
   const t = useShopCopy();
   const id = useId();
   // undefined: loading; null: not offered by this mail.
@@ -57,7 +68,7 @@ export function ShopDomainAddresses({ lang, domainId, domain }: { lang: Lang; do
         if (!controller.signal.aborted) setLoadError(describeShopError(cause, lang, t));
       });
     return () => controller.abort();
-  }, [domainId, lang, reload, t]);
+  }, [domainId, lang, reload, refresh, t]);
 
   if (data === null) return null;
 
@@ -378,7 +389,8 @@ function LocalPartInput({
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
-        maxLength={64}
+        // A whole pasted address is accepted and cut down to the name on submit (normalizeLocalPart); mail checks the name's length.
+        maxLength={320}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}

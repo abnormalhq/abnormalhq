@@ -288,3 +288,17 @@ test("dev shop: a domain that is not live, suspended or someone else's has no ad
   const pending = await addAccountDomain("pending-two.example", "en");
   await expect(getDomainAddresses(pending.id, undefined, "en")).rejects.toMatchObject({ status: 409 });
 });
+
+test("dev shop: replacing a whole roster of long addresses fits in one request", async () => {
+  const name = "engineering.example-company.com";
+  const { client, domain } = await liveDomain(name);
+  // 100 long addresses in one update, as a full replacement of a 50-member roster sends: over the 4 KiB of other requests.
+  const roster = Array.from({ length: 50 }, (_, n) => `employee-${100 + n}@${name}`);
+  const next = Array.from({ length: 50 }, (_, n) => `employee-${150 + n}@${name}`);
+  const body = { id: domain.id, groupId: "list_x", addMembers: next, removeMembers: roster };
+  expect(new TextEncoder().encode(JSON.stringify(body)).length).toBeGreaterThan(4096);
+  // Not refused for its size (413): the answer is about the group itself, which does not exist here.
+  const response = await client.send("account/domains/groups/update", { body });
+  expect(response.status).toBe(404);
+  expect(await response.json()).toStrictEqual({ error: "找不到这个群组地址。" });
+});

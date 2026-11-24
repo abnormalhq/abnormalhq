@@ -234,7 +234,7 @@ so the browser never makes cross-origin requests to mailhq directly. The Stripe 
 | POST   | `/api/shop/account/google/unlink`          | JSON: `{}` (account cookie)                                                                | `200`, `{ "ok": true }`; `404` when not linked                                         |
 
 Failure statuses: except for `pay` (always `303`, see below), every shop POST may return `403` (`Origin` is not the storefront address in the sales settings; the Worker rejects cross-site origins first),
-`415` (wrong body type), `413` (body over 4 KiB), `400` (invalid body or field), `429` (rate limited, with `Retry-After`) and `503` (backend temporarily unavailable).
+`415` (wrong body type), `413` (body over 4 KiB; 16 KiB for `account/domains/groups/add` and `groups/update`, whose member lists can be long), `400` (invalid body or field), `429` (rate limited, with `Retry-After`) and `503` (backend temporarily unavailable).
 Per endpoint, additionally: `checkout` has `409` (product withdrawn, domain no longer managed or no card price), `400` (a discount code that cannot be used) and `503` (sales paused or this payment method not enabled);
 `orders` and `reconcile` have `404` (order does not exist or credential does not match); `renewal` has `404` (token invalid or expired); `renew` has `404` (token),
 `409` (Stripe subscriptions cannot be renewed manually) and `400` (wrong number of periods or total over the per-payment limit); `account` has `401` (not logged in);

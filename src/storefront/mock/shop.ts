@@ -731,7 +731,10 @@ export class MockShopStore {
     let body: Record<string, unknown>;
     try {
       const text = await request.text();
-      if (new TextEncoder().encode(text).length > 4096)
+      // Like mail: 4 KiB, except a group address's members, which may list up to 50 addresses (100 when a whole roster is replaced).
+      const bodyLimit =
+        route === "account/domains/groups/add" || route === "account/domains/groups/update" ? 16384 : 4096;
+      if (new TextEncoder().encode(text).length > bodyLimit)
         return failure(413, say("请求内容过长。", "The request is too large."));
       if (form) {
         const params = new URLSearchParams(text);
