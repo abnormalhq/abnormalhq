@@ -32,7 +32,7 @@ import {
   seatUsdtPrice,
   SHOP_PRICE_MAX_CENTS,
 } from "@/storefront/lib/catalog";
-import { MockDomains } from "./domains";
+import { ADDRESS_ACTIONS, MockDomains } from "./domains";
 
 const COOKIE = "mailhq_shop";
 const TOKEN = /^[a-f0-9]{64}$/;
@@ -602,6 +602,7 @@ export class MockShopStore {
               "account/domains/check",
               "account/domains/refresh",
               "account/domains/remove",
+              ...ADDRESS_ACTIONS.map((action) => `account/domains/${action}`),
             ]
           : []),
       ].includes(route)
@@ -1074,6 +1075,7 @@ export class MockShopStore {
         body,
         say,
         this.domainLimit(customer),
+        this.paidPurchases(customer).flatMap((order) => (this.mailboxes.get(order.id) ?? []).map((item) => item.email)),
       );
       return json(answer.body, answer.status, answer.headers);
     }

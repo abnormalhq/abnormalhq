@@ -181,7 +181,14 @@
         "account/domains/verify": ["POST"],
         "account/domains/check": ["POST"],
         "account/domains/refresh": ["POST"],
-        "account/domains/remove": ["POST"]
+        "account/domains/remove": ["POST"],
+        "account/domains/addresses": ["POST"],
+        "account/domains/aliases/add": ["POST"],
+        "account/domains/aliases/remove": ["POST"],
+        "account/domains/groups/add": ["POST"],
+        "account/domains/groups/update": ["POST"],
+        "account/domains/groups/remove": ["POST"],
+        "account/domains/catch-all": ["POST"]
       },
       "statuses": ["pending", "provisioning", "review", "live", "suspended"],
       "phases": ["active", "grace", "suspended", "expired"],

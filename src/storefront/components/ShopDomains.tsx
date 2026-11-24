@@ -26,6 +26,7 @@ import {
 import { formatDateTime, isRefusal } from "@/storefront/lib/shop";
 import { describeShopError } from "@/storefront/lib/shop-error";
 import { useShopCopy } from "./copy/hooks";
+import { ShopDomainAddresses } from "./ShopDomainAddresses";
 import { cn } from "@/lib/utils";
 import {
   ShopActions,
@@ -533,6 +534,9 @@ function DomainCard({
           )}
         </div>
       )}
+
+      {/* Aliases, group addresses and the catch-all, once the domain is live (a suspended one is the provider's to lift first). */}
+      {domain.status === "live" && <ShopDomainAddresses lang={lang} domainId={domain.id} domain={domain.name} />}
     </section>
   );
 }

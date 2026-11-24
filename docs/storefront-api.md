@@ -181,50 +181,57 @@ and the account page is `/shop/account/`; as on the rest of the site these are t
 `https://console.abnormalhq.com/sales`. These endpoints live at the root path `/api/shop/` of the origin and call the backend through the same `MAIL` Service Binding as the redeem API,
 so the browser never makes cross-origin requests to mailhq directly. The Stripe webhook (`/api/shop/stripe/webhook`) is called by Stripe directly on mail's domain and does not go through this site.
 
-| Method | Path                                   | Request                                                                                    | Success response                                                                       |
-| ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| GET    | `/api/shop/catalog`                    | None                                                                                       | `200`, `{ available, payment, products, seatProducts?, onboardUrl, coupons }`          |
-| POST   | `/api/shop/address`                    | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")                |
-| POST   | `/api/shop/coupon`                     | JSON: `{ productId, provider?, coupon, quantity? }`, or `{ products: [...], coupon }`      | `200`, `{ valid: true, … }` or `{ valid: false }`; `{ quotes }` (see "Discount codes") |
-| POST   | `/api/shop/quote`                      | JSON: `{ productId, providers?, provider?, quantity?, coupon? }` (see "Seat plans")        | `200`, what the order would cost, one price per way of paying asked                    |
-| POST   | `/api/shop/checkout`                   | JSON: `{ productId, email?, provider?, coupon?, quantity? }`                               | `201`, `{ orderId }`, and sets the buyer cookie                                        |
-| GET    | `/api/shop/orders?id=<order id>`       | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                         |
-| POST   | `/api/shop/pay`                        | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page          |
-| POST   | `/api/shop/pay/stripe`                 | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`              |
-| POST   | `/api/shop/pay/usdt`                   | JSON: `{ orderId, chain? }` (see "USDT payments")                                          | `200`, `{ status: "open", address, amount, … }` or `{ status: "paid" }`                |
-| POST   | `/api/shop/reconcile`                  | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                             |
-| GET    | `/api/shop/notify`                     | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status   |
-| POST   | `/api/shop/renewal`                    | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                     |
-| POST   | `/api/shop/renew`                      | JSON: `{ token, periods, email?, provider?, coupon? }`                                     | `201`, `{ orderId }`, and sets the buyer cookie                                        |
-| GET    | `/api/shop/account`                    | Account cookie                                                                             | `200`, the account (see below); `401` when not logged in                               |
-| POST   | `/api/shop/account/login`              | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`, sends a login link to that email                            |
-| POST   | `/api/shop/account/peek`               | JSON: `{ token }` (login token)                                                            | `200`, `{ email }`; read-only, does not consume the token or set a cookie              |
-| POST   | `/api/shop/account/verify`             | JSON: `{ token }`                                                                          | `200`, `{ email, claimed }`, and sets the account cookie                               |
-| POST   | `/api/shop/account/logout`             | JSON: `{}`                                                                                 | `200`, `{ "ok": true }`; the Worker always clears the account cookie                   |
-| POST   | `/api/shop/account/portal`             | JSON: `{ subscriptionId }`                                                                 | `200`, `{ url }` (the customer portal at `https://billing.stripe.com/…`)               |
-| POST   | `/api/shop/account/password-login`     | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ email, claimed }`, and sets the account cookie                               |
-| POST   | `/api/shop/account/password`           | JSON: `{ password, currentPassword? }` (account cookie)                                    | `200`, `{ "ok": true }`; sets or changes the login password                            |
-| POST   | `/api/shop/account/register`           | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ "sent": true }`, sends a registration confirmation link to that email        |
-| GET    | `/api/shop/account/mailboxes`          | Account cookie                                                                             | `200`, mailbox management (see below); `401` when not logged in                        |
-| POST   | `/api/shop/account/mailboxes/create`   | JSON: `{ orderId, domain, username, password }`                                            | `201`, `{ email, imap, smtp, webmail }`                                                |
-| POST   | `/api/shop/account/mailboxes/password` | JSON: `{ mailboxId, password }`                                                            | `200`, `{ email }`                                                                     |
-| POST   | `/api/shop/account/mailboxes/status`   | JSON: `{ mailboxId, status }` (`active` / `disabled`)                                      | `200`, `{ status }`                                                                    |
-| POST   | `/api/shop/account/mailboxes/delete`   | JSON: `{ mailboxId, confirm }` (`confirm` repeats the email address)                       | `200`, `{ "ok": true }`                                                                |
-| POST   | `/api/shop/account/seats/quote`        | JSON: `{ orderId, add }` (see "Seat plans")                                                | `200`, `{ add, seats, provider, currency, priceCents, exact, periodEnd }`              |
-| POST   | `/api/shop/account/seats/add`          | JSON: `{ orderId, add }`                                                                   | LDC `201`, `{ orderId }` and the buyer cookie; card `200`, `{ status, seats, … }`      |
-| POST   | `/api/shop/account/seats/remove`       | JSON: `{ orderId, remove, mailboxIds }`                                                    | `200`, `{ seats, seatsNext, effective, removing }`                                     |
-| POST   | `/api/shop/account/seats/keep`         | JSON: `{ orderId }`                                                                        | `200`, `{ seats, seatsNext: null, effective, removing: [] }`                           |
-| GET    | `/api/shop/account/domains`            | Account cookie (see "Buyer domains")                                                       | `200`, `{ limit, domains }`; `401` when not logged in                                  |
-| POST   | `/api/shop/account/domains/add`        | JSON: `{ domain }`                                                                         | `201`, `{ domain }` with the ownership TXT record                                      |
-| POST   | `/api/shop/account/domains/verify`     | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                         |
-| POST   | `/api/shop/account/domains/check`      | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                         |
-| POST   | `/api/shop/account/domains/refresh`    | JSON: `{ id }`                                                                             | `200`, `{ domain }` with a new ownership value                                         |
-| POST   | `/api/shop/account/domains/remove`     | JSON: `{ id }`                                                                             | `200`, `{ "ok": true }`                                                                |
-| POST   | `/api/shop/account/forgot`             | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`; sends a password reset email when this account exists       |
-| POST   | `/api/shop/account/reset`              | JSON: `{ token, password }` (reset token)                                                  | `200`, `{ email, claimed }`, and sets the account cookie                               |
-| POST   | `/api/shop/account/google/start`       | JSON: `{ lang?, link? }`                                                                   | `200`, `{ url }` (Google authorization page), and sets the Google state cookie         |
-| POST   | `/api/shop/account/google`             | JSON: `{ code, state }` (as sent back by Google to the account page) + Google state cookie | `200`, `{ email, claimed, created, linked, lang }`, sets the account cookie on login   |
-| POST   | `/api/shop/account/google/unlink`      | JSON: `{}` (account cookie)                                                                | `200`, `{ "ok": true }`; `404` when not linked                                         |
+| Method | Path                                       | Request                                                                                    | Success response                                                                       |
+| ------ | ------------------------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| GET    | `/api/shop/catalog`                        | None                                                                                       | `200`, `{ available, payment, products, seatProducts?, onboardUrl, coupons }`          |
+| POST   | `/api/shop/address`                        | JSON: `{ domain, username }`, no cookie                                                    | `200`, `{ available, email }` (see "Checking an address before buying")                |
+| POST   | `/api/shop/coupon`                         | JSON: `{ productId, provider?, coupon, quantity? }`, or `{ products: [...], coupon }`      | `200`, `{ valid: true, … }` or `{ valid: false }`; `{ quotes }` (see "Discount codes") |
+| POST   | `/api/shop/quote`                          | JSON: `{ productId, providers?, provider?, quantity?, coupon? }` (see "Seat plans")        | `200`, what the order would cost, one price per way of paying asked                    |
+| POST   | `/api/shop/checkout`                       | JSON: `{ productId, email?, provider?, coupon?, quantity? }`                               | `201`, `{ orderId }`, and sets the buyer cookie                                        |
+| GET    | `/api/shop/orders?id=<order id>`           | Buyer cookie or account cookie                                                             | `200`, `{ order, code, codeStatus, onboardUrl, subscription }`                         |
+| POST   | `/api/shop/pay`                            | Form: `orderId=<order id>&lang=zh\|en`, `application/x-www-form-urlencoded`                | `303` to LDC payment, Stripe's hosted payment page, or back to the order page          |
+| POST   | `/api/shop/pay/stripe`                     | JSON: `{ orderId, lang? }`                                                                 | `200`, `{ status: "open", clientSecret, publishableKey }` or `{ status }`              |
+| POST   | `/api/shop/pay/usdt`                       | JSON: `{ orderId, chain? }` (see "USDT payments")                                          | `200`, `{ status: "open", address, amount, … }` or `{ status: "paid" }`                |
+| POST   | `/api/shop/reconcile`                      | JSON: `{ orderId }`                                                                        | `200`, `{ "status": "pending" }` or `{ "status": "paid" }`                             |
+| GET    | `/api/shop/notify`                         | Credit signed notification parameters                                                      | `200`, plain text `success`; on failure `fail` with the corresponding non-2xx status   |
+| POST   | `/api/shop/renewal`                        | JSON: `{ token }` (renewal token)                                                          | `200`, the subscription's renewal info (see below)                                     |
+| POST   | `/api/shop/renew`                          | JSON: `{ token, periods, email?, provider?, coupon? }`                                     | `201`, `{ orderId }`, and sets the buyer cookie                                        |
+| GET    | `/api/shop/account`                        | Account cookie                                                                             | `200`, the account (see below); `401` when not logged in                               |
+| POST   | `/api/shop/account/login`                  | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`, sends a login link to that email                            |
+| POST   | `/api/shop/account/peek`                   | JSON: `{ token }` (login token)                                                            | `200`, `{ email }`; read-only, does not consume the token or set a cookie              |
+| POST   | `/api/shop/account/verify`                 | JSON: `{ token }`                                                                          | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/logout`                 | JSON: `{}`                                                                                 | `200`, `{ "ok": true }`; the Worker always clears the account cookie                   |
+| POST   | `/api/shop/account/portal`                 | JSON: `{ subscriptionId }`                                                                 | `200`, `{ url }` (the customer portal at `https://billing.stripe.com/…`)               |
+| POST   | `/api/shop/account/password-login`         | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/password`               | JSON: `{ password, currentPassword? }` (account cookie)                                    | `200`, `{ "ok": true }`; sets or changes the login password                            |
+| POST   | `/api/shop/account/register`               | JSON: `{ email, password, turnstileToken? }`                                               | `200`, `{ "sent": true }`, sends a registration confirmation link to that email        |
+| GET    | `/api/shop/account/mailboxes`              | Account cookie                                                                             | `200`, mailbox management (see below); `401` when not logged in                        |
+| POST   | `/api/shop/account/mailboxes/create`       | JSON: `{ orderId, domain, username, password }`                                            | `201`, `{ email, imap, smtp, webmail }`                                                |
+| POST   | `/api/shop/account/mailboxes/password`     | JSON: `{ mailboxId, password }`                                                            | `200`, `{ email }`                                                                     |
+| POST   | `/api/shop/account/mailboxes/status`       | JSON: `{ mailboxId, status }` (`active` / `disabled`)                                      | `200`, `{ status }`                                                                    |
+| POST   | `/api/shop/account/mailboxes/delete`       | JSON: `{ mailboxId, confirm }` (`confirm` repeats the email address)                       | `200`, `{ "ok": true }`                                                                |
+| POST   | `/api/shop/account/seats/quote`            | JSON: `{ orderId, add }` (see "Seat plans")                                                | `200`, `{ add, seats, provider, currency, priceCents, exact, periodEnd }`              |
+| POST   | `/api/shop/account/seats/add`              | JSON: `{ orderId, add }`                                                                   | LDC `201`, `{ orderId }` and the buyer cookie; card `200`, `{ status, seats, … }`      |
+| POST   | `/api/shop/account/seats/remove`           | JSON: `{ orderId, remove, mailboxIds }`                                                    | `200`, `{ seats, seatsNext, effective, removing }`                                     |
+| POST   | `/api/shop/account/seats/keep`             | JSON: `{ orderId }`                                                                        | `200`, `{ seats, seatsNext: null, effective, removing: [] }`                           |
+| GET    | `/api/shop/account/domains`                | Account cookie (see "Buyer domains")                                                       | `200`, `{ limit, domains }`; `401` when not logged in                                  |
+| POST   | `/api/shop/account/domains/add`            | JSON: `{ domain }`                                                                         | `201`, `{ domain }` with the ownership TXT record                                      |
+| POST   | `/api/shop/account/domains/verify`         | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                         |
+| POST   | `/api/shop/account/domains/check`          | JSON: `{ id }`                                                                             | `200`, `{ domain, records, ready, checkedAt }`                                         |
+| POST   | `/api/shop/account/domains/refresh`        | JSON: `{ id }`                                                                             | `200`, `{ domain }` with a new ownership value                                         |
+| POST   | `/api/shop/account/domains/remove`         | JSON: `{ id }`                                                                             | `200`, `{ "ok": true }`                                                                |
+| POST   | `/api/shop/account/domains/addresses`      | JSON: `{ id }` (see "Addresses on a buyer domain")                                         | `200`, `{ domain, editable, mailboxes, members, aliases, groups, catchAll, limits }`   |
+| POST   | `/api/shop/account/domains/aliases/add`    | JSON: `{ id, username, target }`                                                           | `200`, `{ alias }`                                                                     |
+| POST   | `/api/shop/account/domains/aliases/remove` | JSON: `{ id, aliasId }`                                                                    | `200`, `{ "ok": true }`                                                                |
+| POST   | `/api/shop/account/domains/groups/add`     | JSON: `{ id, username, members, description? }`                                            | `200`, `{ group }`                                                                     |
+| POST   | `/api/shop/account/domains/groups/update`  | JSON: `{ id, groupId, addMembers?, removeMembers?, description? }`                         | `200`, `{ group }`                                                                     |
+| POST   | `/api/shop/account/domains/groups/remove`  | JSON: `{ id, groupId }`                                                                    | `200`, `{ "ok": true }`                                                                |
+| POST   | `/api/shop/account/domains/catch-all`      | JSON: `{ id, destination }` (an address, or `null` to reject)                              | `200`, `{ catchAll }`                                                                  |
+| POST   | `/api/shop/account/forgot`                 | JSON: `{ email, turnstileToken? }`                                                         | `200`, `{ "sent": true }`; sends a password reset email when this account exists       |
+| POST   | `/api/shop/account/reset`                  | JSON: `{ token, password }` (reset token)                                                  | `200`, `{ email, claimed }`, and sets the account cookie                               |
+| POST   | `/api/shop/account/google/start`           | JSON: `{ lang?, link? }`                                                                   | `200`, `{ url }` (Google authorization page), and sets the Google state cookie         |
+| POST   | `/api/shop/account/google`                 | JSON: `{ code, state }` (as sent back by Google to the account page) + Google state cookie | `200`, `{ email, claimed, created, linked, lang }`, sets the account cookie on login   |
+| POST   | `/api/shop/account/google/unlink`          | JSON: `{}` (account cookie)                                                                | `200`, `{ "ok": true }`; `404` when not linked                                         |
 
 Failure statuses: except for `pay` (always `303`, see below), every shop POST may return `403` (`Origin` is not the storefront address in the sales settings; the Worker rejects cross-site origins first),
 `415` (wrong body type), `413` (body over 4 KiB), `400` (invalid body or field), `429` (rate limited, with `Retry-After`) and `503` (backend temporarily unavailable).
@@ -882,6 +889,38 @@ Public suffixes (`co.uk`, `github.io`…) and the provider's own names (`abnorma
 below them) are refused when adding. `MOCK_DOMAIN_APPROVAL=off pnpm dev` makes a verified domain go live at once, like a shop
 with approval switched off; `MOCK_DOMAINS=off pnpm dev` behaves like a mail before buyer domains: no plan carries
 `customDomains` and the six routes answer `404`.
+
+### Addresses on a buyer domain
+
+Once a buyer domain is live, its buyer manages the addresses on it from the domain's card: aliases, group addresses and where mail
+to unknown addresses goes (mail's `docs/shop.md`, "Addresses on the domain" and "Storefront contract for addresses";
+`apps/console/src/lib/shop/buyer-addresses.ts`). The seven routes are in `shop.buyerDomains.routes` of
+`docs/onboard-contract.json` and are proxied exactly like the six above (`DOMAIN_ROUTES`: the account cookie only, same-origin
+JSON POSTs, never cached). The client is `src/storefront/lib/domain-addresses.ts`, the card's panel
+`src/storefront/components/ShopDomainAddresses.tsx`; the panel is shown for a `live` domain only and not at all when
+`addresses` answers a `404` without a code (a mail before address management).
+
+- **`addresses`** `{ id }` → `{ domain: { id, name }, editable, mailboxes, members, aliases, groups, catchAll, limits: { aliases,
+groups, members } }`. `mailboxes` are the buyer's mailboxes on this domain (what an alias or the catch-all can deliver to),
+  `members` all the buyer's mailboxes (what a group can include). `editable: false` (the domain is suspended or its plan lapsed
+  past grace) shows everything without the controls.
+- **`aliases/add`** `{ id, username, target }` → `{ alias: { id, address, target, enabled } }`; **`aliases/remove`**
+  `{ id, aliasId }`. `username` is the part before `@` (the page strips a pasted `@<domain>`, `normalizeLocalPart`).
+- **`groups/add`** `{ id, username, members, description? }` and **`groups/update`** `{ id, groupId, addMembers?,
+removeMembers?, description? }` → `{ group: { id, address, description, members } }`; **`groups/remove`** `{ id, groupId }`.
+  The page edits a group's members as a list and sends only the difference (`memberChanges`).
+- **`catch-all`** `{ id, destination }` → `{ catchAll }`; `destination` is one of `mailboxes` or `null` (reject, the default).
+- mail's rules: aliases and the catch-all deliver only to the buyer's mailboxes on the domain, group members are only the
+  buyer's own mailboxes (never an outside address), a name already used by a mailbox, alias or group is refused, and each
+  domain has at most 50 aliases and 20 groups of 1 to 50 members. Masked addresses ("hide my email" in WebMail) are not listed.
+- **Status codes**: `401`, `403` as above; `404` with `domain_not_found` for an `id` that is not this account's, and `404`
+  without a code for an alias or group that is not the buyer's; `409` without a code when the domain is not live yet, is locked,
+  a name is taken, a target or member is not the buyer's mailbox, or a limit is reached; `400` a malformed name, address or
+  description; `429` with `Retry-After` (reading 60 and changes 30 per 10 minutes per account); `503` with
+  `domain_unavailable`. The page shows mail's sentence next to the section it concerns.
+
+`pnpm dev` implements the seven routes in the mock with the same rules and wording; the buyer's mailboxes are those of their
+paid orders in the mock, so set one up on the live domain first.
 
 ### Cookies, origin and caching
 
