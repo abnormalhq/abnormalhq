@@ -84,7 +84,6 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
                 </h2>
                 <p className="mt-2 mb-6 text-base/prose text-muted-foreground">{p.calculator.intro}</p>
                 <PriceCalculator catalog={catalog} lang={lang} copy={p} shop={links.shop} />
-                <TrialNote className="mt-8" trial={catalog.trial} copy={p.trial} account={links.account} />
                 <h2
                   className="mt-16 text-2xl/[1.3] font-semibold tracking-[-0.02em] max-md:mt-12"
                   id="pricing-plans-title"
@@ -96,6 +95,8 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
                 <p className="mt-6 max-w-3xl text-xs/[1.9] text-muted-foreground">{p.priceNote}</p>
               </>
             )}
+            {/* The trial is its own offer: the shop shows it even when no paid plan is on sale, and so does this page. */}
+            {catalog && <TrialNote className="mt-8" trial={catalog.trial} copy={p.trial} account={links.account} />}
           </div>
 
           {plans.length > 1 && (

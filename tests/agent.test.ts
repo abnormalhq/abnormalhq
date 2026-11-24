@@ -196,6 +196,16 @@ for (const lang of ["zh", "en"] as const) {
     assert.ok(!markdown.includes("undefined"));
   });
 
+  test(`${lang} pricing Markdown offers the free trial only while the catalog has one, even with no paid plan on sale`, () => {
+    const p = copies[lang].pricing;
+    const heading = (days: number) => `## ${p.trial.title.replace("{days}", String(days))}`;
+    assert.ok(!pricingMarkdown(lang, catalog).includes(heading(7)));
+    assert.ok(pricingMarkdown(lang, { ...catalog, trial: { days: 7, quotaMb: 1024 } }).includes(heading(7)));
+    const trialOnly = pricingMarkdown(lang, { ...catalog, products: [], trial: { days: 7, quotaMb: 1024 } });
+    assert.ok(trialOnly.includes(p.closedTitle) && trialOnly.includes(heading(7)));
+    assert.ok(trialOnly.includes(`(${site.url}${linksFor(lang).account})`));
+  });
+
   test(`${lang} pricing Markdown never invents a price: a closed shop or an unread catalog says so`, () => {
     const p = copies[lang].pricing;
     const closed = pricingMarkdown(lang, { ...catalog, available: false, products: [] });

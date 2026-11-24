@@ -390,7 +390,8 @@ export const zh: CopyMessages = {
       {
         icon: "spark",
         title: "AI 摘要、翻译与写作",
-        description: "长对话一键总结，外文邮件一键翻译，回信可以让 AI 起草或润色。只在你点按时才会发送相关内容。",
+        description:
+          "长对话一键总结，外文邮件一键翻译，回信可以让 AI 起草或润色。用到这些功能时，相关内容才会发给大模型服务商。",
       },
     ],
     samples: {
@@ -609,7 +610,7 @@ export const zh: CopyMessages = {
     plansTitle: "全部套餐",
     trial: {
       title: "先免费试用 {days} 天",
-      body: "领取 1 个 {size} 邮箱，每个已验证的账户限领一次，无需绑卡，到期不会自动扣款。想留下来，付费升级后地址和邮件都保留。",
+      body: "领取 1 个 {size} 邮箱，每个已验证的账户限领一次，无需绑卡，到期不会自动扣款。试用到期后 30 天内付费升级，地址和邮件都保留。",
       action: "在我的账户里领取",
     },
     calculator: {

@@ -16,6 +16,7 @@ export const securityZh: SecurityContent = {
   sections: [
     {
       title: "传输加密",
+      anchor: "section-1",
       blocks: [
         {
           ul: [
@@ -31,6 +32,7 @@ export const securityZh: SecurityContent = {
     },
     {
       title: "保护登录",
+      anchor: "section-2",
       blocks: [
         {
           ul: [
@@ -48,6 +50,7 @@ export const securityZh: SecurityContent = {
     },
     {
       title: "端到端加密（OpenPGP）",
+      anchor: "openpgp",
       blocks: [
         {
           ul: [
@@ -64,6 +67,7 @@ export const securityZh: SecurityContent = {
     },
     {
       title: "钓鱼提醒与病毒扫描",
+      anchor: "section-3",
       blocks: [
         {
           ul: [
@@ -79,6 +83,7 @@ export const securityZh: SecurityContent = {
     },
     {
       title: "隐藏地址与不追踪",
+      anchor: "masked-addresses",
       blocks: [
         {
           ul: [
@@ -90,6 +95,7 @@ export const securityZh: SecurityContent = {
     },
     {
       title: "数据如何保存",
+      anchor: "section-4",
       blocks: [
         {
           ul: [
@@ -104,10 +110,11 @@ export const securityZh: SecurityContent = {
     },
     {
       title: "我们不提供什么",
+      anchor: "section-5",
       blocks: [
         {
           ul: [
-            "**默认不做端到端加密。**只有你用 OpenPGP 加密的邮件在服务器上是密文；其余邮件以服务可以读取的形式保存在我们的邮件服务器上。正因如此，网页邮箱才能显示、搜索和过滤这些邮件；这也意味着它们的内容对服务本身并不保密。",
+            "**默认不做端到端加密。**只有用 OpenPGP 加密的邮件（你加密发出的，或对方加密后发给你的）在服务器上是密文；其余邮件以服务可以读取的形式保存在我们的邮件服务器上。正因如此，网页邮箱才能显示、搜索和过滤这些邮件；这也意味着它们的内容对服务本身并不保密。",
             "**不提供零访问加密。**我们的管理系统在技术上可以查看邮箱内容（用 OpenPGP 加密的邮件只能看到密文）。我们只在以下情形访问：排查你的邮箱或系统故障、处理你本人提出的求助、处理滥用举报或安全事件、依法配合有权机关。查看、移动、删除邮件与发信等操作会记录在管理系统的操作日志中。",
             "**AI 功能会把内容发送给第三方。**使用这些功能时，相关的邮件或工单内容会发送给大模型服务商，见 [AI 功能会发送什么、发到哪里](help/ai-features/)。",
           ],
@@ -119,6 +126,7 @@ export const securityZh: SecurityContent = {
     },
     {
       title: "数据在哪里处理",
+      anchor: "section-6",
       blocks: [
         {
           ul: [
@@ -136,6 +144,7 @@ export const securityZh: SecurityContent = {
     },
     {
       title: "报告安全问题",
+      anchor: "section-7",
       blocks: [
         {
           p: `如果你认为在官网、商店、网页邮箱或邮件服务中发现了安全漏洞，请写信到 ${supportReport}，并在主题中注明「安全」。请说明发现了什么，以及如何复现。`,

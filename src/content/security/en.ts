@@ -20,6 +20,7 @@ export const securityEn: SecurityContent = {
   sections: [
     {
       title: "Encryption in transit",
+      anchor: "section-1",
       blocks: [
         {
           ul: [
@@ -35,6 +36,7 @@ export const securityEn: SecurityContent = {
     },
     {
       title: "Protecting your sign-in",
+      anchor: "section-2",
       blocks: [
         {
           ul: [
@@ -52,6 +54,7 @@ export const securityEn: SecurityContent = {
     },
     {
       title: "End-to-end encryption (OpenPGP)",
+      anchor: "openpgp",
       blocks: [
         {
           ul: [
@@ -68,6 +71,7 @@ export const securityEn: SecurityContent = {
     },
     {
       title: "Phishing warnings and virus scanning",
+      anchor: "section-3",
       blocks: [
         {
           ul: [
@@ -83,6 +87,7 @@ export const securityEn: SecurityContent = {
     },
     {
       title: "Masked addresses, no tracking",
+      anchor: "masked-addresses",
       blocks: [
         {
           ul: [
@@ -94,6 +99,7 @@ export const securityEn: SecurityContent = {
     },
     {
       title: "How your data is stored",
+      anchor: "section-4",
       blocks: [
         {
           ul: [
@@ -108,10 +114,11 @@ export const securityEn: SecurityContent = {
     },
     {
       title: "What we don't offer",
+      anchor: "section-5",
       blocks: [
         {
           ul: [
-            "**No end-to-end encryption by default.** Only the messages you encrypt with OpenPGP are ciphertext on the server; all other mail is stored on our mail servers in a form the service can read. That is what lets webmail show, search and filter it, and it means the content of that mail is not hidden from the service.",
+            "**No end-to-end encryption by default.** Only messages encrypted with OpenPGP (ones you encrypt, or ones a correspondent encrypted to you) are ciphertext on the server; all other mail is stored on our mail servers in a form the service can read. That is what lets webmail show, search and filter it, and it means the content of that mail is not hidden from the service.",
             "**No zero-access encryption.** Our management system can technically show mailbox contents (for mail encrypted with OpenPGP, only the ciphertext). We access a mailbox only to troubleshoot problems with it or with the system, to handle a request you made yourself, to deal with abuse reports or security incidents, or to cooperate with competent authorities as the law requires. Viewing, moving and deleting mail and sending from a mailbox are recorded in the management system's activity log.",
             "**AI features send content to a third party.** When they are used, the relevant mail or ticket content goes to a language model provider: see [What the AI features send, and where](help/ai-features/).",
           ],
@@ -123,6 +130,7 @@ export const securityEn: SecurityContent = {
     },
     {
       title: "Where data is processed",
+      anchor: "section-6",
       blocks: [
         {
           ul: [
@@ -140,6 +148,7 @@ export const securityEn: SecurityContent = {
     },
     {
       title: "Report a security problem",
+      anchor: "section-7",
       blocks: [
         {
           p: `If you believe you have found a security vulnerability in this website, the shop, webmail or the mail service, write to ${supportReport} with “Security” in the subject. Tell us what you found and how to reproduce it.`,

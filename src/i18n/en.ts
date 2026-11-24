@@ -419,7 +419,7 @@ export const en: CopyMessages = {
         icon: "spark",
         title: "AI summaries, translation and writing",
         description:
-          "Summarize a long conversation, translate a message in another language, or have AI draft or polish a reply. Nothing is sent until you ask.",
+          "Summarize a long conversation, translate a message in another language, or have AI draft or polish a reply. Content goes to the model provider only when these features are used.",
       },
     ],
     samples: {
@@ -649,7 +649,7 @@ export const en: CopyMessages = {
     plansTitle: "Every plan",
     trial: {
       title: "Try it free for {days} days",
-      body: "Claim one {size} mailbox, once per verified account. No card needed and no automatic charge at the end. If you stay, upgrading keeps the address and the mail.",
+      body: "Claim one {size} mailbox, once per verified account. No card needed and no automatic charge at the end. Upgrade within 30 days of the trial ending to keep the address and the mail.",
       action: "Claim it in your account",
     },
     calculator: {

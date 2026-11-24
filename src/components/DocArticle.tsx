@@ -99,15 +99,15 @@ export function DocArticle({
           <SectionToc
             label={h.tocLabel}
             title={h.tocLabel}
-            sections={sections.map((section, index) => ({ id: sectionId(index), text: section.title }))}
+            sections={sections.map((section, index) => ({ id: sectionId(index, section), text: section.title }))}
           />
         </aside>
 
         <article className="max-w-[46rem] min-w-0">
           <Prose className="[&_h2]:scroll-mt-24 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&>section:first-child_h2]:mt-0">
             {sections.map((section, index) => (
-              <section aria-labelledby={sectionId(index)} key={section.title}>
-                <h2 id={sectionId(index)}>{section.title}</h2>
+              <section aria-labelledby={sectionId(index, section)} key={section.title}>
+                <h2 id={sectionId(index, section)}>{section.title}</h2>
                 {section.blocks.map((block, blockIndex) => (
                   <Block block={block} base={base} lang={lang} commands={t.download} key={blockIndex} />
                 ))}

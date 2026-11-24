@@ -212,10 +212,6 @@ export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string
               `[${plan.chooseLabel}](${absoluteUrl(plan.href)})`,
             ]),
             p.priceNote,
-            ...(() => {
-              const trial = trialText(catalog.trial, p.trial);
-              return trial ? [`## ${trial.title}`, `${trial.body} [${p.trial.action}](${links.account})`] : [];
-            })(),
             ...(plans.length > 1
               ? [
                   `## ${p.compare.title}`,
@@ -229,6 +225,11 @@ export function pricingMarkdown(lang: Lang, catalog: ShopCatalog | null): string
                 ]
               : []),
           ]),
+    // The trial is its own offer: the shop shows it even when no paid plan is on sale, and so does this page.
+    ...(() => {
+      const trial = catalog && trialText(catalog.trial, p.trial);
+      return trial ? [`## ${trial.title}`, `${trial.body} [${p.trial.action}](${links.account})`] : [];
+    })(),
     `## ${p.included.title}`,
     p.included.intro,
     list(p.included.items.map((item) => `${item.title}: ${item.description}`)),

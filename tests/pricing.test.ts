@@ -342,7 +342,7 @@ test("the free trial is offered only while the catalog has one, with the catalog
   assert.equal(trialText(undefined, en.pricing.trial), undefined);
   assert.deepEqual(trialText({ days: 7, quotaMb: 1024 }, en.pricing.trial), {
     title: "Try it free for 7 days",
-    body: "Claim one 1 GB mailbox, once per verified account. No card needed and no automatic charge at the end. If you stay, upgrading keeps the address and the mail.",
+    body: "Claim one 1 GB mailbox, once per verified account. No card needed and no automatic charge at the end. Upgrade within 30 days of the trial ending to keep the address and the mail.",
   });
   const zhTrial = trialText({ days: 14, quotaMb: 512 }, zh.pricing.trial)!;
   assert.equal(zhTrial.title, "先免费试用 14 天");

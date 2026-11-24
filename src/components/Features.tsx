@@ -248,7 +248,7 @@ export function Features({ lang }: { lang: Lang }) {
             {f.more.title}
             <span className="h-px flex-1 bg-border" aria-hidden="true"></span>
           </h3>
-          <ul className="mt-6 flex flex-wrap gap-2.5" aria-labelledby="features-more-title">
+          <ul role="list" className="mt-6 flex flex-wrap gap-2.5" aria-labelledby="features-more-title">
             {f.more.items.map((item) => (
               <li
                 className="inline-flex items-center gap-2 rounded-control border border-border px-3.5 py-2 text-sm/body"

@@ -243,7 +243,7 @@ export function helpArticleStructuredData(lang: Lang, article: HelpArticle) {
       ? [
           {
             "@type": "HowTo",
-            "@id": `${url}#${sectionId(index)}`,
+            "@id": `${url}#${sectionId(index, section)}`,
             name: section.title,
             inLanguage: t.htmlLang,
             step: steps.map((step, position) => ({

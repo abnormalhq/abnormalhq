@@ -5,7 +5,7 @@ import type { DocBlock, DocSection } from "../src/content/help/index.ts";
 import { securityContent } from "../src/content/security/index.ts";
 import { linksFor, site } from "../src/data/site.ts";
 import { copies, langs, localePath } from "../src/i18n/index.ts";
-import { blockTexts, linkTargets, withAbsoluteLinks } from "../src/lib/docs.ts";
+import { blockTexts, linkTargets, sectionId, withAbsoluteLinks } from "../src/lib/docs.ts";
 import { homeMarkdown, llmsTxt, securityMarkdown } from "../src/lib/markdown.ts";
 import { pageUrls, pages } from "../src/lib/pages.ts";
 import { securityStructuredData } from "../src/lib/structured-data.ts";
@@ -144,3 +144,22 @@ for (const lang of langs) {
     assert.doesNotMatch(JSON.stringify(graph), /HowTo|FAQPage|Certification|award|rating/i);
   });
 }
+
+test("security page: sections shared by anchor keep it when new sections are inserted", () => {
+  // The anchors the page had before the OpenPGP and masked-address sections came in, by the English title.
+  const published: Record<string, string> = {
+    "Encryption in transit": "section-1",
+    "Protecting your sign-in": "section-2",
+    "Phishing warnings and virus scanning": "section-3",
+    "How your data is stored": "section-4",
+    "What we don't offer": "section-5",
+    "Where data is processed": "section-6",
+    "Report a security problem": "section-7",
+  };
+  const ids = (lang: "en" | "zh") => securityContent[lang].sections.map((section, index) => sectionId(index, section));
+  assert.deepEqual(ids("en"), ids("zh"));
+  assert.equal(new Set(ids("en")).size, ids("en").length);
+  securityContent.en.sections.forEach((section, index) => {
+    if (section.title in published) assert.equal(sectionId(index, section), published[section.title], section.title);
+  });
+});
