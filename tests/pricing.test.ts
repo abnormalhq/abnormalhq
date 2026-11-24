@@ -346,5 +346,8 @@ test("the free trial is offered only while the catalog has one, with the catalog
   });
   const zhTrial = trialText({ days: 14, quotaMb: 512 }, zh.pricing.trial)!;
   assert.equal(zhTrial.title, "先免费试用 14 天");
-  assert.match(zhTrial.body, /^领取 1 个 512 MB 邮箱/);
+  assert.match(zhTrial.body, /^领取 1 个邮箱（512 MB）/);
+  // 0 is the mail server's default size, not an empty mailbox.
+  assert.match(trialText({ days: 7, quotaMb: 0 }, en.pricing.trial)!.body, /^Claim one standard-size mailbox,/);
+  assert.match(trialText({ days: 7, quotaMb: 0 }, zh.pricing.trial)!.body, /^领取 1 个邮箱（标准容量）/);
 });

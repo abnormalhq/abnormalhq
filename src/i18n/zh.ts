@@ -611,7 +611,8 @@ export const zh: CopyMessages = {
     plansTitle: "全部套餐",
     trial: {
       title: "先免费试用 {days} 天",
-      body: "领取 1 个 {size} 邮箱，每个已验证的账户限领一次，无需绑卡，到期不会自动扣款。试用到期后 30 天内付费升级，地址和邮件都保留。",
+      body: "领取 1 个邮箱（{size}），每个已验证的账户限领一次，无需绑卡，到期不会自动扣款。试用到期后 30 天内付费升级，地址和邮件都保留。",
+      defaultSize: "标准容量",
       action: "在我的账户里领取",
     },
     calculator: {

@@ -204,6 +204,9 @@ for (const lang of ["zh", "en"] as const) {
     const trialOnly = pricingMarkdown(lang, { ...catalog, products: [], trial: { days: 7, quotaMb: 1024 } });
     assert.ok(trialOnly.includes(p.closedTitle) && trialOnly.includes(heading(7)));
     assert.ok(trialOnly.includes(`(${site.url}${linksFor(lang).account})`));
+    // Paid sales switched off altogether: the trial is still its own offer.
+    const salesOff = pricingMarkdown(lang, { ...catalog, available: false, trial: { days: 7, quotaMb: 1024 } });
+    assert.ok(salesOff.includes(heading(7)));
   });
 
   test(`${lang} pricing Markdown never invents a price: a closed shop or an unread catalog says so`, () => {

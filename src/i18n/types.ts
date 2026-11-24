@@ -494,7 +494,13 @@ export interface Copy {
     /** The heading over the plan cards on the pricing page. */
     plansTitle: string;
     /** The free trial strip (src/components/TrialNote.tsx), shown only while the shop's catalog offers a trial. */
-    trial: { title: Template<"days">; body: Template<"size">; action: string };
+    trial: {
+      title: Template<"days">;
+      body: Template<"size">;
+      /** The size in the body when the catalog's quotaMb is 0, which means the mail server's default, not an empty mailbox. */
+      defaultSize: string;
+      action: string;
+    };
     /** The price calculator on the home page and the pricing page (src/components/PriceCalculator.tsx). */
     calculator: {
       title: string;

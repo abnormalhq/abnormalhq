@@ -45,7 +45,7 @@ export function trialText(
   if (!trial) return undefined;
   return {
     title: fillText(copy.title, { days: trial.days }),
-    body: fillText(copy.body, { size: sizeLabel(trial.quotaMb) }),
+    body: fillText(copy.body, { size: trial.quotaMb === 0 ? copy.defaultSize : sizeLabel(trial.quotaMb) }),
   };
 }
 
