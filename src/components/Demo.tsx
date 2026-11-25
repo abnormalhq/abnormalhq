@@ -6,8 +6,8 @@ import { reveal } from "@/lib/reveal";
 import { WebmailDemo } from "./WebmailDemo";
 
 /**
- * "Try it yourself": the interactive WebMail demo (WebmailDemo), under the screenshots. The heading is rendered here on the server; the
- * demo gets only its own copy through props, so the browser bundle carries one language's sample content and nothing else of the copy.
+ * "Try it yourself": the real WebMail on a sample mailbox (WebmailDemo, WebMail's /demo in a frame), under the feature wall. The heading
+ * is rendered here on the server; the frame gets only the language and its title through props.
  */
 export function Demo({ lang }: { lang: Lang }) {
   const { t } = getCopy(lang);
@@ -30,7 +30,7 @@ export function Demo({ lang }: { lang: Lang }) {
           <p className="max-w-136 pb-0.75 text-md/prose text-muted-foreground">{d.description}</p>
         </div>
         <div {...reveal(1)}>
-          <WebmailDemo copy={{ label: d.label, ui: d.ui, labels: d.labels, mails: d.mails, events: d.events }} />
+          <WebmailDemo lang={lang} label={d.label} />
         </div>
         <p className="mt-6 text-sm/body text-muted-foreground">{d.note}</p>
       </Container>

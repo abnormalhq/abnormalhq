@@ -1,9 +1,10 @@
 import type { Lang } from "../data/site.ts";
 
 /**
- * The WebMail screenshots on the home page (src/components/Screens.tsx). Each is taken in both languages from the real WebMail with
- * sample mail, and saved as WebP at its display width and twice that, as public/screens/{lang}-{key}-{width}.webp; see the README's
- * "Screenshots" section for taking them again.
+ * The WebMail screenshots of the home page (the hero's inbox) and the help center. Each is taken in both languages from the real
+ * WebMail with sample mail, and saved as WebP at its display width and twice that, as public/screens/{lang}-{key}-{width}.webp. The mail
+ * repository retakes them after every WebMail deployment and proposes them here (the README's "Screenshots" section); its
+ * apps/webmail/e2e/site-screens.ts must write exactly these keys and widths.
  */
 export const screens = [
   { key: "inbox", width: 1440, height: 900 },

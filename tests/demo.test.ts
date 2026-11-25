@@ -3,50 +3,34 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { copies, langs } from "../src/i18n/index.ts";
 
-const demos = langs.map((lang) => [lang, copies[lang].demo] as const);
+const weeks = langs.map((lang) => [lang, copies[lang].features.samples] as const);
 
-test("the demo's sample content behaves the same in both languages", () => {
-  // Only the words differ: which mail is unread, starred, where it is filed and which labels it has must not depend on the language.
-  const [head, ...rest] = demos;
+test("the calendar sample is the same week in both languages", () => {
+  // Only the words differ: which day and hours an event takes, and whether it has a place, must not depend on the language.
+  const [head, ...rest] = weeks;
   assert.ok(head, "no languages");
   const [, first] = head;
-  const shape = (demo: typeof first) => ({
-    labels: demo.labels.map(({ id, color }) => ({ id, color })),
-    mails: demo.mails.map(({ id, day, category, labels, unread, starred, attachment }) => ({
-      id,
-      day,
-      category,
-      labels,
-      unread,
-      starred,
-      attachment: attachment !== "",
-    })),
-    events: demo.events.map(({ day, start, end, location }) => ({ day, start, end, location: location !== "" })),
-  });
-  for (const [lang, demo] of rest) assert.deepEqual(shape(demo), shape(first), lang);
+  const shape = (samples: typeof first) =>
+    samples.events.map(({ day, start, end, location }) => ({ day, start, end, location: location !== "" }));
+  for (const [lang, samples] of rest) assert.deepEqual(shape(samples), shape(first), lang);
 });
 
-test("the demo's sample content fits the demo", () => {
-  for (const [lang, demo] of demos) {
-    const ids = new Set(demo.labels.map((label) => label.id));
-    assert.equal(new Set(demo.mails.map((mail) => mail.id)).size, demo.mails.length, `${lang}: mail ids are unique`);
-    for (const mail of demo.mails) {
-      for (const label of mail.labels) assert.ok(ids.has(label), `${lang}: ${mail.id} has unknown label ${label}`);
-      assert.ok(mail.body.length > 0, `${lang}: ${mail.id} has a body`);
-      // Sample senders never use a real domain.
-      assert.match(mail.address, /\.example$/, `${lang}: ${mail.id}`);
-    }
-    for (const event of demo.events) {
+test("the calendar sample fits its week view", () => {
+  for (const [lang, samples] of weeks) {
+    for (const event of samples.events) {
       assert.ok(Number.isInteger(event.day) && event.day >= 0 && event.day <= 6, `${lang}: ${event.title} day`);
       assert.ok(event.start >= 8 && event.end <= 21 && event.start < event.end, `${lang}: ${event.title} hours`);
     }
   }
 });
 
-test("the demo sends nothing: no request leaves it", () => {
+test("the demo is WebMail's own demo page in a frame, and this site sends it nothing", () => {
   const source = readFileSync("src/components/WebmailDemo.tsx", "utf8");
-  assert.doesNotMatch(source, /\bfetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/);
   assert.match(source, /^"use client";/);
-  // It takes its copy through props, so the bundle does not carry the copy module.
+  // The one WebMail page that may be framed by this site (abnormalhq/mail, docs/webmail-demo.md).
+  assert.match(source, /"https:\/\/webmail\.abnormalhq\.com\/demo"/);
+  assert.match(source, /<iframe\b/);
+  assert.doesNotMatch(source, /\bfetch\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|postMessage/);
+  // It takes its title through props, so the bundle does not carry the copy module.
   assert.doesNotMatch(source, /from "@\/i18n"(?!\/types)/);
 });

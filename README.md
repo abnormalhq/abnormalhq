@@ -406,16 +406,13 @@ The home page shows WebMail as it really looks in two places: the inbox with a m
 
 The files are `public/screens/{lang}-{inbox,calendar,phone}-{width}.webp`, each at its viewport width and twice that (1440 and 2880 for the two desktop pictures, 390 and 780 for the phone), listed once in `src/lib/screens.ts`. `tests/screens.test.ts` requires every file the page uses to exist with the width and aspect ratio its name and the layout say, and no other file to be in the folder.
 
-They are taken from the real WebMail by `scripts/screenshots.mjs`, which drives the [mail](https://github.com/abnormalhq/mail) repository's browser-test stack (its WebMail under `next dev` against a stand-in mail server; mail's `docs/development.md`, "Browser tests"): it fills the test mailbox with the sample mail, labels and events written in the script for each language, takes the inbox at 1440×900 and the calendar at the same size at twice the density, the phone at 390×844 at three times, and writes the WebP files. The stack's test domain is shown as `abnormalhq.com`. Retake them when WebMail's look changes:
+They are taken from the real WebMail and kept in step with it by the [mail](https://github.com/abnormalhq/mail) repository: after every deployment that ships WebMail, its `site-screens.yml` workflow takes them from the deployed commit with `apps/webmail/e2e/site-screens.ts` (WebMail under `next dev` against its browser tests' stand-in mail server, filled with the sample mail, labels and events written there for each language, the clock held at one fixed morning) and, when any picture differs from the ones here, opens a pull request from the `mail-screens` branch with auto-merge on. The pictures come out byte for byte the same while WebMail looks the same, so only a visible change to WebMail proposes new ones. The inbox and the calendar are taken at 1440×900 at twice the density, the phone at 390×844 at three times; the stack's test domain is shown as `abnormalhq.com`.
+
+Do not edit them here: change the sample content or the views in mail's `site-screens.ts`. To take them by hand, at the root of a checkout of mail beside this one, with Postgres up and Chinese fonts installed (mail's `docs/development.md`, "Browser tests"); the directory is absolute because the tests run in mail's `apps/webmail/e2e`:
 
 ```sh
-# in a checkout of mail, with Postgres up
-pnpm --filter @mailhq/webmail-e2e e2e:serve
-# then in this repository
-MAIL_DIR=../mail node scripts/screenshots.mjs
+E2E_SITE_SCREENS="$PWD/../abnormalhq/public/screens" pnpm --filter @mailhq/webmail-e2e e2e:site-screens
 ```
-
-Playwright comes from that checkout and sharp from `next`, so this repository depends on neither; `E2E_CHROMIUM` names another Chromium.
 
 ## Family entrance
 
@@ -429,9 +426,9 @@ This follows the family contract in [abnormalhq/ui#37](https://github.com/abnorm
 
 ## Interactive demo
 
-Under the feature wall, the "Try it yourself" section (`src/components/Demo.tsx`) holds a small WebMail that runs in the visitor's browser (`src/components/WebmailDemo.tsx`, a client component): folders (Inbox, Starred, Sent, Calendar), the inbox's categories with their unread counts, labels, search over sender, subject and body, opening a message (which marks it read), starring, "Mark as unread", replying and composing, and the week's calendar, where choosing an event shows its details. On a phone the folders become a row of tabs and an open message takes the list's place, with a back button.
+Under the feature wall, the "Try it yourself" section (`src/components/Demo.tsx`) frames WebMail's own demo page (`src/components/WebmailDemo.tsx`): `https://webmail.abnormalhq.com/demo?lang=<page language>&theme=<light|dark>`, the deployed WebMail workspace on a sample mailbox with no sign-in (abnormalhq/mail, `docs/webmail-demo.md`). WebMail answers its own API inside that page from the sample mailbox, so reading, starring, labels, search, archiving, replying and the calendar all work, nothing is stored on a server and nothing is sent; the section ends by saying so. Because it is WebMail itself, the demo changes with every WebMail release and there is nothing here to keep in step.
 
-Its content is sample mail, labels and events written in both copy files under `demo` (sender addresses on `.example` domains). The demo's state lives in the component only: nothing is stored, nothing is requested, and "Send" files the message under Sent with a notice that it was not sent; the section ends by saying so. `tests/demo.test.ts` requires the two languages' samples to behave the same (the same mail unread, starred, filed and labelled, the same events at the same times), every label a mail names to exist, events to fit the calendar's 08:00 to 21:00, and the component to make no request and use no browser storage. The demo receives only its own copy through props, like the other client components.
+The frame is added once the browser knows the theme ThemeScript painted, and choosing another theme reloads it in that one. `/demo` is the only WebMail page that allows framing, and only by `https://abnormalhq.com`, `https://www.abnormalhq.com` and this site's `pnpm dev` (`http://localhost:4320`). `tests/demo.test.ts` checks the component frames that address and requests nothing itself. The feature wall's calendar tile draws its week from `features.samples` (`weekdays`, `events`), checked by the same test file to be the same week in both languages.
 
 ## Privacy policy and terms of service
 
@@ -507,7 +504,7 @@ pnpm cf:deploy
 - Uses native `<dialog>` and `<details>`, with keyboard operation, Esc to close, focus restoration and the reduced motion preference.
 - Contains no analytics scripts or customer data storage; the only cookie is `abnormal_lang`, written when the language is switched by hand (see "Chinese and English") and described in the privacy policy. An address picked in the address check stays in the tab's `sessionStorage` until the mailbox is created or the tab closes, which the privacy policy describes too. So does the discount code of an order placed with one (with the price before it, for the order page of a backend that does not publish the code with the order), until the tab closes. "Use my own domain" stores nothing in the browser; what mail keeps about a buyer's domain (the name with the account, the ownership record, its state, the activity log entries) is in the privacy policy under "Your own domain", and both languages of that text should be read by whoever is responsible for the policy before the feature is switched on in production.
 - Fonts are self-hosted with the site; no third-party font service is requested.
-- The hero's Mail stage is a real screenshot, not a live client; the browser-only interactive demo has its own section below the feature wall.
+- The hero's Mail stage is a real screenshot, not a live client; WebMail's sample-mailbox demo has its own section below the feature wall.
 
 ## License
 
