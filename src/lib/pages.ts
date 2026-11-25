@@ -8,7 +8,7 @@ import { langs, localePath } from "../i18n/paths.ts";
 
 /**
  * Page path without the language prefix. The storefront pages (redeem, guide, shop) came from the retired onboard site.
- * /pricing/ and /download/ render on the Worker on every request (live catalog, release list); the rest are prerendered.
+ * /pricing/, /compare/ and /download/ render on the Worker on every request (live catalog, release list); the rest are prerendered.
  */
 export const pagePaths = [
   "/",
@@ -19,6 +19,7 @@ export const pagePaths = [
   // The help center: its index, then one page per article (src/content/help/).
   "/help/",
   ...helpSlugs.map(helpPath),
+  "/compare/",
   "/security/",
   "/claude/",
   "/download/",

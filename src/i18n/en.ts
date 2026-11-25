@@ -448,6 +448,7 @@ export const en: CopyMessages = {
         "All inboxes in one view",
       ],
     },
+    compareLink: "See how it compares with Gmail, Outlook and others",
     platformsTitle: "Use it anywhere",
     platforms: [
       {
@@ -821,6 +822,22 @@ export const en: CopyMessages = {
     },
     related: "More in {topic}",
   },
+  compare: {
+    metaTitle: "How Abnormal Mail compares — Abnormal",
+    metaDescription:
+      "Abnormal Mail next to Gmail, Outlook.com, iCloud Mail, Proton Mail and Fastmail, feature by feature: storage, free plans, ads, own domains, masked addresses, end-to-end encryption, mail apps, calendar sync, apps and attachments, with each provider's own pages as sources.",
+    navLabel: "Compare",
+    eyebrow: "Side by side",
+    reviewedLabel: "Last checked",
+    legendLabel: "What the marks mean",
+    legend: {
+      yes: "Included in the plan shown",
+      partial: "Only on a paid plan or edition, or with the limit the cell names",
+      no: "Not offered, or not built in",
+    },
+    buy: "Buy a mailbox",
+    pricingLink: "See plans and prices",
+  },
   security: {
     metaTitle: "Security and privacy — Abnormal",
     metaDescription:
@@ -864,6 +881,7 @@ export const en: CopyMessages = {
     productLinks: [
       { link: "shop", label: "Buy a mailbox" },
       { link: "pricing", label: "Pricing" },
+      { link: "compare", label: "Compare" },
       { link: "redeem", label: "Redeem" },
       { link: "webmail", label: "Abnormal Mail" },
       { link: "guide", label: "Guide" },

@@ -420,6 +420,7 @@ export const zh: CopyMessages = {
         "多个邮箱合并的「所有收件箱」",
       ],
     },
+    compareLink: "看看和 Gmail、Outlook 等邮箱比起来怎么样",
     platformsTitle: "在哪里都能用",
     platforms: [
       {
@@ -776,6 +777,22 @@ export const zh: CopyMessages = {
     },
     related: "「{topic}」的其他文章",
   },
+  compare: {
+    metaTitle: "Abnormal Mail 与主流邮箱对比 — Abnormal",
+    metaDescription:
+      "把 Abnormal Mail 和 Gmail、Outlook.com、iCloud 邮件、Proton Mail、Fastmail 逐项对比：容量、免费套餐、广告、自己的域名、隐藏地址、端到端加密、邮件客户端、日历同步、应用和附件，每一项都附上服务商自己的页面作为来源。",
+    navLabel: "邮箱对比",
+    eyebrow: "Side by side",
+    reviewedLabel: "最近核对",
+    legendLabel: "标记的含义",
+    legend: {
+      yes: "所示套餐就有",
+      partial: "只在付费套餐或特定版本里有，或有格子里写明的限制",
+      no: "不提供，或没有内置",
+    },
+    buy: "购买邮箱",
+    pricingLink: "查看套餐与价格",
+  },
   security: {
     metaTitle: "安全与隐私 — Abnormal",
     metaDescription:
@@ -819,6 +836,7 @@ export const zh: CopyMessages = {
     productLinks: [
       { link: "shop", label: "购买邮箱" },
       { link: "pricing", label: "套餐与价格" },
+      { link: "compare", label: "邮箱对比" },
       { link: "redeem", label: "兑换开通" },
       { link: "webmail", label: "Abnormal Mail" },
       { link: "guide", label: "使用教程" },

@@ -299,6 +299,9 @@ export function Features({ lang }: { lang: Lang }) {
               </li>
             ))}
           </ul>
+          <TextLink className="mt-6" href={path("/compare/")}>
+            {f.compareLink} <Icon name="arrow" className="size-3.5" />
+          </TextLink>
         </div>
 
         <div className="mt-14 max-md:mt-11">

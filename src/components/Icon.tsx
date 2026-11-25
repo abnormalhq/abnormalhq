@@ -15,6 +15,7 @@ import {
   MailIcon,
   MenuIcon,
   MessageCircleMoreIcon,
+  MinusIcon,
   MonitorDownIcon,
   MonitorIcon,
   MoonIcon,
@@ -69,6 +70,7 @@ const icons: Record<IconName, LucideIcon> = {
   phone: SmartphoneIcon,
   lock: LockKeyholeIcon,
   mask: VenetianMaskIcon,
+  minus: MinusIcon,
 };
 
 /** The copy picks icons by name (entry cards, process steps), so this keeps a map from names to lucide icons. */

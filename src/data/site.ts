@@ -50,6 +50,8 @@ export function linksFor(lang: Lang) {
     guide: `${root}guide/`,
     /** The help center's index (src/components/HelpCenter.tsx); its articles are /help/<slug>/. */
     help: `${root}help/`,
+    /** Abnormal Mail beside other mail services (src/content/compare/). */
+    compare: `${root}compare/`,
     /** The security and privacy overview (src/content/security/). */
     security: `${root}security/`,
     /** How to connect Claude to the admin console's MCP server (src/content/claude/). */

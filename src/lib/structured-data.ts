@@ -6,6 +6,7 @@
 import { helpArticles, helpPath, type HelpArticle } from "../content/help/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
 import { claudeContent } from "../content/claude/index.ts";
+import { compareReviewed } from "../content/compare/index.ts";
 import { securityContent } from "../content/security/index.ts";
 import {
   absoluteUrl,
@@ -286,6 +287,25 @@ export function securityStructuredData(lang: Lang) {
       breadcrumb: breadcrumb([
         { name: site.name, url: absolute(localePath(lang, "/")) },
         { name: t.security.navLabel, url: page.url as string },
+      ]),
+    },
+  ]);
+}
+
+/** The comparison with other mail services: the page, when its cells were last checked, and a breadcrumb. */
+export function compareStructuredData(lang: Lang) {
+  const t = copies[lang];
+  const page = webPage(lang, "/compare/", t.compare.metaTitle, t.compare.metaDescription);
+  return graph([
+    organization(),
+    website(lang),
+    {
+      "@type": "WebPage",
+      ...page,
+      dateModified: compareReviewed,
+      breadcrumb: breadcrumb([
+        { name: site.name, url: absolute(localePath(lang, "/")) },
+        { name: t.compare.navLabel, url: page.url as string },
       ]),
     },
   ]);

@@ -23,6 +23,7 @@ import {
   type HelpSlug,
 } from "../content/help/index.ts";
 import { claudeContent } from "../content/claude/index.ts";
+import { compareContent, compareRows } from "../content/compare/index.ts";
 import { securityContent } from "../content/security/index.ts";
 import { copies, langs, localePath } from "../i18n/index.ts";
 import type { LegalFrontmatter } from "../content/legal/types.ts";
@@ -38,7 +39,8 @@ import {
   type DesktopReleases,
 } from "./releases.ts";
 import { pageFor, pagePaths, pages } from "./pages.ts";
-import { planRowsFor, planViews, trialText } from "./pricing.ts";
+import { compareView } from "./compare.ts";
+import { fillText, planRowsFor, planViews, trialText } from "./pricing.ts";
 import type { ShopCatalog } from "../storefront/index.ts";
 import { storeMarkdownPaths, storeTitle } from "../storefront/content.ts";
 
@@ -73,6 +75,7 @@ export function homeMarkdown(lang: Lang, video: PromoVideo | null = configuredVi
     list(t.features.items.map((item) => `${item.title}: ${item.description}`)),
     `### ${t.features.more.title}`,
     list(t.features.more.items),
+    `[${t.features.compareLink}](${links.compare})`,
     `### ${t.features.platformsTitle}`,
     list(
       t.features.platforms.map(
@@ -294,6 +297,56 @@ export function securityMarkdown(lang: Lang): string {
   ])}\n`;
 }
 
+/**
+ * The comparison with other mail services: who it suits and who it does not, the table with each mark spelled out in words
+ * ("Partly: with iCloud+"), how it was made and every source. Abnormal Mail's storage and trial come from the live catalog,
+ * as on the HTML page.
+ */
+export function compareMarkdown(lang: Lang, catalog: ShopCatalog | null): string {
+  const t = copies[lang];
+  const content = compareContent[lang];
+  const view = compareView(lang, catalog);
+  const cell = (text: string) => text.replace(/[\\|]/g, "\\$&").replace(/\s*\n\s*/g, " ");
+  const email = site.contact.email;
+  return `${paragraphs([
+    `# ${content.title}`,
+    content.summary,
+    `${t.compare.reviewedLabel}${t.legal.colon}${content.reviewed}`,
+    `## ${content.fit.title}`,
+    list(content.fit.items),
+    `## ${content.notFit.title}`,
+    list(view.notFit),
+    `## ${content.tableTitle}`,
+    content.tableCaption,
+    [
+      `| ${["", ...view.columns.map((column) => cell(`${column.name} (${column.plan})`))].join(" | ")} |`,
+      `| ${["---", ...view.columns.map(() => "---")].join(" | ")} |`,
+      ...compareRows.map(
+        (row) =>
+          `| ${[
+            content.rows[row],
+            ...view.columns.map((column) => {
+              const { text, mark } = column.cells[row];
+              return cell(mark ? `${content.marks[mark]}${t.legal.colon}${text}` : text);
+            }),
+          ].join(" | ")} |`,
+      ),
+    ].join("\n"),
+    `## ${content.method.title}`,
+    ...content.method.body,
+    fillText(content.method.report, { email: `[${email}](mailto:${email})` }),
+    `## ${content.sourcesTitle}`,
+    ...view.sources.map(
+      (source) => `### ${source.name}\n\n${list(source.links.map((link) => `[${link.label}](${link.url})`))}`,
+    ),
+    content.trademarks,
+    list([
+      `[${t.compare.pricingLink}](${absolute(pageFor(lang, "/pricing/").markdown)})`,
+      `[${t.compare.buy}](${absoluteUrl(linksFor(lang).shop)})`,
+    ]),
+  ])}\n`;
+}
+
 /** The Claude connector page: its sections as written, the date they were last checked, and the way on to the policy. */
 export function claudeMarkdown(lang: Lang): string {
   const t = copies[lang];
@@ -351,6 +404,7 @@ function llmsSection(lang: Lang, heading: string): string {
       `[${t.meta.title}](${absolute(pageFor(lang, "/").markdown)})`,
       ...t.products.items.map((product) => `[${product.name}](${links[product.link]})`),
       `[${t.pricing.metaTitle}](${absolute(pageFor(lang, "/pricing/").markdown)})`,
+      `[${t.compare.metaTitle}](${absolute(pageFor(lang, "/compare/").markdown)})`,
       ...storeMarkdownPaths.map((path) => `[${storeTitle(lang, path)}](${absolute(pageFor(lang, path).markdown)})`),
       `[${t.help.navLabel}](${absolute(pageFor(lang, "/help/").markdown)})`,
       ...helpArticles(lang).map(
