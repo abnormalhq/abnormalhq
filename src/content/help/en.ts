@@ -551,7 +551,7 @@ export const helpEn: HelpContent = {
             helpScreenshot(
               "en",
               "inbox",
-              "The inbox shows Family, Work and Travel labels in the left column and matching coloured labels in the message list.",
+              "The inbox shows Family, Work and Travel labels in the left column, and a dot of the matching colour on each message in the list.",
               "Labels sit below the folders on the left; coloured tags in the message list distinguish topics. Mail and labels shown here are samples.",
             ),
             {
