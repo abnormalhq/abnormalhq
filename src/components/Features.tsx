@@ -14,25 +14,25 @@ import { ServiceStatus } from "./ServiceStatus";
 
 type Samples = Copy["features"]["samples"];
 
-/** The working hours the calendar sample shows; the demo's evening events fall outside and are left out. */
+/** The working hours the calendar sample shows; its evening events fall outside and are left out. */
 const firstHour = 9;
 const lastHour = 18;
 
 /**
- * The calendar tile's picture: the demo's working week drawn as a small week view, with one event standing out as the
+ * The calendar tile's picture: a working week drawn as a small week view, with one event standing out as the
  * invitation answered below it. It is drawn rather than a screenshot, so it stays legible at tile size and follows the theme.
  */
-function weekSample(demo: Copy["demo"], s: Samples): ReactNode {
+function weekSample(s: Samples): ReactNode {
   const span = lastHour - firstHour;
   const [invite, accept, decline] = s.invite;
   return (
     <div className="grid gap-3">
       <div className="grid grid-cols-5 gap-1.5">
-        {demo.ui.weekdays.slice(0, 5).map((weekday, day) => (
+        {s.weekdays.slice(0, 5).map((weekday, day) => (
           <div className="min-w-0" key={weekday}>
             <p className="mb-1.5 text-center text-xs text-muted-foreground">{weekday}</p>
             <div className="relative h-52 rounded-mark border border-border bg-background/40 max-sm:h-44">
-              {demo.events
+              {s.events
                 .filter((event) => event.day === day && event.end <= lastHour)
                 .map((event) => (
                   <span
@@ -259,7 +259,7 @@ export function Features({ lang }: { lang: Lang }) {
                         <BentoDescription>{item.description}</BentoDescription>
                       </div>
                       <BentoVisual className="sm:mt-0 sm:flex-[2_1_20rem]" aria-hidden="true">
-                        {weekSample(t.demo, f.samples)}
+                        {weekSample(f.samples)}
                       </BentoVisual>
                     </li>
                   </BentoTile>
