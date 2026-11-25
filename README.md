@@ -400,12 +400,12 @@ The home page shows WebMail as it really looks in two places: the inbox with a m
 
 The files are `public/screens/{lang}-{inbox,calendar,phone}-{width}.webp`, each at its viewport width and twice that (1440 and 2880 for the two desktop pictures, 390 and 780 for the phone), listed once in `src/lib/screens.ts`. `tests/screens.test.ts` requires every file the page uses to exist with the width and aspect ratio its name and the layout say, and no other file to be in the folder.
 
-They are taken from the real WebMail and kept in step with it by the [mail](https://github.com/abnormalhq/mail) repository: after every deployment that ships WebMail, its `site-screens.yml` workflow takes them with `apps/webmail/e2e/site-screens.ts` (WebMail under `next dev` against its browser tests' stand-in mail server, filled with the sample mail, labels and events written there for each language, the clock held at one fixed morning) and, when any picture differs from the ones here, opens a pull request from the `mail-screens` branch with auto-merge on. The pictures come out byte for byte the same while WebMail looks the same, so only a visible change to WebMail proposes new ones. The inbox and the calendar are taken at 1440×900 at twice the density, the phone at 390×844 at three times; the stack's test domain is shown as `abnormalhq.com`.
+They are taken from the real WebMail and kept in step with it by the [mail](https://github.com/abnormalhq/mail) repository: after every deployment that ships WebMail, its `site-screens.yml` workflow takes them from the deployed commit with `apps/webmail/e2e/site-screens.ts` (WebMail under `next dev` against its browser tests' stand-in mail server, filled with the sample mail, labels and events written there for each language, the clock held at one fixed morning) and, when any picture differs from the ones here, opens a pull request from the `mail-screens` branch with auto-merge on. The pictures come out byte for byte the same while WebMail looks the same, so only a visible change to WebMail proposes new ones. The inbox and the calendar are taken at 1440×900 at twice the density, the phone at 390×844 at three times; the stack's test domain is shown as `abnormalhq.com`.
 
-Do not edit them here: change the sample content or the views in mail's `site-screens.ts`. To take them by hand, in a checkout of mail with Postgres up and Chinese fonts installed (mail's `docs/development.md`, "Browser tests"):
+Do not edit them here: change the sample content or the views in mail's `site-screens.ts`. To take them by hand, at the root of a checkout of mail beside this one, with Postgres up and Chinese fonts installed (mail's `docs/development.md`, "Browser tests"); the directory is absolute because the tests run in mail's `apps/webmail/e2e`:
 
 ```sh
-E2E_SITE_SCREENS=../abnormalhq/public/screens pnpm --filter @mailhq/webmail-e2e e2e:site-screens
+E2E_SITE_SCREENS="$PWD/../abnormalhq/public/screens" pnpm --filter @mailhq/webmail-e2e e2e:site-screens
 ```
 
 ## Family entrance
