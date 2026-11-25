@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test, vi } from "vitest";
 import type { Lang } from "@/data/site";
-import { downloadMarkdown, legalMarkdown, llmsFullTxt, pricingMarkdown, stripFrontmatter } from "@/lib/markdown";
+import {
+  compareMarkdown,
+  downloadMarkdown,
+  legalMarkdown,
+  llmsFullTxt,
+  pricingMarkdown,
+  stripFrontmatter,
+} from "@/lib/markdown";
 import { isPrerendered, pageMarkdown, type LiveData } from "@/lib/page-markdown";
 import { pages } from "@/lib/pages";
 import { legalFrontmatters } from "@/content/legal/frontmatter";
@@ -62,13 +69,16 @@ describe("pageMarkdown renders every page in the list", () => {
     }
   });
 
-  test("the pricing page reads its own language's catalog, and the download page the release list", () => {
+  test("the pricing and comparison pages read their own language's catalog, and the download page the release list", () => {
     for (const page of pages.filter((page) => !isPrerendered(page))) {
       const other: Lang = page.lang === "en" ? "zh" : "en";
       const markdown = pageMarkdown(page, live);
       if (page.path === "/pricing/") {
         expect(markdown).toBe(pricingMarkdown(page.lang, live.catalogs[page.lang]));
         expect(markdown).not.toBe(pricingMarkdown(page.lang, live.catalogs[other]));
+      } else if (page.path === "/compare/") {
+        expect(markdown).toBe(compareMarkdown(page.lang, live.catalogs[page.lang]));
+        expect(markdown).not.toBe(compareMarkdown(page.lang, live.catalogs[other]));
       } else {
         expect(markdown).toBe(downloadMarkdown(page.lang, live.releases));
       }

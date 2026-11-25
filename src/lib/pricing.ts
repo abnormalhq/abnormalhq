@@ -30,7 +30,7 @@ export function fillText<Slot extends string>(template: Template<Slot>, slots: R
 export type PlanRow = keyof CompareCopy["rows"];
 
 /** A mailbox size as the plans write it: GB from 1024 MB up, MB below. */
-function sizeLabel(quotaMb: number): string {
+export function sizeLabel(quotaMb: number): string {
   return quotaMb >= 1024 ? `${Number((quotaMb / 1024).toFixed(2))} GB` : `${quotaMb} MB`;
 }
 

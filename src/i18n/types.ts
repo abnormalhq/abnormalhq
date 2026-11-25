@@ -35,7 +35,8 @@ export type IconName =
   | "laptop"
   | "phone"
   | "lock"
-  | "mask";
+  | "mask"
+  | "minus";
 
 /** Icon of a service card, drawn by ProductCard from this key; independent of the card's position in the list. */
 export type ProductIcon = "mail" | "domain" | "team" | "setup";
@@ -347,6 +348,8 @@ export interface Copy {
     };
     /** Smaller things a mailbox can do, listed under the tiles as short phrases. */
     more: { title: string; items: readonly string[] };
+    /** Under "And also": on to the comparison with other mail services (/compare/). */
+    compareLink: string;
     platformsTitle: string;
     /** Each platform links either to a linked site (link) or to a page of this site (path, without the language prefix). */
     platforms: readonly {
@@ -609,6 +612,22 @@ export interface Copy {
     /** At the foot of the page: on to the full policy and to the help center. */
     policyLink: string;
     helpLink: string;
+  };
+  /** The comparison with other mail services (/compare/, src/content/compare/): the page's own words outside the table. */
+  compare: {
+    metaTitle: string;
+    metaDescription: string;
+    /** The entry in the footer and the breadcrumb's own name of the page. */
+    navLabel: string;
+    eyebrow: string;
+    /** Before the date the cells were last checked against their sources. */
+    reviewedLabel: string;
+    /** The legend under the table: what each mark means. */
+    legendLabel: string;
+    legend: { yes: string; partial: string; no: string };
+    /** At the foot of the page. */
+    buy: string;
+    pricingLink: string;
   };
   /** The developer documentation, on its own site (developersSite in src/data/site.ts): its name in the footer and in llms.txt. */
   developers: {

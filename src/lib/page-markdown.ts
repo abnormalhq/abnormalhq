@@ -1,6 +1,6 @@
 /**
- * The Markdown of any page in the list (src/lib/pages.ts), for the /md/ routes and llms-full.txt. The pricing and download pages
- * take what they show from the live catalog and the release list, which the caller reads for the request; the rest are generated
+ * The Markdown of any page in the list (src/lib/pages.ts), for the /md/ routes and llms-full.txt. The pricing, comparison and
+ * download pages take what they show from the live catalog and the release list, which the caller reads for the request; the rest are generated
  * from the copy and content alone. Kept out of markdown.ts because the legal sources are inlined by the bundler (raw-loader).
  */
 import { legalFrontmatters } from "@/content/legal/frontmatter";
@@ -9,6 +9,7 @@ import { helpSlugOf } from "@/content/help";
 import type { Lang } from "@/data/site";
 import {
   claudeMarkdown,
+  compareMarkdown,
   downloadMarkdown,
   helpArticleMarkdown,
   helpIndexMarkdown,
@@ -32,7 +33,8 @@ export interface LiveData {
 const isStorePage = (path: string): path is StoreMarkdownPath => storeMarkdownPaths.some((store) => store === path);
 
 /** The pages whose Markdown needs no live data, prerendered by src/app/md/[[...slug]]/route.ts. */
-export const isPrerendered = (page: Page) => page.path !== "/download/" && page.path !== "/pricing/";
+export const isPrerendered = (page: Page) =>
+  page.path !== "/download/" && page.path !== "/pricing/" && page.path !== "/compare/";
 
 export function pageMarkdown({ lang, path }: Page, live?: LiveData): string {
   if (path === "/") return homeMarkdown(lang);
@@ -46,5 +48,6 @@ export function pageMarkdown({ lang, path }: Page, live?: LiveData): string {
     return legalMarkdown(lang, legalFrontmatters[lang][path], stripFrontmatter(legalSources[lang][path]));
   if (!live) throw new Error(`the Markdown of ${path} needs the live catalog and release list`);
   if (path === "/pricing/") return pricingMarkdown(lang, live.catalogs[lang]);
+  if (path === "/compare/") return compareMarkdown(lang, live.catalogs[lang]);
   return downloadMarkdown(lang, live.releases);
 }
