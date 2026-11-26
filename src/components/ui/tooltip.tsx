@@ -10,6 +10,9 @@ const TooltipProviderContext = React.createContext(false);
 /** Set inside a TooltipTrigger, so an IconButton or LabelTooltip within one does not add a second tooltip. */
 const TooltipTriggerContext = React.createContext(false);
 
+/** Whether the Tooltip around is open, so TooltipContent renders again as it opens and finds the top layer then. */
+const TooltipOpenContext = React.createContext(false);
+
 /**
  * Tooltip: shares the popover style with menus, with a soft shadow and hairline border; fades in from 4px below like menus.
  * TooltipProvider is optional. Wrap an area in one to share the open delay, and the skip-delay window that lets the next tooltip open at once.
@@ -27,8 +30,27 @@ function TooltipProvider({ delayDuration = 300, ...props }: React.ComponentProps
  * TooltipProvider only: under Radix's own Tooltip.Provider it would still bring one and lose the shared delay, so wrap
  * areas in TooltipProvider from here.
  */
-function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
-  const root = <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
+function Tooltip({
+  open: openProp,
+  defaultOpen = false,
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  const [uncontrolled, setUncontrolled] = React.useState(defaultOpen);
+  const open = openProp ?? uncontrolled;
+  const root = (
+    <TooltipOpenContext.Provider value={open}>
+      <TooltipPrimitive.Root
+        data-slot="tooltip"
+        open={open}
+        onOpenChange={(next) => {
+          setUncontrolled(next);
+          onOpenChange?.(next);
+        }}
+        {...props}
+      />
+    </TooltipOpenContext.Provider>
+  );
   return React.useContext(TooltipProviderContext) ? root : <TooltipProvider>{root}</TooltipProvider>;
 }
 
@@ -97,6 +119,8 @@ function TooltipContent({
   hideWhenDetached = true,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  // Read on every render, and opening renders it again, so a page that went full screen after it mounted still counts.
+  React.useContext(TooltipOpenContext);
   return (
     <TooltipPrimitive.Portal container={topLayer()}>
       <TooltipPrimitive.Content
@@ -125,6 +149,22 @@ function WithoutDescription(props: React.ComponentProps<typeof Slot.Root>) {
 }
 
 /**
+ * The box a disabled child's tooltip listens on. The tooltip's description, which Radix gives this box as its trigger,
+ * goes on to the child, the element a screen reader reaches.
+ */
+function DisabledTarget({
+  children,
+  "aria-describedby": describedBy,
+  ...props
+}: React.ComponentProps<"span"> & { children: React.ReactElement }) {
+  return (
+    <span {...props} data-slot="tooltip-disabled-trigger" className="inline-flex max-w-full">
+      {describedBy ? <Slot.Root aria-describedby={describedBy}>{children}</Slot.Root> : children}
+    </span>
+  );
+}
+
+/**
  * A tooltip around one element, in one line: `<LabelTooltip label="Archive (E)"><button …/></LabelTooltip>`. It is
  * what IconButton uses for its label, and the way to give a hint to any other element that would have used
  * the browser's title. With no label, or inside a TooltipTrigger that already gives one, it renders the child alone.
@@ -132,8 +172,8 @@ function WithoutDescription(props: React.ComponentProps<typeof Slot.Root>) {
  * screen reader does not read the same words twice; `describe` decides it either way. A child with a ref callback
  * needs the same callback on every render (useCallback, or a ref object): the trigger keeps its element in state, so a
  * new callback each render detaches and attaches it again and renders without end. A child with `disabled` gets no
- * pointer events, so the tooltip then listens on an inline box around it, and still says, say, why it is disabled.
- * Props it does not take itself, such as the handlers and ref a DialogTrigger or PopoverTrigger passes through
+ * pointer events, so the tooltip then listens on an inline box around it, and still says, say, why it is disabled;
+ * the description still goes on the child. Props it does not take itself, such as the handlers and ref a DialogTrigger or PopoverTrigger passes through
  * asChild, go on to the child, so it can sit inside a trigger like the child alone.
  */
 function LabelTooltip({
@@ -158,18 +198,13 @@ function LabelTooltip({
     return <Slot.Root {...forwarded}>{children}</Slot.Root>;
   const props = children.props as { "aria-label"?: unknown; disabled?: unknown };
   const repeatsName = label === props["aria-label"];
+  // Inside the slot that drops the tooltip's own description, so an aria-describedby passed in survives it.
+  const own = <Slot.Root {...forwarded}>{children}</Slot.Root>;
   // A disabled button gets no pointer events, so the hint (often why it is disabled) listens on a box around it.
-  const target =
-    props.disabled === true ? (
-      <span data-slot="tooltip-disabled-trigger" className="inline-flex max-w-full">
-        <Slot.Root {...forwarded}>{children}</Slot.Root>
-      </span>
-    ) : (
-      children
-    );
+  const target = props.disabled === true ? <DisabledTarget>{own}</DisabledTarget> : own;
   return (
     <Tooltip>
-      <TooltipTrigger asChild {...(props.disabled === true ? {} : forwarded)}>
+      <TooltipTrigger asChild>
         {(describe ?? !repeatsName) ? target : <WithoutDescription>{target}</WithoutDescription>}
       </TooltipTrigger>
       <TooltipContent side={side} align={align} className="whitespace-pre-line">

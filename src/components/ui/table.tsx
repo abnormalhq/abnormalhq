@@ -4,6 +4,7 @@ import * as React from "react";
 import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from "lucide-react";
 import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
+import { LabelTooltip } from "@/components/ui/tooltip";
 
 type TableVariant = "default" | "plain";
 
@@ -187,7 +188,7 @@ function SortableHead({
   direction?: "asc" | "desc" | null;
   /** The list sorted by this column, as the next click would sort it. */
   href?: string;
-  /** What the click does, such as "Sort descending". */
+  /** What the click does, such as "Sort descending", shown in the theme's tooltip and read as the link's description. */
   title?: string;
   /** The child is the link itself, such as the router's, with the column's name in it. */
   asChild?: boolean;
@@ -202,7 +203,6 @@ function SortableHead({
       data-slot="sortable-head-link"
       data-active={active || undefined}
       href={asChild ? undefined : href}
-      title={title}
       className="group/sort -mx-1.5 inline-flex h-6 items-center gap-1 rounded-control px-1.5 transition-colors duration-150 select-none hover:bg-accent hover:text-foreground data-active:text-foreground"
     >
       <Slot.Slottable>{children}</Slot.Slottable>
@@ -212,13 +212,14 @@ function SortableHead({
       />
     </Comp>
   );
+  const hinted = <LabelTooltip label={title}>{link}</LabelTooltip>;
   return (
     <TableHead aria-sort={direction === "asc" ? "ascending" : direction === "desc" ? "descending" : "none"} {...props}>
       {aside === undefined ? (
-        link
+        hinted
       ) : (
         <span className="inline-flex items-center gap-1.5">
-          {link}
+          {hinted}
           {aside}
         </span>
       )}

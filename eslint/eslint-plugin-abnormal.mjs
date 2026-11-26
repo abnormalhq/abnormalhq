@@ -344,6 +344,20 @@ function jsxAttribute(opening, name) {
   return opening.attributes.find((attribute) => attribute.type === "JSXAttribute" && attribute.name.name === name);
 }
 
+/** An attribute's value when the source spells it out (a bare attribute is true), or undefined when it is computed. */
+function staticValue(attribute) {
+  if (!attribute) return undefined;
+  const value = attribute.value;
+  if (value === null) return true;
+  if (value.type === "Literal") return value.value;
+  if (value.type !== "JSXExpressionContainer") return undefined;
+  const expression = value.expression;
+  if (expression.type === "Literal") return expression.value;
+  if (expression.type === "UnaryExpression" && expression.operator === "-" && expression.argument.type === "Literal")
+    return -expression.argument.value;
+  return undefined;
+}
+
 /*
  * Elements whose title attribute is not a hover hint: an iframe's or a frame's title names it for assistive technology,
  * abbr's spells the abbreviation out, and a link's or a style's names an alternate style sheet.
@@ -460,8 +474,17 @@ const iconButtonLabel = {
         // A spread may hold the children or the name; the rule cannot see through it.
         if (name === "button" && spread) return;
         if (name !== "button") return;
-        // A button nobody sees or reaches (a form's hidden default submit) needs no hint.
-        if (jsxAttribute(opening, "hidden") || jsxAttribute(opening, "aria-hidden")) return;
+        // A button nobody sees or reaches (a form's hidden default submit) needs no hint: one the source hides for
+        // certain, or one kept from assistive technology and out of the Tab order. A hidden={false}, or a condition,
+        // can leave it in view, so only a value written out counts.
+        const hidden = staticValue(jsxAttribute(opening, "hidden"));
+        const ariaHidden = staticValue(jsxAttribute(opening, "aria-hidden"));
+        const tabIndex = Number(staticValue(jsxAttribute(opening, "tabIndex")));
+        if (
+          (hidden !== undefined && hidden !== false && hidden !== "false") ||
+          ((ariaHidden === true || ariaHidden === "true") && tabIndex < 0)
+        )
+          return;
         if (rendersText(node.children) || insideTooltip(node)) return;
         context.report({
           node: opening,
