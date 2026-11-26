@@ -187,9 +187,13 @@ function DisabledTarget({
  * that reference has no props to read until it is unwrapped, the way Radix's Slot unwraps it.
  */
 function useUnwrapped(child: React.ReactElement): React.ReactElement {
-  const lazy = child as unknown as { $$typeof?: symbol; _payload?: PromiseLike<React.ReactElement> };
-  if (lazy?.$$typeof !== Symbol.for("react.lazy") || typeof lazy._payload?.then !== "function") return child;
-  return React.use(lazy._payload as Promise<React.ReactElement>);
+  let current = child;
+  // A payload can resolve to another lazy reference, so this goes on until it reaches the element, as Slot does.
+  for (;;) {
+    const lazy = current as unknown as { $$typeof?: symbol; _payload?: PromiseLike<React.ReactElement> };
+    if (lazy?.$$typeof !== Symbol.for("react.lazy") || typeof lazy._payload?.then !== "function") return current;
+    current = React.use(lazy._payload as Promise<React.ReactElement>);
+  }
 }
 
 /**

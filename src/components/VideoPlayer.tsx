@@ -375,7 +375,9 @@ export function VideoPlayer({
                   )}
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{ended ? copy.replay : copy.play}</TooltipContent>
+              <TooltipContent onEscapeKeyDown={() => setOverlayFocused(false)}>
+                {ended ? copy.replay : copy.play}
+              </TooltipContent>
             </Tooltip>
           </button>
         )

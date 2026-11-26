@@ -420,15 +420,21 @@ const noNativeTitle = {
 
 /**
  * Whether an expression in braces can render visible text. Both sides of a condition count, and the right side of
- * `&&`; an element or fragment counts by its own children, and null, undefined and booleans render nothing. Anything
- * else (a variable, a call) may be text, so it counts.
+ * `&&`; an element or fragment counts by its own children, except a childless component not named as an icon, which
+ * may render text from its props. null, undefined and booleans render nothing. Anything else (a variable, a call) may
+ * be text, so it counts.
  */
 function expressionRendersText(expression) {
   switch (expression.type) {
     case "JSXEmptyExpression":
       return false;
-    case "JSXElement":
-      return rendersText([expression]);
+    case "JSXElement": {
+      // A component with no children may still render words from its props (a count, a translated label); only an
+      // HTML element, or a component named as an icon, is read through.
+      const name = elementName(expression.openingElement.name);
+      const opaque = /^[A-Z]|\./.test(name) && !/Icon$/.test(name) && expression.children.length === 0;
+      return opaque || rendersText([expression]);
+    }
     case "JSXFragment":
       return rendersText(expression.children);
     case "ConditionalExpression":
