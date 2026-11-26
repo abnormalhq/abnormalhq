@@ -32,7 +32,6 @@ export function Demo({ lang }: { lang: Lang }) {
         <div {...reveal(1)}>
           <WebmailDemo lang={lang} label={d.label} />
         </div>
-        <p className="mt-6 text-sm/body text-muted-foreground">{d.note}</p>
       </Container>
     </section>
   );

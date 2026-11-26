@@ -169,7 +169,6 @@ export const en: CopyMessages = {
     title: "Have a go",
     description:
       "This is the real Abnormal Mail with a sample mailbox: open mail, star, archive, filter by category and label, search, reply, or look at the calendar.",
-    note: "The demo is the WebMail that is live right now, updated with every release. The mail is sample mail: no sign-in, and nothing is sent.",
     label: "Interactive Abnormal Mail demo",
   },
   features: {

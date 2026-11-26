@@ -160,7 +160,6 @@ export const zh: CopyMessages = {
     title: "上手试一试",
     description:
       "这就是真实的 Abnormal Mail，装着一个示例邮箱：打开邮件、加星、归档、按分类和标签筛选、搜索、回复，或者看看日历。",
-    note: "演示就是线上正在运行的 WebMail，每次发版自动更新。内容都是示例，不用登录，也不会发送任何邮件。",
     label: "Abnormal Mail 交互演示",
   },
   features: {

@@ -242,8 +242,6 @@ export interface Copy {
     eyebrow: string;
     title: string;
     description: string;
-    /** Says the demo is the real WebMail on sample mail and sends nothing. */
-    note: string;
     /** The frame's title, its accessible name. */
     label: string;
   };
