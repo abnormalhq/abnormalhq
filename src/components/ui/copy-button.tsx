@@ -98,7 +98,7 @@ function CopyButton({
 }: Omit<React.ComponentProps<typeof Button>, "asChild" | "loading"> & {
   /** What is copied; leave it out to copy the <code> or <pre> beside the button. */
   text?: string;
-  /** The button's accessible name, such as "Copy address"; the title too. */
+  /** The button's accessible name, such as "Copy address"; its tooltip too when it shows only the icon. */
   label: string;
   /** Announced and shown after a copy, such as "Copied". */
   copiedLabel: string;

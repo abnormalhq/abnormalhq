@@ -387,11 +387,17 @@ const noNativeTitle = {
       context.options[0]?.components ?? [
         "Button",
         "IconButton",
+        "CopyButton",
+        "ToolbarButton",
         "Link",
         "Toggle",
         "ToggleGroupItem",
         "ThemePicker",
         "LanguagePicker",
+        "Badge",
+        "StatusLabel",
+        "TableHead",
+        "TableCell",
       ],
     );
     return {
@@ -412,11 +418,42 @@ const noNativeTitle = {
   },
 };
 
-/** Whether a JSX child can render visible text: words, an expression, or an element holding either. */
+/**
+ * Whether an expression in braces can render visible text. Both sides of a condition count, and the right side of
+ * `&&`; an element or fragment counts by its own children, and null, undefined and booleans render nothing. Anything
+ * else (a variable, a call) may be text, so it counts.
+ */
+function expressionRendersText(expression) {
+  switch (expression.type) {
+    case "JSXEmptyExpression":
+      return false;
+    case "JSXElement":
+      return rendersText([expression]);
+    case "JSXFragment":
+      return rendersText(expression.children);
+    case "ConditionalExpression":
+      return expressionRendersText(expression.consequent) || expressionRendersText(expression.alternate);
+    case "LogicalExpression":
+      return (
+        (expression.operator !== "&&" && expressionRendersText(expression.left)) ||
+        expressionRendersText(expression.right)
+      );
+    case "Literal":
+      return typeof expression.value === "string"
+        ? expression.value.trim() !== ""
+        : typeof expression.value === "number";
+    case "Identifier":
+      return expression.name !== "undefined";
+    default:
+      return true;
+  }
+}
+
+/** Whether a JSX child can render visible text: words, an expression that may be words, or an element holding either. */
 function rendersText(children) {
   return children.some((child) => {
     if (child.type === "JSXText") return child.value.trim() !== "";
-    if (child.type === "JSXExpressionContainer") return child.expression.type !== "JSXEmptyExpression";
+    if (child.type === "JSXExpressionContainer") return expressionRendersText(child.expression);
     if (child.type === "JSXSpreadChild") return true;
     if (child.type === "JSXFragment") return rendersText(child.children);
     if (child.type !== "JSXElement") return false;
@@ -476,12 +513,12 @@ const iconButtonLabel = {
         if (name !== "button") return;
         // A button nobody sees or reaches (a form's hidden default submit) needs no hint: one the source hides for
         // certain, or one kept from assistive technology and out of the Tab order. A hidden={false}, or a condition,
-        // can leave it in view, so only a value written out counts.
+        // can leave it in view, so only a value written out counts; hidden="false" is a string, and hides it.
         const hidden = staticValue(jsxAttribute(opening, "hidden"));
         const ariaHidden = staticValue(jsxAttribute(opening, "aria-hidden"));
         const tabIndex = Number(staticValue(jsxAttribute(opening, "tabIndex")));
         if (
-          (hidden !== undefined && hidden !== false && hidden !== "false") ||
+          (hidden !== undefined && hidden !== false) ||
           ((ariaHidden === true || ariaHidden === "true") && tabIndex < 0)
         )
           return;

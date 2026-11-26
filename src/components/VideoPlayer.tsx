@@ -345,6 +345,7 @@ export function VideoPlayer({
         </div>
       ) : (
         overlayShown && (
+          // abnormal-allow: the button covers the whole frame, so its hint sits on the round mark inside it instead.
           <button
             ref={overlayRef}
             type="button"
@@ -355,17 +356,19 @@ export function VideoPlayer({
             }}
             aria-label={ended ? copy.replay : copy.play}
           >
-            <span className="grid size-18 place-items-center rounded-full bg-brand text-brand-foreground shadow-popover transition-transform duration-150 group-hover/player:scale-105 active:scale-95 max-md:size-14">
-              {ended ? (
-                <RotateCcwIcon className="size-7 max-md:size-6" strokeWidth={1.8} aria-hidden="true" />
-              ) : (
-                <PlayIcon
-                  className="size-7 translate-x-0.5 fill-current max-md:size-6"
-                  strokeWidth={1.8}
-                  aria-hidden="true"
-                />
-              )}
-            </span>
+            <LabelTooltip label={ended ? copy.replay : copy.play} describe={false}>
+              <span className="grid size-18 place-items-center rounded-full bg-brand text-brand-foreground shadow-popover transition-transform duration-150 group-hover/player:scale-105 active:scale-95 max-md:size-14">
+                {ended ? (
+                  <RotateCcwIcon className="size-7 max-md:size-6" strokeWidth={1.8} aria-hidden="true" />
+                ) : (
+                  <PlayIcon
+                    className="size-7 translate-x-0.5 fill-current max-md:size-6"
+                    strokeWidth={1.8}
+                    aria-hidden="true"
+                  />
+                )}
+              </span>
+            </LabelTooltip>
           </button>
         )
       )}

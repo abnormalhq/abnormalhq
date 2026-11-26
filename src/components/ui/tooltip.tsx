@@ -111,12 +111,15 @@ function topLayer(): Element | undefined {
  * It opens on `side` (top by default) and moves out of the way by itself: to the opposite side when there is no room,
  * and along the edge so it stays `collisionPadding` (8px) inside the window. It hides while its trigger is scrolled
  * out of view inside a scrolling box. In full screen, or over a native modal <dialog>, it goes into that element.
+ * React passes an event from a portal up the component tree, not the page, so a click on the tooltip would also reach
+ * whatever its trigger sits in, such as a clickable row; it stops at the tooltip.
  */
 function TooltipContent({
   className,
   sideOffset = 6,
   collisionPadding = 8,
   hideWhenDetached = true,
+  onClick,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
   // Read on every render, and opening renders it again, so a page that went full screen after it mounted still counts.
@@ -128,6 +131,10 @@ function TooltipContent({
         sideOffset={sideOffset}
         collisionPadding={collisionPadding}
         hideWhenDetached={hideWhenDetached}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick?.(event);
+        }}
         className={cn(
           "z-overlay max-w-64 origin-(--radix-tooltip-content-transform-origin) rounded-control border border-border bg-popover px-2.5 py-1.5 text-xs font-medium shadow-popover text-popover-foreground data-open:animate-arrive data-closed:animate-leave",
           className,
@@ -139,18 +146,29 @@ function TooltipContent({
 }
 
 /**
- * Radix adds the open tooltip to its trigger's aria-describedby, and the merge keeps it whatever the child says. This
- * slot in between drops what the trigger passes and keeps the child's own, for a label that only repeats the name.
+ * The slot between the tooltip's trigger and the child. Radix's trigger passes its own data-state (closed, delayed-open)
+ * and data-slot, and a child that spreads its props after its own, as Radix's Toggle and menu triggers do, would take
+ * them in place of its own: a pressed toggle would lose data-state="on", a menu button "open", a styled button its
+ * data-slot. They stop here, so the child keeps its own. With `describe` false the open tooltip's aria-describedby
+ * stops here too, for a label that only repeats the name; the merge would keep it whatever the child says. The tree is
+ * the same either way, so a label that starts or stops repeating the name does not mount the child again.
  */
-function WithoutDescription(props: React.ComponentProps<typeof Slot.Root>) {
-  const { "aria-describedby": fromTrigger, ...rest } = props;
-  void fromTrigger;
-  return <Slot.Root {...rest} />;
+function TriggerSlot({
+  describe,
+  "data-state": state,
+  "data-slot": slot,
+  "aria-describedby": describedBy,
+  ...props
+}: React.ComponentProps<typeof Slot.Root> & { describe: boolean; "data-state"?: string; "data-slot"?: string }) {
+  void state;
+  void slot;
+  return <Slot.Root {...props} aria-describedby={describe ? describedBy : undefined} />;
 }
 
 /**
  * The box a disabled child's tooltip listens on. The tooltip's description, which Radix gives this box as its trigger,
- * goes on to the child, the element a screen reader reaches.
+ * goes on to the child, the element a screen reader reaches. The child always sits in the same slot, so it is not
+ * mounted again as the tooltip opens and closes.
  */
 function DisabledTarget({
   children,
@@ -159,9 +177,19 @@ function DisabledTarget({
 }: React.ComponentProps<"span"> & { children: React.ReactElement }) {
   return (
     <span {...props} data-slot="tooltip-disabled-trigger" className="inline-flex max-w-full">
-      {describedBy ? <Slot.Root aria-describedby={describedBy}>{children}</Slot.Root> : children}
+      <Slot.Root aria-describedby={describedBy}>{children}</Slot.Root>
     </span>
   );
+}
+
+/**
+ * The element itself when it comes as a lazy reference, as a server component's child of a client component does:
+ * that reference has no props to read until it is unwrapped, the way Radix's Slot unwraps it.
+ */
+function useUnwrapped(child: React.ReactElement): React.ReactElement {
+  const lazy = child as unknown as { $$typeof?: symbol; _payload?: PromiseLike<React.ReactElement> };
+  if (lazy?.$$typeof !== Symbol.for("react.lazy") || typeof lazy._payload?.then !== "function") return child;
+  return React.use(lazy._payload as Promise<React.ReactElement>);
 }
 
 /**
@@ -194,9 +222,10 @@ function LabelTooltip({
   children: React.ReactElement;
 }) {
   const nested = React.useContext(TooltipTriggerContext);
+  children = useUnwrapped(children);
   if (nested || label === null || label === undefined || label === false || label === "")
     return <Slot.Root {...forwarded}>{children}</Slot.Root>;
-  const props = children.props as { "aria-label"?: unknown; disabled?: unknown };
+  const props = (children.props ?? {}) as { "aria-label"?: unknown; disabled?: unknown };
   const repeatsName = label === props["aria-label"];
   // Inside the slot that drops the tooltip's own description, so an aria-describedby passed in survives it.
   const own = <Slot.Root {...forwarded}>{children}</Slot.Root>;
@@ -205,7 +234,7 @@ function LabelTooltip({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        {(describe ?? !repeatsName) ? target : <WithoutDescription>{target}</WithoutDescription>}
+        <TriggerSlot describe={describe ?? !repeatsName}>{target}</TriggerSlot>
       </TooltipTrigger>
       <TooltipContent side={side} align={align} className="whitespace-pre-line">
         {label}
