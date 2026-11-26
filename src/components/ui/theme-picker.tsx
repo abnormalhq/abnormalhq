@@ -10,7 +10,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { LabelTooltip } from "@/components/ui/tooltip";
 
 type ThemePreference = "system" | "light" | "dark";
 
@@ -105,14 +105,10 @@ function ThemePicker({
   );
   return (
     <DropdownMenu modal={false} onOpenChange={onOpenChange}>
-      {tooltip === undefined || tooltip === null || tooltip === false ? (
-        trigger
-      ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-          <TooltipContent side={tooltipSide}>{tooltip}</TooltipContent>
-        </Tooltip>
-      )}
+      {/* The name sits on the button inside the menu trigger, so the default hint, the name itself, is no description. */}
+      <LabelTooltip label={tooltip} side={tooltipSide} describe={tooltip !== label}>
+        {trigger}
+      </LabelTooltip>
       <DropdownMenuContent side={side} align={align} className="w-36">
         <ThemeOptions value={value} onValueChange={onValueChange} labels={labels} />
       </DropdownMenuContent>
