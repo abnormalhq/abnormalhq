@@ -319,8 +319,8 @@ export function VideoPlayer({
           controls
           playsInline
           preload="metadata"
-          // The site starts dark (SiteLayout's ThemeScript), so the poster until hydration is the dark film's.
-          poster={dark?.poster ?? poster}
+          // Default theme follows the system appearance; light poster is the SSR fallback before hydration resolves the active theme.
+          poster={poster}
           aria-label={copy.label}
         >
           {dark && <source media="(prefers-color-scheme: dark)" src={dark.src} type={type} />}

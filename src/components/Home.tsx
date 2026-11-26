@@ -38,27 +38,29 @@ export function Home({ lang }: { lang: Lang }) {
       <Start lang={lang} />
       <DoppelWaitlist lang={lang} copy={t.waitlist} />
       <Faq lang={lang} />
-      <Container asChild className="pb-24 max-md:pb-16">
-        <section aria-labelledby="closing-title" className="border-t border-border pt-24 max-md:pt-16">
-          {/* The last page of the magazine: the line set large and flush left, its one word under the highlighter. */}
+      <section
+        aria-labelledby="closing-title"
+        className="ink border-t border-border bg-background py-20 text-foreground max-md:py-16 lg:py-24"
+      >
+        <Container>
+          {/* The back cover of the magazine: permanent ink surface framing the closing line and its one highlighter stroke. */}
           <div {...reveal()}>
             <Eyebrow lang="en">{t.closing.eyebrow}</Eyebrow>
             <h2
-              className="mt-6 max-w-[14em] font-serif text-[clamp(2.5rem,6vw,5rem)] leading-[1.04] font-normal tracking-heading text-balance [&:lang(zh)]:tracking-normal"
+              className="mt-6 max-w-[14em] font-serif text-[clamp(2.5rem,5.5vw,4.75rem)] leading-[1.06] font-normal tracking-heading text-balance [&:lang(zh)]:leading-[1.14] [&:lang(zh)]:font-medium [&:lang(zh)]:tracking-normal"
               id="closing-title"
             >
               {t.closing.titleLines[0]}
               {t.space}
               <br className="hidden md:block" />
               <MarkedLine line={t.closing.titleLines[1]} marked={t.closing.marked} />
-              {t.dot}
             </h2>
             <div className="mt-10 grid gap-8 border-t border-border pt-6 md:grid-cols-[minmax(0,34rem)_1fr] md:gap-12">
               <p className="text-md/prose text-pretty text-muted-foreground">{t.closing.body}</p>
               <div className="flex flex-wrap items-start gap-3 md:justify-end">
                 <Button asChild size="lg">
                   <a href={links.shop}>
-                    {t.closing.buy} <Icon name="up-right" className="size-4" />
+                    {t.closing.buy} <Icon name="arrow" className="size-4" />
                   </a>
                 </Button>
                 <InquiryButton>
@@ -69,8 +71,8 @@ export function Home({ lang }: { lang: Lang }) {
               </div>
             </div>
           </div>
-        </section>
-      </Container>
+        </Container>
+      </section>
     </>
   );
 }

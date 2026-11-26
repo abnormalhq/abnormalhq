@@ -25,10 +25,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
         >
           <div>
             <Eyebrow lang="en">{p.eyebrow}</Eyebrow>
-            <SectionTitle id="pricing-title">
-              {p.calculator.title}
-              {t.dot}
-            </SectionTitle>
+            <SectionTitle id="pricing-title">{p.calculator.title}</SectionTitle>
           </div>
           <div className="pb-0.75 md:text-right">
             <p className="text-md/prose text-muted-foreground">
@@ -38,7 +35,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
               {p.intro[1]}
             </p>
             <TextLink className="mt-2" href={links.pricing}>
-              {p.compareLink} <Icon name="up-right" className="size-3.5" />
+              {p.compareLink} <Icon name="arrow" className="size-3.5" />
             </TextLink>
           </div>
         </div>

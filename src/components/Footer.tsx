@@ -107,7 +107,7 @@ export function Footer({ lang }: { lang: Lang }) {
                 className="inline-flex items-center gap-1.5 transition-colors duration-150 hover:text-foreground"
                 href={links.shop}
               >
-                {f.buyOnline} <Icon name="up-right" className="size-3.5" />
+                {f.buyOnline} <Icon name="arrow" className="size-3.5" />
               </a>
             </p>
             <nav className="flex gap-5" aria-label={f.legalLabel}>

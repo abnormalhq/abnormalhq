@@ -19,15 +19,14 @@ export function Steps({ t }: { t: VideoCopy }) {
           style={{
             ...title,
             margin: "34px 0 0",
-            fontFamily: font.heading,
-            fontWeight: 600,
+            fontFamily: font.serif,
+            fontWeight: t.htmlLang === "en" ? 400 : 500,
             fontSize: 84,
-            lineHeight: 1.2,
-            letterSpacing: "-0.02em",
+            lineHeight: 1.16,
+            letterSpacing: t.htmlLang === "en" ? "-0.02em" : "0em",
           }}
         >
           {t.stepsTitle}
-          {t.dot}
         </h2>
       </div>
       <div style={{ position: "absolute", left: 140, right: 140, top: 450, height: 1, backgroundColor: color.border }}>

@@ -80,7 +80,6 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
               <>
                 <h2 className="font-serif text-3xl/[1.2] font-medium tracking-heading" id="pricing-calculator-title">
                   {p.calculator.title}
-                  {t.dot}
                 </h2>
                 <p className="mt-2 mb-6 text-base/prose text-muted-foreground">{p.calculator.intro}</p>
                 <PriceCalculator catalog={catalog} lang={lang} copy={p} shop={links.shop} />
@@ -89,7 +88,6 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
                   id="pricing-plans-title"
                 >
                   {p.plansTitle}
-                  {t.dot}
                 </h2>
                 <PlanCards className="mt-6" plans={plans} copy={p} heading="h3" />
                 <p className="mt-6 max-w-3xl text-xs/[1.9] text-muted-foreground">{p.priceNote}</p>
@@ -103,7 +101,6 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
             <div className="mt-16 max-md:mt-12">
               <h2 className="font-serif text-3xl/[1.2] font-medium tracking-heading" id="pricing-compare-title">
                 {p.compare.title}
-                {t.dot}
               </h2>
               <p className="mt-2 mb-6 text-base/prose text-muted-foreground">{p.compare.intro}</p>
               <PlanComparison plans={plans} copy={p} labelledBy="pricing-compare-title" />

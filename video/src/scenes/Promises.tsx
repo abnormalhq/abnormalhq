@@ -22,11 +22,11 @@ export function Promises({ t }: { t: VideoCopy }) {
         <div
           style={{
             textAlign: "center",
-            fontFamily: font.heading,
-            fontWeight: 600,
+            fontFamily: font.serif,
+            fontWeight: t.htmlLang === "en" ? 400 : 500,
             fontSize: 104,
             lineHeight: 1.2,
-            letterSpacing: "-0.025em",
+            letterSpacing: t.htmlLang === "en" ? "-0.025em" : "0em",
           }}
         >
           <div style={{ ...lead, color: color.muted }}>{t.valueLead}</div>

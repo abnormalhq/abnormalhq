@@ -22,10 +22,7 @@ export function Start({ lang }: { lang: Lang }) {
         >
           <div>
             <Eyebrow lang="en">{s.eyebrow}</Eyebrow>
-            <SectionTitle id="start-title">
-              {s.title}
-              {t.dot}
-            </SectionTitle>
+            <SectionTitle id="start-title">{s.title}</SectionTitle>
           </div>
           <p className="pb-0.75 text-md/prose text-muted-foreground">
             {s.intro[0]}
@@ -62,7 +59,10 @@ export function Start({ lang }: { lang: Lang }) {
                 )}
               >
                 {entry.action}
-                <Icon name="up-right" className="size-4 text-muted-foreground group-hover/entry:text-foreground" />
+                <Icon
+                  name={entry.link === "webmail" ? "up-right" : "arrow"}
+                  className="size-4 text-muted-foreground group-hover/entry:text-foreground"
+                />
               </span>
             </a>
           ))}

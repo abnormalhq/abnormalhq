@@ -46,13 +46,14 @@ export function PriceCalculator({
   return (
     <div
       className={cn(
-        "grid overflow-hidden rounded-panel border border-border bg-control lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]",
+        "grid overflow-hidden rounded-panel border border-border-strong bg-popover shadow-sheet lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]",
         className,
       )}
     >
-      <div className="flex min-w-0 flex-col gap-7 p-6 md:p-9 lg:border-r lg:border-border">
+      {/* Left: interactive configuration (quantity + matching plans). */}
+      <div className="flex min-w-0 flex-col gap-7 p-6 md:p-8 lg:border-r lg:border-border">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Label className="text-md/body font-medium" htmlFor={`${id}-count`}>
+          <Label className="text-md/body font-semibold tracking-title" htmlFor={`${id}-count`}>
             {c.count}
           </Label>
           <ShopSeatStepper
@@ -66,12 +67,12 @@ export function PriceCalculator({
           />
         </div>
 
-        {options.length > 1 && (
+        {options.length > 0 ? (
           <div role="group" aria-labelledby={`${id}-plans`}>
             <p className="text-sm/body text-muted-foreground" id={`${id}-plans`}>
               {c.plans}
             </p>
-            <ul className="mt-3 grid gap-2">
+            <ul className="mt-3 grid gap-2.5">
               {options.map((option) => {
                 const selected = option.id === chosen?.id;
                 return (
@@ -81,10 +82,10 @@ export function PriceCalculator({
                       aria-pressed={selected}
                       onClick={() => setChosenId(option.id)}
                       className={cn(
-                        "flex min-h-11 w-full items-center justify-between gap-4 rounded-control border px-3.5 py-2.5 text-left text-sm/body transition-colors duration-150",
+                        "flex min-h-12 w-full items-center justify-between gap-4 rounded-control border px-4 py-3 text-left text-sm/body transition-colors duration-150",
                         selected
-                          ? "border-foreground bg-selected text-foreground"
-                          : "border-input text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                          ? "border-foreground bg-selected font-medium text-foreground"
+                          : "border-input text-muted-foreground hover:border-border-strong hover:text-foreground",
                       )}
                     >
                       <span className="min-w-0">{option.name}</span>
@@ -97,64 +98,79 @@ export function PriceCalculator({
               })}
             </ul>
           </div>
+        ) : (
+          <p
+            className="rounded-mark border border-border bg-surface/60 px-4 py-3 text-sm/prose text-muted-foreground"
+            role="status"
+          >
+            {fillTemplate(c.none, { count: String(count) }).join("")}
+          </p>
         )}
 
-        <div>
-          <p className="text-sm/body text-muted-foreground">
-            {c.total}
-            {chosen && options.length === 1 && <> · {chosen.name}</>}
-          </p>
-          {/* Read out when the count or the plan changes: the total is what the controls above are for. */}
-          <p className="mt-2" role="status">
-            {chosen ? (
-              <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-serif text-[clamp(3rem,6vw,4.5rem)] leading-none font-normal tracking-heading lining-nums tabular-nums">
-                  {chosen.amount}
-                </span>
-                <span className="text-md/body text-muted-foreground">{chosen.unit}</span>
-                {chosen.original && (
-                  <span className="text-sm/body text-muted-foreground">
-                    <span className="sr-only">{copy.plan.originalPrice} </span>
-                    <s>{chosen.original}</s>
-                  </span>
-                )}
-              </span>
-            ) : (
-              <span className="block max-w-128 text-md/prose">
-                {fillTemplate(c.none, { count: String(count) }).join("")}
-              </span>
-            )}
-          </p>
-          {chosen?.card && <p className="mt-3 text-sm/prose text-muted-foreground">{chosen.card}</p>}
-          {chosen?.usdt && <p className="mt-1 text-sm/prose text-muted-foreground">{chosen.usdt}</p>}
-          {chosen?.renewal && <p className="mt-1 text-sm/prose text-muted-foreground">{chosen.renewal}</p>}
-        </div>
+        <p className="mt-auto text-xs/prose text-muted-foreground">{c.estimate}</p>
+      </div>
 
-        {chosen && (
-          <div className="flex flex-col items-start gap-3">
-            <Button asChild size="lg">
-              <a href={chosen.href}>
-                {c.checkout} <Icon name="up-right" className="size-4" />
-              </a>
-            </Button>
-            <p className="max-w-136 text-xs/prose text-muted-foreground">{c.estimate}</p>
+      {/* Right: receipt-style ledger pairing the live total, included facts and primary checkout action without dead space. */}
+      <div className="flex min-w-0 flex-col justify-between gap-6 border-t border-border bg-surface/65 p-6 md:p-8 lg:border-t-0">
+        {chosen ? (
+          <>
+            <div>
+              <div className="flex items-baseline justify-between gap-4 border-b border-border pb-3 text-xs text-muted-foreground">
+                <span>{c.summaryTitle}</span>
+                <span className="min-w-0 truncate font-mono tabular-nums">
+                  {chosen.name} × {count}
+                </span>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-xs/body text-muted-foreground">{c.total}</p>
+                {/* Read out when the count or the plan changes: the total is what the controls on the left are for. */}
+                <p className="mt-2" role="status">
+                  <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                    <span className="font-serif text-[clamp(2.75rem,5vw,4rem)] leading-none font-normal tracking-heading lining-nums tabular-nums">
+                      {chosen.amount}
+                    </span>
+                    <span className="text-sm/body text-muted-foreground">{chosen.unit}</span>
+                    {chosen.original && (
+                      <span className="font-mono text-xs text-muted-foreground">
+                        <span className="sr-only">{copy.plan.originalPrice} </span>
+                        <s>{chosen.original}</s>
+                      </span>
+                    )}
+                  </span>
+                </p>
+                {chosen.card && <p className="mt-2.5 text-xs/prose text-muted-foreground">{chosen.card}</p>}
+                {chosen.usdt && <p className="mt-1 text-xs/prose text-muted-foreground">{chosen.usdt}</p>}
+                {chosen.renewal && <p className="mt-1 text-xs/prose text-muted-foreground">{chosen.renewal}</p>}
+              </div>
+
+              <div className="mt-6 border-t border-border pt-5">
+                <p className="text-xs/body font-medium text-muted-foreground">{c.includes}</p>
+                <ul className="mt-3.5 grid gap-2.5 text-sm/prose">
+                  {chosen.facts.map((fact) => (
+                    <li className="flex items-start gap-2.5" key={fact}>
+                      <Icon name="check" className="mt-1 size-4 shrink-0 text-sage" />
+                      <span>{fact}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-5">
+              <Button asChild size="lg" className="w-full justify-between">
+                <a href={chosen.href}>
+                  {c.checkout} <Icon name="arrow" className="size-4" />
+                </a>
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="my-auto text-sm/prose text-muted-foreground">
+            {fillTemplate(c.none, { count: String(count) }).join("")}
           </div>
         )}
       </div>
-
-      {chosen && (
-        <div className="border-t border-border p-6 md:p-9 lg:border-t-0">
-          <p className="text-sm/body font-medium">{c.includes}</p>
-          <ul className="mt-4 grid gap-3 text-base/prose">
-            {chosen.facts.map((fact) => (
-              <li className="flex gap-3" key={fact}>
-                <Icon name="check" className="mt-1 size-4 shrink-0 text-muted-foreground" />
-                {fact}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

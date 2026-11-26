@@ -17,10 +17,14 @@ const palettes = {
     surface: "#ecece6",
     highlight: "#ffe14d",
     highlightMuted: "#fff4bf",
+    clay: "#b0502a",
+    sage: "#47735a",
+    sageSoft: "#dfeae2",
+    sageInk: "#2a4e3c",
     onHighlight: "#141412",
     onInk: "#ffffff",
-    markerFrom: "56%",
-    markerTo: "90%",
+    markerFrom: "60%",
+    markerTo: "92%",
   },
   dark: {
     paper: "#141412",
@@ -30,10 +34,14 @@ const palettes = {
     surface: "#252520",
     highlight: "#ffe14d",
     highlightMuted: "#34311b",
+    clay: "#e48c63",
+    sage: "#8ebf9e",
+    sageSoft: "#1b2b22",
+    sageInk: "#bfe0c9",
     onHighlight: "#141412",
     onInk: "#141412",
     markerFrom: "84%",
-    markerTo: "96%",
+    markerTo: "95%",
   },
 } as const satisfies Record<Theme, Record<string, string>>;
 
@@ -57,10 +65,11 @@ export const brand = { highlight: "#ffe14d", ink: "#141412", paper: "#f7f7f4" } 
 
 export const radius = { chip: 4, control: 6, mark: 8, panel: 12 } as const;
 
-/** Chinese glyphs fall back to Noto Sans SC (see fonts.ts), the same as the site's social images. */
+/** Editorial serif for display headlines (Newsreader + Noto Serif SC), Bricolage for the wordmark, Inter for body copy. */
 export const font = {
   body: "Inter, 'Noto Sans SC', sans-serif",
   heading: "'Bricolage Grotesque', 'Noto Sans SC', sans-serif",
+  serif: "'Newsreader', 'Noto Serif SC', 'Songti SC', Georgia, serif",
   mono: "'JetBrains Mono', 'Noto Sans SC', monospace",
 } as const;
 

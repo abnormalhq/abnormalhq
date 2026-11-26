@@ -20,10 +20,7 @@ export function Faq({ lang }: { lang: Lang }) {
       >
         <div className="lg:pt-3" {...reveal()}>
           <Eyebrow lang="en">{t.faq.eyebrow}</Eyebrow>
-          <SectionTitle id="faq-title">
-            {t.faq.title}
-            {t.dot}
-          </SectionTitle>
+          <SectionTitle id="faq-title">{t.faq.title}</SectionTitle>
           <p className="mt-4 text-md/prose text-muted-foreground">{t.faq.description}</p>
           <InquiryButton>
             <TextLink asChild className="mt-6 lg:mt-8">

@@ -33,7 +33,7 @@ export default function GlobalNotFound() {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <ThemeScript defaultTheme="dark" />
+        <ThemeScript />
       </head>
       <body>
         <NotFound className="min-h-svh">
