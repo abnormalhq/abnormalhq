@@ -18,6 +18,7 @@ import { describeContact, formatInquiry, getContactLink } from "@/lib/inquiry";
 import { fillTemplate } from "@/lib/template";
 import type { InquiryProps } from "./InquiryDialog";
 import { Icon } from "./Icon";
+import { IconButton } from "@/components/ui/icon-button";
 
 const fieldClass = "block min-w-0 text-sm/body font-medium";
 
@@ -76,9 +77,9 @@ export function InquiryForm({
               {copy.kicker}
             </span>
             <DialogClose asChild>
-              <Button variant="ghost" size="icon" className="-mr-1.5" aria-label={copy.close}>
+              <IconButton variant="ghost" size="icon" className="-mr-1.5" label={copy.close}>
                 <Icon name="close" />
-              </Button>
+              </IconButton>
             </DialogClose>
           </div>
           <DialogTitle className="text-2xl/[1.3] max-dialog:text-xl">

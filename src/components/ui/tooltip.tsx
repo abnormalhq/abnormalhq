@@ -2,10 +2,13 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Tooltip as TooltipPrimitive } from "radix-ui";
+import { Slot, Tooltip as TooltipPrimitive } from "radix-ui";
 
 /** Set by TooltipProvider, so a Tooltip can tell whether one is above it. */
 const TooltipProviderContext = React.createContext(false);
+
+/** Set inside a TooltipTrigger, so an IconButton or LabelTooltip within one does not add a second tooltip. */
+const TooltipTriggerContext = React.createContext(false);
 
 /**
  * Tooltip: shares the popover style with menus, with a soft shadow and hairline border; fades in from 4px below like menus.
@@ -29,20 +32,64 @@ function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root
   return React.useContext(TooltipProviderContext) ? root : <TooltipProvider>{root}</TooltipProvider>;
 }
 
-function TooltipTrigger({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
+/*
+ * The key behind the latest focus change: Tab and the arrow keys move focus themselves, so a tooltip may open for it.
+ * Enter, Space and Escape do things (open a dialog, close a menu) whose script then moves focus, and a pointer press
+ * moves it by hand, so neither counts. Read in the capture phase, before any handler moves focus.
+ */
+let focusKey: string | null = null;
+if (typeof document !== "undefined") {
+  document.addEventListener("keydown", (event) => (focusKey = event.key), true);
+  document.addEventListener("pointerdown", () => (focusKey = null), true);
 }
 
+/** Whether the person moved focus with the keyboard, rather than a script after a click or a key that did something. */
+function keyboardFocus() {
+  return focusKey !== null && !["Enter", " ", "Escape"].includes(focusKey);
+}
+
+/**
+ * The tooltip opens on hover, and on focus only when the person moved focus with Tab or an arrow key. A dialog that
+ * opens, or a menu that closes and hands focus back to its button, moves focus by script; without the check the
+ * tooltip would pop up there, and the next Escape would close it instead of the dialog.
+ */
+function TooltipTrigger({ onFocus, ...props }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
+  return (
+    <TooltipTriggerContext.Provider value={true}>
+      <TooltipPrimitive.Trigger
+        data-slot="tooltip-trigger"
+        onFocus={(event) => {
+          onFocus?.(event);
+          if (!keyboardFocus()) event.preventDefault();
+        }}
+        {...props}
+      />
+    </TooltipTriggerContext.Provider>
+  );
+}
+
+/**
+ * The content goes to a portal at the end of the page, so no scrolling box, sticky bar or sibling covers or clips it.
+ * It opens on `side` (top by default) and moves out of the way by itself: to the opposite side when there is no room,
+ * and along the edge so it stays `collisionPadding` (8px) inside the window. It hides while its trigger is scrolled
+ * out of view inside a scrolling box. In full screen it goes into the full-screen element, the only part of the page on
+ * show, such as a video player's.
+ */
 function TooltipContent({
   className,
   sideOffset = 6,
+  collisionPadding = 8,
+  hideWhenDetached = true,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
   return (
-    <TooltipPrimitive.Portal>
+    // Read as it opens: in full screen only the full-screen element is on show, so the tooltip goes there.
+    <TooltipPrimitive.Portal container={typeof document === "undefined" ? undefined : document.fullscreenElement}>
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         sideOffset={sideOffset}
+        collisionPadding={collisionPadding}
+        hideWhenDetached={hideWhenDetached}
         className={cn(
           "z-overlay max-w-64 origin-(--radix-tooltip-content-transform-origin) rounded-control border border-border bg-popover px-2.5 py-1.5 text-xs font-medium shadow-popover text-popover-foreground data-open:animate-arrive data-closed:animate-leave",
           className,
@@ -53,4 +100,54 @@ function TooltipContent({
   );
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+/**
+ * Radix adds the open tooltip to its trigger's aria-describedby, and the merge keeps it whatever the child says. This
+ * slot in between drops what the trigger passes and keeps the child's own, for a label that only repeats the name.
+ */
+function WithoutDescription(props: React.ComponentProps<typeof Slot.Root>) {
+  const { "aria-describedby": fromTrigger, ...rest } = props;
+  void fromTrigger;
+  return <Slot.Root {...rest} />;
+}
+
+/**
+ * A tooltip around one element, in one line: `<LabelTooltip label="Archive (E)"><button …/></LabelTooltip>`. It is
+ * what IconButton uses for its label, and the way to give a hint to any other element that would have used
+ * the browser's title. With no label, or inside a TooltipTrigger that already gives one, it renders the child alone.
+ * The tooltip describes the child (aria-describedby) unless its label is the child's aria-label word for word, so a
+ * screen reader does not read the same words twice; `describe` decides it either way. A child with a ref callback
+ * needs the same callback on every render (useCallback, or a ref object): the trigger keeps its element in state, so a
+ * new callback each render detaches and attaches it again and renders without end.
+ */
+function LabelTooltip({
+  label,
+  side,
+  align,
+  describe,
+  children,
+}: {
+  /** The hint. Nothing, an empty string or false leaves the child as it is. */
+  label: React.ReactNode;
+  side?: React.ComponentProps<typeof TooltipContent>["side"];
+  align?: React.ComponentProps<typeof TooltipContent>["align"];
+  /** Point the child's aria-describedby at the tooltip. By default only when the label is not the child's aria-label. */
+  describe?: boolean;
+  /** One element that takes a ref and pointer and focus handlers, such as a button, a link or a span. */
+  children: React.ReactElement;
+}) {
+  const nested = React.useContext(TooltipTriggerContext);
+  if (nested || label === null || label === undefined || label === false || label === "") return children;
+  const repeatsName = label === (children.props as { "aria-label"?: unknown })["aria-label"];
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {(describe ?? !repeatsName) ? children : <WithoutDescription>{children}</WithoutDescription>}
+      </TooltipTrigger>
+      <TooltipContent side={side} align={align} className="whitespace-pre-line">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, LabelTooltip };

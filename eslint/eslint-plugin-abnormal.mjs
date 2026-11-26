@@ -34,8 +34,8 @@
  * - Arbitrary whole-pixel spacing, in px or rem (mt-[18px], mt-[3.25rem]): use a spacing step (mt-4.5, mt-13), so the
  *   density reaches it. Values that fall between pixels (mt-[0.2rem]) are left alone.
  * - Tailwind's own radii and shadows (rounded-md, shadow-lg) and arbitrary radii above 2px: use rounded-chip /
- *   control / mark / panel / dialog and shadow-panel / popover. rounded-xs (2px) and pill radii of 999px or more stay
- *   allowed, like rounded-full.
+ *   control / mark / panel / dialog and shadow-control / panel / popover / sheet. rounded-xs (2px) and pill radii of
+ *   999px or more stay allowed, like rounded-full.
  * - Numeric layers of 10 or more (z-50, z-60, z-[60]): use z-raised, z-sticky, z-header, z-chrome, z-overlay,
  *   z-floating or z-skip-link. Small arbitrary layers under 10 (z-[2]) stay allowed for stacking inside one component,
  *   and so do negative ones (-z-10, behind the parent).
@@ -48,6 +48,22 @@
  * - padding, margin, gap and inset in px of 3 or more: --spacing(n) or calc(var(--spacing) * n).
  * - border-radius in px above 2 and below 999 (a pill): var(--radius-*).
  * - z-index of 10 or more: var(--z-index-*).
+ *
+ * Two rules keep every hint in the theme's tooltip, which opens where there is room and is never covered:
+ *
+ *   { files: ["**\/*.tsx"], plugins: { abnormal },
+ *     rules: { "abnormal/no-native-title": "error", "abnormal/icon-button-label": "error" } },
+ *
+ * no-native-title reports `title` on HTML elements and on the components that pass it to one (Button, IconButton, Link,
+ * Toggle, ToggleGroupItem, ThemePicker, LanguagePicker; the `components` option replaces the list). The browser's title ignores the theme, waits
+ * about a second, never opens for the keyboard and can sit over the thing it explains. Use IconButton's label for an
+ * icon button, TruncatedText for cut text and LabelTooltip for anything else. An iframe's, frame's or object's title
+ * (its accessible name), abbr's and a style sheet link's are left alone.
+ * icon-button-label reports a Button of an icon size (icon, icon-xs, icon-sm, icon-lg) outside a TooltipTrigger: use
+ * IconButton, whose required label is the name and the tooltip. It also reports a bare <button> that shows no text
+ * (only icons, or text marked sr-only) outside a TooltipTrigger or LabelTooltip. A button whose attributes are spread
+ * is left alone, since the name may be in the spread. A server-only page, which cannot run the tooltip, marks its
+ * buttons with `abnormal-allow:` and a reason.
  *
  */
 
@@ -190,7 +206,7 @@ export function checkClass(token) {
   const cornerPx = corner && Number(corner[2]) * (corner[3] === "rem" ? 16 : 1);
   if (corner && (corner[1] || (cornerPx > 2 && cornerPx < 999)))
     return `"${token}": use rounded-chip, rounded-control, rounded-mark, rounded-panel or rounded-dialog.`;
-  if (shadow.test(utility)) return `"${token}": use shadow-panel or shadow-popover.`;
+  if (shadow.test(utility)) return `"${token}": use shadow-control, shadow-panel, shadow-popover or shadow-sheet.`;
   const layer = utility.match(zNumber);
   if (layer && Number(layer[1] ?? layer[2]) >= 10)
     return `"${token}": use the stacking scale (z-raised, z-sticky, z-header, z-chrome, z-overlay, z-floating, z-skip-link).`;
@@ -315,10 +331,155 @@ const noHardcodedCss = {
   },
 };
 
+/** The name of a JSX element as written: `button`, `Button`, `Tooltip.Trigger`. */
+function elementName(name) {
+  if (!name) return "";
+  if (name.type === "JSXIdentifier") return name.name;
+  if (name.type === "JSXMemberExpression") return `${elementName(name.object)}.${elementName(name.property)}`;
+  if (name.type === "JSXNamespacedName") return `${name.namespace.name}:${name.name.name}`;
+  return "";
+}
+
+function jsxAttribute(opening, name) {
+  return opening.attributes.find((attribute) => attribute.type === "JSXAttribute" && attribute.name.name === name);
+}
+
+/*
+ * Elements whose title attribute is not a hover hint: an iframe's or a frame's title names it for assistive technology,
+ * abbr's spells the abbreviation out, and a link's or a style's names an alternate style sheet.
+ */
+const TITLE_KEPT = new Set(["iframe", "frame", "object", "abbr", "link", "style"]);
+
+/** @type {import("eslint").Rule.RuleModule} */
+const noNativeTitle = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description:
+        "Show a hint in the theme's Tooltip instead of the browser's title, which ignores the theme, waits a second and can sit over the very thing it explains.",
+    },
+    schema: [
+      {
+        type: "object",
+        properties: { components: { type: "array", items: { type: "string" } } },
+        additionalProperties: false,
+      },
+    ],
+  },
+  create(context) {
+    const allowed = allowedLines(context.sourceCode);
+    // Components that pass title straight to the element they render, so it is the browser's title there too.
+    const components = new Set(
+      context.options[0]?.components ?? [
+        "Button",
+        "IconButton",
+        "Link",
+        "Toggle",
+        "ToggleGroupItem",
+        "ThemePicker",
+        "LanguagePicker",
+      ],
+    );
+    return {
+      JSXAttribute(node) {
+        if (node.name.type !== "JSXIdentifier" || node.name.name !== "title") return;
+        const opening = node.parent;
+        if (opening?.type !== "JSXOpeningElement") return;
+        const name = elementName(opening.name);
+        const intrinsic = /^[a-z]/.test(name) && !name.includes(".") && !name.includes("-");
+        if (intrinsic ? TITLE_KEPT.has(name) : !components.has(name)) return;
+        if (allowed.has(node.loc.start.line) || allowed.has(opening.loc.start.line)) return;
+        context.report({
+          node,
+          message: `title on <${name}> is the browser's own hint: use IconButton's label for an icon button, TruncatedText for cut text, or wrap the element in LabelTooltip from @/components/ui/tooltip.`,
+        });
+      },
+    };
+  },
+};
+
+/** Whether a JSX child can render visible text: words, an expression, or an element holding either. */
+function rendersText(children) {
+  return children.some((child) => {
+    if (child.type === "JSXText") return child.value.trim() !== "";
+    if (child.type === "JSXExpressionContainer") return child.expression.type !== "JSXEmptyExpression";
+    if (child.type === "JSXSpreadChild") return true;
+    if (child.type === "JSXFragment") return rendersText(child.children);
+    if (child.type !== "JSXElement") return false;
+    // Text that only a screen reader reads (sr-only) is a name, not something a sighted person sees.
+    const className = jsxAttribute(child.openingElement, "className");
+    if (className?.value?.type === "Literal" && /(?:^|\s)sr-only(?:\s|$)/.test(String(className.value.value)))
+      return false;
+    return rendersText(child.children);
+  });
+}
+
+const TOOLTIP_WRAPPERS = new Set(["TooltipTrigger", "LabelTooltip", "Tooltip.Trigger", "TooltipPrimitive.Trigger"]);
+
+/** @type {import("eslint").Rule.RuleModule} */
+const iconButtonLabel = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Give every button that shows only an icon a name that also appears as a tooltip: IconButton with a label, or a bare button inside a Tooltip.",
+    },
+    schema: [],
+  },
+  create(context) {
+    const allowed = allowedLines(context.sourceCode);
+    function insideTooltip(node) {
+      for (const ancestor of context.sourceCode.getAncestors(node)) {
+        if (ancestor.type === "JSXElement" && TOOLTIP_WRAPPERS.has(elementName(ancestor.openingElement.name)))
+          return true;
+      }
+      return false;
+    }
+    return {
+      JSXElement(node) {
+        const opening = node.openingElement;
+        const name = elementName(opening.name);
+        if (allowed.has(opening.loc.start.line)) return;
+        const spread = opening.attributes.some((attribute) => attribute.type === "JSXSpreadAttribute");
+        if (name === "Button") {
+          const size = jsxAttribute(opening, "size")?.value;
+          const sizeValue =
+            size?.type === "Literal"
+              ? size.value
+              : size?.type === "JSXExpressionContainer" && size.expression.type === "Literal"
+                ? size.expression.value
+                : undefined;
+          if (typeof sizeValue !== "string" || !sizeValue.startsWith("icon") || insideTooltip(node)) return;
+          context.report({
+            node: opening,
+            message:
+              "Use IconButton for a button that shows only an icon: its `label` is the button's name and the tooltip it shows.",
+          });
+          return;
+        }
+        // A spread may hold the children or the name; the rule cannot see through it.
+        if (name === "button" && spread) return;
+        if (name !== "button") return;
+        if (rendersText(node.children) || insideTooltip(node)) return;
+        context.report({
+          node: opening,
+          message:
+            "A button that shows only an icon needs its name shown on hover and focus: use IconButton with a label, or wrap the button in LabelTooltip from @/components/ui/tooltip.",
+        });
+      },
+    };
+  },
+};
+
 /** @type {import("eslint").ESLint.Plugin} */
 const plugin = {
   meta: { name: "eslint-plugin-abnormal" },
-  rules: { "no-hardcoded-classes": noHardcodedClasses, "no-hardcoded-css": noHardcodedCss },
+  rules: {
+    "no-hardcoded-classes": noHardcodedClasses,
+    "no-hardcoded-css": noHardcodedCss,
+    "no-native-title": noNativeTitle,
+    "icon-button-label": iconButtonLabel,
+  },
 };
 
 export default plugin;

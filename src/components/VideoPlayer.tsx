@@ -26,6 +26,7 @@ import type { Copy } from "@/i18n/types";
 import { fillTemplate } from "@/lib/template";
 import { formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { LabelTooltip } from "@/components/ui/tooltip";
 
 /** The strings the player needs; PromoVideo passes them in so the browser bundle does not carry the whole copy. */
 export type PlayerCopy = Pick<
@@ -451,16 +452,17 @@ function BarButton({
   children: ReactNode;
 }) {
   return (
-    <button
-      ref={ref}
-      type="button"
-      className="grid size-8 shrink-0 place-items-center rounded-control text-foreground transition-colors duration-150 hover:bg-control focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus active:scale-[0.96] [&_svg]:size-4 [&_svg]:shrink-0"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <LabelTooltip label={label}>
+      <button
+        ref={ref}
+        type="button"
+        className="grid size-8 shrink-0 place-items-center rounded-control text-foreground transition-colors duration-150 hover:bg-control focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-focus active:scale-[0.96] [&_svg]:size-4 [&_svg]:shrink-0"
+        aria-label={label}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    </LabelTooltip>
   );
 }
 

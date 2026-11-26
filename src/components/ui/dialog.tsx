@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Dialog as DialogPrimitive } from "radix-ui";
 
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
 import { XIcon } from "lucide-react";
 
 /** Dialog is a raised surface: panel radius, 1px hairline, soft shadow, fading in from 4px below. */
@@ -79,10 +80,9 @@ function DialogContent({
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button variant="ghost" className="absolute top-3 right-3" size="icon-sm">
+            <IconButton variant="ghost" className="absolute top-3 right-3" size="icon-sm" label={closeLabel as string}>
               <XIcon />
-              <span className="sr-only">{closeLabel}</span>
-            </Button>
+            </IconButton>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>

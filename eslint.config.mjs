@@ -31,7 +31,11 @@ const themeRules = [
   {
     files: ["**/*.{ts,tsx}"],
     ignores: ["**/*.test.{ts,tsx}", "**/tests/**", "**/__tests__/**", "**/e2e/**"],
-    rules: { "abnormal/no-hardcoded-classes": "error" },
+    rules: {
+      "abnormal/no-hardcoded-classes": "error",
+      "abnormal/no-native-title": "error",
+      "abnormal/icon-button-label": "error",
+    },
   },
   {
     files: ["**/*.css"],

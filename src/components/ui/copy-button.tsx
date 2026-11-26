@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LabelTooltip } from "@/components/ui/tooltip";
 
 type Feedback = "idle" | "copied" | "failed";
 
@@ -136,46 +137,47 @@ function CopyButton({
 
   return (
     <>
-      <Button
-        type="button"
-        variant={variant}
-        size={size ?? (iconOnly ? "icon-xs" : "xs")}
-        title={label}
-        aria-label={iconOnly ? label : undefined}
-        data-feedback={feedback === "idle" ? undefined : feedback}
-        className={cn(
-          "relative",
-          feedback === "copied" && "text-success",
-          feedback === "failed" && "text-destructive",
-          className,
-        )}
-        onClick={async (event) => {
-          onClick?.(event);
-          if (event.defaultPrevented) return;
-          const rect = event.currentTarget.getBoundingClientRect();
-          const below = rect.top < BUBBLE_ROOM;
-          setAnchor({ x: rect.left + rect.width / 2, y: below ? rect.bottom : rect.top, below });
-          const button = event.currentTarget;
-          try {
-            const value = text ?? adjacentCode(button);
-            if (write) await write(value);
-            else await copyText(value, button);
-            // A copy that settles after the button has gone tells nobody, as it shows nothing.
-            if (!mounted.current) return;
-            show("copied");
-            onCopied?.(value);
-          } catch (error) {
-            if (!mounted.current) return;
-            show("failed");
-            onCopyFailed?.(error);
-          }
-        }}
-        {...props}
-      >
-        {/* The key changes with the outcome, so the pop plays again when the icon changes. */}
-        <Icon key={feedback} className={feedback === "idle" ? undefined : "animate-pop"} />
-        {children}
-      </Button>
+      <LabelTooltip label={iconOnly ? label : undefined}>
+        <Button
+          type="button"
+          variant={variant}
+          size={size ?? (iconOnly ? "icon-xs" : "xs")}
+          aria-label={iconOnly ? label : undefined}
+          data-feedback={feedback === "idle" ? undefined : feedback}
+          className={cn(
+            "relative",
+            feedback === "copied" && "text-success",
+            feedback === "failed" && "text-destructive",
+            className,
+          )}
+          onClick={async (event) => {
+            onClick?.(event);
+            if (event.defaultPrevented) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            const below = rect.top < BUBBLE_ROOM;
+            setAnchor({ x: rect.left + rect.width / 2, y: below ? rect.bottom : rect.top, below });
+            const button = event.currentTarget;
+            try {
+              const value = text ?? adjacentCode(button);
+              if (write) await write(value);
+              else await copyText(value, button);
+              // A copy that settles after the button has gone tells nobody, as it shows nothing.
+              if (!mounted.current) return;
+              show("copied");
+              onCopied?.(value);
+            } catch (error) {
+              if (!mounted.current) return;
+              show("failed");
+              onCopyFailed?.(error);
+            }
+          }}
+          {...props}
+        >
+          {/* The key changes with the outcome, so the pop plays again when the icon changes. */}
+          <Icon key={feedback} className={feedback === "idle" ? undefined : "animate-pop"} />
+          {children}
+        </Button>
+      </LabelTooltip>
       {iconOnly &&
         feedback !== "idle" &&
         anchor &&
