@@ -117,7 +117,8 @@ function WithoutDescription(props: React.ComponentProps<typeof Slot.Root>) {
  * The tooltip describes the child (aria-describedby) unless its label is the child's aria-label word for word, so a
  * screen reader does not read the same words twice; `describe` decides it either way. A child with a ref callback
  * needs the same callback on every render (useCallback, or a ref object): the trigger keeps its element in state, so a
- * new callback each render detaches and attaches it again and renders without end.
+ * new callback each render detaches and attaches it again and renders without end. A child with `disabled` gets no
+ * pointer events, so the tooltip then listens on an inline box around it, and still says, say, why it is disabled.
  */
 function LabelTooltip({
   label,
@@ -137,11 +138,21 @@ function LabelTooltip({
 }) {
   const nested = React.useContext(TooltipTriggerContext);
   if (nested || label === null || label === undefined || label === false || label === "") return children;
-  const repeatsName = label === (children.props as { "aria-label"?: unknown })["aria-label"];
+  const props = children.props as { "aria-label"?: unknown; disabled?: unknown };
+  const repeatsName = label === props["aria-label"];
+  // A disabled button gets no pointer events, so the hint (often why it is disabled) listens on a box around it.
+  const target =
+    props.disabled === true ? (
+      <span data-slot="tooltip-disabled-trigger" className="inline-flex max-w-full">
+        {children}
+      </span>
+    ) : (
+      children
+    );
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        {(describe ?? !repeatsName) ? children : <WithoutDescription>{children}</WithoutDescription>}
+        {(describe ?? !repeatsName) ? target : <WithoutDescription>{target}</WithoutDescription>}
       </TooltipTrigger>
       <TooltipContent side={side} align={align} className="whitespace-pre-line">
         {label}
