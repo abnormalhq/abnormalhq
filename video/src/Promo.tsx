@@ -9,6 +9,7 @@ import { Intro } from "./scenes/Intro";
 import { Outro } from "./scenes/Outro";
 import { Promises } from "./scenes/Promises";
 import { Steps } from "./scenes/Steps";
+import { color, themeStyle, type Theme } from "./theme";
 
 /** Duration of each scene (frames at 30fps); neighbouring scenes cross-fade over FADE frames, and durationInFrames() gives the total. */
 export const SCENES = [
@@ -24,10 +25,13 @@ const FADE = 15;
 export const durationInFrames = () =>
   SCENES.reduce((total, { frames }) => total + frames, 0) - FADE * (SCENES.length - 1);
 
-export function Promo({ lang }: { lang: Lang }) {
+export function Promo({ lang, theme }: { lang: Lang; theme: Theme }) {
   const t = copies[lang];
   return (
-    <div lang={t.htmlLang} style={{ width: "100%", height: "100%" }}>
+    <div
+      lang={t.htmlLang}
+      style={{ ...themeStyle(theme), width: "100%", height: "100%", backgroundColor: color.paper }}
+    >
       {/* The background music is synthesized by scripts/music.ts (pnpm music), has its own fade-in and fade-out, and matches the picture's length. */}
       <Audio src={music} volume={0.9} />
       <TransitionSeries>

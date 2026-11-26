@@ -2,24 +2,31 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { langs } from "../src/i18n/index.ts";
-import { screens, screenSrc, screenSrcSet, screenWidths } from "../src/lib/screens.ts";
+import { screens, screenSrc, screenSrcSet, screenThemes, screenWidths } from "../src/lib/screens.ts";
 
-test("every screenshot is in public/ for every language and width", () => {
+/** Every file the pages use: each language, picture, theme and width. */
+const files = langs.flatMap((lang) =>
+  screens.flatMap((screen) =>
+    screenThemes.flatMap((theme) =>
+      screenWidths(screen).map((width) => ({
+        lang,
+        screen,
+        theme,
+        width,
+        src: screenSrc(lang, screen.key, width, theme),
+      })),
+    ),
+  ),
+);
+
+test("every screenshot is in public/ for every language, theme and width", () => {
   // The files ship with the site; a missing one would be a broken picture on the home page.
-  for (const lang of langs)
-    for (const screen of screens)
-      for (const width of screenWidths(screen)) {
-        const path = `public${screenSrc(lang, screen.key, width)}`;
-        assert.ok(existsSync(path), `${path} is missing`);
-      }
+  assert.equal(files.length, 24);
+  for (const { src } of files) assert.ok(existsSync(`public${src}`), `public${src} is missing`);
 });
 
 test("public/screens/ holds no picture the page does not use", () => {
-  const used = new Set(
-    langs.flatMap((lang) =>
-      screens.flatMap((screen) => screenWidths(screen).map((width) => screenSrc(lang, screen.key, width))),
-    ),
-  );
+  const used = new Set(files.map(({ src }) => src));
   for (const file of readdirSync("public/screens"))
     assert.ok(used.has(`/screens/${file}`), `unused: public/screens/${file}`);
 });
@@ -35,18 +42,30 @@ test("the WebP files are as wide as their names say", () => {
     }
     return { width: bytes.readUInt16LE(26) & 0x3fff, height: bytes.readUInt16LE(28) & 0x3fff };
   };
-  for (const lang of langs)
-    for (const screen of screens)
-      for (const width of screenWidths(screen)) {
-        const actual = size(readFileSync(`public${screenSrc(lang, screen.key, width)}`));
-        assert.equal(actual.width, width, `${lang}-${screen.key}-${width}`);
-        assert.ok(
-          Math.abs(actual.height - (width * screen.height) / screen.width) <= 1,
-          `${lang}-${screen.key}-${width}: the aspect ratio differs from the ${screen.width}×${screen.height} the layout reserves`,
-        );
-      }
+  for (const { src, screen, width } of files) {
+    const actual = size(readFileSync(`public${src}`));
+    assert.equal(actual.width, width, src);
+    assert.ok(
+      Math.abs(actual.height - (width * screen.height) / screen.width) <= 1,
+      `${src}: the aspect ratio differs from the ${screen.width}×${screen.height} the layout reserves`,
+    );
+  }
 });
 
-test("srcset lists both widths", () => {
+test("srcset lists both widths, of the theme asked for", () => {
   assert.equal(screenSrcSet("zh", screens[2]), "/screens/zh-phone-390.webp 390w, /screens/zh-phone-780.webp 780w");
+  assert.equal(
+    screenSrcSet("en", screens[0], "dark"),
+    "/screens/en-inbox-dark-1440.webp 1440w, /screens/en-inbox-dark-2880.webp 2880w",
+  );
+});
+
+test("a picture with a dark version shows one per theme, both lazy, so only the one on show is fetched", () => {
+  const source = readFileSync("src/components/ThemedImage.tsx", "utf8");
+  assert.match(source, /"dark:hidden"\)\}\s+loading="lazy"/);
+  assert.match(source, /"hidden dark:block"\)\}\s+loading="lazy"/);
+  assert.match(
+    readFileSync("src/components/Hero.tsx", "utf8"),
+    /dark=\{\{ src: screenSrc\(lang, inbox\.key, inbox\.width, "dark"\)/,
+  );
 });

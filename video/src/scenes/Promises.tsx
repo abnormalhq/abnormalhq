@@ -66,7 +66,7 @@ function Promise({ text, delay }: { text: string; delay: number }) {
           height: 36,
           borderRadius: 999,
           backgroundColor: color.highlight,
-          color: color.ink,
+          color: color.onHighlight,
         }}
       >
         <Icon name="check" size={20} strokeWidth={2.4} />

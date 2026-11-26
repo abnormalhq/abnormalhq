@@ -252,6 +252,10 @@ export function helpScreenshot(lang: Lang, key: ScreenKey, alt: string, caption:
     image: {
       src: screenSrc(lang, key, screen.width) as `/screens/${string}.webp`,
       srcSet: screenSrcSet(lang, screen),
+      dark: {
+        src: screenSrc(lang, key, screen.width, "dark") as `/screens/${string}.webp`,
+        srcSet: screenSrcSet(lang, screen, "dark"),
+      },
       width: screen.width,
       height: screen.height,
       alt,

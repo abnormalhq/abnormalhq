@@ -85,11 +85,26 @@ export interface PromoVideo {
   poster: string;
   /** Upload date, YYYY-MM-DD, written into the structured data (uploadDate of the schema.org VideoObject); update it after re-rendering. */
   uploadDate: string;
+  /**
+   * The same film drawn in the site's dark theme, which the player shows while the page is dark. The Markdown version, the structured
+   * data and the download link keep to src and poster.
+   */
+  dark?: { src: string; poster: string };
 }
 
 export const promoVideos: Record<Lang, PromoVideo> = {
-  en: { src: "/video/abnormal-en.mp4", poster: "/video/abnormal-en.jpg", uploadDate: "2026-11-09" },
-  zh: { src: "/video/abnormal-zh.mp4", poster: "/video/abnormal-zh.jpg", uploadDate: "2026-11-09" },
+  en: {
+    src: "/video/abnormal-en.mp4",
+    poster: "/video/abnormal-en.jpg",
+    uploadDate: "2026-11-26",
+    dark: { src: "/video/abnormal-en-dark.mp4", poster: "/video/abnormal-en-dark.jpg" },
+  },
+  zh: {
+    src: "/video/abnormal-zh.mp4",
+    poster: "/video/abnormal-zh.jpg",
+    uploadDate: "2026-11-26",
+    dark: { src: "/video/abnormal-zh-dark.mp4", poster: "/video/abnormal-zh-dark.jpg" },
+  },
 };
 
 /**

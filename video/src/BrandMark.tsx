@@ -1,4 +1,4 @@
-import { color } from "./theme";
+import { brand as color } from "./theme";
 
 /** The same picture as the site's src/components/ui/brand-mark.tsx: an ink lowercase a on a highlight-yellow square, with an offset paper-white shadow and an arrow at the top right. */
 const GLYPH_A =

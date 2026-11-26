@@ -4,6 +4,7 @@ import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
 import { screens, screenSrc, screenSrcSet } from "@/lib/screens";
+import { ThemedImage } from "./ThemedImage";
 import { Icon } from "./Icon";
 import { MarkedLine } from "./MarkedLine";
 import { ProductTabs } from "./ProductTabs";
@@ -69,12 +70,11 @@ export function Hero({ lang }: { lang: Lang }) {
         </div>
       </div>
       <div className={stageClassName} id="screens">
-        {/* The site runs on a Worker without an image service, so the widths are made ahead of time (src/lib/screens.ts). */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        {/* The site runs on a Worker without an image service, so the widths are made ahead of time (src/lib/screens.ts), in both themes. */}
+        <ThemedImage
           className="block h-auto w-full rounded-dialog border border-border"
-          src={screenSrc(lang, inbox.key, inbox.width)}
-          srcSet={screenSrcSet(lang, inbox)}
+          light={{ src: screenSrc(lang, inbox.key, inbox.width), srcSet: screenSrcSet(lang, inbox) }}
+          dark={{ src: screenSrc(lang, inbox.key, inbox.width, "dark"), srcSet: screenSrcSet(lang, inbox, "dark") }}
           sizes="(min-width: 1184px) 1120px, 100vw"
           width={inbox.width}
           height={inbox.height}

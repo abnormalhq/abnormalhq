@@ -34,12 +34,13 @@ export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang
           </div>
           <p className="max-w-136 pb-0.75 text-md/prose text-muted-foreground">{v.description}</p>
         </div>
-        {/* Same treatment as the cards: a thin border, no fill, no shadow. The video is a paper-colored picture, so the background is paper too and no black bars show. */}
+        {/* Same treatment as the cards: a thin border, no fill, no shadow. The film is drawn on the page's own paper in each theme, so the background is that paper too and no black bars show. */}
         <figure className="overflow-hidden rounded-panel border border-border bg-card" {...reveal(1)}>
           <VideoPlayer
             src={video.src}
             type={type}
             poster={video.poster || undefined}
+            dark={video.dark}
             copy={{
               label: v.label,
               fallback: v.fallback,

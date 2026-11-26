@@ -26,6 +26,7 @@ import type { Copy } from "@/i18n/types";
 import { fillTemplate } from "@/lib/template";
 import { formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { usePageTheme } from "./use-page-theme";
 
 /** The strings the player needs; PromoVideo passes them in so the browser bundle does not carry the whole copy. */
 export type PlayerCopy = Pick<
@@ -66,23 +67,33 @@ type VideoElement = HTMLVideoElement & { webkitEnterFullscreen?: () => void; web
  * which only lets <video> go fullscreen). While playing the bar fades out after the pointer rests and comes
  * back on any move, tap or focus. Keys, while focus is in the player: Space / K play and pause, ← / → seek
  * 5 seconds, M mutes, F toggles fullscreen.
+ *
+ * `dark` is the same film drawn in the dark theme: once hydrated the player shows the film of the page's theme, and choosing
+ * the other theme swaps it in at the same moment of the film. Before that the native element picks by the system's appearance,
+ * as the page's colors do without a script.
  */
 export function VideoPlayer({
   src,
   type,
   poster,
+  dark,
   copy,
   className,
 }: {
   src: string;
   type?: string;
   poster?: string;
+  dark?: { src: string; poster: string };
   copy: PlayerCopy;
   className?: string;
 }) {
   const enhanced = useSyncExternalStore(subscribe, enhancedOnClient, notEnhancedOnServer);
+  const theme = usePageTheme();
+  const film = theme === "dark" && dark ? dark : { src, poster };
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<VideoElement>(null);
+  // The film the enhanced element was last given; null until it exists.
+  const shownSrc = useRef<string | null>(null);
 
   const [playing, setPlaying] = useState(false);
   const [started, setStarted] = useState(false);
@@ -176,6 +187,27 @@ export function VideoPlayer({
       source?.removeEventListener("error", onError);
     };
   }, [enhanced]);
+
+  // Another theme, another film: the same picture in other colors and the same length, so it carries on from the same moment,
+  // playing if the other was. The <source> keeps its element (its error listener above stays) and only its address changes,
+  // which a media element does not notice until it is loaded again.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!enhanced || !video) return;
+    const previous = shownSrc.current;
+    shownSrc.current = film.src;
+    if (previous === null || previous === film.src) return;
+    const at = video.currentTime;
+    const wasPlaying = !video.paused && !video.ended;
+    video.load();
+    if (at <= 0 && !wasPlaying) return;
+    const resume = () => {
+      video.currentTime = at;
+      if (wasPlaying) video.play().catch(() => {});
+    };
+    video.addEventListener("loadedmetadata", resume, { once: true });
+    return () => video.removeEventListener("loadedmetadata", resume);
+  }, [enhanced, film.src]);
 
   const overlayShown = !started || ended;
   useEffect(() => {
@@ -278,14 +310,16 @@ export function VideoPlayer({
     return (
       <div className={cn("relative", className)}>
         <video
-          // abnormal-allow: the film is shot on the light paper (#f7f7f4), so its letterbox is that paper in either theme.
-          className="block aspect-video w-full bg-[#f7f7f4]"
+          // The film is drawn on the page's paper in each theme, so its letterbox is that paper.
+          className="block aspect-video w-full bg-card"
           controls
           playsInline
           preload="metadata"
-          poster={poster}
+          // The site starts dark (SiteLayout's ThemeScript), so the poster until hydration is the dark film's.
+          poster={dark?.poster ?? poster}
           aria-label={copy.label}
         >
+          {dark && <source media="(prefers-color-scheme: dark)" src={dark.src} type={type} />}
           <source src={src} type={type} />
           {/* Shown only by browsers without <video> support; when decoding fails the element still exists, so the download link sits separately below. */}
           <p className="p-6 text-base/body text-muted-foreground">{copy.fallback}</p>
@@ -305,8 +339,8 @@ export function VideoPlayer({
       ref={rootRef}
       className={cn(
         "group/player relative isolate select-none",
-        // abnormal-allow: black around a fullscreen film, and the film's own light paper (#f7f7f4) around it on the page.
-        fullscreen ? "flex items-center bg-black" : "bg-[#f7f7f4]",
+        // abnormal-allow: black around a fullscreen film; on the page, the paper the film is drawn on.
+        fullscreen ? "flex items-center bg-black" : "bg-card",
         autoHidden && "cursor-none",
         className,
       )}
@@ -321,11 +355,11 @@ export function VideoPlayer({
         className={cn("block aspect-video w-full", fullscreen && "h-full object-contain")}
         playsInline
         preload="metadata"
-        poster={poster}
+        poster={film.poster}
         aria-label={copy.label}
         onClick={toggle}
       >
-        <source src={src} type={type} />
+        <source src={film.src} type={type} />
       </video>
 
       {waiting && playing && (

@@ -22,7 +22,7 @@ export function Headline({ t }: { t: VideoCopy }) {
           transform: `rotate(${-4 - (1 - tag) * 10}deg) scale(${0.6 + tag * 0.4})`,
           opacity: Math.min(1, tag * 2),
           backgroundColor: color.highlight,
-          color: color.ink,
+          color: color.onHighlight,
           fontFamily: font.mono,
           fontSize: 36,
           fontWeight: 500,
