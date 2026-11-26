@@ -69,11 +69,26 @@ function TooltipTrigger({ onFocus, ...props }: React.ComponentProps<typeof Toolt
 }
 
 /**
+ * Where the tooltip's portal goes, read as it opens. A full-screen element, and a native <dialog> opened with
+ * showModal(), sit in the browser's top layer, above anything at the end of the page, and the page behind a modal
+ * dialog is inert; so while one is open the tooltip goes inside the topmost, the only part of the page in reach.
+ */
+function topLayer(): Element | undefined {
+  if (typeof document === "undefined") return undefined;
+  let modal: Element | undefined;
+  try {
+    modal = [...document.querySelectorAll("dialog:modal")].at(-1);
+  } catch {
+    // A browser without :modal has no modal dialogs of this kind either.
+  }
+  return modal ?? document.fullscreenElement ?? undefined;
+}
+
+/**
  * The content goes to a portal at the end of the page, so no scrolling box, sticky bar or sibling covers or clips it.
  * It opens on `side` (top by default) and moves out of the way by itself: to the opposite side when there is no room,
  * and along the edge so it stays `collisionPadding` (8px) inside the window. It hides while its trigger is scrolled
- * out of view inside a scrolling box. In full screen it goes into the full-screen element, the only part of the page on
- * show, such as a video player's.
+ * out of view inside a scrolling box. In full screen, or over a native modal <dialog>, it goes into that element.
  */
 function TooltipContent({
   className,
@@ -83,8 +98,7 @@ function TooltipContent({
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
   return (
-    // Read as it opens: in full screen only the full-screen element is on show, so the tooltip goes there.
-    <TooltipPrimitive.Portal container={typeof document === "undefined" ? undefined : document.fullscreenElement}>
+    <TooltipPrimitive.Portal container={topLayer()}>
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         sideOffset={sideOffset}
