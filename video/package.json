@@ -7,9 +7,11 @@
   "scripts": {
     "music": "node scripts/music.ts",
     "studio": "pnpm music && remotion studio",
-    "render": "pnpm music && pnpm render:en && pnpm render:zh",
+    "render": "pnpm music && pnpm render:en && pnpm render:zh && pnpm render:en-dark && pnpm render:zh-dark",
     "render:en": "remotion render promo-en ../public/video/abnormal-en.mp4 && remotion still promo-en ../public/video/abnormal-en.jpg --frame=220",
     "render:zh": "remotion render promo-zh ../public/video/abnormal-zh.mp4 && remotion still promo-zh ../public/video/abnormal-zh.jpg --frame=220",
+    "render:en-dark": "remotion render promo-en-dark ../public/video/abnormal-en-dark.mp4 && remotion still promo-en-dark ../public/video/abnormal-en-dark.jpg --frame=220",
+    "render:zh-dark": "remotion render promo-zh-dark ../public/video/abnormal-zh-dark.mp4 && remotion still promo-zh-dark ../public/video/abnormal-zh-dark.jpg --frame=220",
     "typecheck": "tsc6 --noEmit"
   },
   "dependencies": {

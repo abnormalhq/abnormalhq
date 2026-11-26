@@ -82,7 +82,7 @@ function Step({
             lineHeight: 1,
             letterSpacing: "-0.04em",
             padding: "0 0.06em",
-            backgroundImage: `linear-gradient(transparent 56%, ${color.highlight} 56% 90%, transparent 90%)`,
+            backgroundImage: `linear-gradient(transparent ${color.markerFrom}, ${color.highlight} ${color.markerFrom} ${color.markerTo}, transparent ${color.markerTo})`,
           }}
         >
           {String(index + 1).padStart(2, "0")}

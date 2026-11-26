@@ -45,6 +45,8 @@ export interface DocImage {
   alt: string;
   caption: string;
   srcSet?: string;
+  /** The same screenshot in the dark theme, shown instead while the page is dark. */
+  dark?: { src: `/screens/${string}.webp`; srcSet: string };
 }
 
 /** Paragraphs, lists, captioned images, or commands with a copy button (`label` says where to type them). */

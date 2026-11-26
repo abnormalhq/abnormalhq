@@ -31,7 +31,8 @@ test("each configured video names its poster and upload date, and its files are 
     if (!video) continue;
     assert.ok(video.poster, `${lang}: poster`);
     assert.match(video.uploadDate, /^\d{4}-\d{2}-\d{2}$/, `${lang}: uploadDate`);
-    for (const path of [video.src, video.poster]) {
+    assert.ok(video.dark, `${lang}: the dark film`);
+    for (const path of [video.src, video.poster, video.dark.src, video.dark.poster]) {
       if (path.startsWith("/")) assert.ok(existsSync(`public${path}`), `${lang}: public${path} is missing`);
     }
   }

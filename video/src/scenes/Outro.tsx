@@ -55,7 +55,7 @@ export function Outro({ t }: { t: VideoCopy }) {
             padding: "22px 40px",
             borderRadius: radius.control,
             backgroundColor: color.ink,
-            color: color.white,
+            color: color.onInk,
             fontSize: 32,
             fontWeight: 500,
           }}
