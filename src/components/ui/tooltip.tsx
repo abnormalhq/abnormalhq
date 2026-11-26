@@ -133,6 +133,8 @@ function WithoutDescription(props: React.ComponentProps<typeof Slot.Root>) {
  * needs the same callback on every render (useCallback, or a ref object): the trigger keeps its element in state, so a
  * new callback each render detaches and attaches it again and renders without end. A child with `disabled` gets no
  * pointer events, so the tooltip then listens on an inline box around it, and still says, say, why it is disabled.
+ * Props it does not take itself, such as the handlers and ref a DialogTrigger or PopoverTrigger passes through
+ * asChild, go on to the child, so it can sit inside a trigger like the child alone.
  */
 function LabelTooltip({
   label,
@@ -140,7 +142,8 @@ function LabelTooltip({
   align,
   describe,
   children,
-}: {
+  ...forwarded
+}: Omit<React.ComponentProps<typeof TooltipTrigger>, "children" | "asChild"> & {
   /** The hint. Nothing, an empty string or false leaves the child as it is. */
   label: React.ReactNode;
   side?: React.ComponentProps<typeof TooltipContent>["side"];
@@ -151,21 +154,22 @@ function LabelTooltip({
   children: React.ReactElement;
 }) {
   const nested = React.useContext(TooltipTriggerContext);
-  if (nested || label === null || label === undefined || label === false || label === "") return children;
+  if (nested || label === null || label === undefined || label === false || label === "")
+    return <Slot.Root {...forwarded}>{children}</Slot.Root>;
   const props = children.props as { "aria-label"?: unknown; disabled?: unknown };
   const repeatsName = label === props["aria-label"];
   // A disabled button gets no pointer events, so the hint (often why it is disabled) listens on a box around it.
   const target =
     props.disabled === true ? (
       <span data-slot="tooltip-disabled-trigger" className="inline-flex max-w-full">
-        {children}
+        <Slot.Root {...forwarded}>{children}</Slot.Root>
       </span>
     ) : (
       children
     );
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild {...(props.disabled === true ? {} : forwarded)}>
         {(describe ?? !repeatsName) ? target : <WithoutDescription>{target}</WithoutDescription>}
       </TooltipTrigger>
       <TooltipContent side={side} align={align} className="whitespace-pre-line">

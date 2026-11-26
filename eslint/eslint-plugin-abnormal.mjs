@@ -62,7 +62,7 @@
  * icon-button-label reports a Button of an icon size (icon, icon-xs, icon-sm, icon-lg) outside a TooltipTrigger: use
  * IconButton, whose required label is the name and the tooltip. It also reports a bare <button> that shows no text
  * (only icons, or text marked sr-only) outside a TooltipTrigger or LabelTooltip. A button whose attributes are spread
- * is left alone, since the name may be in the spread. A server-only page, which cannot run the tooltip, marks its
+ * is left alone, since the name may be in the spread, and so is one that is hidden or aria-hidden. A server-only page, which cannot run the tooltip, marks its
  * buttons with `abnormal-allow:` and a reason.
  *
  */
@@ -460,6 +460,8 @@ const iconButtonLabel = {
         // A spread may hold the children or the name; the rule cannot see through it.
         if (name === "button" && spread) return;
         if (name !== "button") return;
+        // A button nobody sees or reaches (a form's hidden default submit) needs no hint.
+        if (jsxAttribute(opening, "hidden") || jsxAttribute(opening, "aria-hidden")) return;
         if (rendersText(node.children) || insideTooltip(node)) return;
         context.report({
           node: opening,
