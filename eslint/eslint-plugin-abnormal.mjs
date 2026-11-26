@@ -428,14 +428,9 @@ function expressionRendersText(expression) {
   switch (expression.type) {
     case "JSXEmptyExpression":
       return false;
-    case "JSXElement": {
-      // A component with no children may still render words from its props (a count, a translated label); only an
-      // HTML element, or a component named as an icon, is read through.
-      const name = elementName(expression.openingElement.name);
-      const opaque = /^[A-Z]|\./.test(name) && !/Icon$/.test(name) && expression.children.length === 0;
-      return opaque || rendersText([expression]);
-    }
+    case "JSXElement":
     case "JSXFragment":
+      return rendersText([expression]);
       return rendersText(expression.children);
     case "ConditionalExpression":
       return expressionRendersText(expression.consequent) || expressionRendersText(expression.alternate);
@@ -463,10 +458,18 @@ function rendersText(children) {
     if (child.type === "JSXSpreadChild") return true;
     if (child.type === "JSXFragment") return rendersText(child.children);
     if (child.type !== "JSXElement") return false;
-    // Text that only a screen reader reads (sr-only) is a name, not something a sighted person sees.
-    const className = jsxAttribute(child.openingElement, "className");
+    const opening = child.openingElement;
+    // Text that only a screen reader reads (sr-only) is a name, not something a sighted person sees; an element hidden
+    // from screen readers (aria-hidden, as an icon from any set carries) gives the button no name, whatever it shows.
+    const className = jsxAttribute(opening, "className");
     if (className?.value?.type === "Literal" && /(?:^|\s)sr-only(?:\s|$)/.test(String(className.value.value)))
       return false;
+    const ariaHidden = staticValue(jsxAttribute(opening, "aria-hidden"));
+    if (ariaHidden === true || ariaHidden === "true") return false;
+    // A component with no children may still render words from its props (a count, a translated label); only an
+    // HTML element, or a component named as an icon, is read through.
+    const name = elementName(opening.name);
+    if (/^[A-Z]|\./.test(name) && !/Icon$/.test(name) && child.children.length === 0) return true;
     return rendersText(child.children);
   });
 }
