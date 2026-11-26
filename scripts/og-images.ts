@@ -2,10 +2,11 @@
  * Generates the social card images public/og/zh.png and public/og/en.png (1200x630, referenced by src/lib/metadata.ts).
  * The copy comes from the hero title and the social description; rerun after changing those in src/i18n.
  *
- * This repository does not depend on Playwright: install it and its Chromium globally, then point NODE_PATH at the global directory so the script can load it:
+ * This repository does not depend on Playwright: install it and its Chromium into a scratch folder with pnpm, then point NODE_PATH at that
+ * folder's node_modules so the script can load it (pnpm's global packages are isolated, so `pnpm root -g` would not work):
  *
- *   npm install -g playwright && playwright install chromium
- *   NODE_PATH="$(npm root -g)" node scripts/og-images.ts
+ *   og=$(mktemp -d) && pnpm --dir "$og" add playwright && pnpm --dir "$og" exec playwright install chromium
+ *   NODE_PATH="$og/node_modules" node scripts/og-images.ts
  *
  * Chinese glyphs come from Noto Sans SC on Google Fonts, so generating needs network access.
  */
@@ -17,7 +18,7 @@ import { en } from "../src/i18n/en.ts";
 import type { CopyMessages } from "../src/i18n/types.ts";
 import { zh } from "../src/i18n/zh.ts";
 
-// Loaded with require so a globally installed Playwright (NODE_PATH) is found too.
+// Loaded with require so a Playwright outside the repository (NODE_PATH) is found too.
 // This repository does not depend on Playwright, so only the parts used here are typed.
 interface Page {
   setContent(html: string, options: { waitUntil: "networkidle" }): Promise<void>;
