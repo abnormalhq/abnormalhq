@@ -12,6 +12,8 @@ import type { Copy } from "@/i18n/types";
 import { cn } from "@/lib/utils";
 import { Icon } from "./Icon";
 import { ThemePicker } from "./ThemePicker";
+import { LabelTooltip } from "@/components/ui/tooltip";
+import { IconButton } from "@/components/ui/icon-button";
 
 /** The query string of the current address; history changes outside Next.js's router (back / forward) re-render the header. */
 function readSearch(): string {
@@ -129,21 +131,22 @@ export function Header({
         </nav>
         <div className="flex items-center gap-1">
           {/* Each language has its own root layout, so switching is a full page load anyway, and it has to pass through the Worker to write the cookie; no need for next/link. */}
-          <Button asChild variant="ghost" className="min-w-8 border-0 px-1.5 text-sm">
-            <a
-              href={otherPath}
-              onPointerDown={refreshOtherPath}
-              onClick={refreshOtherPath}
-              onContextMenu={refreshOtherPath}
-              onFocus={refreshOtherPath}
-              hrefLang={otherHtmlLang}
-              lang={otherHtmlLang}
-              aria-label={langToggle.aria}
-              title={langToggle.aria}
-            >
-              {langToggle.label}
-            </a>
-          </Button>
+          <LabelTooltip label={langToggle.aria} describe={false}>
+            <Button asChild variant="ghost" className="min-w-8 border-0 px-1.5 text-sm">
+              <a
+                href={otherPath}
+                onPointerDown={refreshOtherPath}
+                onClick={refreshOtherPath}
+                onContextMenu={refreshOtherPath}
+                onFocus={refreshOtherPath}
+                hrefLang={otherHtmlLang}
+                lang={otherHtmlLang}
+                aria-label={langToggle.aria}
+              >
+                {langToggle.label}
+              </a>
+            </Button>
+          </LabelTooltip>
           <ThemePicker copy={themeCopy} onOpen={closeMenu} />
           <span className="mx-2 h-4 w-px bg-border max-md:hidden" aria-hidden="true"></span>
           {/* Below the nav breakpoint the bar has no room for "My account" and "Log in"; the menu button opens them. */}
@@ -165,19 +168,19 @@ export function Header({
               {copy.buy} <Icon name="up-right" className="size-3.5" />
             </a>
           </Button>
-          <Button
+          <IconButton
             variant="ghost"
             size="icon"
             className="hidden max-nav:inline-flex"
             type="button"
             ref={toggle}
-            aria-label={menuOpen ? copy.closeMenu : copy.openMenu}
+            label={menuOpen ? copy.closeMenu : copy.openMenu}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuPath((path) => (path === pathname ? null : pathname))}
           >
             <Icon name={menuOpen ? "close" : "menu"} />
-          </Button>
+          </IconButton>
         </div>
       </Container>
       <nav

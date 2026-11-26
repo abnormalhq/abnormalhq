@@ -49,6 +49,22 @@
  * - border-radius in px above 2 and below 999 (a pill): var(--radius-*).
  * - z-index of 10 or more: var(--z-index-*).
  *
+ * Two rules keep every hint in the theme's tooltip, which opens where there is room and is never covered:
+ *
+ *   { files: ["**\/*.tsx"], plugins: { abnormal },
+ *     rules: { "abnormal/no-native-title": "error", "abnormal/icon-button-label": "error" } },
+ *
+ * no-native-title reports `title` on HTML elements and on the components that pass it to one (Button, IconButton, Link,
+ * Toggle, ToggleGroupItem, ThemePicker, LanguagePicker; the `components` option replaces the list). The browser's title ignores the theme, waits
+ * about a second, never opens for the keyboard and can sit over the thing it explains. Use IconButton's label for an
+ * icon button, TruncatedText for cut text and LabelTooltip for anything else. An iframe's, frame's or object's title
+ * (its accessible name), abbr's and a style sheet link's are left alone.
+ * icon-button-label reports a Button of an icon size (icon, icon-xs, icon-sm, icon-lg) outside a TooltipTrigger: use
+ * IconButton, whose required label is the name and the tooltip. It also reports a bare <button> that shows no text
+ * (only icons, or text marked sr-only) outside a TooltipTrigger or LabelTooltip. A button whose attributes are spread
+ * is left alone, since the name may be in the spread, and so is one that is hidden or aria-hidden. A server-only page, which cannot run the tooltip, marks its
+ * buttons with `abnormal-allow:` and a reason.
+ *
  */
 
 const PALETTE =
@@ -315,10 +331,226 @@ const noHardcodedCss = {
   },
 };
 
+/** The name of a JSX element as written: `button`, `Button`, `Tooltip.Trigger`. */
+function elementName(name) {
+  if (!name) return "";
+  if (name.type === "JSXIdentifier") return name.name;
+  if (name.type === "JSXMemberExpression") return `${elementName(name.object)}.${elementName(name.property)}`;
+  if (name.type === "JSXNamespacedName") return `${name.namespace.name}:${name.name.name}`;
+  return "";
+}
+
+function jsxAttribute(opening, name) {
+  return opening.attributes.find((attribute) => attribute.type === "JSXAttribute" && attribute.name.name === name);
+}
+
+/** An attribute's value when the source spells it out (a bare attribute is true), or undefined when it is computed. */
+function staticValue(attribute) {
+  if (!attribute) return undefined;
+  const value = attribute.value;
+  if (value === null) return true;
+  if (value.type === "Literal") return value.value;
+  if (value.type !== "JSXExpressionContainer") return undefined;
+  const expression = value.expression;
+  if (expression.type === "Literal") return expression.value;
+  if (expression.type === "UnaryExpression" && expression.operator === "-" && expression.argument.type === "Literal")
+    return -expression.argument.value;
+  return undefined;
+}
+
+/*
+ * Elements whose title attribute is not a hover hint: an iframe's or a frame's title names it for assistive technology,
+ * abbr's spells the abbreviation out, and a link's or a style's names an alternate style sheet.
+ */
+const TITLE_KEPT = new Set(["iframe", "frame", "object", "abbr", "link", "style"]);
+
+/** @type {import("eslint").Rule.RuleModule} */
+const noNativeTitle = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description:
+        "Show a hint in the theme's Tooltip instead of the browser's title, which ignores the theme, waits a second and can sit over the very thing it explains.",
+    },
+    schema: [
+      {
+        type: "object",
+        properties: { components: { type: "array", items: { type: "string" } } },
+        additionalProperties: false,
+      },
+    ],
+  },
+  create(context) {
+    const allowed = allowedLines(context.sourceCode);
+    // Components that pass title straight to the element they render, so it is the browser's title there too.
+    const components = new Set(
+      context.options[0]?.components ?? [
+        "Button",
+        "IconButton",
+        "CopyButton",
+        "ToolbarButton",
+        "Link",
+        "Toggle",
+        "ToggleGroupItem",
+        "ThemePicker",
+        "LanguagePicker",
+        "Badge",
+        "StatusLabel",
+        "TableHead",
+        "TableCell",
+      ],
+    );
+    return {
+      JSXAttribute(node) {
+        if (node.name.type !== "JSXIdentifier" || node.name.name !== "title") return;
+        const opening = node.parent;
+        if (opening?.type !== "JSXOpeningElement") return;
+        const name = elementName(opening.name);
+        const intrinsic = /^[a-z]/.test(name) && !name.includes(".") && !name.includes("-");
+        if (intrinsic ? TITLE_KEPT.has(name) : !components.has(name)) return;
+        if (allowed.has(node.loc.start.line) || allowed.has(opening.loc.start.line)) return;
+        context.report({
+          node,
+          message: `title on <${name}> is the browser's own hint: use IconButton's label for an icon button, TruncatedText for cut text, or wrap the element in LabelTooltip from @/components/ui/tooltip.`,
+        });
+      },
+    };
+  },
+};
+
+/**
+ * Whether an expression in braces can render visible text. Both sides of a condition count, and the right side of
+ * `&&`; an element or fragment counts by its own children, except a childless component not named as an icon, which
+ * may render text from its props. null, undefined and booleans render nothing. Anything else (a variable, a call) may
+ * be text, so it counts.
+ */
+function expressionRendersText(expression) {
+  switch (expression.type) {
+    case "JSXEmptyExpression":
+      return false;
+    case "JSXElement":
+    case "JSXFragment":
+      return rendersText([expression]);
+      return rendersText(expression.children);
+    case "ConditionalExpression":
+      return expressionRendersText(expression.consequent) || expressionRendersText(expression.alternate);
+    case "LogicalExpression":
+      return (
+        (expression.operator !== "&&" && expressionRendersText(expression.left)) ||
+        expressionRendersText(expression.right)
+      );
+    case "Literal":
+      return typeof expression.value === "string"
+        ? expression.value.trim() !== ""
+        : typeof expression.value === "number";
+    case "Identifier":
+      return expression.name !== "undefined";
+    default:
+      return true;
+  }
+}
+
+/** Whether a JSX child can render visible text: words, an expression that may be words, or an element holding either. */
+function rendersText(children) {
+  return children.some((child) => {
+    if (child.type === "JSXText") return child.value.trim() !== "";
+    if (child.type === "JSXExpressionContainer") return expressionRendersText(child.expression);
+    if (child.type === "JSXSpreadChild") return true;
+    if (child.type === "JSXFragment") return rendersText(child.children);
+    if (child.type !== "JSXElement") return false;
+    const opening = child.openingElement;
+    // Text that only a screen reader reads (sr-only) is a name, not something a sighted person sees; an element hidden
+    // from screen readers (aria-hidden, as an icon from any set carries) gives the button no name, whatever it shows.
+    const className = jsxAttribute(opening, "className");
+    if (className?.value?.type === "Literal" && /(?:^|\s)sr-only(?:\s|$)/.test(String(className.value.value)))
+      return false;
+    const ariaHidden = staticValue(jsxAttribute(opening, "aria-hidden"));
+    if (ariaHidden === true || ariaHidden === "true") return false;
+    // A component with no children may still render words from its props (a count, a translated label); only an
+    // HTML element, or a component named as an icon, is read through.
+    const name = elementName(opening.name);
+    if (/^[A-Z]|\./.test(name) && !/Icon$/.test(name) && child.children.length === 0) return true;
+    return rendersText(child.children);
+  });
+}
+
+const TOOLTIP_WRAPPERS = new Set(["TooltipTrigger", "LabelTooltip", "Tooltip.Trigger", "TooltipPrimitive.Trigger"]);
+
+/** @type {import("eslint").Rule.RuleModule} */
+const iconButtonLabel = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Give every button that shows only an icon a name that also appears as a tooltip: IconButton with a label, or a bare button inside a Tooltip.",
+    },
+    schema: [],
+  },
+  create(context) {
+    const allowed = allowedLines(context.sourceCode);
+    function insideTooltip(node) {
+      for (const ancestor of context.sourceCode.getAncestors(node)) {
+        if (ancestor.type === "JSXElement" && TOOLTIP_WRAPPERS.has(elementName(ancestor.openingElement.name)))
+          return true;
+      }
+      return false;
+    }
+    return {
+      JSXElement(node) {
+        const opening = node.openingElement;
+        const name = elementName(opening.name);
+        if (allowed.has(opening.loc.start.line)) return;
+        const spread = opening.attributes.some((attribute) => attribute.type === "JSXSpreadAttribute");
+        if (name === "Button") {
+          const size = jsxAttribute(opening, "size")?.value;
+          const sizeValue =
+            size?.type === "Literal"
+              ? size.value
+              : size?.type === "JSXExpressionContainer" && size.expression.type === "Literal"
+                ? size.expression.value
+                : undefined;
+          if (typeof sizeValue !== "string" || !sizeValue.startsWith("icon") || insideTooltip(node)) return;
+          context.report({
+            node: opening,
+            message:
+              "Use IconButton for a button that shows only an icon: its `label` is the button's name and the tooltip it shows.",
+          });
+          return;
+        }
+        // A spread may hold the children or the name; the rule cannot see through it.
+        if (name === "button" && spread) return;
+        if (name !== "button") return;
+        // A button nobody sees or reaches (a form's hidden default submit) needs no hint: one the source hides for
+        // certain, or one kept from assistive technology and out of the Tab order. A hidden={false}, or a condition,
+        // can leave it in view, so only a value written out counts; hidden="false" is a string, and hides it.
+        const hidden = staticValue(jsxAttribute(opening, "hidden"));
+        const ariaHidden = staticValue(jsxAttribute(opening, "aria-hidden"));
+        const tabIndex = Number(staticValue(jsxAttribute(opening, "tabIndex")));
+        if (
+          (hidden !== undefined && hidden !== false) ||
+          ((ariaHidden === true || ariaHidden === "true") && tabIndex < 0)
+        )
+          return;
+        if (rendersText(node.children) || insideTooltip(node)) return;
+        context.report({
+          node: opening,
+          message:
+            "A button that shows only an icon needs its name shown on hover and focus: use IconButton with a label, or wrap the button in LabelTooltip from @/components/ui/tooltip.",
+        });
+      },
+    };
+  },
+};
+
 /** @type {import("eslint").ESLint.Plugin} */
 const plugin = {
   meta: { name: "eslint-plugin-abnormal" },
-  rules: { "no-hardcoded-classes": noHardcodedClasses, "no-hardcoded-css": noHardcodedCss },
+  rules: {
+    "no-hardcoded-classes": noHardcodedClasses,
+    "no-hardcoded-css": noHardcodedCss,
+    "no-native-title": noNativeTitle,
+    "icon-button-label": iconButtonLabel,
+  },
 };
 
 export default plugin;

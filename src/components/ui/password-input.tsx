@@ -5,6 +5,7 @@ import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InputGroup, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { useFormReset } from "@/components/ui/use-form-reset";
+import { LabelTooltip } from "@/components/ui/tooltip";
 
 /**
  * A password field with a button that shows and hides what was typed, inside the same border (InputGroup). The
@@ -69,20 +70,21 @@ function PasswordInput({
         className={inputClassName}
         {...props}
       />
-      <InputGroupButton
-        data-slot="password-input-toggle"
-        aria-label={toggle === "icon" ? label : undefined}
-        title={toggle === "icon" ? label : undefined}
-        aria-controls={props.id}
-        disabled={disabled}
-        onClick={() => {
-          if (visibleProp === undefined) setInnerVisible(!visible);
-          onVisibleChange?.(!visible);
-        }}
-        className={cn(toggle === "icon" && "px-1.5 [&_svg]:size-4")}
-      >
-        {toggle === "icon" ? visible ? <EyeOffIcon aria-hidden="true" /> : <EyeIcon aria-hidden="true" /> : label}
-      </InputGroupButton>
+      <LabelTooltip label={toggle === "icon" ? label : undefined}>
+        <InputGroupButton
+          data-slot="password-input-toggle"
+          aria-label={toggle === "icon" ? label : undefined}
+          aria-controls={props.id}
+          disabled={disabled}
+          onClick={() => {
+            if (visibleProp === undefined) setInnerVisible(!visible);
+            onVisibleChange?.(!visible);
+          }}
+          className={cn(toggle === "icon" && "px-1.5 [&_svg]:size-4")}
+        >
+          {toggle === "icon" ? visible ? <EyeOffIcon aria-hidden="true" /> : <EyeIcon aria-hidden="true" /> : label}
+        </InputGroupButton>
+      </LabelTooltip>
       {actions}
     </InputGroup>
   );

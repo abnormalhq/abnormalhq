@@ -10,7 +10,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { LabelTooltip } from "@/components/ui/tooltip";
 
 type ThemePreference = "system" | "light" | "dark";
 
@@ -60,8 +60,8 @@ type Side = "top" | "right" | "bottom" | "left";
  * Before the preference is known, such as before hydration with a preference kept in the browser, pass undefined:
  * the button then shows the sun or the moon for the theme the page is painted in, by the same rule as the tokens, so
  * no wrong icon flashes, and the icon of the preference takes over once it is known.
- * `side` and `align` place the menu (above a sidebar's footer, beside its rail), and `tooltip` adds a tooltip on
- * `tooltipSide`, for an icon button with no text around it.
+ * `side` and `align` place the menu (above a sidebar's footer, beside its rail). The button shows only an icon, so it
+ * shows `label` in the theme's tooltip on `tooltipSide`; `tooltip` gives other words, and false none.
  */
 function ThemePicker({
   value,
@@ -70,7 +70,7 @@ function ThemePicker({
   label,
   side,
   align = "end",
-  tooltip,
+  tooltip = label,
   tooltipSide,
   onOpenChange,
   variant = "ghost",
@@ -82,7 +82,7 @@ function ThemePicker({
   /** Where the menu opens; below the button unless given. */
   side?: Side;
   align?: "start" | "center" | "end";
-  /** A tooltip for the button, such as "Theme". */
+  /** The tooltip, when it is not `label`; false for none. */
   tooltip?: React.ReactNode;
   tooltipSide?: Side;
   /** The menu opening or closing, for a header that closes its other menus when this one opens. */
@@ -105,14 +105,10 @@ function ThemePicker({
   );
   return (
     <DropdownMenu modal={false} onOpenChange={onOpenChange}>
-      {tooltip === undefined || tooltip === null || tooltip === false ? (
-        trigger
-      ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-          <TooltipContent side={tooltipSide}>{tooltip}</TooltipContent>
-        </Tooltip>
-      )}
+      {/* The name sits on the button inside the menu trigger, so the default hint, the name itself, is no description. */}
+      <LabelTooltip label={tooltip} side={tooltipSide} describe={tooltip !== label}>
+        {trigger}
+      </LabelTooltip>
       <DropdownMenuContent side={side} align={align} className="w-36">
         <ThemeOptions value={value} onValueChange={onValueChange} labels={labels} />
       </DropdownMenuContent>
