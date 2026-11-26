@@ -13,7 +13,7 @@ function SkipLink({ className, ...props }: React.ComponentProps<"a">) {
     <a
       data-slot="skip-link"
       className={cn(
-        "fixed top-3 left-4 z-skip-link -translate-y-[calc(100%+1.5rem)] rounded-control bg-foreground px-3.5 py-2 text-sm font-medium text-background transition-transform duration-150 focus:translate-y-0 focus:shadow-popover",
+        "fixed top-3 left-4 z-skip-link -translate-y-[calc(100%+1.5rem)] rounded-control bg-foreground px-3.5 py-2 text-sm font-medium text-background transition-transform duration-100 focus:translate-y-0 focus:shadow-popover",
         className,
       )}
       {...props}

@@ -111,7 +111,7 @@ export function DoppelWaitlist({ lang, copy: w }: { lang: Lang; copy: Copy["wait
         <div className="grid gap-7 md:grid-cols-2 md:gap-12">
           <div>
             <Eyebrow lang="en">{w.eyebrow}</Eyebrow>
-            <h2 id="waitlist-title" className="mt-4 font-heading text-3xl/body font-semibold tracking-tight">
+            <h2 id="waitlist-title" className="mt-4 font-serif text-3xl/[1.2] font-medium tracking-heading">
               {w.title}
             </h2>
             <p id="waitlist-description" className="mt-3 max-w-lg text-md/prose text-muted-foreground">
@@ -133,7 +133,7 @@ export function DoppelWaitlist({ lang, copy: w }: { lang: Lang; copy: Copy["wait
             )}
             {mode === "closed" && (
               <div role="status">
-                <h3 className="font-heading text-lg/body font-semibold">{w.closedTitle}</h3>
+                <h3 className="text-lg/body font-semibold">{w.closedTitle}</h3>
                 <p className="mt-2 text-md/prose text-muted-foreground">{w.closedDescription}</p>
               </div>
             )}

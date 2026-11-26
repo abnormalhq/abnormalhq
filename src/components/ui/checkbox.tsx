@@ -13,7 +13,7 @@ function Checkbox({ className, ...props }: React.ComponentProps<typeof CheckboxP
       className={cn(
         // Project addition: the indeterminate state also needs a fill color, and shows a "minus" instead of a check.
         "group/checkbox data-[state=indeterminate]:border-foreground data-[state=indeterminate]:bg-foreground data-[state=indeterminate]:text-background",
-        "peer relative flex size-4 shrink-0 items-center justify-center rounded-chip border border-muted-foreground/70 bg-control transition-[background-color,border-color] duration-150 after:absolute after:-inset-x-3 after:-inset-y-2 hover:border-foreground disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive data-checked:border-foreground data-checked:bg-foreground data-checked:text-background",
+        "peer relative flex size-4 shrink-0 items-center justify-center rounded-chip border border-muted-foreground/70 bg-popover transition-[background-color,border-color] duration-100 after:absolute after:-inset-x-3 after:-inset-y-2 hover:border-foreground disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive data-checked:border-foreground data-checked:bg-foreground data-checked:text-background",
         className,
       )}
       {...props}

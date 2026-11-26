@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * it, takes the foreground color, which stands out of muted text, and is underlined faintly, the line deepening on
  * hover, so it reads as a link without a link color.
  */
-const textLinkVariants = cva("cursor-pointer transition-colors duration-150", {
+const textLinkVariants = cva("cursor-pointer transition-colors duration-100", {
   variants: {
     variant: {
       default: "inline-flex items-center gap-2 text-base/[1.6] font-medium text-muted-foreground hover:text-foreground",

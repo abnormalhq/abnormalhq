@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Container } from "@/components/ui/container";
-import { Eyebrow, HeadingMark, PageLead, PageTitle } from "@/components/ui/section-heading";
+import { Eyebrow, PageLead, PageTitle } from "@/components/ui/section-heading";
 import { cn } from "@/lib/utils";
 
 /**
@@ -47,7 +47,7 @@ export function PageHeader({
             <Eyebrow lang="en">{eyebrow}</Eyebrow>
             <PageTitle id={id}>
               {title}
-              <HeadingMark>{dot}</HeadingMark>
+              {dot}
             </PageTitle>
             {lead && <PageLead>{lead}</PageLead>}
             {children}

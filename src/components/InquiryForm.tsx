@@ -11,7 +11,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { IconTile } from "@/components/ui/icon-tile";
 import { NativeSelect } from "@/components/ui/native-select";
-import { HeadingMark } from "@/components/ui/section-heading";
+
 import { Textarea } from "@/components/ui/textarea";
 import { site } from "@/data/site";
 import { describeContact, formatInquiry, getContactLink } from "@/lib/inquiry";
@@ -83,7 +83,7 @@ export function InquiryForm({
           </div>
           <DialogTitle className="text-2xl/[1.3] max-dialog:text-xl">
             {copy.title}
-            <HeadingMark>{dot}</HeadingMark>
+            {dot}
           </DialogTitle>
           <DialogDescription className="mt-2 text-base/[1.75]">
             {copy.description[0]}

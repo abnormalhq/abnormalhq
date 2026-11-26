@@ -1,6 +1,6 @@
 import { Container } from "@/components/ui/container";
 import { Disclosure, DisclosureContent, DisclosureList, DisclosureTrigger } from "@/components/ui/disclosure";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { Eyebrow, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
@@ -22,7 +22,7 @@ export function Faq({ lang }: { lang: Lang }) {
           <Eyebrow lang="en">{t.faq.eyebrow}</Eyebrow>
           <SectionTitle id="faq-title">
             {t.faq.title}
-            <HeadingMark>{t.dot}</HeadingMark>
+            {t.dot}
           </SectionTitle>
           <p className="mt-4 text-md/prose text-muted-foreground">{t.faq.description}</p>
           <InquiryButton>

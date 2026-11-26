@@ -3,8 +3,9 @@ import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 /**
- * A wall of feature tiles on a landing page: one column on phones, two from `sm` and three from `lg`. Tiles are panels
- * with a faint fill over the page, so the wall reads as one surface in either theme, with no shadows. Tiles read in
+ * A wall of feature tiles on a landing page: one column on phones, two from `sm` and three from `lg`. Tiles are columns
+ * of a page, not boxes: each opens under a hairline rule, as in a magazine, so the drawing inside a tile is the one
+ * container on screen and the wall reads as one surface in either theme. Tiles read in
  * source order; a `wide` tile takes two columns from `sm` up, so place it where the tiles after it can fill its row.
  * Pass `asChild` with a `ul role="list"` and give each tile `asChild` with an `li` when the tiles are a list: the wall
  * takes the list markers away, and Safari then stops announcing a list unless the role says so.
@@ -14,7 +15,7 @@ function Bento({ className, asChild = false, ...props }: React.ComponentProps<"d
   return (
     <Comp
       data-slot="bento"
-      className={cn("grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3", className)}
+      className={cn("grid list-none gap-x-10 gap-y-14 p-0 sm:grid-cols-2 lg:grid-cols-3", className)}
       {...props}
     />
   );
@@ -23,6 +24,7 @@ function Bento({ className, asChild = false, ...props }: React.ComponentProps<"d
 /**
  * One tile: a title, a sentence and a visual. The text leads and the visual sits at the foot, so the titles of a row
  * start on one line whatever the height of the pictures under them.
+ * The rule above it is the page's border color: a column break, not a frame.
  */
 function BentoTile({
   className,
@@ -39,11 +41,7 @@ function BentoTile({
     <Comp
       data-slot="bento-tile"
       data-wide={wide || undefined}
-      className={cn(
-        "flex min-w-0 flex-col gap-5 rounded-panel border border-border bg-control p-6 lg:p-7",
-        wide && "sm:col-span-2",
-        className,
-      )}
+      className={cn("flex min-w-0 flex-col gap-5 border-t border-border pt-5", wide && "sm:col-span-2", className)}
       {...props}
     />
   );

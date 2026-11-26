@@ -21,7 +21,7 @@ function Prose({ className, ...props }: React.ComponentProps<"div">) {
         "[&_ol]:my-4 [&_ol]:grid [&_ol]:list-decimal [&_ol]:gap-2 [&_ol]:pl-5 [&_ul]:my-4 [&_ul]:grid [&_ul]:list-disc [&_ul]:gap-2 [&_ul]:pl-5",
         "[&_li]:marker:text-muted-foreground [&_li>p]:m-0",
         "[&_strong]:font-semibold [&_strong]:text-foreground",
-        "[&_a]:wrap-anywhere [&_a]:text-foreground [&_a]:underline [&_a]:decoration-input [&_a]:underline-offset-4 [&_a]:transition-[text-decoration-color] [&_a]:duration-150 [&_a:hover]:decoration-current",
+        "[&_a]:wrap-anywhere [&_a]:text-foreground [&_a]:underline [&_a]:decoration-input [&_a]:underline-offset-4 [&_a]:transition-[text-decoration-color] [&_a]:duration-100 [&_a:hover]:decoration-current",
         "[&_code]:rounded-control [&_code]:bg-surface [&_code]:px-[0.4em] [&_code]:py-[0.1em] [&_code]:font-mono [&_code]:text-sm/[inherit] [&_code]:text-foreground",
         // A long inline path or identifier wraps rather than widen the page on a phone.
         "[&_:not(pre)>code]:wrap-anywhere",

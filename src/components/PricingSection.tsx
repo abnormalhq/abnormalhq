@@ -1,5 +1,5 @@
 import { Container } from "@/components/ui/container";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { Eyebrow, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
@@ -27,7 +27,7 @@ export function PricingSection({ lang }: { lang: Lang }) {
             <Eyebrow lang="en">{p.eyebrow}</Eyebrow>
             <SectionTitle id="pricing-title">
               {p.calculator.title}
-              <HeadingMark>{t.dot}</HeadingMark>
+              {t.dot}
             </SectionTitle>
           </div>
           <div className="pb-0.75 md:text-right">
