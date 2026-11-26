@@ -26,7 +26,7 @@ import type { Copy } from "@/i18n/types";
 import { fillTemplate } from "@/lib/template";
 import { formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { LabelTooltip } from "@/components/ui/tooltip";
+import { LabelTooltip, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /** The strings the player needs; PromoVideo passes them in so the browser bundle does not carry the whole copy. */
 export type PlayerCopy = Pick<
@@ -95,6 +95,9 @@ export function VideoPlayer({
   const [buffered, setBuffered] = useState(0);
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+  // The big button's hint: open while the pointer is on its round mark, or while the button has keyboard focus.
+  const [overlayHovered, setOverlayHovered] = useState(false);
+  const [overlayFocused, setOverlayFocused] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [canFullscreen, setCanFullscreen] = useState(false);
   const [idle, setIdle] = useState(false);
@@ -345,7 +348,7 @@ export function VideoPlayer({
         </div>
       ) : (
         overlayShown && (
-          // abnormal-allow: the button covers the whole frame, so its hint sits on the round mark inside it instead.
+          // abnormal-allow: the button covers the whole frame, so its hint is anchored to the round mark inside it and opens on its keyboard focus too.
           <button
             ref={overlayRef}
             type="button"
@@ -355,20 +358,25 @@ export function VideoPlayer({
               toggle();
             }}
             aria-label={ended ? copy.replay : copy.play}
+            onFocus={(event) => setOverlayFocused(event.currentTarget.matches(":focus-visible"))}
+            onBlur={() => setOverlayFocused(false)}
           >
-            <LabelTooltip label={ended ? copy.replay : copy.play} describe={false}>
-              <span className="grid size-18 place-items-center rounded-full bg-brand text-brand-foreground shadow-popover transition-transform duration-150 group-hover/player:scale-105 active:scale-95 max-md:size-14">
-                {ended ? (
-                  <RotateCcwIcon className="size-7 max-md:size-6" strokeWidth={1.8} aria-hidden="true" />
-                ) : (
-                  <PlayIcon
-                    className="size-7 translate-x-0.5 fill-current max-md:size-6"
-                    strokeWidth={1.8}
-                    aria-hidden="true"
-                  />
-                )}
-              </span>
-            </LabelTooltip>
+            <Tooltip open={overlayHovered || overlayFocused} onOpenChange={setOverlayHovered}>
+              <TooltipTrigger asChild>
+                <span className="grid size-18 place-items-center rounded-full bg-brand text-brand-foreground shadow-popover transition-transform duration-150 group-hover/player:scale-105 active:scale-95 max-md:size-14">
+                  {ended ? (
+                    <RotateCcwIcon className="size-7 max-md:size-6" strokeWidth={1.8} aria-hidden="true" />
+                  ) : (
+                    <PlayIcon
+                      className="size-7 translate-x-0.5 fill-current max-md:size-6"
+                      strokeWidth={1.8}
+                      aria-hidden="true"
+                    />
+                  )}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{ended ? copy.replay : copy.play}</TooltipContent>
+            </Tooltip>
           </button>
         )
       )}
