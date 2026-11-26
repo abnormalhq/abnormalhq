@@ -32,35 +32,54 @@ function BrandMark({ className, ...props }: React.ComponentProps<"svg">) {
 
 /**
  * Each product's glyph in a 20×20 box, drawn as the mark's arrow is: square caps, mitered corners, one stroke weight.
- * `lines` are drawn in paper, `accent` (strokes) and `accentFill` (shapes) in the highlighter, the product's one
- * yellow: the envelope's flap, the lit cell of the console's grid, the slash between the brackets, the status pulse,
- * the front window of Doppel, the play button of Take One.
+ * `lines` (strokes) and `fill` (shapes) are drawn in paper, `accent` (strokes) and `accentFill` (shapes) in the
+ * highlighter, the product's one yellow: the envelope's flap, the lit cell of the console's grid, the slash between the
+ * brackets, the status pulse, the front window of Doppel, the play button of Take One. The console's cells are solid,
+ * because outlined cells run together at favicon size.
  */
-const PRODUCT_GLYPHS = {
-  mail: { lines: ["M1 4H19V17H1Z"], accent: ["M2.2 5 10 11 17.8 5"], accentFill: [] },
+const PRODUCT_GLYPHS: Record<
+  "mail" | "console" | "developers" | "status" | "doppel" | "takeone",
+  { lines: readonly string[]; fill: readonly string[]; accent: readonly string[]; accentFill: readonly string[] }
+> = {
+  mail: { lines: ["M1 4H19V17H1Z"], fill: [], accent: ["M2.2 5 10 11 17.8 5"], accentFill: [] },
   console: {
-    lines: ["M1 1H8.5V8.5H1Z", "M1 11.5H8.5V19H1Z", "M11.5 11.5H19V19H11.5Z"],
+    lines: [],
+    fill: ["M1 1H9V9H1Z", "M1 11H9V19H1Z", "M11 11H19V19H11Z"],
     accent: [],
-    accentFill: ["M11.5 1H19V8.5H11.5Z"],
+    accentFill: ["M11 1H19V9H11Z"],
   },
   developers: {
     lines: ["M6.5 3.5 1 10 6.5 16.5", "M13.5 3.5 19 10 13.5 16.5"],
+    fill: [],
     accent: ["M11.5 1.5 8.5 18.5"],
     accentFill: [],
   },
-  status: { lines: [], accent: ["M0 11H5L8 3L12 18L15 11H20"], accentFill: [] },
-  doppel: { lines: ["M6 6V1H19V14H14"], accent: ["M1 6H14V19H1Z"], accentFill: [] },
-  takeone: { lines: ["M1 8H19V19H1Z", "M1 5.5 18 1"], accent: [], accentFill: ["M7.5 10.5 13.5 13.5 7.5 16.5Z"] },
-} as const;
+  status: { lines: [], fill: [], accent: ["M0 11H5L8 3L12 18L15 11H20"], accentFill: [] },
+  doppel: { lines: ["M6 6V1H19V14H14"], fill: [], accent: ["M1 6H14V19H1Z"], accentFill: [] },
+  takeone: {
+    lines: ["M1 8H19V19H1Z", "M1 5.5 18 1"],
+    fill: [],
+    accent: [],
+    accentFill: ["M7.5 10.5 13.5 13.5 7.5 16.5Z"],
+  },
+};
+
+/**
+ * Where the glyph sits in the 48×48 grid: scaled 1.6 times about the center, so it spans the middle 32px (two thirds of
+ * the tile, as the glyphs of GitHub or ChatGPT fill theirs) and reads at 16px. Its corners stay inside a 23px radius,
+ * so a round crop keeps it whole. The stroke is 3.6px of the grid: about 1.2px at 16px.
+ */
+const GLYPH_SCALE = 1.6;
+const GLYPH_STROKE = 3.6;
 
 type Product = keyof typeof PRODUCT_GLYPHS;
 
 /**
  * A product's own mark beside the abnormal mark: an ink tile, the product's glyph in paper lines and one stroke or
  * shape in the highlighter. The abnormal mark keeps the yellow tile; every product takes the ink one, so a row of
- * browser tabs tells them apart while the family stays one. Fixed brand colors, the same in both themes. The glyph
- * sits in the middle 22px of the 48px grid, inside a 21px radius of the center, so a round crop (a favicon, an avatar)
- * keeps it whole.
+ * browser tabs tells them apart while the family stays one. Fixed brand colors, the same in both themes. The glyph is
+ * large enough to read on its own, so on a dark sidebar, where the ink tile disappears, the paper and yellow lines still
+ * carry the mark.
  */
 function ProductMark({ product, className, ...props }: React.ComponentProps<"svg"> & { product: Product }) {
   const glyph = PRODUCT_GLYPHS[product];
@@ -75,14 +94,17 @@ function ProductMark({ product, className, ...props }: React.ComponentProps<"svg
     >
       <rect width="48" height="48" fill="#141412" />
       <g
-        transform="translate(13 13) scale(1.1)"
+        transform={`translate(${24 - 10 * GLYPH_SCALE} ${24 - 10 * GLYPH_SCALE}) scale(${GLYPH_SCALE})`}
         fill="none"
-        strokeWidth={3 / 1.1}
+        strokeWidth={GLYPH_STROKE / GLYPH_SCALE}
         strokeLinecap="square"
         strokeLinejoin="miter"
       >
         {glyph.lines.map((d) => (
           <path key={d} d={d} stroke="#f7f7f4" />
+        ))}
+        {glyph.fill.map((d) => (
+          <path key={d} d={d} fill="#f7f7f4" />
         ))}
         {glyph.accent.map((d) => (
           <path key={d} d={d} stroke="#ffe14d" />
