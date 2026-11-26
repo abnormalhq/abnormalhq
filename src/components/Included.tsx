@@ -1,7 +1,5 @@
-import { IconTile } from "@/components/ui/icon-tile";
 import type { Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
-import { Icon } from "./Icon";
 
 /**
  * "What every mailbox gets": the limits and terms that hold on every plan (own storage, the username rules, the 7-day grace period and
@@ -22,10 +20,7 @@ export function Included({ lang, heading = "h3", id }: { lang: Lang; heading?: "
       <p className="mt-4 max-w-2xl text-base/prose text-muted-foreground">{included.intro}</p>
       <ul className="mt-7 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3" aria-labelledby={id}>
         {included.items.map((item) => (
-          <li className="flex items-start gap-4" key={item.title}>
-            <IconTile variant="default" aria-hidden="true">
-              <Icon name={item.icon} />
-            </IconTile>
+          <li className="border-t border-border pt-5" key={item.title}>
             <div className="min-w-0">
               <Item className="text-lg leading-[1.4] font-semibold tracking-title">{item.title}</Item>
               <p className="mt-1.5 text-base/prose text-muted-foreground">{item.description}</p>

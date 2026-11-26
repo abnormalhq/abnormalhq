@@ -111,7 +111,7 @@ export function Compare({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
             </Card>
           </div>
 
-          <h2 id="compare-table" className="mt-16 font-heading text-2xl font-semibold tracking-title max-md:mt-12">
+          <h2 id="compare-table" className="mt-16 font-serif text-2xl font-medium tracking-heading max-md:mt-12">
             {content.tableTitle}
           </h2>
           <p className="mt-2 max-w-160 text-base/prose text-muted-foreground">{content.tableCaption}</p>
@@ -170,7 +170,7 @@ export function Compare({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
           </div>
 
           <div className="mt-10 flex flex-wrap gap-3">
-            <Button asChild size="lg" variant="highlight">
+            <Button asChild size="lg">
               <a href={links.shop}>
                 {c.buy} <Icon name="up-right" className="size-4" />
               </a>

@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { Bento, BentoDescription, BentoTile, BentoTitle, BentoVisual } from "@/components/ui/bento";
 import { Container } from "@/components/ui/container";
-import { IconTile } from "@/components/ui/icon-tile";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { Eyebrow, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import type { Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
@@ -104,13 +103,14 @@ function sample(icon: IconName, s: Samples): ReactNode {
     case "search":
       return (
         <code className="block rounded-mark border border-input px-3 py-2.5 font-mono text-sm" lang="en">
-          from:<span className="text-signal">alice</span> has:attachment
+          from:<span className="font-semibold text-foreground">alice</span> has:attachment
         </code>
       );
     case "alert":
       return (
-        <p className="flex gap-2.5 rounded-mark border border-border bg-highlight-muted px-3.5 py-3 text-sm/prose text-foreground">
-          <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
+        <p className="flex gap-2.5 rounded-mark border border-border px-3.5 py-3 text-sm/prose text-foreground">
+          {/* The warning is told by its icon and words; the page keeps its one yellow for the highlighter in the headline. */}
+          <Icon name="alert" className="mt-0.5 size-4 shrink-0 text-warning" />
           {s.suspicious}
         </p>
       );
@@ -122,7 +122,7 @@ function sample(icon: IconName, s: Samples): ReactNode {
             <span>12,480 / 18,200</span>
           </span>
           <span className="block h-1.5 rounded-full bg-border">
-            <span className="block h-1.5 w-[68%] rounded-full bg-signal" />
+            <span className="block h-1.5 w-[68%] rounded-full bg-foreground" />
           </span>
         </div>
       );
@@ -211,7 +211,7 @@ export function Features({ lang }: { lang: Lang }) {
             <Eyebrow lang="en">{f.eyebrow}</Eyebrow>
             <SectionTitle id="features-title">
               {f.title}
-              <HeadingMark>{t.dot}</HeadingMark>
+              {t.dot}
             </SectionTitle>
           </div>
           <p className="max-w-120 pb-0.75 text-md/prose text-muted-foreground md:text-right">
@@ -288,13 +288,14 @@ export function Features({ lang }: { lang: Lang }) {
             {f.more.title}
             <span className="h-px flex-1 bg-border" aria-hidden="true"></span>
           </h3>
-          <ul role="list" className="mt-6 flex flex-wrap gap-2.5" aria-labelledby="features-more-title">
+          {/* A plain list set in columns, each line on a hairline like the index of a magazine: no chips, no ticks. */}
+          <ul
+            role="list"
+            className="mt-6 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-4"
+            aria-labelledby="features-more-title"
+          >
             {f.more.items.map((item) => (
-              <li
-                className="inline-flex items-center gap-2 rounded-control border border-border px-3.5 py-2 text-sm/body"
-                key={item}
-              >
-                <Icon name="check" className="size-3.5 text-muted-foreground" />
+              <li className="border-b border-border py-3 text-base/body" key={item}>
                 {item}
               </li>
             ))}
@@ -311,10 +312,7 @@ export function Features({ lang }: { lang: Lang }) {
           </h3>
           <ul className="mt-7 grid gap-8 md:grid-cols-3 md:gap-10">
             {f.platforms.map((platform, index) => (
-              <li className="flex items-start gap-4" key={platform.name} {...reveal(index)}>
-                <IconTile variant="default" aria-hidden="true">
-                  <Icon name={platform.icon} />
-                </IconTile>
+              <li className="border-t border-border pt-5" key={platform.name} {...reveal(index)}>
                 <div className="min-w-0">
                   <p className="text-lg leading-[1.4] font-semibold tracking-title">{platform.name}</p>
                   <p className="mt-1.5 text-base/prose text-muted-foreground">{platform.description}</p>

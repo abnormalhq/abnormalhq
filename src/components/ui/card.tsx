@@ -11,7 +11,7 @@ const cardVariants = cva("flex min-w-0 flex-col rounded-panel border border-bord
   variants: {
     variant: {
       default: "",
-      interactive: "transition-[border-color] duration-150 hover:border-border-strong",
+      interactive: "transition-[border-color] duration-100 hover:border-border-strong",
       featured: "border-[color-mix(in_oklab,var(--brand)_55%,var(--border))]",
     },
   },

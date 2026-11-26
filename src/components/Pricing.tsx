@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { HeadingMark, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { helpArticles, helpPath } from "@/content/help";
 import type { Lang } from "@/data/site";
@@ -78,18 +78,18 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
               </PlanNotice>
             ) : (
               <>
-                <h2 className="text-2xl/[1.3] font-semibold tracking-heading" id="pricing-calculator-title">
+                <h2 className="font-serif text-3xl/[1.2] font-medium tracking-heading" id="pricing-calculator-title">
                   {p.calculator.title}
-                  <HeadingMark>{t.dot}</HeadingMark>
+                  {t.dot}
                 </h2>
                 <p className="mt-2 mb-6 text-base/prose text-muted-foreground">{p.calculator.intro}</p>
                 <PriceCalculator catalog={catalog} lang={lang} copy={p} shop={links.shop} />
                 <h2
-                  className="mt-16 text-2xl/[1.3] font-semibold tracking-heading max-md:mt-12"
+                  className="mt-16 font-serif text-3xl/[1.2] font-medium tracking-heading max-md:mt-12"
                   id="pricing-plans-title"
                 >
                   {p.plansTitle}
-                  <HeadingMark>{t.dot}</HeadingMark>
+                  {t.dot}
                 </h2>
                 <PlanCards className="mt-6" plans={plans} copy={p} heading="h3" />
                 <p className="mt-6 max-w-3xl text-xs/[1.9] text-muted-foreground">{p.priceNote}</p>
@@ -101,9 +101,9 @@ export function Pricing({ lang, catalog }: { lang: Lang; catalog: ShopCatalog | 
 
           {plans.length > 1 && (
             <div className="mt-16 max-md:mt-12">
-              <h2 className="text-2xl/[1.3] font-semibold tracking-heading" id="pricing-compare-title">
+              <h2 className="font-serif text-3xl/[1.2] font-medium tracking-heading" id="pricing-compare-title">
                 {p.compare.title}
-                <HeadingMark>{t.dot}</HeadingMark>
+                {t.dot}
               </h2>
               <p className="mt-2 mb-6 text-base/prose text-muted-foreground">{p.compare.intro}</p>
               <PlanComparison plans={plans} copy={p} labelledBy="pricing-compare-title" />

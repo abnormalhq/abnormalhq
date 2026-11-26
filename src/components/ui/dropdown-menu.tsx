@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 
-/** Menu: a separate paper-like popover with a soft shadow; menu items share the control radius and fill with hover on keyboard focus / hover. */
+/** Menu: a separate paper-like popover with a soft shadow and 4px of padding; rows are 28px of 13px text with a 4px radius
+ * that nests inside the popover's corner, filled with hover on keyboard focus / hover. Shortcuts sit at the right in
+ * the mono face. */
 function DropdownMenu({ ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
 }
@@ -31,7 +33,7 @@ function DropdownMenuContent({
         sideOffset={sideOffset}
         align={align}
         className={cn(
-          "z-overlay max-h-(--radix-dropdown-menu-content-available-height) min-w-40 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-mark border border-border bg-popover p-1.5 text-popover-foreground shadow-popover data-open:animate-arrive data-closed:animate-leave data-[state=closed]:overflow-hidden",
+          "z-overlay max-h-(--radix-dropdown-menu-content-available-height) min-w-40 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-mark border border-border bg-popover p-1 text-popover-foreground shadow-popover data-open:animate-arrive data-closed:animate-leave data-[state=closed]:overflow-hidden",
           className,
         )}
         {...props}
@@ -45,7 +47,7 @@ function DropdownMenuGroup({ ...props }: React.ComponentProps<typeof DropdownMen
 }
 
 const itemClassName =
-  "relative flex cursor-default items-center gap-2 rounded-control px-2.5 py-2 text-base outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-inset:pl-8 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5";
+  "relative flex cursor-default items-center gap-2 min-h-7 rounded-chip px-2 py-1 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-inset:pl-8 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5";
 
 function DropdownMenuItem({
   className,
@@ -145,7 +147,7 @@ function DropdownMenuLabel({
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-label"
       data-inset={inset}
-      className={cn("px-2 py-1 text-xs font-medium text-muted-foreground data-inset:pl-8", className)}
+      className={cn("px-2 pt-1.5 pb-1 text-2xs font-medium text-muted-foreground data-inset:pl-8", className)}
       {...props}
     />
   );
@@ -166,7 +168,7 @@ function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<"spa
     <span
       data-slot="dropdown-menu-shortcut"
       className={cn(
-        "ml-auto text-xs tracking-widest text-muted-foreground group-focus/dropdown-menu-item:text-accent-foreground",
+        "ml-auto font-mono text-2xs tracking-wide text-muted-foreground group-focus/dropdown-menu-item:text-accent-foreground",
         className,
       )}
       {...props}
@@ -209,7 +211,7 @@ function DropdownMenuSubContent({
       <DropdownMenuPrimitive.SubContent
         data-slot="dropdown-menu-sub-content"
         className={cn(
-          "z-overlay min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-mark border border-border bg-popover p-1.5 text-popover-foreground shadow-popover data-open:animate-arrive data-closed:animate-leave",
+          "z-overlay min-w-32 origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-mark border border-border bg-popover p-1 text-popover-foreground shadow-popover data-open:animate-arrive data-closed:animate-leave",
           className,
         )}
         {...props}

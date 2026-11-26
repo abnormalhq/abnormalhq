@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Disclosure, DisclosureContent, DisclosureList, DisclosureTrigger } from "@/components/ui/disclosure";
 import { IconTile } from "@/components/ui/icon-tile";
-import { Eyebrow, HeadingMark, PageTitle } from "@/components/ui/section-heading";
+import { Eyebrow, PageTitle } from "@/components/ui/section-heading";
 import { defaultDomain, supportEmail } from "@/storefront/config";
 import { copy } from "@/storefront/copy";
 import { LANG_PATHS, type Lang } from "@/storefront/i18n";
@@ -38,7 +38,7 @@ export function Onboard({ lang }: { lang: Lang }) {
             <span className="block">{t.titleLines[0]}</span>
             <span className="block text-muted-foreground">
               {t.titleLines[1]}
-              <HeadingMark>{t.titleDot}</HeadingMark>
+              {t.titleDot}
             </span>
           </PageTitle>
           <p className="mt-5.5 max-w-125 text-md/prose text-pretty text-muted-foreground max-narrow:mt-4 max-narrow:max-w-[40ch] max-narrow:text-sm/[1.85]">

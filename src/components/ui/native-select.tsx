@@ -22,7 +22,7 @@ function NativeSelect({
       data-slot="native-select"
       data-size={size}
       className={cn(
-        "w-full min-w-0 appearance-none rounded-control border border-input bg-control bg-(image:--select-chevron) bg-size-[0.875rem] bg-no-repeat text-foreground transition-[border-color,background-color] duration-150 hover:border-input-hover focus-visible:border-input-hover disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive [&_option]:bg-popover [&_option]:text-foreground",
+        "w-full min-w-0 appearance-none rounded-control border border-input bg-popover bg-(image:--select-chevron) bg-size-[0.875rem] bg-no-repeat text-foreground transition-[border-color,background-color] duration-100 hover:border-input-hover focus-visible:border-input-hover disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive [&_option]:bg-popover [&_option]:text-foreground",
         NATIVE_SELECT_SIZES[size],
         className,
       )}

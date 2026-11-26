@@ -4,10 +4,10 @@ import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 /**
- * What a list, a search or a page shows when it has nothing to show: an icon in a tile, a title, a sentence and the
- * next step (create the first one, clear the filters, go back home).
- * `default` is the large block that stands in for a whole list or page: centered, with a thin border and room around
- * it. `compact` is the dashed box that stands in for one panel or section among others (no logs yet, no domain to
+ * What a list, a search or a page shows when it has nothing to show: an icon, a title, a sentence and the next step
+ * (create the first one, clear the filters, go back home).
+ * `default` is the large block that stands in for a whole list or page: centered, with room around it and no box, so
+ * it reads as the page saying something rather than one more card. `compact` is the dashed box that stands in for one panel or section among others (no logs yet, no domain to
  * choose), left-aligned and in the text's own size, usually with a sentence and nothing else.
  * Every word comes in as children. The title is a paragraph unless `asChild` on EmptyStateTitle makes it the heading
  * the outline needs, such as the h1 of a not-found page.
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 const emptyStateVariants = cva("group/empty-state flex min-w-0 flex-col text-muted-foreground", {
   variants: {
     variant: {
-      default: "items-center gap-3 rounded-panel border border-border px-6 py-16 text-center",
+      default: "items-center gap-3 px-6 py-16 text-center",
       compact: "items-start gap-2 rounded-control border border-dashed border-border p-5 text-sm",
     },
   },
@@ -37,14 +37,14 @@ function EmptyState({
   );
 }
 
-/** The icon above the title, in a tile that fades into the page. The icon is decoration: the title says what is empty. */
+/** The icon above the title, drawn large and thin with no tile around it. It is decoration: the title says what is empty. */
 function EmptyStateIcon({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="empty-state-icon"
       aria-hidden="true"
       className={cn(
-        "mb-1 grid size-12 shrink-0 place-items-center rounded-mark border border-border bg-linear-to-b from-surface to-background text-foreground [&_svg:not([class*='size-'])]:size-5",
+        "mb-1 grid shrink-0 place-items-center text-muted-foreground [&_svg:not([class*='size-'])]:size-8 [&_svg:not([class*='stroke-'])]:stroke-[1.25]",
         className,
       )}
       {...props}

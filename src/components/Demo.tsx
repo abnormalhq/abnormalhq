@@ -1,5 +1,5 @@
 import { Container } from "@/components/ui/container";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { Eyebrow, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import type { Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
 import { reveal } from "@/lib/reveal";
@@ -24,7 +24,7 @@ export function Demo({ lang }: { lang: Lang }) {
             <Eyebrow lang="en">{d.eyebrow}</Eyebrow>
             <SectionTitle id="demo-title">
               {d.title}
-              <HeadingMark>{t.dot}</HeadingMark>
+              {t.dot}
             </SectionTitle>
           </div>
           <p className="max-w-136 pb-0.75 text-md/prose text-muted-foreground">{d.description}</p>

@@ -132,7 +132,7 @@ function TocLink({
       <a
         data-slot="toc-link"
         className={cn(
-          "-ml-px block min-w-0 flex-1 border-l-2 border-transparent py-1.5 pr-2 text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:-outline-offset-2 aria-[current=location]:border-signal aria-[current=location]:font-medium aria-[current=location]:text-foreground",
+          "-ml-px block min-w-0 flex-1 border-l-2 border-transparent py-1.5 pr-2 text-muted-foreground transition-colors duration-100 hover:text-foreground focus-visible:-outline-offset-2 aria-[current=location]:border-signal aria-[current=location]:font-medium aria-[current=location]:text-foreground",
           level === 1 ? "pl-3" : level === 2 ? "pl-6" : "pl-9",
           className,
         )}

@@ -34,8 +34,8 @@
  * - Arbitrary whole-pixel spacing, in px or rem (mt-[18px], mt-[3.25rem]): use a spacing step (mt-4.5, mt-13), so the
  *   density reaches it. Values that fall between pixels (mt-[0.2rem]) are left alone.
  * - Tailwind's own radii and shadows (rounded-md, shadow-lg) and arbitrary radii above 2px: use rounded-chip /
- *   control / mark / panel / dialog and shadow-panel / popover. rounded-xs (2px) and pill radii of 999px or more stay
- *   allowed, like rounded-full.
+ *   control / mark / panel / dialog and shadow-control / panel / popover / sheet. rounded-xs (2px) and pill radii of
+ *   999px or more stay allowed, like rounded-full.
  * - Numeric layers of 10 or more (z-50, z-60, z-[60]): use z-raised, z-sticky, z-header, z-chrome, z-overlay,
  *   z-floating or z-skip-link. Small arbitrary layers under 10 (z-[2]) stay allowed for stacking inside one component,
  *   and so do negative ones (-z-10, behind the parent).
@@ -190,7 +190,7 @@ export function checkClass(token) {
   const cornerPx = corner && Number(corner[2]) * (corner[3] === "rem" ? 16 : 1);
   if (corner && (corner[1] || (cornerPx > 2 && cornerPx < 999)))
     return `"${token}": use rounded-chip, rounded-control, rounded-mark, rounded-panel or rounded-dialog.`;
-  if (shadow.test(utility)) return `"${token}": use shadow-panel or shadow-popover.`;
+  if (shadow.test(utility)) return `"${token}": use shadow-control, shadow-panel, shadow-popover or shadow-sheet.`;
   const layer = utility.match(zNumber);
   if (layer && Number(layer[1] ?? layer[2]) >= 10)
     return `"${token}": use the stacking scale (z-raised, z-sticky, z-header, z-chrome, z-overlay, z-floating, z-skip-link).`;

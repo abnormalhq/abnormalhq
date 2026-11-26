@@ -35,7 +35,7 @@ function BreadcrumbLink({ className, asChild = false, ...props }: React.Componen
     <Comp
       data-slot="breadcrumb-link"
       className={cn(
-        "truncate rounded-chip underline-offset-4 transition-colors duration-150 hover:text-foreground hover:underline",
+        "truncate rounded-chip underline-offset-4 transition-colors duration-100 hover:text-foreground hover:underline",
         className,
       )}
       {...props}

@@ -1,5 +1,5 @@
 import { Container } from "@/components/ui/container";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { Eyebrow, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { configuredVideo, videoMimeType, type Lang, type PromoVideo as Video } from "@/data/site";
 import { getCopy } from "@/i18n";
@@ -29,7 +29,7 @@ export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang
             <Eyebrow lang="en">{v.eyebrow}</Eyebrow>
             <SectionTitle id="video-title">
               {v.title}
-              <HeadingMark>{t.dot}</HeadingMark>
+              {t.dot}
             </SectionTitle>
           </div>
           <p className="max-w-136 pb-0.75 text-md/prose text-muted-foreground">{v.description}</p>
