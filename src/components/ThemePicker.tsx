@@ -16,7 +16,7 @@ export function ThemePicker({ copy, onOpen }: { copy: Copy["theme"]; onOpen?: ()
       onValueChange={setPreference}
       labels={copy.options}
       label={fillTemplate(copy.ariaTemplate, { label: current }).join("")}
-      title={fillTemplate(copy.titleTemplate, { label: current }).join("")}
+      tooltip={fillTemplate(copy.titleTemplate, { label: current }).join("")}
       onOpenChange={(open) => {
         if (open) onOpen?.();
       }}

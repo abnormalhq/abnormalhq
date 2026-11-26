@@ -5,6 +5,7 @@ import { SearchIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useFormReset } from "@/components/ui/use-form-reset";
+import { LabelTooltip } from "@/components/ui/tooltip";
 
 /** Per size: the input's padding around the icon and the clear button, the icon's place, and the clear button's box. */
 const SEARCH_INPUT_SIZES = {
@@ -98,19 +99,20 @@ function SearchInput({
         {...props}
       />
       {filled && !disabled && !readOnly ? (
-        <button
-          type="button"
-          data-slot="search-input-clear"
-          aria-label={clearLabel}
-          title={clearLabel}
-          onClick={clear}
-          className={cn(
-            "absolute top-1/2 right-1 grid -translate-y-1/2 place-items-center rounded-chip text-muted-foreground transition-[color,background-color] duration-100 hover:bg-control hover:text-foreground focus-visible:outline-offset-0",
-            sizes.clear,
-          )}
-        >
-          <XIcon aria-hidden="true" />
-        </button>
+        <LabelTooltip label={clearLabel}>
+          <button
+            type="button"
+            data-slot="search-input-clear"
+            aria-label={clearLabel}
+            onClick={clear}
+            className={cn(
+              "absolute top-1/2 right-1 grid -translate-y-1/2 place-items-center rounded-chip text-muted-foreground transition-[color,background-color] duration-100 hover:bg-control hover:text-foreground focus-visible:outline-offset-0",
+              sizes.clear,
+            )}
+          >
+            <XIcon aria-hidden="true" />
+          </button>
+        </LabelTooltip>
       ) : (
         !filled &&
         hint !== undefined &&
