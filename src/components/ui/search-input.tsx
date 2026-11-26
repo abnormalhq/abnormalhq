@@ -9,8 +9,8 @@ import { LabelTooltip } from "@/components/ui/tooltip";
 
 /** Per size: the input's padding around the icon and the clear button, the icon's place, and the clear button's box. */
 const SEARCH_INPUT_SIZES = {
-  sm: { input: "pr-7 pl-7", icon: "left-2 size-3.5", clear: "size-5 [&_svg]:size-3.5" },
-  default: { input: "pr-8 pl-9", icon: "left-3 size-4", clear: "size-6 [&_svg]:size-4" },
+  sm: { input: "pr-8 pl-7", icon: "left-2 size-3.5", clear: "size-5 min-h-[24px] min-w-[24px] [&_svg]:size-3.5" },
+  default: { input: "pr-8 pl-9", icon: "left-3 size-4", clear: "size-6 min-h-[24px] min-w-[24px] [&_svg]:size-4" },
   lg: { input: "pr-10 pl-10", icon: "left-3.5 size-4", clear: "size-8 [&_svg]:size-4" },
 };
 
@@ -106,7 +106,7 @@ function SearchInput({
             aria-label={clearLabel}
             onClick={clear}
             className={cn(
-              "absolute top-1/2 right-1 grid -translate-y-1/2 place-items-center rounded-chip text-muted-foreground transition-[color,background-color] duration-150 hover:bg-control hover:text-foreground focus-visible:outline-offset-0",
+              "absolute top-1/2 right-1 grid -translate-y-1/2 place-items-center rounded-chip text-muted-foreground transition-[color,background-color] duration-100 hover:bg-control hover:text-foreground focus-visible:outline-offset-0",
               sizes.clear,
             )}
           >

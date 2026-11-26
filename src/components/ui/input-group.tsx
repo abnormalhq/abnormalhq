@@ -22,7 +22,7 @@ function InputGroup({
       data-slot="input-group"
       data-size={size}
       className={cn(
-        "flex items-center rounded-control border border-input bg-control transition-[border-color] duration-150 hover:border-input-hover focus-within:border-input-hover has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:-outline-offset-1 has-[[data-slot=input]:focus-visible]:outline-ring has-[[data-slot=input]:focus-visible]:outline-solid has-aria-invalid:border-destructive",
+        "flex items-center rounded-control border border-input bg-popover transition-[border-color] duration-100 hover:border-input-hover focus-within:border-input-hover has-[[data-slot=input]:focus-visible]:outline-2 has-[[data-slot=input]:focus-visible]:-outline-offset-1 has-[[data-slot=input]:focus-visible]:outline-ring has-[[data-slot=input]:focus-visible]:outline-solid has-aria-invalid:border-destructive",
         "[&>[data-slot=input-group-button]+[data-slot=input-group-button]]:relative [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:absolute [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:inset-y-2 [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:-left-px [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:w-px [&>[data-slot=input-group-button]+[data-slot=input-group-button]]:before:bg-border",
         INPUT_GROUP_SIZES[size],
         className,
@@ -73,7 +73,7 @@ function InputGroupButton({ className, type = "button", ...props }: React.Compon
       type={type}
       data-slot="input-group-button"
       className={cn(
-        "inline-flex min-h-[30px] shrink-0 in-data-[size=sm]:min-h-6 items-center justify-center gap-1.25 rounded-chip px-2 text-sm/body font-medium whitespace-nowrap text-muted-foreground transition-[color,background-color] duration-150 hover:bg-control hover:text-foreground focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 in-data-[slot=input-group]:last:mr-1 in-data-[slot=input-group]:last:text-foreground",
+        "inline-flex min-h-[30px] shrink-0 in-data-[size=sm]:min-h-6 items-center justify-center gap-1.25 rounded-chip px-2 text-sm/body font-medium whitespace-nowrap text-muted-foreground transition-[color,background-color] duration-100 hover:bg-control hover:text-foreground focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-50 in-data-[slot=input-group]:last:mr-1 in-data-[slot=input-group]:last:text-foreground",
         className,
       )}
       {...props}

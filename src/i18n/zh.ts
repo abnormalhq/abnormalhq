@@ -45,6 +45,7 @@ export const zh: CopyMessages = {
     mail: {
       tab: "Mail",
       titleLines: ["一个安静的邮箱，", "用你的名字"],
+      marked: "名字",
       description:
         "@abnormalhq.com 邮箱，自带日历和通讯录，可以端到端加密，也能用隐藏地址保护真实邮箱。付款后在账户里直接开通，网页、桌面和你惯用的邮件应用都能用。",
       buy: "购买邮箱",
@@ -54,6 +55,7 @@ export const zh: CopyMessages = {
       tab: "Doppel",
       badge: "尚未公开",
       titleLines: ["给 AI 代理", "一个自己的浏览器"],
+      marked: "浏览器",
       description:
         "持久、独立的浏览器工作环境：每个环境保留自己的身份、Cookie 与登录状态。Doppel 尚未公开，可以先看看候补登记的状态。",
       action: "查看候补登记状态",
@@ -672,6 +674,7 @@ export const zh: CopyMessages = {
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["少一点噪音，", "多一点专注"],
+    marked: "专注",
     body: "注册账户、选个套餐，付款后在账户里开通，马上开始收发；给团队购买、使用自己的域名，在包含这些内容的套餐上也是同样的流程；需要配置协助，可以先聊聊。",
     buy: "购买邮箱",
     custom: "咨询配置协助",

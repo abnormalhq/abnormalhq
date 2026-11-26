@@ -12,7 +12,7 @@ import {
   NotFoundDescription,
   NotFoundTitle,
 } from "@/components/ui/not-found";
-import { HeadingMark } from "@/components/ui/section-heading";
+
 import "@/styles/global.css";
 
 export const metadata: Metadata = {
@@ -38,9 +38,7 @@ export default function GlobalNotFound() {
       <body>
         <NotFound className="min-h-svh">
           <NotFoundCode lang="en">404 · Page not found</NotFoundCode>
-          <NotFoundTitle>
-            This page doesn&apos;t exist<HeadingMark>.</HeadingMark>
-          </NotFoundTitle>
+          <NotFoundTitle>This page doesn&apos;t exist.</NotFoundTitle>
           <NotFoundDescription>The link may be old, or the address mistyped.</NotFoundDescription>
           <NotFoundActions>
             <Button asChild size="lg">

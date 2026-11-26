@@ -55,7 +55,7 @@ type Side = "top" | "right" | "bottom" | "left";
 
 /**
  * The theme button of a header: an icon for the current preference that opens system, light and dark.
- * It keeps no state and no storage. The page passes what it saved (next-themes, a cookie, its own script) and
+ * It keeps no state and no storage. The page passes what it saved (theme-script's useThemePreference, next-themes, a cookie) and
  * writes the choice back, so every project shows the same control whatever holds the preference.
  * Before the preference is known, such as before hydration with a preference kept in the browser, pass undefined:
  * the button then shows the sun or the moon for the theme the page is painted in, by the same rule as the tokens, so

@@ -9,7 +9,6 @@ import {
   DescriptionTerm,
 } from "@/components/ui/description-list";
 import { EmptyState, EmptyStateActions, EmptyStateDescription, EmptyStateTitle } from "@/components/ui/empty-state";
-import { IconTile } from "@/components/ui/icon-tile";
 import { PricingPrice } from "@/components/ui/pricing-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Copy } from "@/i18n/types";
@@ -53,10 +52,7 @@ export function PlanCards({
         >
           <article>
             <div>
-              <IconTile variant={index === 0 ? "highlight" : "default"} aria-hidden="true">
-                <Icon name="mail" className="size-5.5" />
-              </IconTile>
-              <Heading className="mt-6 text-xl/[1.4] wrap-anywhere">{plan.name}</Heading>
+              <Heading className="text-xl/[1.4] wrap-anywhere">{plan.name}</Heading>
               {plan.description && (
                 <p className="mt-[0.6rem] text-base/prose whitespace-pre-line wrap-anywhere text-muted-foreground">
                   {plan.description}

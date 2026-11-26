@@ -162,7 +162,8 @@ export function Header({
           <Button asChild variant="ghost" className="mr-1 border-0 px-2.5 font-normal max-nav:hidden">
             <a href={links.webmail}>{copy.login}</a>
           </Button>
-          <Button asChild variant="highlight" className="max-md:hidden">
+          {/* Paper on the ink, not yellow: on the public pages the yellow is the highlighter's alone. */}
+          <Button asChild className="max-md:hidden">
             <a href={links.shop}>
               {copy.buy} <Icon name="up-right" className="size-3.5" />
             </a>
@@ -199,15 +200,12 @@ export function Header({
             >
               <span className="text-xs/body text-muted-foreground">0{index + 1}</span>
               {label}
-              {current ? (
-                <span className="ml-auto size-2 rounded-full bg-signal" aria-hidden="true" />
-              ) : (
-                <Icon name="up-right" className="ml-auto size-4 text-muted-foreground" />
-              )}
+              {/* The current page is told by its weight; dots are kept for unread and for trouble. */}
+              {!current && <Icon name="up-right" className="ml-auto size-4 text-muted-foreground" />}
             </Link>
           ))}
           <div className="mt-4 grid gap-2">
-            <Button asChild size="lg" variant="highlight">
+            <Button asChild size="lg">
               <a href={links.shop} onClick={closeMenu}>
                 {copy.buy} <Icon name="up-right" className="size-4" />
               </a>

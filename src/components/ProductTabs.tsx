@@ -12,14 +12,11 @@ export type ProductTab = { value: string; label: string; badge?: string; content
  */
 export function ProductTabs({ label, tabs }: { label: string; tabs: readonly ProductTab[] }) {
   return (
-    <Tabs defaultValue={tabs[0]!.value} className="items-center gap-0">
-      <TabsList
-        variant="pill"
-        aria-label={label}
-        className="animate-rise gap-1 rounded-full border border-border bg-control p-1 data-[orientation=horizontal]:py-1"
-      >
+    <Tabs defaultValue={tabs[0]!.value} className="items-start gap-0">
+      {/* Plain underlined words above the headline, like the section line of a magazine cover, not a pill switch. */}
+      <TabsList aria-label={label} className="animate-rise gap-6">
         {tabs.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value} className="h-9 rounded-full px-4">
+          <TabsTrigger key={tab.value} value={tab.value} className="px-0">
             <span lang="en">{tab.label}</span>
             {tab.badge && <span className="text-xs font-normal">· {tab.badge}</span>}
           </TabsTrigger>

@@ -5,13 +5,16 @@ import { cn } from "@/lib/utils";
 /** Section spacing that grows with the viewport. */
 const sectionSpaceClassName = "py-16 md:py-20 lg:py-24";
 
-/** A small uppercase label, led by a signal-colored dot. */
+/**
+ * A small uppercase label over a title, like the section line of a magazine page. It is set apart by its size and
+ * spacing alone: a dot in front of every label made dots decoration, and dots are kept for unread and for trouble.
+ */
 function Eyebrow({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
       data-slot="eyebrow"
       className={cn(
-        "flex items-center gap-2.5 text-xs/[1.4] font-medium tracking-caps text-muted-foreground uppercase before:size-1.5 before:shrink-0 before:rounded-full before:bg-signal",
+        "flex items-center gap-2.5 text-xs/[1.4] font-medium tracking-caps text-muted-foreground uppercase",
         className,
       )}
       {...props}
@@ -19,14 +22,17 @@ function Eyebrow({ className, ...props }: React.ComponentProps<"p">) {
   );
 }
 
-/** The section title scale: 28px on phones, then the display scale: 34px on tablets, 40px on desktops. */
+/**
+ * The section title scale: 28px on phones, then the display scale: 34px on tablets, 40px on desktops. Titles are the
+ * editorial serif at a medium weight: the size carries them, as in print, not a heavy stroke.
+ */
 function SectionTitle({ className, asChild = false, ...props }: React.ComponentProps<"h2"> & { asChild?: boolean }) {
   const Comp = asChild ? Slot.Root : "h2";
   return (
     <Comp
       data-slot="section-title"
       className={cn(
-        "mt-5 font-heading text-3xl/[1.3] font-semibold tracking-heading md:text-display-sm lg:text-display",
+        "mt-5 font-serif text-3xl/[1.2] font-medium tracking-heading md:text-display-sm lg:text-display",
         className,
       )}
       {...props}
@@ -44,7 +50,7 @@ function PageTitle({ className, asChild = false, ...props }: React.ComponentProp
     <Comp
       data-slot="page-title"
       className={cn(
-        "mt-5 font-heading text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.12] font-semibold tracking-display text-balance",
+        "mt-5 font-serif text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.08] font-medium tracking-heading text-balance",
         className,
       )}
       {...props}

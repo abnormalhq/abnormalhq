@@ -136,6 +136,8 @@ export interface Copy {
     mail: {
       tab: string;
       titleLines: readonly [string, string];
+      /** The one word of the second line that the highlighter marks; it must appear in that line. */
+      marked: string;
       description: string;
       buy: string;
       explore: string;
@@ -145,6 +147,8 @@ export interface Copy {
       tab: string;
       badge: string;
       titleLines: readonly [string, string];
+      /** The one word of the second line that the highlighter marks; it must appear in that line. */
+      marked: string;
       description: string;
       action: string;
       /** The words on the illustration of three workspaces: what each one keeps. */
@@ -576,6 +580,8 @@ export interface Copy {
   closing: {
     eyebrow: string;
     titleLines: readonly [string, string];
+    /** The one word of the second line that the highlighter marks; it must appear in that line. */
+    marked: string;
     body: string;
     buy: string;
     custom: string;

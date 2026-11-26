@@ -45,6 +45,7 @@ export const en: CopyMessages = {
     mail: {
       tab: "Mail",
       titleLines: ["A quiet mailbox,", "in your own name"],
+      marked: "name",
       description:
         "An @abnormalhq.com mailbox with a calendar and contacts, end-to-end encryption when you want it, and masked addresses to keep your real one private. Set it up in your account once paid, then use it on the web, on the desktop and in the mail apps you already have.",
       buy: "Buy a mailbox",
@@ -54,6 +55,7 @@ export const en: CopyMessages = {
       tab: "Doppel",
       badge: "Not public yet",
       titleLines: ["A browser of its own", "for every AI agent"],
+      marked: "agent",
       description:
         "Persistent, separate browser workspaces: each keeps its own identity, cookies and sign-ins. Doppel is not public yet; you can check the waitlist status.",
       action: "Check the waitlist status",
@@ -707,6 +709,7 @@ export const en: CopyMessages = {
   closing: {
     eyebrow: "Make every connection count",
     titleLines: ["Less noise,", "more room to focus"],
+    marked: "focus",
     body: "Create an account, pick a plan, set mailboxes up in your account once paid and start sending right away. Buying for a team or using your own domain works the same way on plans that include it. Want help setting up? Let's talk.",
     buy: "Buy a mailbox",
     custom: "Ask for setup help",

@@ -6,8 +6,16 @@
  *
  * The palette is ink #141412 on warm paper #f7f7f4; dark mode is the ink itself.
  * - The primary color is the ink: light #141412 with white text (18.4:1), dark #f0f0ea with ink text (16.1:1).
- * - Highlighter yellow #ffe14d is the only chromatic brand color. It marks what is current, selected or new,
- *   always carries ink text (14.2:1), and is never text on a light background nor the background of long text.
+ * - Highlighter yellow #ffe14d is the brand's one loud color. It marks the one thing on a screen that is new or that the
+ *   person should act on (a count waiting for them, the 2px mark on the selected row, the lead action of a marketing
+ *   page), always carries ink text (14.2:1), and is never text on a light background nor the background of long text.
+ * - Selection is ink, not yellow: a selected row, a pressed toggle and the current page of a pager take `selected`, a
+ *   quiet ink tint one step deeper than hover. The current navigation item sits on the canvas, so it takes the paper
+ *   (`sidebar-accent`), as the open card in a list does.
+ * - Three supporting colors sit beside the ink and the yellow, toned to the paper: indigo (information, links in
+ *   reading text, keyboard focus), clay (an editorial accent for marketing pages and illustrations) and sage (a calm
+ *   counterweight for illustrations and bands). Each has a -soft fill for a band or a callout and an -ink text color
+ *   for that fill. They are for meaning and for pages that tell a story, not for decorating every control.
  * - Cards have no fill (card is the page color); layering comes from thin borders.
  * - control and input are semi-transparent ink, so they read the same over the page, the sidebar and popovers.
  * - Status colors: success, destructive and warning (amber: pending, in progress, about to happen). badge-ink is the old
@@ -77,8 +85,12 @@
   --brand-foreground: #ffffff;
   --highlight: #ffe14d;
   --highlight-foreground: #141412;
-  /* Soft yellow surface for selected rows and the chosen option: text 16.6:1, secondary text 6.1:1. */
+  /* Soft yellow surface for something the person turned on or that matched (a search hit, an enabled mode): text
+     16.6:1, secondary text 6.1:1. Selected rows use --selected. */
   --highlight-muted: #fff4bf;
+  /* The selected row, the current navigation item, a pressed toggle: ink at about 6% over the paper, a step deeper than
+     hover, opaque like hover. Text 15.4:1, secondary text 5.5:1. */
+  --selected: #e8e8e3;
   /* Small indicators that must stay visible on any surface (dots, progress, numbering): ink in light, yellow in dark. */
   --signal: #141412;
   --bg: #f7f7f4;
@@ -101,14 +113,37 @@
   --card: var(--bg);
   --popover-bg: #ffffff;
   --sidebar: #f2f2ee;
+  /* The canvas behind a product's navigation, lists and its one inset sheet. It sits a clear step below the paper, so the
+     sheet reads as a sheet: in light a little deeper than the surface (secondary text 5.5:1), in dark below the sidebar. */
+  --canvas: #e8e8e1;
   --sidebar-foreground: var(--text);
   --sidebar-border: var(--border);
+  /* The current navigation item on the canvas: the paper itself, as the open card in a list is, so what is open reads as
+     the page it opens. An opaque tint here would sit one shade off the canvas and vanish. */
+  --sidebar-accent: var(--bg);
   /* The ink shell's own color (see .ink): the brand ink on a paper page, one step darker than the page in dark mode. */
   --ink: #141412;
-  /* Focus outline: 3.3:1 against the paper background, meeting the non-text contrast requirement. */
-  --focus: #8a8a80;
+  /* Focus outline: indigo, 7.2:1 against the paper and 6.3:1 against the canvas, and never mistaken for a border. */
+  --focus: #3a4c9e;
   --panel-shadow: 0 0 #0000;
+  /* A raised control (an outline button, a select, the pressed segment of a segmented control): one soft pixel below. */
+  --control-shadow: 0 1px 2px #14141214;
+  /* A sheet set into the canvas (AppFrame, Workspace frame="canvas"): a soft shadow below and a faint edge. */
+  --sheet-shadow: 0 1px 3px #14141214, 0 0 0 1px #1414120f;
   --popover-shadow: 0 4px 12px #1414120d, 0 16px 40px #14141217;
+  /*
+   * Supporting colors. The color itself is text-safe on the paper and popovers (at least 4.8:1), -soft is a fill for a
+   * band or a callout, and -ink is the text on that fill (at least 7:1).
+   */
+  --indigo: #3a4c9e;
+  --indigo-soft: #e3e6f2;
+  --indigo-ink: #24326e;
+  --clay: #b0502a;
+  --clay-soft: #f5e3d8;
+  --clay-ink: #7a3416;
+  --sage: #47735a;
+  --sage-soft: #dfeae2;
+  --sage-ink: #2a4e3c;
   /* Categorical chart colors, fixed order. The last two are below 3:1, so charts always carry a legend. */
   --chart-1: #2a78d6;
   --chart-2: #eb6834;
@@ -150,6 +185,8 @@
   --brand-foreground: #141412;
   /* Text 11.5:1, secondary text 5.3:1. */
   --highlight-muted: #34311b;
+  /* Text 12.9:1, secondary text 6.3:1. */
+  --selected: #242420;
   --signal: #ffe14d;
   --bg: #141412;
   --surface: #252520;
@@ -168,10 +205,23 @@
   --overlay: rgb(0 0 0 / 0.7);
   --popover-bg: #1c1c19;
   --sidebar: #0f0f0d;
+  --sidebar-accent: #1c1c19;
+  --canvas: #0b0b0a;
   --ink: #0f0f0d;
-  /* 3.6:1 against #141412. */
-  --focus: #6f6f66;
+  /* 7.9:1 against #141412. */
+  --focus: #9aa7dc;
   --popover-shadow: 0 0 0 1px #f0f0ea08, 0 16px 48px #00000080;
+  --control-shadow: 0 1px 2px #00000066;
+  --sheet-shadow: 0 0 0 1px #f0f0ea12;
+  --indigo: #9aa7dc;
+  --indigo-soft: #1f2540;
+  --indigo-ink: #c8cff0;
+  --clay: #e48c63;
+  --clay-soft: #3a2419;
+  --clay-ink: #f2c0a8;
+  --sage: #8ebf9e;
+  --sage-soft: #1b2b22;
+  --sage-ink: #bfe0c9;
   --chart-1: #3987e5;
   --chart-2: #d95926;
   --chart-3: #199e70;
@@ -209,6 +259,7 @@
     --brand: #f0f0ea;
     --brand-foreground: #141412;
     --highlight-muted: #34311b;
+    --selected: #242420;
     --signal: #ffe14d;
     --bg: #141412;
     --surface: #252520;
@@ -226,9 +277,22 @@
     --overlay: rgb(0 0 0 / 0.7);
     --popover-bg: #1c1c19;
     --sidebar: #0f0f0d;
+    --sidebar-accent: #1c1c19;
+    --canvas: #0b0b0a;
     --ink: #0f0f0d;
-    --focus: #6f6f66;
+    --focus: #9aa7dc;
     --popover-shadow: 0 0 0 1px #f0f0ea08, 0 16px 48px #00000080;
+    --control-shadow: 0 1px 2px #00000066;
+    --sheet-shadow: 0 0 0 1px #f0f0ea12;
+    --indigo: #9aa7dc;
+    --indigo-soft: #1f2540;
+    --indigo-ink: #c8cff0;
+    --clay: #e48c63;
+    --clay-soft: #3a2419;
+    --clay-ink: #f2c0a8;
+    --sage: #8ebf9e;
+    --sage-soft: #1b2b22;
+    --sage-ink: #bfe0c9;
     --chart-1: #3987e5;
     --chart-2: #d95926;
     --chart-3: #199e70;
@@ -293,6 +357,8 @@
   --brand: #f0f0ea;
   --brand-foreground: #141412;
   --highlight-muted: #34311b;
+  /* One step above the dark selected, since the shell is the darkest surface there is. */
+  --selected: #262622;
   --signal: #ffe14d;
   --surface: #252520;
   --text: #f0f0ea;
@@ -308,7 +374,18 @@
   --success: #a8c48f;
   --destructive: #ff8a96;
   --popover-bg: #1c1c19;
-  --focus: #6f6f66;
+  --focus: #9aa7dc;
+  --control-shadow: 0 1px 2px #00000066;
+  --sheet-shadow: 0 0 0 1px #f0f0ea12;
+  --indigo: #9aa7dc;
+  --indigo-soft: #1f2540;
+  --indigo-ink: #c8cff0;
+  --clay: #e48c63;
+  --clay-soft: #3a2419;
+  --clay-ink: #f2c0a8;
+  --sage: #8ebf9e;
+  --sage-soft: #1b2b22;
+  --sage-ink: #bfe0c9;
   --category-gray: #8f8f85;
   --category-gray-soft: #33332e;
   --category-gray-ink: #d6d6cc;
@@ -335,8 +412,10 @@
   --category-purple-ink: #c9b0f2;
   --card: var(--bg);
   --sidebar: var(--bg);
+  --canvas: var(--sidebar);
   --sidebar-foreground: var(--text);
   --sidebar-border: var(--border);
+  --sidebar-accent: var(--selected);
   --background: var(--bg);
   --foreground: var(--text);
   --card-foreground: var(--text);
@@ -370,6 +449,10 @@
   --warning-line: color-mix(in oklab, var(--warning) 35%, transparent);
   --destructive-soft: color-mix(in oklab, var(--destructive) 10%, transparent);
   --destructive-line: color-mix(in oklab, var(--destructive) 35%, transparent);
+  /* Information is the indigo: a neutral notice, a tip, a link inside reading text. */
+  --info: var(--indigo);
+  --info-soft: color-mix(in oklab, var(--info) 12%, transparent);
+  --info-line: color-mix(in oklab, var(--info) 35%, transparent);
 }
 
 /* The shell's own fill and text color are defaults, in the base layer, so a utility on the same element (bg-*, text-*) still wins. */
@@ -386,26 +469,31 @@
  * (text-sm is font-size: var(--text-sm)), so a density can change them for a page or one region of it (see below).
  */
 @theme {
-  /* A stable reading hierarchy: body 14px, secondary text 12-13px, page title 28px; 2xs (11px) is only for dense
-     meta text such as chips, counts, timestamps and chart ticks. */
-  --text-2xs: 11px;
+  /*
+   * Few sizes, far apart. Sizes a pixel apart read as the same size, and the page then sorts itself out by gray and
+   * weight alone, so the small end has two steps: 12px for meta text (chips, counts, timestamps, captions) and 14px for
+   * text (body and secondary text alike; secondary text is told apart by its color and place, not by a smaller size).
+   * Above them: 16px for a lead or a card title, then titles at 20, 24 and 32px. 2xs and xs, sm and base, md and lg are
+   * the same step under two names each, so existing classes keep working.
+   */
+  --text-2xs: 12px;
   --text-2xs--line-height: 1.5;
   --text-xs: 12px;
   --text-xs--line-height: 1.5;
-  --text-sm: 13px;
+  --text-sm: 14px;
   --text-sm--line-height: 1.5;
   --text-base: 14px;
   --text-base--line-height: 1.5;
-  --text-md: 15px;
+  --text-md: 16px;
   --text-md--line-height: 1.5;
   --text-lg: 16px;
   --text-lg--line-height: 1.45;
   --text-xl: 20px;
-  --text-xl--line-height: 1.4;
+  --text-xl--line-height: 1.35;
   --text-2xl: 24px;
-  --text-2xl--line-height: 1.3;
-  --text-3xl: 28px;
-  --text-3xl--line-height: 1.2;
+  --text-2xl--line-height: 1.25;
+  --text-3xl: 32px;
+  --text-3xl--line-height: 1.15;
   --text-4xl: 42px;
   --text-4xl--line-height: 1.2;
   /* The display scale, for marketing pages and the rare large line in a product (an empty state, a number that is the
@@ -464,6 +552,7 @@
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-overlay: var(--overlay);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
@@ -476,12 +565,24 @@
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
   --color-highlight-muted: var(--highlight-muted);
+  --color-selected: var(--selected);
+  --color-indigo: var(--indigo);
+  --color-indigo-soft: var(--indigo-soft);
+  --color-indigo-ink: var(--indigo-ink);
+  --color-clay: var(--clay);
+  --color-clay-soft: var(--clay-soft);
+  --color-clay-ink: var(--clay-ink);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
+  --color-sage-ink: var(--sage-ink);
   --color-signal: var(--signal);
   --color-surface: var(--surface);
   --color-badge-ink: var(--badge-ink);
   --color-sidebar: var(--sidebar);
+  --color-canvas: var(--canvas);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
   --color-ink: var(--ink);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -511,13 +612,17 @@
   --color-category-purple: var(--category-purple);
   --color-category-purple-soft: var(--category-purple-soft);
   --color-category-purple-ink: var(--category-purple-ink);
+  --shadow-control: var(--control-shadow);
+  --shadow-sheet: var(--sheet-shadow);
   --shadow-panel: var(--panel-shadow);
   --shadow-popover: var(--popover-shadow);
 
   /*
-   * Body text is Inter, headings are Bricolage Grotesque, code and data are JetBrains Mono.
-   * next/font projects set --font-inter and friends; projects using @abnormal/fonts fall back to the family names.
-   * None of them has Chinese glyphs, so the Chinese fallbacks are chained in explicitly.
+   * Text and the headings inside a product are Inter. Public pages (the website, the developer site, the status page)
+   * set their titles like a magazine, in the serif (font-serif): Newsreader for Latin and Noto Serif SC for Chinese,
+   * both from npm (see abnormal-fonts.css). Bricolage Grotesque (font-heading) is kept for the wordmark; JetBrains Mono is for code, identifiers and time codes only, never for a
+   * name or an address. next/font projects set --font-inter and friends; projects using @abnormal/fonts fall back to the
+   * family names. None of them has Chinese glyphs, so the Chinese fallbacks are chained in explicitly.
    */
   --font-sans:
     var(--font-inter, "Inter"), -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
@@ -525,6 +630,9 @@
   --font-heading:
     var(--font-bricolage, "Bricolage Grotesque"), var(--font-inter, "Inter"), -apple-system, BlinkMacSystemFont,
     "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-serif:
+    var(--font-newsreader, "Newsreader Variable"), var(--font-noto-serif-sc, "Noto Serif SC Variable"), "Songti SC",
+    "Noto Serif CJK SC", "Source Han Serif SC", "STSong", serif;
   --font-mono:
     var(--font-jetbrains-mono, "JetBrains Mono"), ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono",
     "PingFang SC", "Microsoft YaHei", monospace;
@@ -540,8 +648,9 @@
    * Enter and exit animations use transform rather than translate: Tailwind's -translate-x-1/2 sets the CSS translate
    * property, and an animation that also sets translate would override the centering of a dialog.
    */
-  --animate-arrive: arrive 0.15s ease-out both;
-  --animate-leave: leave 0.12s ease-in both;
+  /* Floating layers arrive quickly and travel 2px: they should feel like they were already there. */
+  --animate-arrive: arrive 0.12s ease-out both;
+  --animate-leave: leave 0.1s ease-in both;
   --animate-fade-in: fade-in 0.15s ease-out both;
   --animate-fade-out: fade-out 0.12s ease-in both;
   --animate-slide-in-right: slide-in-right 0.22s cubic-bezier(0.32, 0.72, 0, 1) both;
@@ -561,7 +670,7 @@
   @keyframes arrive {
     from {
       opacity: 0;
-      transform: translateY(4px);
+      transform: translateY(2px);
     }
     to {
       opacity: 1;
@@ -575,7 +684,7 @@
     }
     to {
       opacity: 0;
-      transform: translateY(3px);
+      transform: translateY(2px);
     }
   }
   @keyframes fade-in {
@@ -714,11 +823,11 @@
   .bg-popover {
     --accent: var(--popover-hover);
   }
+  /* Headings are the text face, set apart by size and weight; a marketing display line adds font-heading itself. */
   h1,
   h2,
   h3,
   h4 {
-    font-family: var(--font-heading);
     font-weight: 600;
     letter-spacing: var(--tracking-heading);
   }
@@ -732,7 +841,7 @@
   summary {
     -webkit-tap-highlight-color: transparent;
   }
-  /* Keyboard focus: a 2px solid gray outline. Input-type controls hug their border; buttons and links leave a 2px gap. */
+  /* Keyboard focus: a 2px solid indigo outline. Input-type controls hug their border; buttons and links leave a 2px gap. */
   :focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
@@ -786,8 +895,9 @@
  * <html>, or on the one region that should be dense, and everything inside tightens together:
  * - The spacing step goes from 4px to 3.5px. Every Tailwind length that is a multiple of it shrinks by an eighth:
  *   padding, gaps, margins and the heights of the components (a 32px button or input is 28px, h-9 rows are 31.5px).
- * - The interface type steps down about 1px (body 13px, secondary text 11.5-12.5px, page title 24px), 2xs stays 11px,
- *   the floor for legible meta text, and the display scale is left alone: a hero line is not dense.
+ * - Text steps down from 14px to 13px (sm and base), the lead from 16px to 15px and the page title from 32px to 28px; meta
+ *   text stays 12px, the floor for legible text, and the 20px and 24px titles and the display scale are left alone: the
+ *   gap between text and a title is what makes a dense screen readable.
  * - Body and line heights close from 1.5-1.55 to 1.45.
  * It applies only when the primary pointer is fine (a mouse or trackpad): where the primary pointer is touch the page
  * keeps the default, so touch targets keep their size. A laptop with a touchscreen but a trackpad as its primary
@@ -804,22 +914,16 @@
 @media (pointer: fine) {
   [data-ui-density="compact"] {
     --spacing: 3.5px;
-    --text-xs: 11.5px;
-    --text-xs--line-height: 1.45;
-    --text-sm: 12.5px;
+    --text-sm: 13px;
     --text-sm--line-height: 1.45;
     --text-base: 13px;
     --text-base--line-height: 1.45;
-    --text-md: 14px;
+    --text-md: 15px;
     --text-md--line-height: 1.45;
     --text-lg: 15px;
     --text-lg--line-height: 1.4;
-    --text-xl: 18px;
-    --text-xl--line-height: 1.35;
-    --text-2xl: 21px;
-    --text-2xl--line-height: 1.3;
-    --text-3xl: 24px;
-    --text-3xl--line-height: 1.2;
+    --text-3xl: 28px;
+    --text-3xl--line-height: 1.15;
     --text-4xl: 36px;
     --text-4xl--line-height: 1.2;
     --leading-body: 1.45;
@@ -839,7 +943,7 @@
   box-shadow: var(--popover-shadow);
   font-family: inherit;
   font-size: var(--text-base);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius-mark);
 }
 
 /*

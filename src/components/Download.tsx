@@ -3,7 +3,6 @@ import { BrandArrow } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { IconTile } from "@/components/ui/icon-tile";
 import { sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { desktopDownloads, type Lang } from "@/data/site";
@@ -125,9 +124,6 @@ export function Download({ lang, releases }: { lang: Lang; releases?: DesktopRel
               key={platform.name}
             >
               <span className="flex items-center gap-3">
-                <IconTile aria-hidden="true">
-                  <Icon name="monitor" className="size-5" />
-                </IconTile>
                 <h2 className="text-xl/[1.4] font-semibold tracking-title">{platform.name}</h2>
                 <ForThisComputer platform={platform.id} label={d.forThisComputer} />
               </span>

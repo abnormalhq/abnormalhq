@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { XIcon } from "lucide-react";
 
-/** Dialog is a raised surface: panel radius, 1px hairline, soft shadow, fading in from 4px below. */
+/** Dialog is a raised surface: panel radius, 1px hairline, soft shadow, fading in from 2px below. */
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
@@ -30,7 +30,7 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-overlay bg-overlay backdrop-blur-[2px] data-open:animate-fade-in data-closed:animate-fade-out",
+        "fixed inset-0 isolate z-overlay bg-overlay data-open:animate-fade-in data-closed:animate-fade-out",
         className,
       )}
       {...props}
@@ -72,7 +72,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-overlay grid max-h-[calc(100dvh-2rem)] w-full overflow-y-auto max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 rounded-dialog border border-border bg-popover p-6 text-base shadow-popover text-popover-foreground outline-none data-open:animate-arrive data-closed:animate-leave sm:max-w-md",
+          "fixed top-1/2 left-1/2 z-overlay grid max-h-[calc(100dvh-2rem)] w-full overflow-y-auto max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-dialog border border-border bg-popover p-5 text-base shadow-popover text-popover-foreground outline-none data-open:animate-arrive data-closed:animate-leave sm:max-w-md",
           className,
         )}
         {...props}
@@ -106,7 +106,7 @@ function DialogFooter({
       data-slot="dialog-footer"
       className={cn(
         // Stacked on phones the main action comes first, so the column is reversed; in a row the close button leads.
-        "-mx-6 -mb-6 flex flex-col-reverse gap-2 rounded-b-dialog border-t border-border bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end",
+        "-mx-5 -mb-5 flex flex-col-reverse gap-2 rounded-b-dialog border-t border-border bg-muted/40 px-5 py-4 sm:flex-row sm:justify-end",
         className,
       )}
       {...props}

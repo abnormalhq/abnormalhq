@@ -10,7 +10,7 @@ import { createCn } from "cn/config";
 export const CN_THEME = {
   text: ["display-sm", "display", "display-lg"],
   radius: ["chip", "control", "mark", "dialog", "panel"],
-  shadow: ["panel", "popover"],
+  shadow: ["control", "panel", "popover", "sheet"],
   tracking: ["title", "heading", "display", "caps"],
   animate: [
     "arrive",

@@ -2,7 +2,15 @@
  * Self-hosted variable fonts for projects without next/font. Install with `shadcn add @abnormal/fonts`,
  * import it after the theme, and put the three woff2 files in public/fonts (a registry item can only carry text,
  * so they are served at <registry>/fonts/ to download).
+ *
+ * The editorial serif of the public pages (font-serif) comes from npm, because its Chinese half is a hundred files
+ * split by unicode-range: a browser downloads only the slices of the characters a page shows. The item lists both
+ * packages as dependencies; the imports below pull in their @font-face rules and Tailwind copies the woff2 files.
+ * Newsreader's optical-size axis draws thinner hairlines at display sizes.
  */
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/noto-serif-sc/wght.css";
+
 @font-face {
   font-family: "Inter";
   src: url("/fonts/Inter-Variable.woff2") format("woff2");

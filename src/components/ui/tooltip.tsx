@@ -14,7 +14,8 @@ const TooltipTriggerContext = React.createContext(false);
 const TooltipOpenContext = React.createContext(false);
 
 /**
- * Tooltip: shares the popover style with menus, with a soft shadow and hairline border; fades in from 4px below like menus.
+ * Tooltip: a small ink label in both themes (the .ink values, so its text and any Kbd inside read light on dark), with
+ * a soft shadow; it fades in from just below like menus.
  * TooltipProvider is optional. Wrap an area in one to share the open delay, and the skip-delay window that lets the next tooltip open at once.
  */
 function TooltipProvider({ delayDuration = 300, ...props }: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
@@ -136,7 +137,7 @@ function TooltipContent({
           onClick?.(event);
         }}
         className={cn(
-          "z-overlay max-w-64 origin-(--radix-tooltip-content-transform-origin) rounded-control border border-border bg-popover px-2.5 py-1.5 text-xs font-medium shadow-popover text-popover-foreground data-open:animate-arrive data-closed:animate-leave",
+          "z-overlay max-w-64 origin-(--radix-tooltip-content-transform-origin) ink rounded-control px-2 py-1 text-xs font-medium shadow-popover data-open:animate-arrive data-closed:animate-leave",
           className,
         )}
         {...props}

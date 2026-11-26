@@ -83,7 +83,7 @@ export function PriceCalculator({
                       className={cn(
                         "flex min-h-11 w-full items-center justify-between gap-4 rounded-control border px-3.5 py-2.5 text-left text-sm/body transition-colors duration-150",
                         selected
-                          ? "border-foreground bg-highlight-muted text-foreground"
+                          ? "border-foreground bg-selected text-foreground"
                           : "border-input text-muted-foreground hover:border-foreground/40 hover:text-foreground",
                       )}
                     >
@@ -108,7 +108,7 @@ export function PriceCalculator({
           <p className="mt-2" role="status">
             {chosen ? (
               <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-heading text-[clamp(3rem,6vw,4.5rem)] leading-none font-semibold tracking-display tabular-nums">
+                <span className="font-serif text-[clamp(3rem,6vw,4.5rem)] leading-none font-normal tracking-heading lining-nums tabular-nums">
                   {chosen.amount}
                 </span>
                 <span className="text-md/body text-muted-foreground">{chosen.unit}</span>
@@ -132,7 +132,7 @@ export function PriceCalculator({
 
         {chosen && (
           <div className="flex flex-col items-start gap-3">
-            <Button asChild size="lg" variant="highlight">
+            <Button asChild size="lg">
               <a href={chosen.href}>
                 {c.checkout} <Icon name="up-right" className="size-4" />
               </a>
@@ -148,7 +148,7 @@ export function PriceCalculator({
           <ul className="mt-4 grid gap-3 text-base/prose">
             {chosen.facts.map((fact) => (
               <li className="flex gap-3" key={fact}>
-                <Icon name="check" className="mt-1 size-4 shrink-0 text-signal" />
+                <Icon name="check" className="mt-1 size-4 shrink-0 text-muted-foreground" />
                 {fact}
               </li>
             ))}

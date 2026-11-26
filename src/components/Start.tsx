@@ -1,8 +1,5 @@
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
-import { IconTile } from "@/components/ui/icon-tile";
-import { Eyebrow, HeadingMark, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
+import { Eyebrow, SectionTitle, sectionSpaceClassName } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { site, type Lang } from "@/data/site";
 import { getCopy } from "@/i18n";
@@ -27,7 +24,7 @@ export function Start({ lang }: { lang: Lang }) {
             <Eyebrow lang="en">{s.eyebrow}</Eyebrow>
             <SectionTitle id="start-title">
               {s.title}
-              <HeadingMark>{t.dot}</HeadingMark>
+              {t.dot}
             </SectionTitle>
           </div>
           <p className="pb-0.75 text-md/prose text-muted-foreground">
@@ -37,41 +34,37 @@ export function Start({ lang }: { lang: Lang }) {
             {s.intro[1]}
           </p>
         </div>
-        <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
+        {/* Four columns of a contents page, each opened by a hairline and its number in the serif: no boxes, no tiles.
+            The whole column is the link; the first is the usual way in, so its action is underlined from the start. */}
+        <div className="grid grid-cols-4 gap-x-10 gap-y-12 max-lg:grid-cols-2 max-sm:grid-cols-1">
           {s.entries.map((entry, index) => (
-            <Card
-              asChild
-              variant={entry.primary ? "featured" : "interactive"}
-              className="group/card px-[1.4rem] pt-6 pb-[1.4rem] max-sm:p-6"
+            <a
+              className="group/entry flex flex-col border-t border-border pt-5 transition-colors duration-150 hover:border-foreground"
+              href={links[entry.link]}
               key={entry.title}
               {...reveal(index)}
             >
-              <a href={links[entry.link]}>
-                <span className="flex items-center justify-between gap-2.75">
-                  <IconTile variant={entry.primary ? "highlight" : "default"} aria-hidden="true">
-                    <Icon name={entry.icon} className="size-5" />
-                  </IconTile>
-                  <Badge className="h-auto border-0 py-0.5 leading-body">{entry.eyebrow}</Badge>
+              <span className="flex items-baseline justify-between gap-3">
+                <span
+                  className="font-serif text-3xl leading-none font-normal text-muted-foreground lining-nums"
+                  aria-hidden="true"
+                >
+                  {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="mt-6 flex items-center justify-between text-xl/[1.4] font-semibold tracking-title max-sm:mt-[1.1rem]">
-                  {entry.title}
-                  <span className="text-xs/[1.4] font-normal tracking-normal text-muted-foreground" aria-hidden="true">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                </span>
-                <span className="mt-[0.6rem] flex-1 text-base/prose text-muted-foreground">{entry.description}</span>
-                <span className="mt-[1.4rem] flex items-center justify-between border-t border-border pt-[1.1rem] text-base/body font-medium">
-                  {entry.action}
-                  <Icon
-                    name="up-right"
-                    className={cn(
-                      "size-4 transition-colors duration-150",
-                      entry.primary ? "text-brand" : "text-muted-foreground group-hover/card:text-foreground",
-                    )}
-                  />
-                </span>
-              </a>
-            </Card>
+                <span className="text-xs/body text-muted-foreground">{entry.eyebrow}</span>
+              </span>
+              <span className="mt-6 text-xl/[1.4] font-semibold tracking-title">{entry.title}</span>
+              <span className="mt-2 flex-1 text-base/prose text-muted-foreground">{entry.description}</span>
+              <span
+                className={cn(
+                  "mt-5 inline-flex items-center gap-1.5 self-start text-base/body font-medium underline-offset-4 group-hover/entry:underline",
+                  entry.primary && "underline",
+                )}
+              >
+                {entry.action}
+                <Icon name="up-right" className="size-4 text-muted-foreground group-hover/entry:text-foreground" />
+              </span>
+            </a>
           ))}
         </div>
         <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-2">
