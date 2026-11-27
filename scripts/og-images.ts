@@ -8,7 +8,9 @@
  *   og=$(mktemp -d) && pnpm --dir "$og" add playwright && pnpm --dir "$og" exec playwright install chromium
  *   NODE_PATH="$og/node_modules" node scripts/og-images.ts
  *
- * Display serif glyphs come from Newsreader and Noto Serif SC on Google Fonts, so generating needs network access.
+ * Display serif glyphs come from Newsreader and Noto Serif SC on Google Fonts, so generating needs network access. Chinese body text
+ * uses PingFang SC where it is installed and Noto Sans SC (also from Google Fonts) elsewhere, so a machine without either does not
+ * fall back to whatever CJK font it happens to have.
  */
 import { mkdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -59,14 +61,14 @@ export function card(lang: Lang): string {
 <html lang="${t.htmlLang}">
 <head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Noto+Serif+SC:wght@400;500;600&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@400;500&display=block">
 <style>
   @font-face { font-family: Inter; src: url(${font("Inter-Variable.woff2")}) format("woff2"); font-weight: 100 900; }
   @font-face { font-family: Bricolage; src: url(${font("BricolageGrotesque-Variable.woff2")}) format("woff2"); font-weight: 200 800; }
   @font-face { font-family: Mono; src: url(${font("JetBrainsMono-Variable.woff2")}) format("woff2"); font-weight: 100 800; }
   * { box-sizing: border-box; margin: 0; }
   body { width: 1200px; height: 630px; overflow: hidden; background: #f7f7f4; color: #141412;
-    font-family: Inter, "PingFang SC", sans-serif; position: relative; }
+    font-family: Inter, "PingFang SC", "Noto Sans SC", sans-serif; position: relative; }
   .frame { position: absolute; inset: 36px; border: 1px solid #e3e3dc; border-radius: 12px; background: #f7f7f4;
     display: flex; flex-direction: column; padding: 48px 56px; }
   .top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 28px;
@@ -106,10 +108,14 @@ export function card(lang: Lang): string {
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
-  const { chromium } = createRequire(import.meta.url)("playwright") as { chromium: { launch(): Promise<Browser> } };
+  const { chromium } = createRequire(import.meta.url)("playwright") as {
+    chromium: { launch(options: { args: string[] }): Promise<Browser> };
+  };
   const outDir = new URL("public/og/", root);
   mkdirSync(outDir, { recursive: true });
-  const browser = await chromium.launch();
+  // Render in sRGB whatever the machine's display profile, so the cards carry the exact theme colors (the brand yellow stays
+  // #ffe14d): an earlier pair of cards came out with #f1e26c in its place.
+  const browser = await chromium.launch({ args: ["--force-color-profile=srgb"] });
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
     for (const lang of ["zh", "en"] as const) {
