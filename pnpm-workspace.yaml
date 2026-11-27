@@ -1,7 +1,3 @@
-overrides:
-  # OpenNext asks for glob 13, whose minimatch is open to a globparts denial of service and whose AbortSignal cancellation can be bypassed; glob 14 has the same glob/globSync API, so lift it in place.
-  "@opennextjs/cloudflare>glob": ^14.0.6
-
 # pnpm 12 does not run dependency install scripts by default, and unapproved ones fail outright in frozen-lockfile mode.
 # wrangler runs workerd locally and bundles with esbuild; both need their install scripts to download platform binaries.
 # sharp (used by next/image, not here) and unrs-resolver do not need theirs.
