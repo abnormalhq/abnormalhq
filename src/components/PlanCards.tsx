@@ -63,11 +63,20 @@ export function PlanCards({
               <PricingPrice
                 price={plan.amount}
                 period={plan.unit}
-                discount={plan.discount?.label}
-                {...(plan.discount
+                discount={index === 0 ? plan.discount?.label : undefined}
+                {...(index === 0 && plan.discount
                   ? { originalPrice: plan.discount.original, originalPriceLabel: copy.plan.originalPrice }
                   : { originalPrice: undefined })}
               />
+              {index !== 0 && plan.discount && (
+                <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-xs text-muted-foreground">
+                  <Badge className="bg-sage-soft font-semibold text-sage-ink">{plan.discount.label}</Badge>
+                  <span>
+                    <span className="sr-only">{copy.plan.originalPrice} </span>
+                    <s>{plan.discount.original}</s>
+                  </span>
+                </p>
+              )}
               {plan.card && <p className="mt-auto pt-3 text-sm/body text-muted-foreground">{plan.card}</p>}
               {plan.note && <p className="pt-3 text-xs/[1.7] text-muted-foreground">{plan.note}</p>}
             </div>

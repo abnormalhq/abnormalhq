@@ -66,7 +66,7 @@ export function HomePricing({
   const shopButton = (
     <Button asChild variant="outline" size="lg">
       <a href={shop}>
-        {copy.shopLink} <Icon name="up-right" className="size-4" />
+        {copy.shopLink} <Icon name="arrow" className="size-4" />
       </a>
     </Button>
   );
@@ -74,7 +74,7 @@ export function HomePricing({
   const pricingLink = (
     <Button asChild variant="outline" size="lg">
       <a href={pricing}>
-        {copy.compareLink} <Icon name="up-right" className="size-4" />
+        {copy.compareLink} <Icon name="arrow" className="size-4" />
       </a>
     </Button>
   );

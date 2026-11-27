@@ -27,10 +27,7 @@ export function PromoVideo({ lang, video = configuredVideo(lang) }: { lang: Lang
         >
           <div>
             <Eyebrow lang="en">{v.eyebrow}</Eyebrow>
-            <SectionTitle id="video-title">
-              {v.title}
-              {t.dot}
-            </SectionTitle>
+            <SectionTitle id="video-title">{v.title}</SectionTitle>
           </div>
           <p className="max-w-136 pb-0.75 text-md/prose text-muted-foreground">{v.description}</p>
         </div>

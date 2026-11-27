@@ -1,58 +1,115 @@
-import { useCurrentFrame } from "remotion";
+import { BrandMark } from "../BrandMark";
 import type { VideoCopy } from "../copy";
 import { color, font, radius } from "../theme";
-import { Eyebrow, Paper, Rings, useEnter, useSpringAt } from "../ui";
+import { Eyebrow, Paper, useEnter } from "../ui";
 
-/** The hero headline: two large title lines on the left, the rings from the social image and the @abnormalhq.com tag on the right. */
+/** Editorial serif cover matching the website's hero: brand bar above, serif headline with one highlighter stroke, and crisp @abnormalhq.com address pill. */
 export function Headline({ t }: { t: VideoCopy }) {
-  const frame = useCurrentFrame();
   const eyebrow = useEnter(0);
-  const line1 = useEnter(10, { distance: 40 });
-  const line2 = useEnter(20, { distance: 40 });
-  const desc = useEnter(40);
-  const tag = useSpringAt(30, 30, 12);
+  const line1 = useEnter(10, { distance: 36 });
+  const line2 = useEnter(20, { distance: 36 });
+  const desc = useEnter(38);
+  const at = t.titleLines[1].indexOf(t.marked);
+  const before = at >= 0 ? t.titleLines[1].slice(0, at) : t.titleLines[1];
+  const after = at >= 0 ? t.titleLines[1].slice(at + t.marked.length) : "";
+
   return (
     <Paper>
-      <Rings size={760} spin={frame * 0.05} style={{ right: -120, top: 120 }} />
       <div
         style={{
           position: "absolute",
-          right: 250,
-          top: 300,
-          transform: `rotate(${-4 - (1 - tag) * 10}deg) scale(${0.6 + tag * 0.4})`,
-          opacity: Math.min(1, tag * 2),
-          backgroundColor: color.highlight,
-          color: color.onHighlight,
-          fontFamily: font.mono,
-          fontSize: 36,
-          fontWeight: 500,
-          padding: "16px 28px",
-          borderRadius: radius.control,
+          inset: "110px 140px",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        @abnormalhq.com
-      </div>
-      <div style={{ position: "absolute", left: 140, top: 300, width: 1180 }}>
-        <Eyebrow style={eyebrow}>{t.eyebrow}</Eyebrow>
-        <h1
+        <div
           style={{
-            margin: "40px 0 0",
-            fontFamily: font.heading,
-            fontWeight: 600,
-            fontSize: t.htmlLang === "en" ? 104 : 128,
-            lineHeight: 1.15,
-            letterSpacing: "-0.025em",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingBottom: 42,
+            borderBottom: `1px solid ${color.border}`,
           }}
         >
-          <span style={{ display: "block", ...line1 }}>{t.titleLines[0]}</span>
-          <span style={{ display: "block", color: color.muted, ...line2 }}>
-            {t.titleLines[1]}
-            <span style={{ color: color.ink }}>{t.dot}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
+            <BrandMark size={64} radius={8} />
+            <span
+              style={{
+                fontFamily: font.heading,
+                fontSize: 42,
+                fontWeight: 600,
+                letterSpacing: "-0.02em",
+                color: color.ink,
+              }}
+            >
+              abnormal.
+            </span>
+          </div>
+          <span
+            style={{
+              backgroundColor: color.sageSoft,
+              color: color.sageInk,
+              fontFamily: font.mono,
+              fontSize: 28,
+              fontWeight: 500,
+              padding: "12px 24px",
+              borderRadius: radius.control,
+            }}
+          >
+            @abnormalhq.com
           </span>
-        </h1>
-        <p style={{ ...desc, margin: "44px 0 0", maxWidth: 900, fontSize: 36, lineHeight: 1.6, color: color.muted }}>
-          {t.description}
-        </p>
+        </div>
+
+        <div style={{ marginTop: 84 }}>
+          <Eyebrow style={eyebrow}>{t.eyebrow}</Eyebrow>
+          <h1
+            style={{
+              margin: "34px 0 0",
+              fontFamily: font.serif,
+              fontWeight: t.htmlLang === "en" ? 400 : 500,
+              fontSize: t.htmlLang === "en" ? 132 : 124,
+              lineHeight: t.htmlLang === "en" ? 1.08 : 1.16,
+              letterSpacing: t.htmlLang === "en" ? "-0.03em" : "0em",
+            }}
+          >
+            <span style={{ display: "block", ...line1 }}>{t.titleLines[0]}</span>
+            <span style={{ display: "block", ...line2 }}>
+              {before}
+              {at >= 0 && (
+                <span
+                  style={{
+                    backgroundImage: `linear-gradient(transparent ${color.markerFrom}, ${color.highlight} ${color.markerFrom} ${color.markerTo}, transparent ${color.markerTo})`,
+                    padding: "0 0.06em",
+                  }}
+                >
+                  {t.marked}
+                </span>
+              )}
+              {after}
+            </span>
+          </h1>
+        </div>
+
+        <div
+          style={{
+            ...desc,
+            marginTop: "auto",
+            paddingTop: 38,
+            borderTop: `1px solid ${color.border}`,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            gap: 48,
+          }}
+        >
+          <p style={{ margin: 0, maxWidth: 1260, fontSize: 34, lineHeight: 1.55, color: color.muted }}>
+            {t.description}
+          </p>
+          <span style={{ fontFamily: font.mono, fontSize: 28, color: color.ink, whiteSpace: "nowrap" }}>
+            abnormalhq.com
+          </span>
+        </div>
       </div>
     </Paper>
   );

@@ -41,16 +41,15 @@ export function Inbox({ t }: { t: VideoCopy }) {
           style={{
             ...heading,
             margin: "36px 0 0",
-            fontFamily: font.heading,
-            fontWeight: 600,
-            fontSize: 76,
-            lineHeight: 1.2,
+            fontFamily: font.serif,
+            fontWeight: t.htmlLang === "en" ? 400 : 500,
+            fontSize: 78,
+            lineHeight: 1.18,
             textWrap: "balance",
-            letterSpacing: "-0.02em",
+            letterSpacing: t.htmlLang === "en" ? "-0.02em" : "0em",
           }}
         >
           {m.heading}
-          {t.dot}
         </h2>
         <div
           style={{

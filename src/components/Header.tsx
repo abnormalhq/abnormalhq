@@ -1,11 +1,19 @@
 "use client";
 
+import { ChevronDownIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode, type SyntheticEvent } from "react";
 import { BrandArrow } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { linksFor, type Lang } from "@/data/site";
 import { isCurrentSection, localePath, switchHref } from "@/i18n/paths";
 import type { Copy } from "@/i18n/types";
@@ -149,23 +157,44 @@ export function Header({
           </LabelTooltip>
           <ThemePicker copy={themeCopy} onOpen={closeMenu} />
           <span className="mx-2 h-4 w-px bg-border max-md:hidden" aria-hidden="true"></span>
-          {/* Below the nav breakpoint the bar has no room for "My account" and "Log in"; the menu button opens them. */}
-          <Button
-            asChild
-            variant="ghost"
-            className="border-0 px-2.5 font-normal max-nav:hidden aria-[current=page]:bg-control aria-[current=page]:text-foreground"
-          >
-            <a href={links.account} aria-current={onAccount ? "page" : undefined}>
-              {copy.account}
-            </a>
-          </Button>
-          <Button asChild variant="ghost" className="mr-1 border-0 px-2.5 font-normal max-nav:hidden">
-            <a href={links.webmail}>{copy.login}</a>
-          </Button>
-          {/* Paper on the ink, not yellow: on the public pages the yellow is the highlighter's alone. */}
+          {/* Account, WebMail and redeem share one quiet menu on desktop so the bar keeps magazine breathing room. */}
+          <DropdownMenu onOpenChange={(open) => open && closeMenu()}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="mr-1 border-0 px-2.5 font-normal max-nav:hidden aria-[current=page]:bg-control aria-[current=page]:text-foreground"
+                aria-current={onAccount ? "page" : undefined}
+              >
+                {copy.login}
+                <ChevronDownIcon className="size-3.5 text-muted-foreground" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              <DropdownMenuItem asChild>
+                <a href={links.account} className="justify-between">
+                  {copy.account}
+                  <Icon name="arrow" className="size-3.5 text-muted-foreground" />
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={links.webmail} className="justify-between">
+                  {copy.loginWebmail}
+                  <BrandArrow className="size-3 text-muted-foreground" />
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <a href={links.redeem} className="justify-between">
+                  {copy.haveCode}
+                  <Icon name="arrow" className="size-3.5 text-muted-foreground" />
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* Ink on paper (or paper on ink in dark mode); internal storefront flow uses a plain arrow rather than external up-right. */}
           <Button asChild className="max-md:hidden">
             <a href={links.shop}>
-              {copy.buy} <Icon name="up-right" className="size-3.5" />
+              {copy.buy} <Icon name="arrow" className="size-3.5" />
             </a>
           </Button>
           <IconButton
@@ -207,12 +236,12 @@ export function Header({
           <div className="mt-4 grid gap-2">
             <Button asChild size="lg">
               <a href={links.shop} onClick={closeMenu}>
-                {copy.buy} <Icon name="up-right" className="size-4" />
+                {copy.buy} <Icon name="arrow" className="size-4" />
               </a>
             </Button>
             <Button asChild variant="outline" size="lg">
               <a href={links.account} onClick={closeMenu} aria-current={onAccount ? "page" : undefined}>
-                {copy.account} <Icon name="up-right" className="size-4" />
+                {copy.account} <Icon name="arrow" className="size-4" />
               </a>
             </Button>
             <Button asChild variant="outline" size="lg">
@@ -222,7 +251,7 @@ export function Header({
             </Button>
             <Button asChild variant="outline" size="lg">
               <a href={links.redeem} onClick={closeMenu}>
-                {copy.haveCode} <Icon name="up-right" className="size-4" />
+                {copy.haveCode} <Icon name="arrow" className="size-4" />
               </a>
             </Button>
           </div>

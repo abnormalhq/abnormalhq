@@ -45,7 +45,6 @@ import { cn } from "@/lib/utils";
 import { EmptyState, EmptyStateActions, EmptyStateDescription, EmptyStateTitle } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { IconTile } from "@/components/ui/icon-tile";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShopDetails } from "./ShopDetails";
@@ -458,7 +457,7 @@ export function Shop({ lang }: { lang: Lang }) {
           <span className="sr-only">{t.loading}</span>
           {[0, 1, 2].map((index) => (
             <Card className="block p-7 max-narrow:px-5 max-narrow:py-5.5" key={index}>
-              <Skeleton className="mb-5.5 size-9.5" />
+              <Skeleton className="mb-4 h-4 w-12" />
               <Skeleton className="h-6 w-3/5" />
               <Skeleton className="mt-4 h-4 w-full" />
               <Skeleton className="mt-2 h-4 w-4/5" />
@@ -520,7 +519,7 @@ export function Shop({ lang }: { lang: Lang }) {
               </div>
             )}
             {couponsOffered && (
-              <Collapsible className="group/coupon mt-5 mb-6 max-w-130 max-tablet:mt-0 min-w-0 flex-[1_1_320px]">
+              <Collapsible className="group/coupon mt-11 mb-6 min-w-0 max-w-130 flex-[1_1_320px] max-tablet:mt-0">
                 <CollapsibleTrigger className="inline-flex min-h-9 cursor-pointer items-center gap-2 text-sm/body text-foreground underline decoration-border underline-offset-4 hover:decoration-current">
                   {t.couponToggle}
                   <span
@@ -662,9 +661,9 @@ export function Shop({ lang }: { lang: Lang }) {
               return (
                 <Card
                   asChild
-                  variant={selected ? "featured" : "default"}
+                  variant={selected || (!hasSelected && planIndex === 0) ? "featured" : "default"}
                   className={cn(
-                    "row-span-4 grid scroll-mt-24 grid-rows-subgrid gap-y-0 p-7 max-narrow:px-5 max-narrow:py-5.5",
+                    "row-span-4 grid scroll-mt-24 grid-rows-subgrid gap-y-0 bg-popover p-7 max-narrow:px-5 max-narrow:py-5.5",
                     shopArriveClass,
                   )}
                   // One after another, so the eye is led across the plans.
@@ -673,15 +672,13 @@ export function Shop({ lang }: { lang: Lang }) {
                 >
                   <article ref={selected ? selectedCard : undefined} aria-current={selected ? "true" : undefined}>
                     <div>
-                      {selected && (
-                        <Badge variant="brand" className="float-right">
-                          {t.planSelected}
-                        </Badge>
-                      )}
-                      {/* The a↗ in the plan card's top-left corner echoes the brand mark: highlight yellow square with ink text. */}
-                      <IconTile variant="highlight" className="mb-5.5 size-9.5 text-xl" aria-hidden="true">
-                        a↗
-                      </IconTile>
+                      {/* Quiet editorial numeral instead of repeating the yellow brand mark on every card: keeps highlighter yellow to one accent per screen. */}
+                      <div className="mb-4 flex min-h-6 items-center justify-between gap-3">
+                        <span className="font-mono text-xs text-muted-foreground" aria-hidden="true">
+                          {String(planIndex + 1).padStart(2, "0")}
+                        </span>
+                        {selected && <Badge variant="brand">{t.planSelected}</Badge>}
+                      </div>
                       <h3 className="text-xl wrap-anywhere">{product.name}</h3>
                       {product.description && (
                         <p className="mt-3 text-sm/[1.7] whitespace-pre-line wrap-anywhere text-muted-foreground">
@@ -694,6 +691,7 @@ export function Shop({ lang }: { lang: Lang }) {
                         <ShopPrice
                           item={product}
                           purchase
+                          featured={!hasSelected && planIndex === 0}
                           unit={seatPlan ? t.seatUnit(days) : undefined}
                           className="my-0"
                         />
@@ -880,7 +878,7 @@ export function Shop({ lang }: { lang: Lang }) {
                             aria-label={`${t.buy} · ${product.name}`}
                           >
                             {buying === `${product.id}:ldc` ? t.buying : t.buy}
-                            {buying !== `${product.id}:ldc` && <span aria-hidden="true">↗</span>}
+                            {buying !== `${product.id}:ldc` && <span aria-hidden="true">→</span>}
                           </ShopButton>
                         )}
                         {cardPrice ? (
@@ -893,7 +891,7 @@ export function Shop({ lang }: { lang: Lang }) {
                             aria-label={`${t.payCard} · ${product.name}`}
                           >
                             {buying === `${product.id}:stripe` ? t.buying : t.payCard}
-                            {buying !== `${product.id}:stripe` && <span aria-hidden="true">↗</span>}
+                            {buying !== `${product.id}:stripe` && <span aria-hidden="true">→</span>}
                           </ShopButton>
                         ) : null}
                         {usdtPrice ? (
@@ -906,7 +904,7 @@ export function Shop({ lang }: { lang: Lang }) {
                             aria-label={`${t.payUsdt} · ${product.name}`}
                           >
                             {buying === `${product.id}:usdt` ? t.buying : t.payUsdt}
-                            {buying !== `${product.id}:usdt` && <span aria-hidden="true">↗</span>}
+                            {buying !== `${product.id}:usdt` && <span aria-hidden="true">→</span>}
                           </ShopButton>
                         ) : null}
                       </div>

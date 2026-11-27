@@ -153,6 +153,22 @@ export interface Copy {
       action: string;
       /** The words on the illustration of three workspaces: what each one keeps. */
       keeps: readonly [string, string, string];
+      /** Interactive architectural topology shown under the Doppel hero headline. */
+      topology: {
+        eyebrow: string;
+        hint: string;
+        inspectorBadge: string;
+        profiles: readonly {
+          number: string;
+          name: string;
+          hosts: string;
+          status: string;
+          active: boolean;
+          tone: "indigo" | "clay" | "sage";
+          values: readonly [string, string, string];
+          inspect: string;
+        }[];
+      };
     };
     loginPrompt: string;
     /** Sign in to the buyer account (manage mailboxes and orders). */
@@ -274,6 +290,20 @@ export interface Copy {
       /** The calendar sample's day names, Monday first. */
       weekdays: readonly [string, string, string, string, string, string, string];
       events: readonly SampleEvent[];
+      /** Match count shown inside the search specimen. */
+      searchHits: string;
+      /** Restore action when toggling a masked address specimen back on. */
+      maskedRestore: string;
+      /** Cryptographic spec chip in the encryption specimen. */
+      encryptionSpec: string;
+      /** Passkey readiness chip in the authentication specimen. */
+      passkeyReady: string;
+    };
+    /** Second editorial chapter on the deep ink band: encryption, masked addresses, passkeys and phishing warnings. */
+    privacy: {
+      eyebrow: string;
+      title: string;
+      intro: string;
     };
     /** Smaller things a mailbox can do, listed under the tiles as short phrases. */
     more: { title: string; items: readonly string[] };
@@ -454,6 +484,8 @@ export interface Copy {
       checkout: string;
       none: Template<"count">;
       includes: string;
+      /** Header above the right-hand ledger receipt column. */
+      summaryTitle: string;
     };
     /** "Check your address" in the hero and on the pricing page (src/components/AddressCheck.tsx). */
     check: {

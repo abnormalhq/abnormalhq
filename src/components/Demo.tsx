@@ -22,10 +22,7 @@ export function Demo({ lang }: { lang: Lang }) {
         >
           <div>
             <Eyebrow lang="en">{d.eyebrow}</Eyebrow>
-            <SectionTitle id="demo-title">
-              {d.title}
-              {t.dot}
-            </SectionTitle>
+            <SectionTitle id="demo-title">{d.title}</SectionTitle>
           </div>
           <p className="max-w-136 pb-0.75 text-md/prose text-muted-foreground">{d.description}</p>
         </div>

@@ -33,17 +33,16 @@ export function Outro({ t }: { t: VideoCopy }) {
             ...title,
             margin: 0,
             textAlign: "center",
-            fontFamily: font.heading,
-            fontWeight: 600,
+            fontFamily: font.serif,
+            fontWeight: t.htmlLang === "en" ? 400 : 500,
             fontSize: 112,
-            lineHeight: 1.2,
-            letterSpacing: "-0.025em",
+            lineHeight: 1.16,
+            letterSpacing: t.htmlLang === "en" ? "-0.025em" : "0em",
           }}
         >
           {t.closingLines[0]}
           {t.htmlLang === "en" ? " " : ""}
           <span style={{ color: color.muted }}>{t.closingLines[1]}</span>
-          {t.dot}
         </h2>
         <div
           style={{

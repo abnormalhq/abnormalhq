@@ -11,6 +11,7 @@ export interface VideoCopy {
   tagline: string;
   eyebrow: string;
   titleLines: readonly [string, string];
+  marked: string;
   description: string;
   mock: {
     overline: string;
@@ -35,7 +36,8 @@ export const copies: Record<Lang, VideoCopy> = {
     dot: "。",
     tagline: "Abnormally good.",
     eyebrow: "Email, made personal",
-    titleLines: ["好用的邮箱，", "沟通更简单"],
+    titleLines: ["一个安静的邮箱，", "用你的名字"],
+    marked: "名字",
     description: "注册账户，在线选购 @abnormalhq.com 邮箱，在账户里直接开通和管理。",
     mock: {
       overline: "A LITTLE MORE CONNECTED",
@@ -67,7 +69,8 @@ export const copies: Record<Lang, VideoCopy> = {
     dot: ".",
     tagline: "Abnormally good.",
     eyebrow: "Email, made personal",
-    titleLines: ["Good email,", "simple conversations"],
+    titleLines: ["A quiet mailbox,", "in your own name"],
+    marked: "name",
     description: "Create an account, buy @abnormalhq.com mailboxes online, and set them up from your account.",
     mock: {
       overline: "A LITTLE MORE CONNECTED",

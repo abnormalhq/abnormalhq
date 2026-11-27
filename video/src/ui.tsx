@@ -23,51 +23,39 @@ export function useSpringAt(delay: number, durationInFrames = 30, damping = 200)
   return spring({ frame: frame - delay, fps, durationInFrames, config: { damping } });
 }
 
-/** The paper background with the "+" marks in the four corners (as in the hero illustration). */
+/** Clean paper or ink frame bounded by a quiet editorial inset hairline instead of decorative corner crosses. */
 export function Paper({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <AbsoluteFill style={{ backgroundColor: color.paper, color: color.ink, fontFamily: font.body, ...style }}>
-      {(["top", "bottom"] as const).flatMap((v) =>
-        (["left", "right"] as const).map((h) => (
-          <span
-            key={`${v}-${h}`}
-            style={{
-              position: "absolute",
-              [v]: 44,
-              [h]: 60,
-              fontSize: 34,
-              fontWeight: 300,
-              lineHeight: 1,
-              color: color.muted,
-              fontFamily: font.heading,
-            }}
-          >
-            +
-          </span>
-        )),
-      )}
+      <div
+        style={{
+          position: "absolute",
+          inset: 44,
+          border: `1px solid ${color.border}`,
+          borderRadius: radius.panel,
+          pointerEvents: "none",
+        }}
+      />
       {children}
     </AbsoluteFill>
   );
 }
 
-/** Eyebrow: small English monospace text with an ink dot in front. */
+/** Eyebrow: small uppercase English label in clay, matching the site's editorial section line without decorative dots. */
 export function Eyebrow({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 14,
         fontFamily: font.mono,
         fontSize: 22,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
-        color: color.muted,
+        color: color.clay,
         ...style,
       }}
     >
-      <span style={{ width: 9, height: 9, borderRadius: 999, backgroundColor: color.ink }} />
       {children}
     </div>
   );
