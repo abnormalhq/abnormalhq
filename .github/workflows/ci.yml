@@ -22,7 +22,9 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Blacksmith, as on status, mail and doppel; setup-node's pnpm cache and the Next.js cache below go to Blacksmith's cache next to
+    # the runner.
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 15
     steps:
       - name: Check out source
@@ -46,5 +48,21 @@ jobs:
           git fetch --no-tags --depth=1 origin "$CONTRACT_BASE_SHA"
           git show "$CONTRACT_BASE_SHA:docs/onboard-contract.json" > "$RUNNER_TEMP/onboard-contract-base.json"
           node scripts/contract-compat.ts --baseline "$RUNNER_TEMP/onboard-contract-base.json"
+      # next build (inside the OpenNext build) keeps its compiler cache in .next/cache; restored, it only recompiles what changed. Every
+      # run restores the newest cache main saved for the same lockfile and Node version, and only pushes to main save one, so pull
+      # requests do not crowd main's out of the repository's cache space (the same scheme as mail's build job).
+      - name: Restore the Next.js build cache
+        id: next-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', '.node-version') }}-${{ github.sha }}
+          restore-keys: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', '.node-version') }}-
       - name: Lint, typecheck, test, format check, build and validate Worker
         run: pnpm cf:build
+      - name: Save the Next.js build cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v6
+        with:
+          path: .next/cache
+          key: ${{ steps.next-cache.outputs.cache-primary-key }}
