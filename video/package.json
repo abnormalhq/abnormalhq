@@ -15,22 +15,22 @@
     "typecheck": "tsc6 --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.545",
-    "@remotion/fonts": "4.0.545",
-    "@remotion/google-fonts": "4.0.545",
-    "@remotion/transitions": "4.0.545",
-    "node-web-audio-api": "^2.2.0",
+    "@remotion/cli": "4.0.547",
+    "@remotion/fonts": "4.0.547",
+    "@remotion/google-fonts": "4.0.547",
+    "@remotion/transitions": "4.0.547",
+    "node-web-audio-api": "^2.3.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "remotion": "4.0.545",
+    "remotion": "4.0.547",
     "tone": "^15.1.22"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0",
+    "@types/react": "^19.3.3",
     "@types/react-dom": "^19.3.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
-  "packageManager": "pnpm@12.21.0",
+  "packageManager": "pnpm@12.23.0",
   "engines": {
     "node": ">=22.22.1",
     "pnpm": ">=12"
